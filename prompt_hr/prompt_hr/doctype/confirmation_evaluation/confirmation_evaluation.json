@@ -1,0 +1,74 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-03-31 12:09:05.157862",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "category",
+  "parameters",
+  "column_break_kciy",
+  "rh_rating",
+  "dh_rating",
+  "remarks_if_any"
+ ],
+ "fields": [
+  {
+   "columns": 2,
+   "fieldname": "category",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Category",
+   "options": "Functional/ Technical Skills\nBehavioural Skills"
+  },
+  {
+   "columns": 2,
+   "fieldname": "parameters",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Parameters"
+  },
+  {
+   "fieldname": "column_break_kciy",
+   "fieldtype": "Column Break"
+  },
+  {
+   "columns": 2,
+   "fieldname": "rh_rating",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "RH Rating",
+   "precision": "1"
+  },
+  {
+   "columns": 2,
+   "fieldname": "dh_rating",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "DH Rating",
+   "precision": "1"
+  },
+  {
+   "columns": 2,
+   "fieldname": "remarks_if_any",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Remarks, If any"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-04-02 10:44:20.387160",
+ "modified_by": "jignasha@sanskartechnolab.com",
+ "module": "Prompt HR",
+ "name": "Confirmation Evaluation",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

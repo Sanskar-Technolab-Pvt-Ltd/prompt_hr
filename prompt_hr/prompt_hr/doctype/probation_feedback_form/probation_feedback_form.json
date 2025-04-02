@@ -1,0 +1,210 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-03-31 11:29:38.322721",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_sihy",
+  "employee",
+  "employee_name",
+  "department",
+  "designation",
+  "company",
+  "column_break_dbio",
+  "product_line",
+  "business_unit",
+  "reporting_manager",
+  "evaluation_date",
+  "hod",
+  "amended_from",
+  "probation_evaluation_section",
+  "probation_feedback_prompt",
+  "probation_feedback_indifoss",
+  "confirmation_details_section",
+  "probation_status",
+  "column_break_jzpn",
+  "reason",
+  "extension_period",
+  "training_needs_section",
+  "training_requires",
+  "section_break_csmg",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_sihy",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name"
+  },
+  {
+   "fetch_from": "employee.department",
+   "fieldname": "department",
+   "fieldtype": "Data",
+   "label": "Department"
+  },
+  {
+   "fetch_from": "employee.designation",
+   "fieldname": "designation",
+   "fieldtype": "Data",
+   "label": "Designation"
+  },
+  {
+   "fetch_from": "employee.company",
+   "fieldname": "company",
+   "fieldtype": "Data",
+   "label": "Company"
+  },
+  {
+   "fieldname": "column_break_dbio",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "employee.custom_product_line",
+   "fieldname": "product_line",
+   "fieldtype": "Data",
+   "label": "Product Line"
+  },
+  {
+   "fetch_from": "employee.custom_business_unit",
+   "fieldname": "business_unit",
+   "fieldtype": "Data",
+   "label": "Business Unit"
+  },
+  {
+   "fetch_from": "employee.reports_to",
+   "fieldname": "reporting_manager",
+   "fieldtype": "Link",
+   "label": "Reporting Manager",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "evaluation_date",
+   "fieldtype": "Date",
+   "label": "Evaluation Date"
+  },
+  {
+   "fieldname": "hod",
+   "fieldtype": "Link",
+   "label": "HOD",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Probation Feedback Form",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "depends_on": "employee",
+   "fieldname": "probation_evaluation_section",
+   "fieldtype": "Section Break",
+   "label": "Probation Evaluation"
+  },
+  {
+   "depends_on": "eval:doc.company!='IndiFOSS Analytical Pvt Ltd'",
+   "fieldname": "probation_feedback_prompt",
+   "fieldtype": "Table",
+   "label": "Probation Feedback Prompt",
+   "options": "Probation Feedback Prompt"
+  },
+  {
+   "depends_on": "eval:doc.company=='IndiFOSS Analytical Pvt Ltd'",
+   "fieldname": "probation_feedback_indifoss",
+   "fieldtype": "Table",
+   "label": "Probation Feedback IndiFOSS",
+   "options": "Probation Feedback IndiFOSS"
+  },
+  {
+   "depends_on": "eval:doc.company=='IndiFOSS Analytical Pvt Ltd'",
+   "fieldname": "confirmation_details_section",
+   "fieldtype": "Section Break",
+   "label": "Confirmation Details"
+  },
+  {
+   "fieldname": "probation_status",
+   "fieldtype": "Select",
+   "label": "Probation Status",
+   "options": "Confirm\nExtend\nTerminate"
+  },
+  {
+   "fieldname": "column_break_jzpn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Data",
+   "label": "Reason"
+  },
+  {
+   "fieldname": "extension_period",
+   "fieldtype": "Float",
+   "label": "Extension Period",
+   "precision": "1"
+  },
+  {
+   "depends_on": "eval:doc.company=='IndiFOSS Analytical Pvt Ltd'",
+   "fieldname": "training_needs_section",
+   "fieldtype": "Section Break",
+   "label": "Training Needs"
+  },
+  {
+   "fieldname": "training_requires",
+   "fieldtype": "Table",
+   "label": "Training Requires",
+   "options": "Probation Training Needs"
+  },
+  {
+   "fieldname": "section_break_csmg",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-04-02 10:44:21.230048",
+ "modified_by": "jignasha@sanskartechnolab.com",
+ "module": "Prompt HR",
+ "name": "Probation Feedback Form",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -1,0 +1,74 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:business_unit",
+ "creation": "2025-03-25 18:36:30.365619",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "business_unit",
+  "company",
+  "column_break_dsck",
+  "business_unit_head",
+  "business_unit_head_name"
+ ],
+ "fields": [
+  {
+   "fieldname": "business_unit",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Business Unit",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_dsck",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "business_unit_head",
+   "fieldtype": "Data",
+   "label": "Business Unit Head"
+  },
+  {
+   "fieldname": "business_unit_head_name",
+   "fieldtype": "Data",
+   "label": "Business Unit Head Name"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-04-02 10:44:25.135385",
+ "modified_by": "jignasha@sanskartechnolab.com",
+ "module": "Prompt HR",
+ "name": "Business Unit",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -1,0 +1,101 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-03-31 13:57:55.525013",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "designation",
+  "primary_skill_area",
+  "primary_skills",
+  "communication",
+  "column_break_qigh",
+  "management",
+  "attitude",
+  "education",
+  "experience"
+ ],
+ "fields": [
+  {
+   "columns": 2,
+   "fieldname": "designation",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Designation",
+   "options": "Designation"
+  },
+  {
+   "columns": 1,
+   "fieldname": "primary_skill_area",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Primary Skill Area"
+  },
+  {
+   "columns": 1,
+   "fieldname": "primary_skills",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Primary Skills",
+   "precision": "1"
+  },
+  {
+   "columns": 1,
+   "fieldname": "communication",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Communication",
+   "precision": "1"
+  },
+  {
+   "fieldname": "column_break_qigh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "columns": 1,
+   "fieldname": "management",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Management",
+   "precision": "1"
+  },
+  {
+   "columns": 1,
+   "fieldname": "attitude",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Attitude",
+   "precision": "1"
+  },
+  {
+   "columns": 2,
+   "fieldname": "education",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Education",
+   "options": "Graduation\nPost Graduation"
+  },
+  {
+   "columns": 1,
+   "fieldname": "experience",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Experience"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-04-02 10:44:20.563907",
+ "modified_by": "jignasha@sanskartechnolab.com",
+ "module": "Prompt HR",
+ "name": "Skill Matrix",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

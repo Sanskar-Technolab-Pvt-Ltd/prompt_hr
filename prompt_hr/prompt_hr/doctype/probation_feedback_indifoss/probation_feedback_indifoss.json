@@ -1,0 +1,88 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-03-31 11:37:51.031805",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "category",
+  "sub_category",
+  "factor_category",
+  "description_of_assessment_category",
+  "column_break_valp",
+  "45_days",
+  "90_days",
+  "180_days"
+ ],
+ "fields": [
+  {
+   "fieldname": "category",
+   "fieldtype": "Select",
+   "label": "Category",
+   "options": "General\nKPI Expectations"
+  },
+  {
+   "fieldname": "sub_category",
+   "fieldtype": "Select",
+   "label": "Sub Category",
+   "options": "Common Parameters\nCommunication\nInterpersonal Relationships and Interactions\nCommitment"
+  },
+  {
+   "columns": 2,
+   "fieldname": "factor_category",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Factor Category"
+  },
+  {
+   "columns": 2,
+   "fieldname": "description_of_assessment_category",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Description of Assessment category"
+  },
+  {
+   "fieldname": "column_break_valp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "columns": 2,
+   "fieldname": "45_days",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "45 Days",
+   "precision": "1"
+  },
+  {
+   "columns": 2,
+   "fieldname": "90_days",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "90 Days",
+   "precision": "1"
+  },
+  {
+   "columns": 2,
+   "fieldname": "180_days",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "180 Days",
+   "precision": "1"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-04-02 10:44:21.609703",
+ "modified_by": "jignasha@sanskartechnolab.com",
+ "module": "Prompt HR",
+ "name": "Probation Feedback IndiFOSS",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
