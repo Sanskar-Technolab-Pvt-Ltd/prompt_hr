@@ -43,7 +43,7 @@ app_license = "mit"
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
+doctype_js = {"Job Requisition" : "public/js/job_requisition.js"}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -137,13 +137,13 @@ app_license = "mit"
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
+doc_events = {
+	"Job Requisition": {
+		"validate": "prompt_hr.custom_methods.update_job_requisition_status"
+		# "on_cancel": "method",
+		# "on_trash": "method"
+	}
+}
 
 # Scheduled Tasks
 # ---------------
@@ -277,6 +277,15 @@ fixtures = [
                 "Prompt HR"
             ]
         ]
-    ]}
+    ]},
+    {
+        "dt":"Role", "filters": [["name", "in", ["Job Requisition", "Head of Department", "Managing Director"]]]
+    },
+    {
+        "dt":"Workflow", "filters": [["name", "in", ["Job Requisition"]]]
+    },
+    {
+        "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled"]]]
+    }
 
 ]

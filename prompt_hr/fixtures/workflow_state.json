@@ -1,0 +1,74 @@
+[
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-04-02 13:13:07.443097",
+  "name": "Cancelled",
+  "style": "Danger",
+  "workflow_state_name": "Cancelled"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-04-02 13:13:46.339926",
+  "name": "Filled",
+  "style": "Info",
+  "workflow_state_name": "Filled"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-04-02 13:13:38.231900",
+  "name": "On-Hold",
+  "style": "Info",
+  "workflow_state_name": "On-Hold"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-04-02 13:11:48.081222",
+  "name": "Rejected by Director",
+  "style": "Danger",
+  "workflow_state_name": "Rejected by Director"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-04-02 13:11:26.089815",
+  "name": "Approved by Director",
+  "style": "Success",
+  "workflow_state_name": "Approved by Director"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-04-02 13:09:56.624956",
+  "name": "Rejected by HOD",
+  "style": "Danger",
+  "workflow_state_name": "Rejected by HOD"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "question-sign",
+  "modified": "2025-04-02 13:09:29.722407",
+  "name": "Pending",
+  "style": "Info",
+  "workflow_state_name": "Pending"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-04-02 13:09:19.482622",
+  "name": "Approved by HOD",
+  "style": "Success",
+  "workflow_state_name": "Approved by HOD"
+ }
+]
