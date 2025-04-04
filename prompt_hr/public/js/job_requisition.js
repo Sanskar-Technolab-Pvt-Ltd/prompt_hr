@@ -1,5 +1,5 @@
 frappe.ui.form.on("Job Requisition", {
-    refresh: function (frm) { 
+    refresh: function (frm) {
 
         if (frm.doc.workflow_state == "Approved by Director") {
 
@@ -23,6 +23,23 @@ frappe.ui.form.on("Job Requisition", {
                 // frappe.new_doc("Patient Consultation", { 'patient_id': cur_frm.doc.patient_id, 'location_of_services': frm.doc.location_of_services, 'poct_service': frm.doc.name })
             });
         }
-    }
 
+
+        if (frm.is_new()) {
+
+            let current_user = frappe.session.user;
+            console.log("New Job Requisition", current_user);
+            
+            frappe.db.get_value("Employee", { "user_id": current_user }, "name", function (r) {
+
+                console.log("Employee Name", r);
+                if (r && r.name) {
+                    frm.set_value("requested_by", r.name);
+                }
+            });
+
+
+
+        }
+    }
 });

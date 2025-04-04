@@ -43,7 +43,9 @@ app_license = "mit"
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-doctype_js = {"Job Requisition" : "public/js/job_requisition.js"}
+doctype_js = {
+                "Job Requisition" : "public/js/job_requisition.js",
+            }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -142,7 +144,10 @@ doc_events = {
 		"validate": "prompt_hr.custom_methods.update_job_requisition_status"
 		# "on_cancel": "method",
 		# "on_trash": "method"
-	}
+	},
+    "Interview": {
+        "validate": "prompt_hr.custom_methods.update_job_applicant_status_based_on_interview"
+    }
 }
 
 # Scheduled Tasks
