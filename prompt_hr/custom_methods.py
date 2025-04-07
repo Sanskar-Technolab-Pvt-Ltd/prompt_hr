@@ -151,11 +151,13 @@ def update_job_applicant_status_based_on_interview(doc, event):
             print(f"\n\n {doc.status} \n\n")
 
             if job_applicant_status:
+                frappe.msgprint(str(job_applicant_status))
                 print(f"\n\n  exists {job_applicant_status} \n\n")
                 
                 # if doc.status == "Pending" and (job_applicant_status != "Scheduled" or job_applicant_status != "Rescheduled"):
-                if doc.status == "Pending" and job_applicant_status != "Scheduled":
+                if doc.status == "Pending":
                     new_job_applicant_status = f"{doc.interview_round}-Scheduled"
+                    frappe.msgprint(str(new_job_applicant_status))
                     
                     if new_job_applicant_status not in job_applicant_status_field.options:
                         options = job_applicant_status_field.options+"\n"+new_job_applicant_status
