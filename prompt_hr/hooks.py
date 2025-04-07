@@ -44,8 +44,10 @@ app_license = "mit"
 
 # include js in doctype views
 doctype_js = {
-                "Job Requisition" : "public/js/job_requisition.js",
-            }
+    "Employee Onboarding": "public/js/employee_onboarding.js",
+    "Job Requisition": "public/js/job_requisition.js",
+}
+
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -140,15 +142,17 @@ doctype_js = {
 # Hook on document methods and events
 
 doc_events = {
-	"Job Requisition": {
-		"validate": "prompt_hr.custom_methods.update_job_requisition_status"
-		# "on_cancel": "method",
-		# "on_trash": "method"
-	},
+    "Employee Onboarding": {
+        "on_update": "prompt_hr.py.employee_onboarding.on_update",
+    },
+    "Job Requisition": {
+        "validate": "prompt_hr.custom_methods.update_job_requisition_status"
+    },
     "Interview": {
         "validate": "prompt_hr.custom_methods.update_job_applicant_status_based_on_interview"
     }
 }
+
 
 # Scheduled Tasks
 # ---------------
