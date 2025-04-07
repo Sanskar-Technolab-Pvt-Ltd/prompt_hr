@@ -30,15 +30,6 @@
   "docstatus": 0,
   "doctype": "Workflow State",
   "icon": "",
-  "modified": "2025-04-02 13:11:48.081222",
-  "name": "Rejected by Director",
-  "style": "Danger",
-  "workflow_state_name": "Rejected by Director"
- },
- {
-  "docstatus": 0,
-  "doctype": "Workflow State",
-  "icon": "",
   "modified": "2025-04-02 13:09:56.624956",
   "name": "Rejected by HOD",
   "style": "Danger",
@@ -52,6 +43,15 @@
   "name": "Approved by Director",
   "style": "Success",
   "workflow_state_name": "Approved by Director"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-04-02 13:11:48.081222",
+  "name": "Rejected by Director",
+  "style": "Danger",
+  "workflow_state_name": "Rejected by Director"
  },
  {
   "docstatus": 0,

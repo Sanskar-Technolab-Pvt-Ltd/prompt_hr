@@ -289,6 +289,22 @@
  },
  {
   "default_value": null,
+  "doc_type": "Job Applicant",
+  "docstatus": 0,
+  "doctype": "Property Setter",
+  "doctype_or_field": "DocField",
+  "field_name": "status",
+  "is_system_generated": 0,
+  "modified": "2025-04-07 13:45:54.928861",
+  "module": "Prompt HR",
+  "name": "Job Applicant-status-options",
+  "property": "options",
+  "property_type": "Select",
+  "row_name": null,
+  "value": "Open\nReplied\nRejected\nHold\nShortlisted\nJob Offer Given\nJob Offer Accepted\nJob Offer Rejected"
+ },
+ {
+  "default_value": null,
   "doc_type": "Job Opening",
   "docstatus": 0,
   "doctype": "Property Setter",
