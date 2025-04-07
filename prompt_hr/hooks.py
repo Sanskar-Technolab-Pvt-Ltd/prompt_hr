@@ -158,7 +158,10 @@ doc_events = {
         "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
     },
     "Probation Feedback Form": {
-        "validate": "prompt_hr.custom_methods.add_probation_feedback_data_to_employee"
+        "on_submit": "prompt_hr.custom_methods.add_probation_feedback_data_to_employee"
+    },
+    "Confirmation Evaluation Form": {
+        "on_submit": "prompt_hr.custom_methods.add_confirmation_evaluation_data_to_employee"
     }
 }
 
