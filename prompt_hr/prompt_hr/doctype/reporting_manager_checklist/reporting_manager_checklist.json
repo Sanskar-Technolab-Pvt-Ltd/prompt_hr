@@ -21,6 +21,7 @@
   "column_break_iblz",
   "create_company_email_id",
   "email_domain",
+  "company_email",
   "chat_software_access",
   "bts_project_name",
   "buddy_name",
@@ -101,6 +102,7 @@
    "read_only_depends_on": "eval:frappe.user_roles.includes(\"Reporting Manager\")\n"
   },
   {
+   "depends_on": "eval:!frappe.user_roles.includes(\"Admin Module User\")\n",
    "fieldname": "system_allocation",
    "fieldtype": "Select",
    "label": "System Allocation",
@@ -108,12 +110,14 @@
    "read_only_depends_on": "eval:!frappe.user_roles.includes(\"Reporting Manager\")\n"
   },
   {
+   "depends_on": "eval:!frappe.user_roles.includes(\"Admin Module User\")\n",
    "fieldname": "system_configuration",
    "fieldtype": "Data",
    "label": "System Configuration",
    "read_only_depends_on": "eval:!frappe.user_roles.includes(\"Reporting Manager\")\n"
   },
   {
+   "depends_on": "eval:frappe.user_roles.includes(\"Admin Module User\")\n",
    "description": "(Please Specify the Desk no.)",
    "fieldname": "sitting_arrangements",
    "fieldtype": "Data",
@@ -126,10 +130,11 @@
   },
   {
    "default": "0",
+   "depends_on": "eval:!frappe.user_roles.includes(\"Admin Module User\")\n",
    "fieldname": "create_company_email_id",
    "fieldtype": "Check",
    "label": "Create Company Email ID",
-   "read_only_depends_on": "eval:!frappe.user_roles.includes(\"IT User\")\n"
+   "read_only_depends_on": "eval:!frappe.user_roles.includes(\"Reporing Manager\")\n"
   },
   {
    "depends_on": "eval:doc.create_company_email_id==1",
@@ -140,19 +145,21 @@
   },
   {
    "default": "0",
-   "depends_on": "eval:!frappe.user_roles.includes(\"Reporting Manager\")\n",
+   "depends_on": "eval:!frappe.user_roles.includes(\"Admin Module User\")\n",
    "fieldname": "chat_software_access",
    "fieldtype": "Check",
    "label": "Chat Software Access",
    "read_only_depends_on": "eval:!frappe.user_roles.includes(\"Reporting Manager\")\n"
   },
   {
+   "depends_on": "eval:!frappe.user_roles.includes(\"Admin Module User\")\n",
    "fieldname": "bts_project_name",
    "fieldtype": "Data",
    "label": "BTS Project Name",
    "read_only_depends_on": "eval:!frappe.user_roles.includes(\"Reporting Manager\")\n"
   },
   {
+   "depends_on": "eval:!frappe.user_roles.includes(\"Admin Module User\")\n",
    "fieldname": "buddy_name",
    "fieldtype": "Data",
    "label": "Buddy Name",
@@ -165,6 +172,7 @@
   },
   {
    "default": "0",
+   "depends_on": "eval:!frappe.user_roles.includes(\"Admin Module User\")\n",
    "fieldname": "crm_access_required",
    "fieldtype": "Check",
    "label": "CRM Access Required",
@@ -197,12 +205,14 @@
   },
   {
    "default": "0",
+   "depends_on": "eval:!frappe.user_roles.includes(\"Admin Module User\")\n",
    "fieldname": "stock_requirement",
    "fieldtype": "Check",
    "label": "Stock Requirement",
    "read_only_depends_on": "eval:!frappe.user_roles.includes(\"Reporting Manager\")\n"
   },
   {
+   "depends_on": "eval:!frappe.user_roles.includes(\"Admin Module User\")\n",
    "fieldname": "company_mobile_no",
    "fieldtype": "Data",
    "label": "Company Mobile No",
@@ -215,6 +225,7 @@
   },
   {
    "default": "0",
+   "depends_on": "eval:!frappe.user_roles.includes(\"Admin Module User\")\n",
    "fieldname": "git_project_access_required",
    "fieldtype": "Check",
    "label": "Git Project Access Required",
@@ -231,6 +242,7 @@
    "fieldtype": "Column Break"
   },
   {
+   "depends_on": "eval:!frappe.user_roles.includes(\"Admin Module User\")\n",
    "fieldname": "engineer_dongle",
    "fieldtype": "Data",
    "label": "Engineer Dongle",
@@ -242,6 +254,7 @@
    "label": "ERP Requirements"
   },
   {
+   "depends_on": "eval:!frappe.user_roles.includes(\"Admin Module User\")\n",
    "fieldname": "assign_erp_role",
    "fieldtype": "Table MultiSelect",
    "label": "Assign ERP Role",
@@ -253,6 +266,7 @@
    "fieldtype": "Column Break"
   },
   {
+   "depends_on": "eval:!frappe.user_roles.includes(\"Admin Module User\")\n",
    "fieldname": "erp_module_access",
    "fieldtype": "Table MultiSelect",
    "label": "ERP Module Access",
@@ -287,12 +301,19 @@
    "fieldname": "special_requirements",
    "fieldtype": "Data",
    "label": "Special Requirements"
+  },
+  {
+   "depends_on": "eval:!frappe.user_roles.includes(\"Admin Module User\")\n",
+   "fieldname": "company_email",
+   "fieldtype": "Data",
+   "label": "Company Email",
+   "read_only_depends_on": "eval:!frappe.user_roles.includes(\"IT User\")\n"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-03 18:00:23.334408",
+ "modified": "2025-04-04 12:35:37.437643",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Reporting Manager Checklist",
