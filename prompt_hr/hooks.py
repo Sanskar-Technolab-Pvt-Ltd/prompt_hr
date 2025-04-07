@@ -133,9 +133,10 @@ doctype_js = {
 # ---------------
 # Override standard doctype classes
 
-# override_doctype_class = {
-# 	"ToDo": "custom_app.overrides.CustomToDo"
-# }
+override_doctype_class = {
+	# "ToDo": "custom_app.overrides.CustomToDo"
+    "Interview": "prompt_hr.override.CustomInterview"
+}
 
 # Document Events
 # ---------------
@@ -251,50 +252,50 @@ doc_events = {
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
 
-fixtures = [
-    {"dt":"Custom Field","filters":[
-        [
-            "module","in",[
-                "Prompt HR"
-            ]
-        ]
-    ]},
-    {"dt":"Property Setter","filters":[
-        [
-            "module","in",[
-                "Prompt HR"
-            ]
-        ]
-    ]},
-    {"dt":"Client Script","filters":[
-        [
-            "module","in",[
-                "Prompt HR"
-            ]
-        ]
-    ]},
-    {"dt":"Server Script","filters":[
-        [
-            "module","in",[
-                "Prompt HR"
-            ]
-        ]
-    ]},
-    {"dt":"Print Format","filters":[
-        [
-            "module","in",[
-                "Prompt HR"
-            ]
-        ]
-    ]},
-    {
-        "dt":"Role", "filters": [["name", "in", ["Job Requisition", "Head of Department", "Managing Director"]]]
-    },
-    {
-        "dt":"Workflow", "filters": [["name", "in", ["Job Requisition"]]]
-    },
-    {
-        "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled"]]]
-    }
+# fixtures = [
+#     {"dt":"Custom Field","filters":[
+#         [
+#             "module","in",[
+#                 "Prompt HR"
+#             ]
+#         ]
+#     ]},
+#     {"dt":"Property Setter","filters":[
+#         [
+#             "module","in",[
+#                 "Prompt HR"
+#             ]
+#         ]
+#     ]},
+#     {"dt":"Client Script","filters":[
+#         [
+#             "module","in",[
+#                 "Prompt HR"
+#             ]
+#         ]
+#     ]},
+#     {"dt":"Server Script","filters":[
+#         [
+#             "module","in",[
+#                 "Prompt HR"
+#             ]
+#         ]
+#     ]},
+#     {"dt":"Print Format","filters":[
+#         [
+#             "module","in",[
+#                 "Prompt HR"
+#             ]
+#         ]
+#     ]},
+#     {
+#         "dt":"Role", "filters": [["name", "in", ["Job Requisition", "Head of Department", "Managing Director"]]]
+#     },
+#     {
+#         "dt":"Workflow", "filters": [["name", "in", ["Job Requisition"]]]
+#     },
+#     {
+#         "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled"]]]
+#     }
 
-]
+# ]
