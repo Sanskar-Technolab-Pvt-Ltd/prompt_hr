@@ -134,8 +134,6 @@ def job_requisition_notification(doc):
         frappe.log_error(f"Error sending notification", frappe.get_traceback())
         frappe.throw(f"Error sending notification: {str(e)}")
         
-        
-        
 @frappe.whitelist()
 def update_job_applicant_status_based_on_interview(doc, event):
     """Method to update Job Applicant status and set custom_interview_status and custom_interview_round based on Interview.
@@ -383,4 +381,28 @@ def update_job_applicant_status_based_on_interview(doc, event):
     except Exception as e:
         frappe.log_error(f"Error updating job requisition status", frappe.get_traceback())
         frappe.throw(f"Error updating job requisition status: {str(e)}")
+
+
+@frappe.whitelist()
+def update_job_applicant_status_based_on_job_offer(doc, event):
+    """Method to update Job Applicant status, based on JOB Offer Status.
+    """
+    
+    try:
+        print(f"\n\n\n EVENT {event}\n\n\n")
+        if event == "validate":
+            if doc.status == "Awaiting Response":
+                frappe.db.set_value("Job Applicant", doc.job_applicant, "status", "Job Offer Given")
         
+        if event == "on_submit":
+            print(f"\n\n\n event is on submit\n\n\n")
+            if doc.status in ["Accepted", "Accepted with Conditions"]:
+                print("\n\n setting job applicant status to job offer accepted \n\n")
+                frappe.db.set_value("Job Applicant", doc.job_applicant, "status", "Job Offer Accepted")
+        
+            if doc.status == "Rejected":
+                frappe.db.set_value("Job Applicant", doc.job_applicant, "status", "Job Offer Rejected")
+        
+    except Exception as e:
+        frappe.log_error(f"Error updating job applicant status", frappe.get_traceback())
+        frappe.throw(f"Error updating job applicant status: {str(e)}")
