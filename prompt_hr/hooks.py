@@ -156,30 +156,18 @@ doc_events = {
     "Job Offer":{
         "validate": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
         "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
-    }
+    },
+    "Employee": {
+		"on_update": "prompt_hr.py.employee.on_update",
+	}
 }
 
 
-# Scheduled Tasks
-# ---------------
-
-# scheduler_events = {
-# 	"all": [
-# 		"prompt_hr.tasks.all"
-# 	],
-# 	"daily": [
-# 		"prompt_hr.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"prompt_hr.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"prompt_hr.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"prompt_hr.tasks.monthly"
-# 	],
-# }
+scheduler_events = {
+	"daily": [
+		"prompt_hr.py.employee_changes_approval.daily_check_employee_changes_approval"
+	],
+}
 
 # Testing
 # -------

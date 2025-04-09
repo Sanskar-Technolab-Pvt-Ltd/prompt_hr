@@ -1,5 +1,6 @@
 import frappe
 
+# ! prompt_hr.py.employee_onboarding.get_onboarding_details
 # ? FETCH TEMPLATE ACTIVITIES FOR CHILD TABLE
 @frappe.whitelist()
 def get_onboarding_details(parent, parenttype):
@@ -14,7 +15,7 @@ def get_onboarding_details(parent, parenttype):
 # ? MAIN ON_UPDATE EVENT FUNCTION (No doc.save here!)
 @frappe.whitelist()
 def on_update(doc, method):
-    print("🔄 Employee Onboarding Document Updated\n", doc.name)
+    print("Employee Onboarding Document Updated\n", doc.name)
 
     # ? CHECK & PREFILL FIRST ACTIVITY IF NEEDED
     auto_fill_first_activity(doc)
@@ -25,10 +26,10 @@ def on_update(doc, method):
     for row in rows_to_notify:
         send_pending_action_email(row)
 
-        # ✅ MARK AS SENT (Frappe will auto-save after hook)
+        # ? MARK AS SENT (FRAPPE WILL AUTO-SAVE AFTER HOOK)
         row.custom_is_sent = 1
 
-    print("✅ Notified Rows:", [
+    print("Notified Rows:", [
         {"user": row.user, "desc": row.custom_email_description}
         for row in rows_to_notify
     ])
@@ -36,7 +37,7 @@ def on_update(doc, method):
     return "Emails enqueued successfully"
 
 
-# ? FILL FIRST ROW USER + CHECKLIST RECORD IF EMPTY
+# ? FILL FIRST ROW USER AND CHECKLIST RECORD IF EMPTY
 def auto_fill_first_activity(doc):
     if not doc.activities:
         return
@@ -47,7 +48,7 @@ def auto_fill_first_activity(doc):
         if email:
             first.user = email
             first.custom_checklist_record = email  # ? Or use your own logic to assign this
-            print("📝 First row auto-filled from Job Applicant:", email)
+            print("First row auto-filled from Job Applicant:", email)
 
 
 # ? GET FILTERED ROWS WHERE EMAIL SHOULD BE SENT
