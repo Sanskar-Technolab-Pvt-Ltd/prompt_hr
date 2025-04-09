@@ -1,0 +1,60 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "PROB-QUE-.##",
+ "creation": "2025-04-09 11:44:18.249973",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "question",
+  "company",
+  "probation_feedback_for"
+ ],
+ "fields": [
+  {
+   "fieldname": "question",
+   "fieldtype": "Long Text",
+   "label": "Question"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "depends_on": "eval: doc.company == \"Prompt Equipments PVT LTD\";",
+   "fieldname": "probation_feedback_for",
+   "fieldtype": "Select",
+   "label": "Probation Feedback for",
+   "options": "30 Days\n60 Days"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-04-09 19:33:49.909348",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Probation Question",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "question"
+}
