@@ -1,6 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "PBF-EMP-.#####",
  "creation": "2025-03-31 11:29:38.322721",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -18,6 +19,7 @@
   "evaluation_date",
   "hod",
   "amended_from",
+  "probation_feedback_for",
   "probation_evaluation_section",
   "probation_feedback_prompt",
   "probation_feedback_indifoss",
@@ -189,16 +191,24 @@
    "fieldtype": "Date",
    "label": "Confirmation Date",
    "mandatory_depends_on": "eval:doc.probation_status == \"Confirm\" && doc.company=='IndiFOSS Analytical Pvt Ltd';"
+  },
+  {
+   "depends_on": "eval: doc.company == \"Prompt Equipments PVT LTD\";",
+   "fieldname": "probation_feedback_for",
+   "fieldtype": "Select",
+   "label": "Probation Feedback for",
+   "options": "30 Days\n60 Days"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-04-07 17:51:01.890181",
+ "modified": "2025-04-09 19:27:49.796529",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Probation Feedback Form",
+ "naming_rule": "Expression (old style)",
  "owner": "Administrator",
  "permissions": [
   {

@@ -2,6 +2,7 @@ import frappe
 
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+from frappe.modules.utils import export_customizations
 
 
 def get_next_date(start_date_str, months):
@@ -31,3 +32,39 @@ def get_next_date(start_date_str, months):
     except Exception as e:
         frappe.log_error("Error while calculating next date", frappe.get_traceback())
         return {"error": 1, "message": str(e)}
+    
+    
+@frappe.whitelist()
+def export_all_customizations(site_doctypes=None):
+    """Export customizations for a list of doctypes. Can be called via API."""
+    # Optional security check (e.g., restrict to System Manager)
+    if not frappe.session.user == "Administrator":
+        frappe.throw("Only Administrator can run this.")
+    # Default doctypes if not passed in
+    doctypes = site_doctypes or [
+    # "Department",
+    # "Designation",
+    # "Employee",
+    # "Employee Boarding Activity",
+    # "Employee External Work History",
+    # "Employee Grade",
+    # "Employee Onboarding",
+    # "Employee Skill Map",
+    "HR Settings",
+    # "Interview",
+    # "Interview Detail",
+    # "Interview Feedback",
+    # "Job Applicant",
+    # "Job Offer",
+    # "Job Opening",
+    # "Job Requisition"
+    ]
+    module = "Prompt HR"
+    results = []
+    for dt in doctypes:
+        try:
+            export_customizations(doctype = dt, module=module, sync_on_migrate=True, with_permissions = 0)
+            results.append({"doctype": dt, "status": "success"})
+        except Exception as e:
+            results.append({"doctype": dt, "status": "error", "error": str(e)})
+    return results
