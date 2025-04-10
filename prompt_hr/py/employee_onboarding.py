@@ -17,17 +17,11 @@ def get_onboarding_details(parent, parenttype):
 def on_update(doc, method):
     print("Employee Onboarding Document Updated\n", doc.name)
 
-    # ? CHECK & PREFILL FIRST ACTIVITY IF NEEDED
     auto_fill_first_activity(doc)
-
-    # ? FILTER ACTIVITIES WHERE EMAIL IS REQUIRED
+    fill_missing_checklist_records(doc)
     rows_to_notify = get_pending_activity_rows(doc)
 
-    for row in rows_to_notify:
-        send_pending_action_email(row)
-
-        # ? MARK AS SENT (FRAPPE WILL AUTO-SAVE AFTER HOOK)
-        row.custom_is_sent = 1
+    notify_users_for_pending_actions(rows_to_notify)
 
     print("Notified Rows:", [
         {"user": row.user, "desc": row.custom_email_description}
@@ -40,15 +34,49 @@ def on_update(doc, method):
 # ? FILL FIRST ROW USER AND CHECKLIST RECORD IF EMPTY
 def auto_fill_first_activity(doc):
     if not doc.activities:
-        return
+        return 
 
     first = doc.activities[0]
+
     if not first.user and not first.custom_checklist_record and doc.job_applicant:
-        email = frappe.get_value("Job Applicant", doc.job_applicant, "email_id")
+        email = get_applicant_email(doc.job_applicant)
+        checklist_record = get_checklist_record("New Joinee Checklist", doc.job_applicant)
+
         if email:
             first.user = email
-            first.custom_checklist_record = email  # ? Or use your own logic to assign this
+            first.custom_checklist_record = checklist_record
             print("First row auto-filled from Job Applicant:", email)
+
+            # Optional: only send if is_raised is already set
+            if first.custom_is_sent == 0:
+                send_pending_action_email(first)
+                first.custom_is_sent = 1
+                print("Email sent immediately for first auto-filled row.")
+
+
+
+# ? GET EMAIL FROM JOB APPLICANT
+def get_applicant_email(job_applicant):
+    return frappe.get_value("Job Applicant", job_applicant, "email_id")
+
+
+# ? FETCH CHECKLIST RECORD BY DOCTYPE NAME AND JOB APPLICANT
+def get_checklist_record(doctype_name, job_applicant):
+    try:
+        return frappe.get_value(doctype_name, {"job_applicant": job_applicant}, "name")
+    except Exception as e:
+        frappe.log_error(f"Error fetching checklist from {doctype_name}: {e}", "Checklist Fetch Error")
+        return None
+
+
+# ? FILL MISSING CHECKLIST RECORDS IN ACTIVITIES
+def fill_missing_checklist_records(doc):
+    for row in doc.activities:
+        if not row.custom_checklist_record and row.custom_checklist_name and doc.job_applicant:
+            checklist_record = get_checklist_record(row.custom_checklist_name, doc.job_applicant)
+            if checklist_record:
+                row.custom_checklist_record = checklist_record
+                print(f"Filled checklist record for {row.custom_checklist_name}: {checklist_record}")
 
 
 # ? GET FILTERED ROWS WHERE EMAIL SHOULD BE SENT
@@ -59,23 +87,34 @@ def get_pending_activity_rows(doc):
     ]
 
 
+# ? SEND EMAIL TO USERS FOR PENDING CHECKLIST ACTIONS
+def notify_users_for_pending_actions(rows):
+    for row in rows:
+        send_pending_action_email(row)
+        row.custom_is_sent = 1  # Frappe will auto-save after hook
+
+
 # ? COMPOSE + SEND EMAIL FOR A SINGLE ROW
 def send_pending_action_email(row):
     subject = "Pending Action Required"
-    checklist_path = frappe.scrub(row.custom_checklist_name)
+    custom_checklist_name = row.custom_checklist_name
+    checklist_path = custom_checklist_name.lower().replace(" ", "-")
     base_url = frappe.utils.get_url()
     record_link = f"{base_url}/app/{checklist_path}/{row.custom_checklist_record}" if row.custom_checklist_record else "#"
 
-    # ? FORMAT EMAIL MESSAGE
-    message = f"""
-        <p>{row.custom_email_description}</p>
+    message = format_pending_action_message(row.custom_email_description, row.custom_checklist_name, row.custom_checklist_record, record_link)
+
+    send_email(row.user, subject, message)
+
+
+# ? FORMAT EMAIL BODY
+def format_pending_action_message(description, checklist_name, checklist_record, link):
+    return f"""
+        <p>{description or ""}</p>
         <p><b>Checklist Record:</b> 
-            <a href="{record_link}" target="_blank">{row.custom_checklist_name} ({row.custom_checklist_record})</a>
+            <a href="{link}" target="_blank">{checklist_name} ({checklist_record})</a>
         </p>
     """
-
-    # ? ENQUEUE EMAIL
-    send_email(row.user, subject, message)
 
 
 # ? ENQUEUE EMAIL BACKGROUND JOB
