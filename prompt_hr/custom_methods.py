@@ -417,6 +417,8 @@ def add_probation_feedback_data_to_employee(doc, event):
             if doc.probation_status == "Confirm":
                 if doc.confirmation_date:
                     frappe.db.set_value("Employee", doc.employee, "final_confirmation_date", doc.confirmation_date)
+                    frappe.db.set_value("Employee", doc.employee, "custom_probation_status", "Confirmed")
+                    
             
             elif doc.probation_status == "Extend":
                 probation_end_date = str(frappe.db.get_value("Employee", doc.employee, "custom_probation_end_date")) or None
@@ -453,10 +455,13 @@ def add_probation_feedback_data_to_employee(doc, event):
                         "extended_by": employee.get("name") if employee else '',
                         "extended_by_emp_name": employee.get("employee_name") if employee else ''
                     })
-                    
+                    employee_doc.custom_probation_status = "Pending"
                     employee_doc.save(ignore_permissions=True)
                     frappe.db.commit()
-                    
+            
+            elif doc.probation_status == "Terminate":        
+                    frappe.db.set_value("Employee", doc.employee, "custom_probation_status", "Terminated")
+                
     except Exception as e:
         frappe.log_error(f"Error updating job applicant status", frappe.get_traceback())
         frappe.throw(f"Error updating job applicant status: {str(e)}")
@@ -471,6 +476,8 @@ def add_confirmation_evaluation_data_to_employee(doc, event):
             if doc.probation_status == "Confirm":
                 if doc.confirmation_date:
                     frappe.db.set_value("Employee", doc.employee, "final_confirmation_date", doc.confirmation_date)
+                    frappe.db.set_value("Employee", doc.employee, "custom_probation_status", "Confirmed")
+                    
             
             elif doc.probation_status == "Extend":
                 probation_end_date = str(frappe.db.get_value("Employee", doc.employee, "custom_probation_end_date")) or None
@@ -508,9 +515,12 @@ def add_confirmation_evaluation_data_to_employee(doc, event):
                         "extended_by_emp_name": employee.get("employee_name") if employee else ''
                     })
                     
+                    employee_doc.custom_probation_status = "Pending"
                     employee_doc.save(ignore_permissions=True)
                     frappe.db.commit()
-                    
+            
+            elif doc.probation_status == "Terminate":
+                    frappe.db.set_value("Employee", doc.employee, "custom_probation_status", "Terminated")
     except Exception as e:
         frappe.log_error(f"Error updating job applicant status", frappe.get_traceback())
         frappe.throw(f"Error updating job applicant status: {str(e)}")
