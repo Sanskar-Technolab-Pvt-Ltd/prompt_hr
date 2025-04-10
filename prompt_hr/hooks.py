@@ -174,7 +174,8 @@ doc_events = {
 
 scheduler_events = {
 	"daily": [
-		"prompt_hr.py.employee_changes_approval.daily_check_employee_changes_approval"
+		"prompt_hr.py.employee_changes_approval.daily_check_employee_changes_approval",
+        # "prompt_hr.scheduler_methods.create_probation_feedback_form",
 	],
 }
 
