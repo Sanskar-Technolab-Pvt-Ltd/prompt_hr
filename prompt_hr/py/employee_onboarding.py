@@ -47,12 +47,11 @@ def auto_fill_first_activity(doc):
             first.custom_checklist_record = checklist_record
             print("First row auto-filled from Job Applicant:", email)
 
-            # Optional: only send if is_raised is already set
+            # ? ONLY SEND IF IS_RAISED IS ALREADY SET
             if first.custom_is_sent == 0:
                 send_pending_action_email(first)
                 first.custom_is_sent = 1
                 print("Email sent immediately for first auto-filled row.")
-
 
 
 # ? GET EMAIL FROM JOB APPLICANT
@@ -96,53 +95,84 @@ def notify_users_for_pending_actions(rows):
 
 # ? COMPOSE + SEND EMAIL FOR A SINGLE ROW
 def send_pending_action_email(row):
-    subject = "Pending Action Required"
-    custom_checklist_name = row.custom_checklist_name
-    checklist_path = custom_checklist_name.lower().replace(" ", "-")
+    doc_type = row.custom_checklist_name
+    doc_name = row.custom_checklist_record
+    recipient = row.user
+
+    fallback_subject = "Pending Action Required"
+    fallback_message = format_pending_action_message(
+        row.custom_email_description, 
+        row.custom_checklist_name, 
+        row.custom_checklist_record
+    )
+
+    frappe.enqueue(
+        method=send_notification_email,
+        queue="short",
+        timeout=300,
+        doc_type=doc_type,
+        doc_name=doc_name,
+        recipient=recipient,
+        fallback_subject=fallback_subject,
+        fallback_message=fallback_message
+    )
+
+
+# ? FORMAT FALLBACK EMAIL
+def format_pending_action_message(description, checklist_name, checklist_record):
     base_url = frappe.utils.get_url()
-    record_link = f"{base_url}/app/{checklist_path}/{row.custom_checklist_record}" if row.custom_checklist_record else "#"
+    checklist_path = checklist_name.lower().replace(" ", "-")
+    record_link = f"{base_url}/app/{checklist_path}/{checklist_record}" if checklist_record else "#"
 
-    message = format_pending_action_message(row.custom_email_description, row.custom_checklist_name, row.custom_checklist_record, record_link)
-
-    send_email(row.user, subject, message)
-
-
-# ? FORMAT EMAIL BODY
-def format_pending_action_message(description, checklist_name, checklist_record, link):
     return f"""
         <p>{description or ""}</p>
         <p><b>Checklist Record:</b> 
-            <a href="{link}" target="_blank">{checklist_name} ({checklist_record})</a>
+            <a href="{record_link}" target="_blank">{checklist_name} ({checklist_record})</a>
         </p>
     """
 
 
-# ? ENQUEUE EMAIL BACKGROUND JOB
-@frappe.whitelist()
-def send_email(recipients, subject, message, attachments=None):
-    frappe.enqueue(
-        method=send_email_task,
-        queue="short",
-        timeout=300,
-        recipients=recipients,
+# ? BACKGROUND TASK: FETCH NOTIFICATION BY DOCTYPE & SEND EMAIL
+def send_notification_email(doc_type, doc_name, recipient, fallback_subject, fallback_message):
+    try:
+        doc = frappe.get_doc(doc_type, doc_name)
+
+        # ? Fetch first Notification matching doc_type
+        notification = frappe.get_all("Notification", filters={"document_type": doc_type,"channel": "Email"}, limit=1)
+        if not notification:
+            raise Exception(f"No Notification template found for {doc_type}")
+        
+        notification = frappe.get_doc("Notification", notification[0].name)
+
+        context = {
+            "doc": doc,
+            "user": recipient
+        }
+
+        subject = frappe.render_template(notification.subject, context)
+        message = frappe.render_template(notification.message, context)
+
+        # ? Append Checklist Link
+        checklist_name = getattr(doc, "checklist_name", "") or doc_type
+        checklist_path = checklist_name.lower().replace(" ", "-")
+        base_url = frappe.utils.get_url()
+        record_link = f"{base_url}/app/{checklist_path}/{doc.name}"
+
+        message += f"""
+            <hr>
+            <p><b>Checklist Record:</b> 
+            <a href="{record_link}" target="_blank">{checklist_name} ({doc.name})</a></p>
+        """
+
+    except Exception as e:
+        frappe.log_error(f"Using fallback message due to: {e}", "Notification Template Error")
+        subject = fallback_subject
+        message = fallback_message
+
+    frappe.sendmail(
+        recipients=[recipient],
         subject=subject,
-        message=message,
-        attachments=attachments
+        message=message
     )
 
-
-# ? ACTUAL BACKGROUND EMAIL TASK
-def send_email_task(recipients, subject, message, attachments=None):
-    if isinstance(recipients, str):
-        recipients = [recipients]
-
-    email_args = {
-        "recipients": recipients,
-        "subject": subject,
-        "message": message
-    }
-
-    if attachments:
-        email_args["attachments"] = frappe.parse_json(attachments)
-
-    frappe.sendmail(**email_args)
+    print(f"✅ Sent '{subject}' to {recipient}")

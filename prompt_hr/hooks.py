@@ -26,7 +26,8 @@ app_license = "mit"
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/prompt_hr/css/prompt_hr.css"
-# app_include_js = "/assets/prompt_hr/js/prompt_hr.js"
+app_include_js = "assets/prompt_hr/js/welcome_page_check.js"
+
 
 # include js, css files in header of web template
 # web_include_css = "/assets/prompt_hr/css/prompt_hr.css"
@@ -122,7 +123,7 @@ doctype_list_js = {"Interview" : "public/js/interview.js"}
 # Permissions evaluated in scripted ways
 
 # permission_query_conditions = {
-# 	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
+#     "DocType": "prompt_hr.py.welcome_status.check_welcome_completion"
 # }
 #
 # has_permission = {
@@ -165,6 +166,9 @@ doc_events = {
     },
     "Confirmation Evaluation Form": {
         "on_submit": "prompt_hr.custom_methods.add_confirmation_evaluation_data_to_employee"
+    },
+    "User": {
+        "after_insert": "prompt_hr.py.welcome_status.create_welcome_status"
     }
 }
 
