@@ -20,7 +20,9 @@
   "fuel_amount",
   "attire_tab",
   "attire_wallet",
-  "attire_amount"
+  "attire_amount",
+  "background_verification_tab",
+  "consent_for_background_verification"
  ],
  "fields": [
   {
@@ -41,22 +43,23 @@
    "label": "Is Completed?"
   },
   {
-   "default": "0",
    "fieldname": "do_you_have_a_pran_no",
-   "fieldtype": "Check",
-   "label": "Do you Have a PRAN No.?"
+   "fieldtype": "Select",
+   "label": "Do you Have a PRAN No.?",
+   "options": "\nYes\nNo"
   },
   {
-   "depends_on": "eval:doc.do_you_have_a_pran_no==1",
+   "depends_on": "eval:doc.do_you_have_a_pran_no==\"Yes\"",
    "fieldname": "pran_no",
    "fieldtype": "Data",
-   "label": "PRAN No."
+   "label": "PRAN No.",
+   "mandatory_depends_on": "eval:doc.do_you_have_a_pran_no==\"Yes\""
   },
   {
-   "default": "0",
    "fieldname": "nps_consent",
-   "fieldtype": "Check",
-   "label": "NPS Consent"
+   "fieldtype": "Select",
+   "label": "NPS Consent",
+   "options": "\nYes\nNo"
   },
   {
    "fieldname": "meal_tab",
@@ -64,27 +67,29 @@
    "label": "Meal"
   },
   {
-   "default": "0",
    "fieldname": "meal_wallet",
-   "fieldtype": "Check",
-   "label": "Meal Wallet"
+   "fieldtype": "Select",
+   "label": "Meal Wallet",
+   "options": "\nYes\nNo"
   },
   {
+   "depends_on": "eval:doc.meal_wallet == \"Yes\"",
    "fieldname": "meal_amount",
    "fieldtype": "Select",
    "label": "Amount",
    "options": "\n2500\n3500"
   },
   {
+   "depends_on": "eval:doc.fuel_wallet == \"Yes\"",
    "fieldname": "fuel_tab",
    "fieldtype": "Tab Break",
    "label": "Fuel"
   },
   {
-   "default": "0",
    "fieldname": "fuel_wallet",
-   "fieldtype": "Check",
-   "label": "Fuel Wallet"
+   "fieldtype": "Select",
+   "label": "Fuel Wallet",
+   "options": "\nYes\nNo"
   },
   {
    "fieldname": "fuel_amount",
@@ -98,22 +103,34 @@
    "label": "Attire"
   },
   {
-   "default": "0",
    "fieldname": "attire_wallet",
-   "fieldtype": "Check",
-   "label": "Attire Wallet"
+   "fieldtype": "Select",
+   "label": "Attire Wallet",
+   "options": "\nYes\nNo"
   },
   {
+   "depends_on": "eval:doc.attire_wallet == \"Yes\"",
    "fieldname": "attire_amount",
    "fieldtype": "Select",
    "label": "Attire Amount",
    "options": "\n2000\n3000"
+  },
+  {
+   "fieldname": "background_verification_tab",
+   "fieldtype": "Tab Break",
+   "label": "Background Verification"
+  },
+  {
+   "fieldname": "consent_for_background_verification",
+   "fieldtype": "Select",
+   "label": "Consent For Background Verification",
+   "options": "\nYes\nNo"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-10 19:31:00.671919",
+ "modified": "2025-04-11 18:54:20.236439",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Welcome Page",

@@ -1,6 +1,7 @@
 import frappe
+import traceback
 
-# List of common fields where field names are the same in both doctypes
+# ? COMMON FIELDS THAT EXIST IN BOTH EMPLOYEE & EMPLOYEE PROFILE
 common_fields = [
     "employee", "naming_series", "first_name", "middle_name", "last_name", "employee_name",
     "gender", "date_of_birth", "salutation", "date_of_joining", "image", "status",
@@ -21,48 +22,92 @@ common_fields = [
     "leave_encashed", "encashment_date", "ff_settlement_date", "reason_for_leaving", "feedback"
 ]
 
-# Mapping for custom field names in Employee → matching field in Employee Profile
+# ? MAPPING FOR CUSTOM FIELDS FROM EMPLOYEE → EMPLOYEE PROFILE
 field_mapping = {
-            "pf_consent": "custom_pf_consent",
-            "eps_consent": "custom_eps_consent",
-            "esi_consent": "custom_esi_consent",
-            "nps_consent": "custom_nps_consent",
-            "mealcard_consent": "custom_mealcard_consent",
-            "physically_handicaped": "custom_physically_handicaped",
-            "is_notice_period_served": "custom_is_notice_period_served",
-            "is_fit_to_be_rehired": "custom_is_fit_to_be_rehired",
-            "nominee_details": "custom_nominee_details",
-            "attendance_capture_scheme": "custom_attendance_capture_scheme",
-            "weekoff": "custom_weekoff",
-            # Add more if needed
-        }
+    "pf_consent": "custom_pf_consent",
+    "eps_consent": "custom_eps_consent",
+    "esi_consent": "custom_esi_consent",
+    "nps_consent": "custom_nps_consent",
+    "mealcard_consent": "custom_mealcard_consent",
+    "physically_handicaped": "custom_physically_handicaped",
+    "is_notice_period_served": "custom_is_notice_period_served",
+    "is_fit_to_be_rehired": "custom_is_fit_to_be_rehired",
+    "nominee_details": "custom_nominee_details",
+    "attendance_capture_scheme": "custom_attendance_capture_scheme",
+    "weekoff": "custom_weekoff",
+    # Add more if needed
+}
 
-# Triggered on Employee update
-@frappe.whitelist()
-def on_update(doc, method):
-    create_or_update_employee_profile(doc)
+# ? FUNCTION TO CREATE WELCOME PAGE RECORD FOR GIVEN USER
+def create_welcome_status(user_id):
+    try:
+        # ? CHECK IF WELCOME PAGE ALREADY EXISTS
+        if frappe.db.exists("Welcome Page", {"user": user_id}):
+            frappe.log_error(
+                title="Welcome Page Already Exists",
+                message=f"Welcome Page for user {user_id} already exists. Skipping creation."
+            )
+            return
 
-# Sync fields from Employee to Employee Profile
-@frappe.whitelist()
+        # ? CREATE NEW WELCOME PAGE DOCUMENT
+        welcome_status = frappe.new_doc("Welcome Page")
+        welcome_status.user = user_id
+        welcome_status.is_completed = 0
+        welcome_status.insert(ignore_permissions=True)
+
+        # ? SHARE DOCUMENT WITH THE USER
+        frappe.share.add(
+            doctype="Welcome Page",
+            name=welcome_status.name,
+            user=user_id,
+            read=1,
+            write=1,
+            share=0
+        )
+
+        frappe.db.commit()
+
+        frappe.log_error(
+            title="Welcome Page Creation",
+            message=f"Welcome Page created and shared with user {user_id}."
+        )
+
+    except Exception as e:
+        frappe.log_error(
+            title="Welcome Page Creation Error",
+            message=f"Error creating Welcome Page for user {user_id}: {str(e)}\n{traceback.format_exc()}"
+        )
+
+# ? FUNCTION TO CREATE/UPDATE EMPLOYEE PROFILE FROM EMPLOYEE DOC
 def create_or_update_employee_profile(doc):
     employee_id = doc.name
 
+    # ? FETCH OR CREATE EMPLOYEE PROFILE
     if frappe.db.exists('Employee Profile', {'employee': employee_id}):
         employee_profile = frappe.get_doc('Employee Profile', {'employee': employee_id})
     else:
         employee_profile = frappe.new_doc('Employee Profile')
         employee_profile.employee = employee_id
 
-    # ? SYNC STANDARD/COMMON FIELDS
+    # ? SYNC COMMON FIELDS
     for field in common_fields:
         value = doc.get(field)
         if value not in [None, "", [], {}]:
             employee_profile.set(field, value)
 
-    # Sync custom field mappings
+    # ? SYNC CUSTOM FIELDS
     for source_field, target_field in field_mapping.items():
         value = doc.get(source_field)
         if value not in [None, "", [], {}]:
             employee_profile.set(target_field, value)
 
     employee_profile.save()
+
+# ? CALLED ON EMPLOYEE UPDATE
+def on_update(doc, method):
+    # ? SYNC EMPLOYEE PROFILE
+    create_or_update_employee_profile(doc)
+
+    # ? CREATE WELCOME PAGE IF IT DOESN’T EXIST AND USER ID IS SET
+    if doc.user_id and not frappe.db.exists("Welcome Page", {"user": doc.user_id}):
+        create_welcome_status(doc.user_id)
