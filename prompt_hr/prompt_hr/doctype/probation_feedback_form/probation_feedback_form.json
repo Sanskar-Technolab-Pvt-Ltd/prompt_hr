@@ -143,7 +143,7 @@
    "fieldname": "probation_status",
    "fieldtype": "Select",
    "label": "Probation Status",
-   "options": "Confirm\nExtend\nTerminate"
+   "options": "Pending\nConfirm\nExtend\nTerminate"
   },
   {
    "fieldname": "column_break_jzpn",
@@ -204,7 +204,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-04-09 19:27:49.796529",
+ "modified": "2025-04-11 13:46:48.599738",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Probation Feedback Form",

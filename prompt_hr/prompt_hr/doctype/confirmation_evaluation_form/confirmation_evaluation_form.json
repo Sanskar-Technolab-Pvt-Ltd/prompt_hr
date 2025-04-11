@@ -1,6 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "CONF-EVAL-.#####",
  "creation": "2025-03-31 12:07:19.436212",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -110,7 +111,7 @@
    "fieldname": "probation_status",
    "fieldtype": "Select",
    "label": "Probation Status",
-   "options": "Confirm\nExtend\nTerminate"
+   "options": "Pending\nConfirm\nExtend\nTerminate"
   },
   {
    "fieldname": "column_break_lggp",
@@ -162,10 +163,11 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-04-07 18:55:31.127257",
+ "modified": "2025-04-11 16:20:20.446028",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Confirmation Evaluation Form",
+ "naming_rule": "Expression (old style)",
  "owner": "Administrator",
  "permissions": [
   {
