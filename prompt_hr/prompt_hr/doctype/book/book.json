@@ -1,0 +1,136 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-11 06:56:56.334638",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "book_id",
+  "title",
+  "author_name",
+  "isbn_number",
+  "publisher",
+  "column_break_myli",
+  "status",
+  "condition",
+  "language",
+  "cost",
+  "purchase_reference",
+  "company",
+  "location_section",
+  "shelf_no",
+  "column_break_ggsm",
+  "cupboard_no"
+ ],
+ "fields": [
+  {
+   "fieldname": "book_id",
+   "fieldtype": "Data",
+   "label": "Book ID"
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "label": "Title"
+  },
+  {
+   "fieldname": "author_name",
+   "fieldtype": "Data",
+   "label": "Author Name"
+  },
+  {
+   "fieldname": "isbn_number",
+   "fieldtype": "Data",
+   "label": "ISBN Number"
+  },
+  {
+   "fieldname": "publisher",
+   "fieldtype": "Data",
+   "label": "Publisher"
+  },
+  {
+   "fieldname": "column_break_myli",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Available\nIssued\nWritten-Off"
+  },
+  {
+   "fieldname": "condition",
+   "fieldtype": "Select",
+   "label": "Condition",
+   "options": "Good\nFair\nPoor"
+  },
+  {
+   "fieldname": "language",
+   "fieldtype": "Data",
+   "label": "Language"
+  },
+  {
+   "fieldname": "cost",
+   "fieldtype": "Currency",
+   "label": "Cost"
+  },
+  {
+   "fieldname": "purchase_reference",
+   "fieldtype": "Data",
+   "label": "Purchase Reference"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "location_section",
+   "fieldtype": "Section Break",
+   "label": "Location"
+  },
+  {
+   "fieldname": "shelf_no",
+   "fieldtype": "Link",
+   "label": "Shelf No",
+   "options": "Book Location Shelf"
+  },
+  {
+   "fieldname": "column_break_ggsm",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cupboard_no",
+   "fieldtype": "Link",
+   "label": "Cupboard No",
+   "options": "Book Location Cupboard"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-04-11 07:02:59.074799",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Book",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
