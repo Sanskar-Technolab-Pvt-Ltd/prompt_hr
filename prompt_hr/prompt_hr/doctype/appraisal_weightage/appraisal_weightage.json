@@ -1,0 +1,40 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-11 04:40:43.961074",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "weightage_criteria",
+  "weighatage"
+ ],
+ "fields": [
+  {
+   "fieldname": "weightage_criteria",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Weightage Criteria"
+  },
+  {
+   "fieldname": "weighatage",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "Weighatage"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-04-11 04:40:43.961074",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Appraisal Weightage",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

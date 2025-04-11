@@ -1,0 +1,182 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-11 04:42:28.118712",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "employee",
+  "employee_name",
+  "department",
+  "designation",
+  "grade",
+  "column_break_likr",
+  "evaluation_date",
+  "work_location",
+  "product_line",
+  "reporting_manager",
+  "hod",
+  "amended_from",
+  "section_break_qxwk",
+  "appraisal_details",
+  "section_break_vjgj",
+  "behaviour_details",
+  "remarks_section",
+  "remarks_for_kra_kpi_performance",
+  "attachment",
+  "column_break_ovsh",
+  "remarks_for_behavioural_performance",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name"
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Data",
+   "label": "Department"
+  },
+  {
+   "fieldname": "designation",
+   "fieldtype": "Data",
+   "label": "Designation"
+  },
+  {
+   "fieldname": "grade",
+   "fieldtype": "Data",
+   "label": "Grade"
+  },
+  {
+   "fieldname": "column_break_likr",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "evaluation_date",
+   "fieldtype": "Date",
+   "label": "Evaluation Date"
+  },
+  {
+   "fieldname": "work_location",
+   "fieldtype": "Data",
+   "label": "Work Location"
+  },
+  {
+   "fieldname": "product_line",
+   "fieldtype": "Data",
+   "label": "Product Line"
+  },
+  {
+   "fieldname": "reporting_manager",
+   "fieldtype": "Data",
+   "label": "Reporting Manager"
+  },
+  {
+   "fieldname": "hod",
+   "fieldtype": "Data",
+   "label": "HOD"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Performance Tracker",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "section_break_qxwk",
+   "fieldtype": "Section Break",
+   "label": "Appraisal Tracker"
+  },
+  {
+   "fieldname": "appraisal_details",
+   "fieldtype": "Table",
+   "label": "Appraisal Details",
+   "options": "Appraisal Tracker"
+  },
+  {
+   "fieldname": "section_break_vjgj",
+   "fieldtype": "Section Break",
+   "label": "Behaviour Tracker"
+  },
+  {
+   "fieldname": "behaviour_details",
+   "fieldtype": "Table",
+   "label": "Behaviour Details",
+   "options": "Behavioural Tracker"
+  },
+  {
+   "fieldname": "remarks_section",
+   "fieldtype": "Section Break",
+   "label": "Remarks"
+  },
+  {
+   "fieldname": "remarks_for_kra_kpi_performance",
+   "fieldtype": "Small Text",
+   "label": "Remarks for KRA KPI Performance"
+  },
+  {
+   "fieldname": "attachment",
+   "fieldtype": "Attach",
+   "label": "Attachment"
+  },
+  {
+   "fieldname": "column_break_ovsh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "remarks_for_behavioural_performance",
+   "fieldtype": "Small Text",
+   "label": "Remarks for Behavioural Performance"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Performance Tracker",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-04-11 04:42:28.118712",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Performance Tracker",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -1,0 +1,112 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-11 07:28:59.177112",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "camp_name",
+  "company",
+  "location",
+  "scheduled_date",
+  "description",
+  "column_break_qakd",
+  "status",
+  "camp_coordinator",
+  "camp_registration_fees",
+  "doctor_name",
+  "hospital_clinic_name",
+  "available_medical_tests"
+ ],
+ "fields": [
+  {
+   "fieldname": "camp_name",
+   "fieldtype": "Data",
+   "label": "Camp Name"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "location",
+   "fieldtype": "Link",
+   "label": "Location",
+   "options": "Address"
+  },
+  {
+   "fieldname": "scheduled_date",
+   "fieldtype": "Datetime",
+   "label": "Scheduled Date"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "column_break_qakd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Scheduled\nCompleted\nPostponned\nCancelled"
+  },
+  {
+   "fieldname": "camp_coordinator",
+   "fieldtype": "Link",
+   "label": "Camp Coordinator",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "camp_registration_fees",
+   "fieldtype": "Currency",
+   "label": "Camp Registration Fees"
+  },
+  {
+   "fieldname": "available_medical_tests",
+   "fieldtype": "Small Text",
+   "label": "Available Medical Tests"
+  },
+  {
+   "fieldname": "doctor_name",
+   "fieldtype": "Data",
+   "label": "Doctor's Name"
+  },
+  {
+   "fieldname": "hospital_clinic_name",
+   "fieldtype": "Data",
+   "label": "Hospital/Clinic Name"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-04-11 07:38:11.858276",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Health Checkup Camp",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
