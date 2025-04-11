@@ -12,6 +12,7 @@
   "is_published",
   "publish_date",
   "is_acknowledgement_mendatory",
+  "templates",
   "access_criteria_section",
   "department",
   "designation",
@@ -96,13 +97,18 @@
    "fieldtype": "Link",
    "label": "Work Location",
    "options": "Address"
+  },
+  {
+   "fieldname": "templates",
+   "fieldtype": "Data",
+   "label": "Templates"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-02 10:44:21.070962",
- "modified_by": "jignasha@sanskartechnolab.com",
+ "modified": "2025-04-11 05:08:46.400940",
+ "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Organization Documents",
  "owner": "Administrator",

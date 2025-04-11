@@ -1,0 +1,161 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-11 07:32:53.782822",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "employee",
+  "employee_name",
+  "department",
+  "designation",
+  "column_break_hnhu",
+  "company",
+  "camp_name",
+  "registration_date",
+  "result_tab",
+  "medical_conditiion",
+  "blood_group",
+  "allergies",
+  "disability_information",
+  "diagnosis",
+  "treatment_medication",
+  "column_break_trds",
+  "doctor_name",
+  "hospital_clinic_name",
+  "doctor_notes_and_recommendations",
+  "reports"
+ ],
+ "fields": [
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name"
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department"
+  },
+  {
+   "fieldname": "designation",
+   "fieldtype": "Link",
+   "label": "Designation",
+   "options": "Designation"
+  },
+  {
+   "fieldname": "column_break_hnhu",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "camp_name",
+   "fieldtype": "Link",
+   "label": "Camp Name",
+   "options": "Health Checkup Camp"
+  },
+  {
+   "fieldname": "registration_date",
+   "fieldtype": "Date",
+   "label": "Registration Date"
+  },
+  {
+   "fieldname": "result_tab",
+   "fieldtype": "Tab Break",
+   "label": "Result"
+  },
+  {
+   "fieldname": "medical_conditiion",
+   "fieldtype": "Data",
+   "label": "Medical Conditiion"
+  },
+  {
+   "fieldname": "blood_group",
+   "fieldtype": "Select",
+   "label": "Blood Group",
+   "options": "A+\nA-"
+  },
+  {
+   "fieldname": "allergies",
+   "fieldtype": "Data",
+   "label": "Allergies"
+  },
+  {
+   "fieldname": "disability_information",
+   "fieldtype": "Data",
+   "label": "Disability Information"
+  },
+  {
+   "fieldname": "diagnosis",
+   "fieldtype": "Data",
+   "label": "Diagnosis"
+  },
+  {
+   "fieldname": "treatment_medication",
+   "fieldtype": "Data",
+   "label": "Treatment/Medication"
+  },
+  {
+   "fieldname": "doctor_name",
+   "fieldtype": "Data",
+   "label": "Doctor's Name"
+  },
+  {
+   "fieldname": "hospital_clinic_name",
+   "fieldtype": "Data",
+   "label": "Hospital/Clinic Name"
+  },
+  {
+   "fieldname": "doctor_notes_and_recommendations",
+   "fieldtype": "Small Text",
+   "label": "Doctor's Notes and Recommendations"
+  },
+  {
+   "fieldname": "column_break_trds",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "reports",
+   "fieldtype": "Attach",
+   "label": "Reports"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-04-11 07:37:32.070872",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Health Checkup Camp Registration",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
