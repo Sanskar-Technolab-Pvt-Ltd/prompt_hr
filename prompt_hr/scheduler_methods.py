@@ -1,6 +1,6 @@
 import frappe
 
-from frappe.utils import date_diff, today
+from frappe.utils import date_diff, today, add_to_date, getdate
 
 
 
@@ -178,11 +178,58 @@ def create_confirmation_evaluation_form():
     try:
         employees_list = frappe.db.get_all("Employee", {"status": "Active", "company": "Prompt Equipments PVT LTD", "custom_probation_status": "Pending"}, "name")
         
+        print(f"\n\n EMPLOYEES LIST: {employees_list}\n\n")
+        
         if employees_list:
             for employee_id in employees_list:
                 probation_days = frappe.db.get_value("Employee", employee_id.get("name"), "custom_probation_period")
                 
                 if probation_days:
-                    pass
+                    
+                    joining_date = frappe.db.get_value("Employee", employee_id.get("name"), "date_of_joining")
+                    
+                    print(f"\n\n JOINING DATE: {joining_date} {type(joining_date)}\n\n")
+                    probation_end_date = getdate(add_to_date(joining_date, days=probation_days))
+                    print(f"\n\n PROBATION END DATE: {probation_end_date} {type(probation_end_date)}\n\n")
+                    
+                    today_date = getdate()
+                    days_remaining = (probation_end_date - today_date).days
+                    
+                    print(f"\n\n DAYS REMAINING: {days_remaining} {type(days_remaining)}\n\n")
+                    if 0 <= days_remaining <= 15:
+                            confirmation_eval_form = frappe.db.get_value("Employee", employee_id.get("name"), "custom_confirmation_evaluation_form")
+                            try:
+                                if not confirmation_eval_form:
+                                    print(f"\n\n Creating Confirmation Evaluation Form \n\n")
+                                    employee_doc = frappe.get_doc("Employee", employee_id.get("name"))
+                                    confirmation_eval_doc = frappe.get_doc({
+                                        "doctype": "Confirmation Evaluation Form",
+                                        "employee": employee_id.get("name"),
+                                        "evaluation_date": today(),
+                                        "probation_status": "Pending",
+                                    })
+                                    
+                                    category_list = ["Functional/ Technical Skills", "Behavioural Skills"]
+                                    
+                                    parameters_list = frappe.db.get_all("Confirmation Evaluation Parameter", {"category": ["in", category_list]}, ["name", "category"])
+                                    
+                                    for parameter in parameters_list:
+                                        
+                                        confirmation_eval_doc.append("table_txep", {
+                                            "category": parameter.get("category"),
+                                            "parameters": parameter.get("name"),
+                                        })
+                                    
+                                    confirmation_eval_doc.insert(ignore_permissions=True)
+                                    employee_doc.custom_confirmation_evaluation_form = confirmation_eval_doc.name
+                                    employee_doc.save(ignore_permissions=True)
+                                    frappe.db.commit()
+                                    
+                                    # frappe.db.set_value("Employee", employee_id.get("name"), "custom_confirmation_evaluation_form", confirmation_eval_doc.name)
+                                    
+                                    
+                            except Exception as e:
+                                frappe.log_error("Error while creating confirmation evaluation form", frappe.get_traceback())
+                                
     except Exception as e:
         frappe.log_error("Error while creating confirmation evaluation form", frappe.get_traceback())

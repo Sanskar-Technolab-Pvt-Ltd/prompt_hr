@@ -1,0 +1,53 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "CONF-EVAL-PARAM-.#####",
+ "creation": "2025-04-11 16:27:20.466775",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "parameter",
+  "category"
+ ],
+ "fields": [
+  {
+   "fieldname": "parameter",
+   "fieldtype": "Data",
+   "label": "Parameter"
+  },
+  {
+   "fieldname": "category",
+   "fieldtype": "Select",
+   "label": "Category",
+   "options": "Functional/ Technical Skills\nBehavioural Skills"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-04-11 17:45:04.787387",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Confirmation Evaluation Parameter",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "show_title_field_in_link": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "parameter"
+}
