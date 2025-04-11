@@ -1,5 +1,4 @@
 // public/js/welcome_page_redirect.js
-// console.log('Welcome page redirect script loaded');
 $(document).ready(function () {
     // Check on initial page load
     redirect_to_welcome_if_needed();

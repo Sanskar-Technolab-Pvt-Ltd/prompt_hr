@@ -168,7 +168,7 @@ doc_events = {
         "on_submit": "prompt_hr.custom_methods.add_confirmation_evaluation_data_to_employee"
     },
     "User": {
-        "after_insert": "prompt_hr.py.welcome_status.create_welcome_status"
+        "after_insert": "prompt_hr.py.welcome_status.after_insert"
     }
 }
 
