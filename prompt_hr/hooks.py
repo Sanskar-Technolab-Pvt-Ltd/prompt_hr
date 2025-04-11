@@ -291,6 +291,9 @@ fixtures = [
     },
     {
         "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled"]]]
+    },
+    {
+        "dt": "Letter Head"
     }
 
 ]
