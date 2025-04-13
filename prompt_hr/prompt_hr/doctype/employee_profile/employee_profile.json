@@ -259,6 +259,7 @@
    "label": "Date of Joining",
    "oldfieldname": "date_of_joining",
    "oldfieldtype": "Date",
+   "permlevel": 1,
    "reqd": 1
   },
   {
@@ -276,6 +277,7 @@
    "oldfieldname": "status",
    "oldfieldtype": "Select",
    "options": "Active\nInactive\nSuspended\nLeft",
+   "permlevel": 1,
    "reqd": 1,
    "search_index": 1
   },
@@ -291,7 +293,8 @@
    "fieldtype": "Link",
    "ignore_user_permissions": 1,
    "label": "ERP User ID",
-   "options": "User"
+   "options": "User",
+   "permlevel": 1
   },
   {
    "fieldname": "company_details_section",
@@ -305,7 +308,8 @@
    "options": "Company",
    "print_hide": 1,
    "remember_last_selected_value": 1,
-   "reqd": 1
+   "reqd": 1,
+   "permlevel": 1
   },
   {
    "fieldname": "department",
@@ -314,13 +318,15 @@
    "label": "Department",
    "oldfieldname": "department",
    "oldfieldtype": "Link",
-   "options": "Department"
+   "options": "Department",
+   "permlevel": 1
   },
   {
    "fieldname": "sub_department",
    "fieldtype": "Link",
    "label": "Sub-Department",
-   "options": "Department"
+   "options": "Department",
+   "permlevel": 1
   },
   {
    "fieldname": "employee_number",
@@ -328,7 +334,8 @@
    "in_global_search": 1,
    "label": "Employee Number",
    "oldfieldname": "employee_number",
-   "oldfieldtype": "Data"
+   "oldfieldtype": "Data",
+   "permlevel": 1
   },
   {
    "fieldname": "column_break_25",
@@ -343,13 +350,15 @@
    "oldfieldname": "designation",
    "oldfieldtype": "Link",
    "options": "Designation",
-   "search_index": 1
+   "search_index": 1,
+   "permlevel": 1
   },
   {
    "fieldname": "business_unit",
    "fieldtype": "Link",
    "label": "Business Unit",
-   "options": "Business Unit"
+   "options": "Business Unit",
+   "permlevel": 1
   },
   {
    "fieldname": "reports_to",
@@ -358,19 +367,22 @@
    "label": "Reports to",
    "oldfieldname": "reports_to",
    "oldfieldtype": "Link",
-   "options": "Employee"
+   "options": "Employee",
+   "permlevel": 1
   },
   {
    "fieldname": "dotted_line_manager",
    "fieldtype": "Link",
    "label": "Dotted Line Manager",
-   "options": "Employee"
+   "options": "Employee",
+   "permlevel": 1
   },
   {
    "fieldname": "ice_name",
    "fieldtype": "Link",
    "label": "ICE Name",
-   "options": "Employee"
+   "options": "Employee",
+   "permlevel": 1
   },
   {
    "fieldname": "column_break_18",
@@ -380,19 +392,22 @@
    "fieldname": "employment_type",
    "fieldtype": "Link",
    "label": "Employment Type",
-   "options": "Employment Type"
+   "options": "Employment Type",
+   "permlevel": 1
   },
   {
    "fieldname": "product_line",
    "fieldtype": "Link",
    "label": "Product Line",
-   "options": "IndiFOSS Product"
+   "options": "IndiFOSS Product",
+   "permlevel": 1
   },
   {
    "fieldname": "grade",
    "fieldtype": "Link",
    "label": "Grade",
-   "options": "Employee Grade"
+   "options": "Employee Grade",
+   "permlevel": 1
   },
   {
    "fieldname": "section_break_xisx",
@@ -402,28 +417,33 @@
    "fieldname": "work_location",
    "fieldtype": "Link",
    "label": "Work Location",
-   "options": "Address"
+   "options": "Address",
+   "permlevel": 1
   },
   {
    "fieldname": "country",
    "fieldtype": "Data",
-   "label": "Country"
+   "label": "Country",
+   "permlevel": 1
   },
   {
    "fieldname": "territoty",
    "fieldtype": "Link",
    "label": "Territoty",
-   "options": "Territory"
+   "options": "Territory",
+   "permlevel": 1
   },
   {
    "fieldname": "zone",
    "fieldtype": "Data",
-   "label": "Zone"
+   "label": "Zone",
+   "permlevel": 1
   },
   {
    "fieldname": "state",
    "fieldtype": "Data",
-   "label": "State"
+   "label": "State",
+   "permlevel": 1
   },
   {
    "fieldname": "column_break_kxjh",
@@ -432,17 +452,20 @@
   {
    "fieldname": "district",
    "fieldtype": "Data",
-   "label": "District"
+   "label": "District",
+   "permlevel": 1
   },
   {
    "fieldname": "sub_district",
    "fieldtype": "Data",
-   "label": "Sub-District"
+   "label": "Sub-District",
+   "permlevel": 1
   },
   {
    "fieldname": "village",
    "fieldtype": "Data",
-   "label": "Village/City"
+   "label": "Village/City",
+   "permlevel": 1
   },
   {
    "allow_in_quick_entry": 1,
@@ -456,7 +479,8 @@
    "fieldtype": "Date",
    "label": "Offer Date",
    "oldfieldname": "scheduled_confirmation_date",
-   "oldfieldtype": "Date"
+   "oldfieldtype": "Date",
+   "permlevel": 1
   },
   {
    "fieldname": "column_break_32",
@@ -467,14 +491,16 @@
    "fieldtype": "Date",
    "label": "Confirmation Date",
    "oldfieldname": "final_confirmation_date",
-   "oldfieldtype": "Date"
+   "oldfieldtype": "Date",
+   "permlevel": 1
   },
   {
    "fieldname": "contract_end_date",
    "fieldtype": "Date",
    "label": "Contract End Date",
    "oldfieldname": "contract_end_date",
-   "oldfieldtype": "Date"
+   "oldfieldtype": "Date",
+   "permlevel": 1
   },
   {
    "fieldname": "col_break_22",
@@ -485,14 +511,16 @@
    "fieldtype": "Int",
    "label": "Notice (days)",
    "oldfieldname": "notice_number_of_days",
-   "oldfieldtype": "Int"
+   "oldfieldtype": "Int",
+   "permlevel": 1
   },
   {
    "fieldname": "date_of_retirement",
    "fieldtype": "Date",
    "label": "Date Of Retirement",
    "oldfieldname": "date_of_retirement",
-   "oldfieldtype": "Date"
+   "oldfieldtype": "Date",
+   "permlevel": 1
   },
   {
    "fieldname": "column_break_vwmi",
@@ -501,7 +529,8 @@
   {
    "fieldname": "verification_stat",
    "fieldtype": "Select",
-   "label": "Verification Stat"
+   "label": "Verification Stat",
+   "permlevel": 1
   },
   {
    "collapsible": 1,
@@ -567,12 +596,6 @@
    "label": "Prefered Email",
    "options": "Email",
    "read_only": 1
-  },
-  {
-   "default": "0",
-   "fieldname": "unsubscribed",
-   "fieldtype": "Check",
-   "label": "Unsubscribed"
   },
   {
    "collapsible": 1,
@@ -649,18 +672,21 @@
    "fieldtype": "Data",
    "label": "Attendance Device ID (Biometric/RF tag ID)",
    "no_copy": 1,
-   "unique": 1
+   "unique": 1,
+   "permlevel": 1
   },
   {
    "fieldname": "weekoff",
    "fieldtype": "Select",
    "label": "WeekOff",
+   "permlevel": 1,
    "options": "Sunday\nMonday\nTuesday\nWednesday\nThursday\nFriday\nSaturday"
   },
   {
    "fieldname": "attendance_capture_scheme",
    "fieldtype": "Select",
    "label": "Attendance Capture Scheme",
+   "permlevel": 1,
    "options": "Biometric\nMobile Clockin-Clockout\nWeb Checkin-Checkout\nGeotracking\nGeofencing"
   },
   {
@@ -675,13 +701,15 @@
    "label": "Holiday List",
    "oldfieldname": "holiday_list",
    "oldfieldtype": "Link",
-   "options": "Holiday List"
+   "options": "Holiday List",
+   "permlevel": 1
   },
   {
    "fieldname": "default_shift",
    "fieldtype": "Link",
    "label": "Default Shift",
-   "options": "Shift Type"
+   "options": "Shift Type",
+   "permlevel": 1
   },
   {
    "collapsible": 1,
@@ -934,7 +962,8 @@
    "fieldname": "internal_work_history",
    "fieldtype": "Table",
    "label": "Internal Work History",
-   "options": "Employee Internal Work History"
+   "options": "Employee Internal Work History",
+   "permlevel": 1
   },
   {
    "collapsible": 1,
@@ -948,7 +977,8 @@
    "fieldtype": "Date",
    "label": "Resignation Letter Date",
    "oldfieldname": "resignation_letter_date",
-   "oldfieldtype": "Date"
+   "oldfieldtype": "Date",
+   "permlevel": 1
   },
   {
    "fieldname": "relieving_date",
@@ -957,13 +987,15 @@
    "mandatory_depends_on": "eval:doc.status == \"Left\"",
    "no_copy": 1,
    "oldfieldname": "relieving_date",
-   "oldfieldtype": "Date"
+   "oldfieldtype": "Date",
+   "permlevel": 1
   },
   {
    "default": "0",
    "fieldname": "is_notice_period_served",
    "fieldtype": "Check",
-   "label": "Is Notice Period Served?"
+   "label": "Is Notice Period Served?",
+   "permlevel": 1
   },
   {
    "fieldname": "exit_interview_details",
@@ -977,20 +1009,23 @@
    "fieldtype": "Date",
    "label": "Exit Interview Held On",
    "oldfieldname": "held_on",
-   "oldfieldtype": "Date"
+   "oldfieldtype": "Date",
+   "permlevel": 1
   },
   {
    "fieldname": "new_workplace",
    "fieldtype": "Data",
    "label": "New Workplace",
    "oldfieldname": "new_workplace",
-   "oldfieldtype": "Data"
+   "oldfieldtype": "Data",
+   "permlevel": 1
   },
   {
    "default": "0",
    "fieldname": "is_fit_to_be_rehired",
    "fieldtype": "Check",
-   "label": "Is fit to be Rehired?"
+   "label": "Is fit to be Rehired?",
+   "permlevel": 1
   },
   {
    "fieldname": "column_break_99",
@@ -1002,7 +1037,8 @@
    "label": "Leave Encashed?",
    "oldfieldname": "leave_encashed",
    "oldfieldtype": "Select",
-   "options": "\nYes\nNo"
+   "options": "\nYes\nNo",
+   "permlevel": 1
   },
   {
    "depends_on": "eval:doc.leave_encashed ==\"Yes\"",
@@ -1010,17 +1046,20 @@
    "fieldtype": "Date",
    "label": "Encashment Date",
    "oldfieldname": "encashment_date",
-   "oldfieldtype": "Date"
+   "oldfieldtype": "Date",
+   "permlevel": 1
   },
   {
    "fieldname": "ff_settlement_date",
    "fieldtype": "Date",
-   "label": "F&F Settlement Date"
+   "label": "F&F Settlement Date",
+   "permlevel": 1
   },
   {
    "fieldname": "feedback_section",
    "fieldtype": "Section Break",
-   "label": "Feedback"
+   "label": "Feedback",
+   "permlevel": 1
   },
   {
    "fieldname": "reason_for_leaving",
@@ -1071,7 +1110,7 @@
  "icon": "fa fa-user",
  "image_field": "image",
  "links": [],
- "modified": "2025-04-09 13:08:23.369603",
+ "modified": "2025-04-12 14:34:15.850575",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Profile",

@@ -46,6 +46,7 @@ app_include_js = "assets/prompt_hr/js/welcome_page_check.js"
 # include js in doctype views
 doctype_js = {
     "Employee Onboarding": "public/js/employee_onboarding.js",
+    "Job Offer": "public/js/job_offer.js"
     # "Job Requisition": "public/js/job_requisition.js",
 }
 
@@ -157,6 +158,7 @@ doc_events = {
     "Job Offer":{
         "validate": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
         "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
+        "after_insert":"prompt_hr.py.job_offer.after_insert"
     },
     "Employee": {
 		"on_update": "prompt_hr.py.employee.on_update",
@@ -169,7 +171,8 @@ doc_events = {
     },
     # "User": {
     #     "after_insert": "prompt_hr.py.welcome_status.after_insert"
-    # }
+    # },
+    
 }
 
 
