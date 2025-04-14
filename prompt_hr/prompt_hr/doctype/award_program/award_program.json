@@ -1,0 +1,163 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-11 04:46:37.388635",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "award_name",
+  "description",
+  "frequency",
+  "column_break_xrqj",
+  "is_trophy_provided",
+  "is_certificate_provided",
+  "number_of_winners",
+  "reward_type",
+  "reward_value",
+  "nomination_criteria_section",
+  "work_location",
+  "department",
+  "designation",
+  "column_break_edrc",
+  "grade",
+  "employment_type",
+  "section_break_medo",
+  "employee_roles_who_can_nominate_other_employees",
+  "column_break_jtsg",
+  "panelists"
+ ],
+ "fields": [
+  {
+   "fieldname": "award_name",
+   "fieldtype": "Data",
+   "label": "Award Name"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "frequency",
+   "fieldtype": "Select",
+   "label": "Frequency",
+   "options": "Monthly\nQuarterly\nAnnually"
+  },
+  {
+   "fieldname": "column_break_xrqj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_trophy_provided",
+   "fieldtype": "Check",
+   "label": "Is trophy provided"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_certificate_provided",
+   "fieldtype": "Check",
+   "label": "Is certificate provided"
+  },
+  {
+   "fieldname": "number_of_winners",
+   "fieldtype": "Int",
+   "label": "Number of Winners"
+  },
+  {
+   "fieldname": "reward_type",
+   "fieldtype": "Select",
+   "label": "Reward Type",
+   "options": "Cash\nVoucher\nOther"
+  },
+  {
+   "fieldname": "reward_value",
+   "fieldtype": "Data",
+   "label": "Reward Value"
+  },
+  {
+   "fieldname": "nomination_criteria_section",
+   "fieldtype": "Section Break",
+   "label": "Nomination Criteria"
+  },
+  {
+   "fieldname": "work_location",
+   "fieldtype": "Table MultiSelect",
+   "label": "Work Location",
+   "options": "Work Location Multiselect"
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Table MultiSelect",
+   "label": "Department",
+   "options": "Department Multiselect"
+  },
+  {
+   "fieldname": "designation",
+   "fieldtype": "Table MultiSelect",
+   "label": "Designation",
+   "options": "Designation Multiselect"
+  },
+  {
+   "fieldname": "column_break_edrc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "grade",
+   "fieldtype": "Table MultiSelect",
+   "label": "Grade",
+   "options": "Grade Multiselect"
+  },
+  {
+   "fieldname": "employment_type",
+   "fieldtype": "Table MultiSelect",
+   "label": "Employment Type",
+   "options": "Employment Type Multiselect"
+  },
+  {
+   "fieldname": "section_break_medo",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "employee_roles_who_can_nominate_other_employees",
+   "fieldtype": "Table MultiSelect",
+   "label": "Employee Roles who can nominate other employees",
+   "options": "Role Multiselect"
+  },
+  {
+   "fieldname": "column_break_jtsg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "panelists",
+   "fieldtype": "Table MultiSelect",
+   "options": "Employee Multiselect"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-04-11 05:15:54.374690",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Award Program",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

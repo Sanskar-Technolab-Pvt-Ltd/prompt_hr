@@ -1,0 +1,87 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-11 07:13:51.064637",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "room_name",
+  "location",
+  "column_break_voki",
+  "room_status",
+  "booking_duration_limit",
+  "room_booking_instruction_section_section",
+  "room_booking_instruction"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "room_name",
+   "fieldtype": "Data",
+   "label": "Room Name"
+  },
+  {
+   "fieldname": "location",
+   "fieldtype": "Link",
+   "label": "Location",
+   "options": "Address"
+  },
+  {
+   "fieldname": "room_status",
+   "fieldtype": "Select",
+   "label": "Room Status",
+   "options": "Available\nBooked\nUnder Maintainance"
+  },
+  {
+   "fieldname": "booking_duration_limit",
+   "fieldtype": "Float",
+   "label": "Booking Duration Limit (In Hours)"
+  },
+  {
+   "fieldname": "column_break_voki",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "room_booking_instruction_section_section",
+   "fieldtype": "Section Break",
+   "label": "Room Booking Instruction"
+  },
+  {
+   "fieldname": "room_booking_instruction",
+   "fieldtype": "Text Editor",
+   "label": "Room Booking Instruction"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-04-11 07:20:50.151893",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Meeting Room",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

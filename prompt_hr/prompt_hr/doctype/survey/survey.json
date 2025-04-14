@@ -1,0 +1,143 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-11 05:09:06.223197",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_cokg",
+  "title",
+  "description",
+  "column_break_ttsw",
+  "release_date",
+  "end_date",
+  "target_audience_section",
+  "work_location",
+  "department",
+  "designation",
+  "column_break_axac",
+  "grade",
+  "employment_type",
+  "response_tab",
+  "survey_response",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_cokg",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "label": "Title"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "column_break_ttsw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "release_date",
+   "fieldtype": "Date",
+   "label": "Release Date"
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "End Date"
+  },
+  {
+   "fieldname": "target_audience_section",
+   "fieldtype": "Section Break",
+   "label": "Target Audience"
+  },
+  {
+   "fieldname": "work_location",
+   "fieldtype": "Table MultiSelect",
+   "label": "Work Location",
+   "options": "Work Location Multiselect"
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Table MultiSelect",
+   "label": "Department",
+   "options": "Department Multiselect"
+  },
+  {
+   "fieldname": "designation",
+   "fieldtype": "Table MultiSelect",
+   "label": "Designation",
+   "options": "Designation Multiselect"
+  },
+  {
+   "fieldname": "column_break_axac",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "grade",
+   "fieldtype": "Table MultiSelect",
+   "label": "Grade",
+   "options": "Grade Multiselect"
+  },
+  {
+   "fieldname": "employment_type",
+   "fieldtype": "Table MultiSelect",
+   "label": "Employment Type",
+   "options": "Employment Type Multiselect"
+  },
+  {
+   "fieldname": "response_tab",
+   "fieldtype": "Tab Break",
+   "label": "Response"
+  },
+  {
+   "fieldname": "survey_response",
+   "fieldtype": "Table",
+   "label": "Survey Response",
+   "options": "Survey Answer"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Survey",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-04-11 05:17:10.032080",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Survey",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

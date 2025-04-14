@@ -6,3 +6,25 @@
 
 // 	},
 // });
+
+// frappe.ui.form.on("table_txep", {
+//     category: function(frm, cdt, cdn) {
+//         set_parameter_filter(frm);
+//         frm.refresh_field('table_txep');
+//     },
+//     table_txep_add: function(frm, cdt, cdn) {
+//         set_parameter_filter(frm);
+//     }
+// });
+
+
+// function set_parameter_filter(frm) {
+//     frm.fields_dict['table_txep'].grid.get_field('parameters').get_query = function(doc, cdt, cdn) {
+//         let row = locals[cdt][cdn];
+//         return {
+//             filters: [
+//                 ['category', '=', row.category]
+//             ]
+//         };
+//     };
+// }
