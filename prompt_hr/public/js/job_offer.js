@@ -17,5 +17,31 @@ frappe.ui.form.on('Job Offer', {
                 frm.set_df_property(field.df.fieldname, 'hidden', false);
             });
         }
+    },
+
+    refresh: function (frm) {
+        // ? SHOW BUTTON ONLY FOR NON-CANDIDATE USERS
+        if (frappe.session.user !== "candidate@sanskartechnolab.com") {
+            frm.add_custom_button("Release Offer Letter", () => {
+                frappe.confirm(
+                    "Are you sure you want to release the offer letter?",
+                    () => {
+                        frappe.call({
+                            method: "prompt_hr.py.job_offer.release_offer_letter",
+                            args: {
+                                doctype: frm.doctype,
+                                docname: frm.doc.name
+                            },
+                            callback: function (r) {
+                                if (!r.exc) {
+                                    frappe.msgprint("🎉 Offer Letter Released!");
+                                    frm.reload_doc();
+                                }
+                            }
+                        });
+                    }
+                );
+            })
+        }
     }
 });
