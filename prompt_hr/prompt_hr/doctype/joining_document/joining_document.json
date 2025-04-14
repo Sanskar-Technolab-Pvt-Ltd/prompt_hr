@@ -1,0 +1,42 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-14 06:20:24.723162",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "required_document",
+  "document_collection_stage"
+ ],
+ "fields": [
+  {
+   "fieldname": "required_document",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Required Document",
+   "options": "Required Document Applicant"
+  },
+  {
+   "fetch_from": "required_document.document_collection_stage",
+   "fieldname": "document_collection_stage",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Document Collection Stage"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-04-14 06:21:28.774876",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Joining Document",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
