@@ -150,9 +150,10 @@ doc_events = {
     "Employee Onboarding": {
         "on_update": "prompt_hr.py.employee_onboarding.on_update",
     },
-    # "Job Requisition": {
-    #     "validate": "prompt_hr.custom_methods.update_job_requisition_status"
-    # },
+    "Job Requisition": {
+        "validate": "prompt_hr.custom_methods.update_job_requisition_status",
+        "on_update": "prompt_hr.py.job_requisition.on_update"
+    },
     "Interview": {
         "validate": "prompt_hr.custom_methods.update_job_applicant_status_based_on_interview"
     },
@@ -170,9 +171,6 @@ doc_events = {
     "Confirmation Evaluation Form": {
         "on_submit": "prompt_hr.custom_methods.add_confirmation_evaluation_data_to_employee"
     },
-     "Job Requisition": {
-         "on_update": "prompt_hr.py.job_requisition.on_update",
-     },
     # "User": {
     #     "after_insert": "prompt_hr.py.welcome_status.after_insert"
     # },
