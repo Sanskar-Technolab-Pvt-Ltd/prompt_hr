@@ -46,12 +46,12 @@ app_include_js = "assets/prompt_hr/js/welcome_page_check.js"
 # include js in doctype views
 doctype_js = {
     "Employee Onboarding": "public/js/employee_onboarding.js",
-    "Job Offer": "public/js/job_offer.js"
+    "Job Offer": "public/js/job_offer.js",
     # "Job Requisition": "public/js/job_requisition.js",
     "Job Opening": "public/js/job_opening.js",
 }
 
-doctype_list_js = {"Interview" : "public/js/interview.js"}
+doctype_list_js = {"Interview": "public/js/interview.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
 
@@ -137,7 +137,7 @@ doctype_list_js = {"Interview" : "public/js/interview.js"}
 # Override standard doctype classes
 
 override_doctype_class = {
-	# "ToDo": "custom_app.overrides.CustomToDo"
+    # "ToDo": "custom_app.overrides.CustomToDo"
     "Interview": "prompt_hr.override.CustomInterview",
     "Job Offer": "prompt_hr.override.CustomJobOffer",
 }
@@ -150,20 +150,20 @@ doc_events = {
     "Employee Onboarding": {
         "on_update": "prompt_hr.py.employee_onboarding.on_update",
     },
-    # "Job Requisition": {
-    #     "validate": "prompt_hr.custom_methods.update_job_requisition_status"
-    # },
+    "Job Requisition": {
+        "validate": "prompt_hr.custom_methods.update_job_requisition_status",
+        "on_update": "prompt_hr.py.job_requisition.on_update",
+    },
     "Interview": {
         "validate": "prompt_hr.custom_methods.update_job_applicant_status_based_on_interview"
     },
-    "Job Offer":{
+    "Job Offer": {
         "validate": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
         "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
-        "after_insert":"prompt_hr.py.job_offer.after_insert"
     },
     "Employee": {
-		"on_update": "prompt_hr.py.employee.on_update",
-	},
+        "on_update": "prompt_hr.py.employee.on_update",
+    },
     "Probation Feedback Form": {
         "on_submit": "prompt_hr.custom_methods.add_probation_feedback_data_to_employee"
     },
@@ -173,7 +173,6 @@ doc_events = {
     # "User": {
     #     "after_insert": "prompt_hr.py.welcome_status.after_insert"
     # },
-    
 }
 
 
@@ -181,12 +180,11 @@ doc_events = {
 # ---------------
 
 scheduler_events = {
-	"daily": [
-		"prompt_hr.py.employee_changes_approval.daily_check_employee_changes_approval",
+    "daily": [
+        "prompt_hr.py.employee_changes_approval.daily_check_employee_changes_approval",
         # "prompt_hr.scheduler_methods.create_probation_feedback_form",
         # "prompt_hr.scheduler_methods.create_confirmation_evaluation_form",
-        
-	],
+    ],
 }
 
 # Testing
@@ -266,49 +264,49 @@ scheduler_events = {
 # }
 
 # fixtures = [
-    # {"dt":"Custom Field","filters":[
-    #     [
-    #         "module","in",[
-    #             "Prompt HR"
-    #         ]
-    #     ]
-    # ]},
-    # {"dt":"Property Setter","filters":[
-    #     [
-    #         "module","in",[
-    #             "Prompt HR"
-    #         ]
-    #     ]
-    # ]},
-    # {"dt":"Client Script","filters":[
-    #     [
-    #         "module","in",[
-    #             "Prompt HR"
-    #         ]
-    #     ]
-    # ]},
-    # {"dt":"Server Script","filters":[
-    #     [
-    #         "module","in",[
-    #             "Prompt HR"
-    #         ]
-    #     ]
-    # ]},
-    # {"dt":"Print Format","filters":[
-    #     [
-    #         "module","in",[
-    #             "Prompt HR"
-    #         ]
-    #     ]
-    # ]},
-    # {
-    #     "dt":"Role", "filters": [["name", "in", ["Job Requisition", "Head of Department", "Managing Director"]]]
-    # },
-    # {
-    #     "dt":"Workflow", "filters": [["name", "in", ["Job Requisition"]]]
-    # },
-    # {
-    #     "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled"]]]
-    # }
+# {"dt":"Custom Field","filters":[
+#     [
+#         "module","in",[
+#             "Prompt HR"
+#         ]
+#     ]
+# ]},
+# {"dt":"Property Setter","filters":[
+#     [
+#         "module","in",[
+#             "Prompt HR"
+#         ]
+#     ]
+# ]},
+# {"dt":"Client Script","filters":[
+#     [
+#         "module","in",[
+#             "Prompt HR"
+#         ]
+#     ]
+# ]},
+# {"dt":"Server Script","filters":[
+#     [
+#         "module","in",[
+#             "Prompt HR"
+#         ]
+#     ]
+# ]},
+# {"dt":"Print Format","filters":[
+#     [
+#         "module","in",[
+#             "Prompt HR"
+#         ]
+#     ]
+# ]},
+# {
+#     "dt":"Role", "filters": [["name", "in", ["Job Requisition", "Head of Department", "Managing Director"]]]
+# },
+# {
+#     "dt":"Workflow", "filters": [["name", "in", ["Job Requisition"]]]
+# },
+# {
+#     "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled"]]]
+# }
 
 # ]
