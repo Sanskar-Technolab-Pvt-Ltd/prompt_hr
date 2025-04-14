@@ -23,6 +23,7 @@
    "options": "General\nKPI Expectations"
   },
   {
+   "depends_on": "eval:doc.category == \"General\";",
    "fieldname": "sub_category",
    "fieldtype": "Select",
    "label": "Sub Category",
@@ -31,14 +32,15 @@
   {
    "columns": 2,
    "fieldname": "factor_category",
-   "fieldtype": "Data",
+   "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "Factor Category"
+   "label": "Factor Category",
+   "options": "Factor Category Parameters"
   },
   {
    "columns": 2,
    "fieldname": "description_of_assessment_category",
-   "fieldtype": "Data",
+   "fieldtype": "Long Text",
    "in_list_view": 1,
    "label": "Description of Assessment category"
   },
@@ -75,13 +77,12 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-04-02 10:44:21.609703",
- "modified_by": "jignasha@sanskartechnolab.com",
+ "modified": "2025-04-14 19:13:21.837331",
+ "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Probation Feedback IndiFOSS",
  "owner": "Administrator",
  "permissions": [],
- "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []
