@@ -47,6 +47,7 @@ app_include_js = "assets/prompt_hr/js/welcome_page_check.js"
 doctype_js = {
     "Employee Onboarding": "public/js/employee_onboarding.js",
     # "Job Requisition": "public/js/job_requisition.js",
+    "Job Opening": "public/js/job_opening.js",
 }
 
 doctype_list_js = {"Interview" : "public/js/interview.js"}
