@@ -8,8 +8,8 @@
  "field_order": [
   "required_document",
   "document_collection_stage",
-  "column_break_uwpu",
-  "is_default"
+  "column_break_jumz",
+  "company"
  ],
  "fields": [
   {
@@ -29,21 +29,21 @@
    "reqd": 1
   },
   {
-   "fieldname": "column_break_uwpu",
+   "fieldname": "column_break_jumz",
    "fieldtype": "Column Break"
   },
   {
-   "default": "0",
-   "fieldname": "is_default",
-   "fieldtype": "Check",
-   "label": "Is Default"
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-02 10:44:19.842899",
- "modified_by": "jignasha@sanskartechnolab.com",
+ "modified": "2025-04-14 06:18:43.800123",
+ "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Required Document Applicant",
  "naming_rule": "By fieldname",

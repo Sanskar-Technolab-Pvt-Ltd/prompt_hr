@@ -1,0 +1,60 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-11 05:04:45.810088",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "column_break_ecpl",
+  "nominee",
+  "nominator",
+  "column_break_fqek",
+  "reason"
+ ],
+ "fields": [
+  {
+   "fieldname": "column_break_ecpl",
+   "fieldtype": "Column Break",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "nominee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Nominee",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "nominator",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Nominator",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "column_break_fqek",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Reason"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-04-11 05:06:01.470550",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Award Nominee",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

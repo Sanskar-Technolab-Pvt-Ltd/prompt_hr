@@ -1,0 +1,133 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-11 04:41:58.022324",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_iti9",
+  "employee",
+  "employee_name",
+  "designation",
+  "department",
+  "product_line",
+  "reporting_manager",
+  "hod",
+  "column_break_nhbv",
+  "kra_kpi_score",
+  "behavioural_score",
+  "hod_score",
+  "final_score",
+  "hod_remarks",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_iti9",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name"
+  },
+  {
+   "fieldname": "designation",
+   "fieldtype": "Data",
+   "label": "Designation"
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Data",
+   "label": "Department"
+  },
+  {
+   "fieldname": "product_line",
+   "fieldtype": "Data",
+   "label": "Product Line"
+  },
+  {
+   "fieldname": "reporting_manager",
+   "fieldtype": "Data",
+   "label": "Reporting Manager"
+  },
+  {
+   "fieldname": "hod",
+   "fieldtype": "Data",
+   "label": "HOD"
+  },
+  {
+   "fieldname": "column_break_nhbv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "kra_kpi_score",
+   "fieldtype": "Percent",
+   "label": "KRA_KPI Score"
+  },
+  {
+   "fieldname": "behavioural_score",
+   "fieldtype": "Percent",
+   "label": "Behavioural Score"
+  },
+  {
+   "fieldname": "hod_score",
+   "fieldtype": "Percent",
+   "label": "HOD Score"
+  },
+  {
+   "fieldname": "final_score",
+   "fieldtype": "Percent",
+   "label": "Final Score"
+  },
+  {
+   "fieldname": "hod_remarks",
+   "fieldtype": "Small Text",
+   "label": "HOD Remarks"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Final Evaluation",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-04-11 04:41:58.022324",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Final Evaluation",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

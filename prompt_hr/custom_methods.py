@@ -1,6 +1,5 @@
 import frappe
-
-
+from prompt_hr.utils import get_next_date
 
 
 
@@ -134,8 +133,6 @@ def job_requisition_notification(doc):
         frappe.log_error(f"Error sending notification", frappe.get_traceback())
         frappe.throw(f"Error sending notification: {str(e)}")
         
-        
-        
 @frappe.whitelist()
 def update_job_applicant_status_based_on_interview(doc, event):
     """Method to update Job Applicant status and set custom_interview_status and custom_interview_round based on Interview.
@@ -146,18 +143,13 @@ def update_job_applicant_status_based_on_interview(doc, event):
         if doc.job_applicant:
             job_applicant_status = frappe.db.get_value("Job Applicant", doc.job_applicant, "custom_interview_status") or None
             job_applicant_status_field = frappe.get_meta("Job Applicant").get_field("status")
-            
-            print(f"\n\n {job_applicant_status_field.options} \n\n")
-            print(f"\n\n {doc.status} \n\n")
-
+        
             if job_applicant_status:
-                frappe.msgprint(str(job_applicant_status))
                 print(f"\n\n  exists {job_applicant_status} \n\n")
                 
-                # if doc.status == "Pending" and (job_applicant_status != "Scheduled" or job_applicant_status != "Rescheduled"):
-                if doc.status == "Pending":
+                if doc.status == "Pending" and job_applicant_status != "Scheduled":
+            
                     new_job_applicant_status = f"{doc.interview_round}-Scheduled"
-                    frappe.msgprint(str(new_job_applicant_status))
                     
                     if new_job_applicant_status not in job_applicant_status_field.options:
                         options = job_applicant_status_field.options+"\n"+new_job_applicant_status
@@ -388,4 +380,147 @@ def update_job_applicant_status_based_on_interview(doc, event):
     except Exception as e:
         frappe.log_error(f"Error updating job requisition status", frappe.get_traceback())
         frappe.throw(f"Error updating job requisition status: {str(e)}")
+
+
+@frappe.whitelist()
+def update_job_applicant_status_based_on_job_offer(doc, event):
+    """Method to update Job Applicant status, based on JOB Offer Status.
+    """
+    
+    try:
+        print(f"\n\n\n EVENT {event}\n\n\n")
+        if event == "validate":
+            if doc.status == "Awaiting Response":
+                frappe.db.set_value("Job Applicant", doc.job_applicant, "status", "Job Offer Given")
         
+        if event == "on_submit":
+            print(f"\n\n\n event is on submit\n\n\n")
+            if doc.status in ["Accepted", "Accepted with Conditions"]:
+                print("\n\n setting job applicant status to job offer accepted \n\n")
+                frappe.db.set_value("Job Applicant", doc.job_applicant, "status", "Job Offer Accepted")
+        
+            if doc.status == "Rejected":
+                frappe.db.set_value("Job Applicant", doc.job_applicant, "status", "Job Offer Rejected")
+        
+    except Exception as e:
+        frappe.log_error(f"Error updating job applicant status", frappe.get_traceback())
+        frappe.throw(f"Error updating job applicant status: {str(e)}")
+        
+        
+        
+@frappe.whitelist()
+def add_probation_feedback_data_to_employee(doc, event):
+    """Method to add Probation Details to Employee if company i equal to IndiFOSS Analytical Pvt Ltd when Probation Feedback Form is submitted.
+    """
+    try:
+        if doc.employee and doc.company == "IndiFOSS Analytical Pvt Ltd":
+            if doc.probation_status == "Confirm":
+                if doc.confirmation_date:
+                    frappe.db.set_value("Employee", doc.employee, "final_confirmation_date", doc.confirmation_date)
+                    frappe.db.set_value("Employee", doc.employee, "custom_probation_status", "Confirmed")
+                    
+            
+            elif doc.probation_status == "Extend":
+                probation_end_date = str(frappe.db.get_value("Employee", doc.employee, "custom_probation_end_date")) or None
+                
+                if probation_end_date:
+                    # extended_probation_end_date = add_to_date(probation_end_date, months=doc.extension_period)
+                    next_date_response = get_next_date(probation_end_date, doc.extension_period)
+                    
+                    if not next_date_response.get("error"):
+                        
+                        extended_probation_end_date = next_date_response.get("message")
+                        
+                    else:
+                        
+                        frappe.throw(f"Error getting next date: {next_date_response.get('message')}")
+                else:
+                    frappe.throw("No probation end date found for employee.")
+                    extended_probation_end_date = None
+
+                
+                employee_doc = frappe.get_doc("Employee", doc.employee)
+                
+                current_user = frappe.session.user
+                
+                if current_user:
+                    employee = frappe.db.get_value("Employee", {"user_id": current_user}, ["name", "employee_name"], as_dict=True)
+                else:
+                    employee = None
+                if employee_doc:
+                    employee_doc.append("custom_probation_extension_details", {
+                        "probation_end_date": employee_doc.custom_probation_end_date,
+                        "extended_date": extended_probation_end_date,
+                        "reason": doc.reason,
+                        "extended_by": employee.get("name") if employee else '',
+                        "extended_by_emp_name": employee.get("employee_name") if employee else ''
+                    })
+                    employee_doc.custom_probation_status = "Pending"
+                    employee_doc.save(ignore_permissions=True)
+                    frappe.db.commit()
+            
+            elif doc.probation_status == "Terminate":        
+                    frappe.db.set_value("Employee", doc.employee, "custom_probation_status", "Terminated")
+                
+    except Exception as e:
+        frappe.log_error(f"Error updating job applicant status", frappe.get_traceback())
+        frappe.throw(f"Error updating job applicant status: {str(e)}")
+        
+        
+@frappe.whitelist()
+def add_confirmation_evaluation_data_to_employee(doc, event):
+    """Method to add Confirmation Evaluation Data to Employee if company  equals to Prompt Equipments PVT LTD when Probation Feedback Form is submitted.
+    """
+    try:
+        if doc.employee and doc.company == "Prompt Equipments PVT LTD":
+            if doc.probation_status == "Confirm":
+                if doc.confirmation_date:
+                    frappe.db.set_value("Employee", doc.employee, "final_confirmation_date", doc.confirmation_date)
+                    frappe.db.set_value("Employee", doc.employee, "custom_probation_status", "Confirmed")
+                    
+            
+            elif doc.probation_status == "Extend":
+                probation_end_date = str(frappe.db.get_value("Employee", doc.employee, "custom_probation_end_date")) or None
+                
+                if probation_end_date:
+                    # extended_probation_end_date = add_to_date(probation_end_date, months=doc.extension_period)
+                    next_date_response = get_next_date(probation_end_date, doc.extension_period)
+                    
+                    if not next_date_response.get("error"):
+                        
+                        extended_probation_end_date = next_date_response.get("message")
+                        
+                    else:
+                        
+                        frappe.throw(f"Error getting next date: {next_date_response.get('message')}")
+                else:
+                    frappe.throw("No probation end date found for employee.")
+                    extended_probation_end_date = None
+
+                
+                employee_doc = frappe.get_doc("Employee", doc.employee)
+                
+                current_user = frappe.session.user
+                
+                if current_user:
+                    employee = frappe.db.get_value("Employee", {"user_id": current_user}, ["name", "employee_name"], as_dict=True)
+                else:
+                    employee = None
+                if employee_doc:
+                    employee_doc.append("custom_probation_extension_details", {
+                        "probation_end_date": employee_doc.custom_probation_end_date,
+                        "extended_date": extended_probation_end_date,
+                        "reason": doc.reason,
+                        "extended_by": employee.get("name") if employee else '',
+                        "extended_by_emp_name": employee.get("employee_name") if employee else ''
+                    })
+                    
+                    employee_doc.custom_probation_status = "Pending"
+                    employee_doc.save(ignore_permissions=True)
+                    frappe.db.commit()
+            
+            elif doc.probation_status == "Terminate":
+                    frappe.db.set_value("Employee", doc.employee, "custom_probation_status", "Terminated")
+    except Exception as e:
+        frappe.log_error(f"Error updating job applicant status", frappe.get_traceback())
+        frappe.throw(f"Error updating job applicant status: {str(e)}")

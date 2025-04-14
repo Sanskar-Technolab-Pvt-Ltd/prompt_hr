@@ -1,0 +1,73 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-11 04:42:49.708769",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "min_score",
+  "max_score",
+  "performance_level",
+  "column_break_lqzo",
+  "min_salary_range",
+  "max_salary_range",
+  "increment_percentage"
+ ],
+ "fields": [
+  {
+   "fieldname": "min_score",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Min Score"
+  },
+  {
+   "fieldname": "max_score",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Max Score"
+  },
+  {
+   "fieldname": "performance_level",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Performance Level"
+  },
+  {
+   "fieldname": "column_break_lqzo",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "min_salary_range",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Min Salary Range"
+  },
+  {
+   "fieldname": "max_salary_range",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Max Salary Range"
+  },
+  {
+   "fieldname": "increment_percentage",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "Increment Percentage"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-04-11 04:42:49.708769",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Increment Metrix Range",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

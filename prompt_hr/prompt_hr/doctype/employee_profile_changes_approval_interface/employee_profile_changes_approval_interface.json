@@ -10,6 +10,7 @@
   "new_value",
   "employee",
   "employee_name",
+  "employee_profile_id",
   "column_break_ykvc",
   "approval_status",
   "date_of_changes_made",
@@ -32,8 +33,7 @@
    "fieldname": "new_value",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "New Value",
-   "reqd": 1
+   "label": "New Value"
   },
   {
    "fieldname": "employee",
@@ -71,13 +71,19 @@
    "fieldname": "changes_applicable_date",
    "fieldtype": "Date",
    "label": "Changes Applicable Date"
+  },
+  {
+   "fieldname": "employee_profile_id",
+   "fieldtype": "Link",
+   "label": "Employee Profile ID",
+   "options": "Employee Profile"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-02 10:44:22.287982",
- "modified_by": "jignasha@sanskartechnolab.com",
+ "modified": "2025-04-09 11:59:21.376305",
+ "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Profile Changes Approval Interface",
  "owner": "Administrator",
