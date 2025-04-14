@@ -9,6 +9,7 @@
   "required_document",
   "attachment",
   "consent",
+  "collection_stage",
   "column_break_vyuf",
   "upload_date",
   "upload_time",
@@ -54,14 +55,20 @@
    "fieldname": "ip_address_on_document_upload",
    "fieldtype": "Data",
    "label": "IP Address on Document Upload"
+  },
+  {
+   "fetch_from": "required_document.document_collection_stage",
+   "fieldname": "collection_stage",
+   "fieldtype": "Data",
+   "label": "Collection Stage"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-04-02 10:44:20.217247",
- "modified_by": "jignasha@sanskartechnolab.com",
+ "modified": "2025-04-14 06:39:22.785944",
+ "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Document Collection",
  "owner": "Administrator",

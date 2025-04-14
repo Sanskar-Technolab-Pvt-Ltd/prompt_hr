@@ -6,33 +6,18 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "employee",
-  "employee_name",
+  "candidate_action_section",
+  "job_applicants",
+  "interview_availability_section",
   "company",
   "job_opening",
-  "column_break_lrvb",
   "for_designation",
+  "column_break_lrvb",
   "date",
   "from_time",
   "to_time"
  ],
  "fields": [
-  {
-   "fieldname": "employee",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Employee",
-   "options": "Employee",
-   "reqd": 1
-  },
-  {
-   "fetch_from": "employee.employee_name",
-   "fieldname": "employee_name",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Employee Name",
-   "reqd": 1
-  },
   {
    "fetch_from": "employee.company",
    "fieldname": "company",
@@ -73,13 +58,29 @@
    "fieldname": "to_time",
    "fieldtype": "Time",
    "label": "To Time"
+  },
+  {
+   "fieldname": "candidate_action_section",
+   "fieldtype": "Section Break",
+   "label": "Candidate Action"
+  },
+  {
+   "fieldname": "job_applicants",
+   "fieldtype": "Table",
+   "label": "Job Applicants",
+   "options": "Candidate Interviewer Action"
+  },
+  {
+   "fieldname": "interview_availability_section",
+   "fieldtype": "Section Break",
+   "label": "Interview Availability"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-02 10:44:24.840981",
- "modified_by": "jignasha@sanskartechnolab.com",
+ "modified": "2025-04-13 18:35:55.970629",
+ "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Interview Availability Form",
  "naming_rule": "Expression",
