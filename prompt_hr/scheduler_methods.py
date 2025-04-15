@@ -19,6 +19,7 @@ def create_probation_feedback_form():
         frappe.log_error("Error while creating probation feedback form", frappe.get_traceback())
 
 #*CREATING PROBATION FEEDBACK FOR PROMPT EMPLOYEES
+@frappe.whitelist()
 def probation_feedback_for_prompt():
     """Method to create probation feedback form for Prompt employees"""
     first_feedback_days = frappe.db.get_single_value("HR Settings", "custom_first_feedback_after")
@@ -27,7 +28,6 @@ def probation_feedback_for_prompt():
     if first_feedback_days or second_feedback_days:
         
         employees_list = frappe.db.get_all("Employee", {"status": "Active", "company": "Prompt Equipments PVT LTD", "custom_probation_status": "Pending"}, "name")
-        print(f"\n\n API Called employee list {employees_list}\n\n")
         
         for employee in employees_list:
             if employee.get("name"):
@@ -38,13 +38,11 @@ def probation_feedback_for_prompt():
                 
                 create_only_one = True if not first_feedback_form_id and not second_feedback_form_id else False
                 
-                
                 if emp_joining_date:
                     date_difference= date_diff(today(), emp_joining_date)
                     
                     if first_feedback_days <= date_difference:
                         if not first_feedback_form_id:
-                            print(f" \n\n creating First Feedback Form \n\n")
                             employee_doc = frappe.get_doc("Employee", employee.get("name"))
                             first_probation_form = frappe.get_doc({
                                 "doctype":"Probation Feedback Form",
@@ -64,7 +62,7 @@ def probation_feedback_for_prompt():
                             question_list = frappe.db.get_all("Probation Question", {"company": "Prompt Equipments PVT LTD", "probation_feedback_for": "30 Days"}, "name")
                             
                             if question_list:
-                                print(f"\n\n question list \n\n")
+                                
                                 for question in question_list:
                                     first_probation_form.append("probation_feedback_prompt", {
                                         "question": question.get("name"),
