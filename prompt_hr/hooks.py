@@ -170,7 +170,7 @@ doc_events = {
     "Confirmation Evaluation Form": {
         "on_submit": "prompt_hr.custom_methods.add_confirmation_evaluation_data_to_employee"
     },
-    "Job Requisition": {
+     "Job Requisition": {
          "on_update": "prompt_hr.py.job_requisition.on_update",
      },
     # "User": {

@@ -1,40 +1,9 @@
-frappe.ui.form.off("Job Opening", "company");
 frappe.ui.form.on("Job Opening", {
 
     refresh: (frm) => {
 
         // ? HANDLE INTERNAL JOB POSTING
         internalJobPosting(frm);
-    },
-    company: function (frm) {
-        frm.set_value("custom_referral_bonus_policy", "");
-        if (frm.doc.custom_allow_employee_referance && frm.doc.company) {
-            frappe.db.get_value("Referral Bonus Policy", { company: frm.doc.company }, "name")
-                .then((r) => {
-                    if (r && r.message && r.message.name) {
-                        frm.set_value("custom_referral_bonus_policy", r.message.name);
-                    }
-                })
-                .catch((err) => {
-                    console.error("Error fetching Referral Bonus Policy:", err);
-                });
-        }
-	},
-    custom_allow_employee_referance: function (frm) {
-        if (frm.doc.custom_allow_employee_referance && frm.doc.company) {
-            frappe.db.get_value("Referral Bonus Policy", { company: frm.doc.company }, "name")
-                .then((r) => {
-                    if (r && r.message && r.message.name) {
-                        frm.set_value("custom_referral_bonus_policy", r.message.name);
-                    }
-                })
-                .catch((err) => {
-                    console.error("Error fetching Referral Bonus Policy:", err);
-                });
-        }
-        else {
-            frm.set_value("custom_referral_bonus_policy", "");
-        }
     }
 });
 
@@ -71,3 +40,9 @@ function internalJobPosting(frm) {
     }
 
 }
+
+frappe.ui.form.on("Job Opening", {
+    company: function (frm) {
+        frappe.ui.form.off("Job Opening", "company");
+	},
+});
