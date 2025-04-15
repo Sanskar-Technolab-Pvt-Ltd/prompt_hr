@@ -1,14 +1,40 @@
 frappe.ui.form.on("Employee Onboarding", {
     
     // ? RUN ON FORM REFRESH
-    refresh: function (frm) {
+    refresh: async function (frm) {
         update_first_activity_if_needed(frm);
+        let applicants = await frappe.db.get_list("Job Applicant", {
+            fields: ["name"],
+            or_filters: [
+                ["status", "=", "Job Offer Accepted"],
+                ["custom_is_offer_required_while_onboarding", "=", 0]
+            ],
+        });
+        frm.set_query("job_applicant", function () {
+            return {
+                filters: [
+                    ["name", "in",applicants.map(applicant => applicant.name)],
+                ]
+            };
+        });
     },
-
     // ? WHEN ONBOARDING TEMPLATE IS SELECTED
     employee_onboarding_template: function (frm) {
         handle_template_selection(frm);
     },
+    job_applicant: function (frm) {
+        if (frm.doc.job_applicant) {
+            console.log(frm.doc.job_applicant)
+            frappe.db.get_doc("Job Applicant", frm.doc.job_applicant).then(applicant_data => {
+                if (!applicant_data.custom_is_offer_required_while_onboarding) {
+                    console.log("Shiva")
+                    frm.toggle_reqd("job_offer", 0);
+                } else {
+                    frm.toggle_reqd("job_offer", 1);
+                }
+            });
+        }
+    }
 });
 
 // ? HANDLE TEMPLATE SELECTION: CLEAR + FETCH + POPULATE

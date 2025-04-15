@@ -1,6 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "format:RBP-{YYYY}-{#####}",
  "creation": "2025-04-13 19:44:51.643865",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -35,10 +36,11 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-13 19:58:38.706795",
+ "modified": "2025-04-15 13:31:02.204682",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Referral Bonus Policy",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {
