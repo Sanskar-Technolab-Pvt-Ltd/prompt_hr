@@ -1,0 +1,106 @@
+[
+ {
+  "category": "Functional/ Technical Skills",
+  "docstatus": 0,
+  "doctype": "Confirmation Evaluation Parameter",
+  "modified": "2025-04-11 18:27:59.389128",
+  "name": "CONF-EVAL-PARAM-00001",
+  "parameter": "Subject Knowledge"
+ },
+ {
+  "category": "Functional/ Technical Skills",
+  "docstatus": 0,
+  "doctype": "Confirmation Evaluation Parameter",
+  "modified": "2025-04-11 18:28:28.636106",
+  "name": "CONF-EVAL-PARAM-00002",
+  "parameter": "Adherance to Deadline"
+ },
+ {
+  "category": "Behavioural Skills",
+  "docstatus": 0,
+  "doctype": "Confirmation Evaluation Parameter",
+  "modified": "2025-04-11 18:28:39.024366",
+  "name": "CONF-EVAL-PARAM-00003",
+  "parameter": "Communication"
+ },
+ {
+  "category": "Behavioural Skills",
+  "docstatus": 0,
+  "doctype": "Confirmation Evaluation Parameter",
+  "modified": "2025-04-11 18:28:52.116918",
+  "name": "CONF-EVAL-PARAM-00004",
+  "parameter": "Team Orientation"
+ },
+ {
+  "category": "Behavioural Skills",
+  "docstatus": 0,
+  "doctype": "Confirmation Evaluation Parameter",
+  "modified": "2025-04-11 18:29:22.540041",
+  "name": "CONF-EVAL-PARAM-00005",
+  "parameter": "Takes Initiative/ Goes Beyond"
+ },
+ {
+  "category": "Behavioural Skills",
+  "docstatus": 0,
+  "doctype": "Confirmation Evaluation Parameter",
+  "modified": "2025-04-11 18:29:33.251810",
+  "name": "CONF-EVAL-PARAM-00006",
+  "parameter": "Takes Ownership"
+ },
+ {
+  "category": "Behavioural Skills",
+  "docstatus": 0,
+  "doctype": "Confirmation Evaluation Parameter",
+  "modified": "2025-04-11 18:29:43.809374",
+  "name": "CONF-EVAL-PARAM-00007",
+  "parameter": "Self Confidence"
+ },
+ {
+  "category": "Behavioural Skills",
+  "docstatus": 0,
+  "doctype": "Confirmation Evaluation Parameter",
+  "modified": "2025-04-11 18:29:53.876168",
+  "name": "CONF-EVAL-PARAM-00008",
+  "parameter": "Innovative Approach"
+ },
+ {
+  "category": "Behavioural Skills",
+  "docstatus": 0,
+  "doctype": "Confirmation Evaluation Parameter",
+  "modified": "2025-04-11 18:30:07.049660",
+  "name": "CONF-EVAL-PARAM-00009",
+  "parameter": "Punctuality/ Attendance"
+ },
+ {
+  "category": "Behavioural Skills",
+  "docstatus": 0,
+  "doctype": "Confirmation Evaluation Parameter",
+  "modified": "2025-04-11 18:30:21.755810",
+  "name": "CONF-EVAL-PARAM-00010",
+  "parameter": "Rate Overall Performance"
+ },
+ {
+  "category": "Behavioural Skills",
+  "docstatus": 0,
+  "doctype": "Confirmation Evaluation Parameter",
+  "modified": "2025-04-11 18:30:36.240028",
+  "name": "CONF-EVAL-PARAM-00011",
+  "parameter": "Mention Strengths of Employee"
+ },
+ {
+  "category": "Behavioural Skills",
+  "docstatus": 0,
+  "doctype": "Confirmation Evaluation Parameter",
+  "modified": "2025-04-11 18:30:50.908670",
+  "name": "CONF-EVAL-PARAM-00012",
+  "parameter": "Mention areas of improvement "
+ },
+ {
+  "category": "Behavioural Skills",
+  "docstatus": 0,
+  "doctype": "Confirmation Evaluation Parameter",
+  "modified": "2025-04-11 18:31:01.711906",
+  "name": "CONF-EVAL-PARAM-00013",
+  "parameter": "Recommend trainings, if any"
+ }
+]
