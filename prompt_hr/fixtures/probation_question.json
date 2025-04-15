@@ -1,0 +1,164 @@
+[
+ {
+  "company": "Prompt Equipments PVT LTD",
+  "docstatus": 0,
+  "doctype": "Probation Question",
+  "modified": "2025-04-09 16:01:01.692014",
+  "name": "PROB-QUE-01",
+  "probation_feedback_for": "30 days",
+  "question": "Rate the employee on clarity of their Job Role."
+ },
+ {
+  "company": "Prompt Equipments PVT LTD",
+  "docstatus": 0,
+  "doctype": "Probation Question",
+  "modified": "2025-04-09 16:04:06.135851",
+  "name": "PROB-QUE-02",
+  "probation_feedback_for": "30 days",
+  "question": "Rate the communication skills of the employee."
+ },
+ {
+  "company": "Prompt Equipments PVT LTD",
+  "docstatus": 0,
+  "doctype": "Probation Question",
+  "modified": "2025-04-09 16:06:06.574905",
+  "name": "PROB-QUE-03",
+  "probation_feedback_for": "30 days",
+  "question": "Rate the employee on their behavior."
+ },
+ {
+  "company": "Prompt Equipments PVT LTD",
+  "docstatus": 0,
+  "doctype": "Probation Question",
+  "modified": "2025-04-09 16:06:15.940805",
+  "name": "PROB-QUE-04",
+  "probation_feedback_for": "30 days",
+  "question": "Rate the employee attitude towards learning."
+ },
+ {
+  "company": "Prompt Equipments PVT LTD",
+  "docstatus": 0,
+  "doctype": "Probation Question",
+  "modified": "2025-04-09 16:06:23.247109",
+  "name": "PROB-QUE-05",
+  "probation_feedback_for": "30 days",
+  "question": "Rate the punctuality of employee."
+ },
+ {
+  "company": "Prompt Equipments PVT LTD",
+  "docstatus": 0,
+  "doctype": "Probation Question",
+  "modified": "2025-04-09 16:06:54.905513",
+  "name": "PROB-QUE-06",
+  "probation_feedback_for": "30 days",
+  "question": "Rate the employee adapability towards team member and organisation culture."
+ },
+ {
+  "company": "Prompt Equipments PVT LTD",
+  "docstatus": 0,
+  "doctype": "Probation Question",
+  "modified": "2025-04-09 16:07:14.931981",
+  "name": "PROB-QUE-07",
+  "probation_feedback_for": "30 days",
+  "question": "Rate the employee technical skills for their role."
+ },
+ {
+  "company": "Prompt Equipments PVT LTD",
+  "docstatus": 0,
+  "doctype": "Probation Question",
+  "modified": "2025-04-09 16:07:33.821835",
+  "name": "PROB-QUE-08",
+  "probation_feedback_for": "30 days",
+  "question": "Any major areas of improvement"
+ },
+ {
+  "company": "Prompt Equipments PVT LTD",
+  "docstatus": 0,
+  "doctype": "Probation Question",
+  "modified": "2025-04-09 16:16:07.585780",
+  "name": "PROB-QUE-09",
+  "probation_feedback_for": "60 days",
+  "question": "Rate the employee on clarity of their Job Role."
+ },
+ {
+  "company": "Prompt Equipments PVT LTD",
+  "docstatus": 0,
+  "doctype": "Probation Question",
+  "modified": "2025-04-09 16:16:16.769311",
+  "name": "PROB-QUE-10",
+  "probation_feedback_for": "60 days",
+  "question": "Rate the communication skills of the employee."
+ },
+ {
+  "company": "Prompt Equipments PVT LTD",
+  "docstatus": 0,
+  "doctype": "Probation Question",
+  "modified": "2025-04-09 16:16:25.817866",
+  "name": "PROB-QUE-11",
+  "probation_feedback_for": "60 days",
+  "question": "Rate the employee on their behavior."
+ },
+ {
+  "company": "Prompt Equipments PVT LTD",
+  "docstatus": 0,
+  "doctype": "Probation Question",
+  "modified": "2025-04-09 16:16:34.301249",
+  "name": "PROB-QUE-12",
+  "probation_feedback_for": "60 days",
+  "question": "Rate the employee attitude towards learning."
+ },
+ {
+  "company": "Prompt Equipments PVT LTD",
+  "docstatus": 0,
+  "doctype": "Probation Question",
+  "modified": "2025-04-09 16:16:43.306745",
+  "name": "PROB-QUE-13",
+  "probation_feedback_for": "60 days",
+  "question": "Rate the punctuality of employee."
+ },
+ {
+  "company": "Prompt Equipments PVT LTD",
+  "docstatus": 0,
+  "doctype": "Probation Question",
+  "modified": "2025-04-09 16:16:52.541338",
+  "name": "PROB-QUE-14",
+  "probation_feedback_for": "60 days",
+  "question": "Rate the employee receptiveness towards feedback."
+ },
+ {
+  "company": "Prompt Equipments PVT LTD",
+  "docstatus": 0,
+  "doctype": "Probation Question",
+  "modified": "2025-04-09 16:17:01.721846",
+  "name": "PROB-QUE-15",
+  "probation_feedback_for": "60 days",
+  "question": "Rate the employee proactiveness in taking additional responsibilities."
+ },
+ {
+  "company": "Prompt Equipments PVT LTD",
+  "docstatus": 0,
+  "doctype": "Probation Question",
+  "modified": "2025-04-09 16:17:09.538055",
+  "name": "PROB-QUE-16",
+  "probation_feedback_for": "60 days",
+  "question": "Rate the self confidence of the employee."
+ },
+ {
+  "company": "Prompt Equipments PVT LTD",
+  "docstatus": 0,
+  "doctype": "Probation Question",
+  "modified": "2025-04-09 16:17:20.217576",
+  "name": "PROB-QUE-17",
+  "probation_feedback_for": "60 days",
+  "question": "Rate the employee technical skills for their role."
+ },
+ {
+  "company": "Prompt Equipments PVT LTD",
+  "docstatus": 0,
+  "doctype": "Probation Question",
+  "modified": "2025-04-09 19:31:40.654564",
+  "name": "PROB-QUE-18",
+  "probation_feedback_for": "60 Days",
+  "question": "Any major areas of improvement"
+ }
+]

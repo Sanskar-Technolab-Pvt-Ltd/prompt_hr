@@ -1,0 +1,200 @@
+[
+ {
+  "description": "Doing GPS / Biometric punch as per policy, avails planned leave and apply on GreytHR",
+  "docstatus": 0,
+  "doctype": "Factor Category Parameters",
+  "factor_category_name": "Attendance",
+  "modified": "2025-04-14 15:06:27.443906",
+  "name": "FACTOR-CAT-00001",
+  "parent_category": "Common Parameters"
+ },
+ {
+  "description": "Timely and regularly acknowledge the mails and calls received on Mail and phones respectively.",
+  "docstatus": 0,
+  "doctype": "Factor Category Parameters",
+  "factor_category_name": "Punctuality",
+  "modified": "2025-04-14 15:07:12.085492",
+  "name": "FACTOR-CAT-00002",
+  "parent_category": "Common Parameters"
+ },
+ {
+  "description": "Neat, tidy & well dressed in formals (for sales/ corporates), uses uniform (for service Er) for customer call",
+  "docstatus": 0,
+  "doctype": "Factor Category Parameters",
+  "factor_category_name": "Grooming",
+  "modified": "2025-04-14 15:07:29.589028",
+  "name": "FACTOR-CAT-00003",
+  "parent_category": "Common Parameters"
+ },
+ {
+  "description": "Doing courtesy /follow up mails to customer as per guided instructions",
+  "docstatus": 0,
+  "doctype": "Factor Category Parameters",
+  "factor_category_name": "Written",
+  "modified": "2025-04-14 15:07:58.212645",
+  "name": "FACTOR-CAT-00004",
+  "parent_category": "Communication"
+ },
+ {
+  "description": "talking to peers, cross function, customers and reporting in polite and constructive manner",
+  "docstatus": 0,
+  "doctype": "Factor Category Parameters",
+  "factor_category_name": "Spoken",
+  "modified": "2025-04-14 15:08:12.050765",
+  "name": "FACTOR-CAT-00005",
+  "parent_category": "Communication"
+ },
+ {
+  "description": "picking up the call from reporting and customer timely, if missed the calls, does the call back or acknowledge the same to understand the purpose of calling",
+  "docstatus": 0,
+  "doctype": "Factor Category Parameters",
+  "factor_category_name": "Telephone",
+  "modified": "2025-04-14 15:38:45.556918",
+  "name": "FACTOR-CAT-00006",
+  "parent_category": "Communication"
+ },
+ {
+  "description": "Seek help for knowledge or process understanding in case of confusion. Not discussing important matters which are confidential or needs to discuss with Reporting managers only",
+  "docstatus": 0,
+  "doctype": "Factor Category Parameters",
+  "factor_category_name": "Peers",
+  "modified": "2025-04-14 15:39:04.584144",
+  "name": "FACTOR-CAT-00007",
+  "parent_category": "Interpersonal Relationships and Interactions"
+ },
+ {
+  "description": "Keep Manager in loop for all his conversation, keep updated about all the matters, sharing tour plan and update if any deviation happens, seek approval in written by providing supporting documents for any commercial matters.",
+  "docstatus": 0,
+  "doctype": "Factor Category Parameters",
+  "factor_category_name": "TL/ RM",
+  "modified": "2025-04-14 15:39:29.670093",
+  "name": "FACTOR-CAT-00008",
+  "parent_category": "Interpersonal Relationships and Interactions"
+ },
+ {
+  "description": "Meet existing or potential customers on regular interval to check new requirements / new launches by taking prior appointments, Ability to provide ongoing support and follow-up after the sale or service.",
+  "docstatus": 0,
+  "doctype": "Factor Category Parameters",
+  "factor_category_name": "Customer",
+  "modified": "2025-04-14 15:39:45.851320",
+  "name": "FACTOR-CAT-00009",
+  "parent_category": "Interpersonal Relationships and Interactions"
+ },
+ {
+  "description": "Obeys workplace policies and regulations. Works extra hours to meet the deadline. Shows ethics in travel claims and commercial matters. use organization assets sensibly",
+  "docstatus": 0,
+  "doctype": "Factor Category Parameters",
+  "factor_category_name": "Professionalism",
+  "modified": "2025-04-14 15:40:17.864747",
+  "name": "FACTOR-CAT-00010",
+  "parent_category": "Commitment"
+ },
+ {
+  "description": "Ability to analyse sales data and market trends to inform strategies.",
+  "docstatus": 0,
+  "doctype": "Factor Category Parameters",
+  "factor_category_name": "Analytical Skills",
+  "modified": "2025-04-14 15:40:37.053491",
+  "name": "FACTOR-CAT-00011",
+  "parent_category": "Commitment"
+ },
+ {
+  "description": "In-depth understanding of the products or services being sold, including features and benefits.\nIn-depth knowledge of instruments such as FTIR, NIR, GC, Bioeasy, etc.",
+  "docstatus": 0,
+  "doctype": "Factor Category Parameters",
+  "factor_category_name": "Product Knowledge",
+  "modified": "2025-04-14 15:46:59.969108",
+  "name": "FACTOR-CAT-00012",
+  "parent_category": "KPI Expectations"
+ },
+ {
+  "description": "Using and following defined processes of ZOHO, CRM software, raising important task on BTS, Using GreytHR for attendance and other HR requirements",
+  "docstatus": 0,
+  "doctype": "Factor Category Parameters",
+  "factor_category_name": " Technical Proficiency",
+  "modified": "2025-04-14 15:47:20.499085",
+  "name": "FACTOR-CAT-00013",
+  "parent_category": "KPI Expectations"
+ },
+ {
+  "description": "remain up to date about analytical and scientific technology, market trends, tenders to be launched & competitor offerings and positioning to effectively differentiate products.",
+  "docstatus": 0,
+  "doctype": "Factor Category Parameters",
+  "factor_category_name": "Market Awareness",
+  "modified": "2025-04-14 15:47:38.205598",
+  "name": "FACTOR-CAT-00014",
+  "parent_category": "KPI Expectations"
+ },
+ {
+  "description": "Could prepare travel plan to cover assigned territory in stipulated time and could successfully execute it.",
+  "docstatus": 0,
+  "doctype": "Factor Category Parameters",
+  "factor_category_name": "Territory Coverage'",
+  "modified": "2025-04-14 15:47:56.757664",
+  "name": "FACTOR-CAT-00015",
+  "parent_category": "KPI Expectations"
+ },
+ {
+  "description": "could schedule and conduct meetings with potential clients along with demonstration/presentations.",
+  "docstatus": 0,
+  "doctype": "Factor Category Parameters",
+  "factor_category_name": "Client Meetings and Demonstrations",
+  "modified": "2025-04-14 15:48:14.460504",
+  "name": "FACTOR-CAT-00016",
+  "parent_category": "KPI Expectations"
+ },
+ {
+  "description": "Could generate potential leads in a specific period and assigned territory",
+  "docstatus": 0,
+  "doctype": "Factor Category Parameters",
+  "factor_category_name": "Lead Generation",
+  "modified": "2025-04-14 15:48:27.616643",
+  "name": "FACTOR-CAT-00017",
+  "parent_category": "KPI Expectations"
+ },
+ {
+  "description": "could schedule and conduct meetings with potential clients along with demonstration/presentations.",
+  "docstatus": 0,
+  "doctype": "Factor Category Parameters",
+  "factor_category_name": "Client Meetings and Demonstrations",
+  "modified": "2025-04-14 15:48:47.829504",
+  "name": "FACTOR-CAT-00018",
+  "parent_category": "KPI Expectations"
+ },
+ {
+  "description": "done required follow-up communications after initial client meeting to convert client leads into the business.",
+  "docstatus": 0,
+  "doctype": "Factor Category Parameters",
+  "factor_category_name": "Follow-Up Activities",
+  "modified": "2025-04-14 15:49:02.649447",
+  "name": "FACTOR-CAT-00019",
+  "parent_category": "KPI Expectations"
+ },
+ {
+  "description": "could achieve sales targets assigned for specific time",
+  "docstatus": 0,
+  "doctype": "Factor Category Parameters",
+  "factor_category_name": "Sales Target & Revenue",
+  "modified": "2025-04-14 15:49:21.072181",
+  "name": "FACTOR-CAT-00020",
+  "parent_category": "KPI Expectations"
+ },
+ {
+  "description": "Could acquire new customers over a defined period and could retain/ get repeated business from existing customers over time.",
+  "docstatus": 0,
+  "doctype": "Factor Category Parameters",
+  "factor_category_name": "Customer Acquisition",
+  "modified": "2025-04-14 15:49:42.225917",
+  "name": "FACTOR-CAT-00021",
+  "parent_category": "KPI Expectations"
+ },
+ {
+  "description": "Ability to analyse current industry trends and market data to identify opportunities for business. Utilizing client feedback to refine sales strategies and product offerings.",
+  "docstatus": 0,
+  "doctype": "Factor Category Parameters",
+  "factor_category_name": "Data Analysis",
+  "modified": "2025-04-14 15:50:01.195423",
+  "name": "FACTOR-CAT-00022",
+  "parent_category": "KPI Expectations"
+ }
+]
