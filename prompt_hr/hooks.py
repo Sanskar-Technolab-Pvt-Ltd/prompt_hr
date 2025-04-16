@@ -49,6 +49,7 @@ doctype_js = {
     "Job Offer": "public/js/job_offer.js",
     # "Job Requisition": "public/js/job_requisition.js",
     "Job Opening": "public/js/job_opening.js",
+    'Employee': 'public/js/employee.js',
     "Job Applicant": "public/js/job_applicant.js",
 }
 
@@ -171,6 +172,9 @@ doc_events = {
     "Confirmation Evaluation Form": {
         "on_submit": "prompt_hr.custom_methods.add_confirmation_evaluation_data_to_employee"
     },
+    "Job Requisition": {
+         "on_update": "prompt_hr.py.job_requisition.on_update",
+     },
     # "User": {
     #     "after_insert": "prompt_hr.py.welcome_status.after_insert"
     # },
