@@ -1,6 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "format:REQ-DOC-CHECKLIST-{##}",
  "creation": "2025-04-14 06:17:58.539111",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -20,8 +21,10 @@
   {
    "fieldname": "company",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Company",
-   "options": "Company"
+   "options": "Company",
+   "reqd": 1
   },
   {
    "fieldname": "column_break_zdth",
@@ -41,10 +44,11 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-14 06:21:53.945721",
+ "modified": "2025-04-16 18:37:06.119754",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Joining Document Checklist",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {
