@@ -32,6 +32,8 @@ def check_test_and_invite(job_applicant):
             message=content
         )
         
+        frappe.db.set_value("Job Applicant", job_applicant, "status", "Screening Test Scheduled")
+        
         return {"error":0, "message":"invited"}
     except Exception as e:
         frappe.log_error(f"Error in check_test_and_invite", frappe.get_traceback())
