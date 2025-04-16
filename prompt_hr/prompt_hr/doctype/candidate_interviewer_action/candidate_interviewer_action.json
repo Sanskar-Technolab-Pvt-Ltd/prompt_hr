@@ -11,8 +11,8 @@
   "status",
   "shortlisted_by",
   "date",
-  "from",
-  "to",
+  "from_time",
+  "to_time",
   "comments"
  ],
  "fields": [
@@ -49,26 +49,26 @@
    "label": "Date"
   },
   {
-   "fieldname": "from",
-   "fieldtype": "Time",
-   "label": "From"
-  },
-  {
-   "fieldname": "to",
-   "fieldtype": "Time",
-   "label": "To"
-  },
-  {
    "fieldname": "comments",
    "fieldtype": "Small Text",
    "label": "Comments"
+  },
+  {
+   "fieldname": "from_time",
+   "fieldtype": "Time",
+   "label": "From Time"
+  },
+  {
+   "fieldname": "to_time",
+   "fieldtype": "Time",
+   "label": "To Time"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-04-16 17:58:20.002397",
+ "modified": "2025-04-16 22:34:58.570225",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Candidate Interviewer Action",

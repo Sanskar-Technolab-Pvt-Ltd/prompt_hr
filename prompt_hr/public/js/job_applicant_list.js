@@ -1,10 +1,23 @@
-frappe.listview_settings['Job Opening'] = {
+
+
+frappe.listview_settings['Job Applicant'] = {
     onload: function (listview) {
         listview.page.add_inner_button(__('Add to Interview Availability'), () => {
-            const selected_jobs = listview.get_checked_items();
+            const selected_applicants = listview.get_checked_items();
 
-            if (!selected_jobs.length) {
-                frappe.msgprint(__('Please select at least one Job Opening.'));
+            if (!selected_applicants.length) {
+                frappe.msgprint(__('Please select at least one Job Applicant.'));
+                return;
+            }
+
+            // Get job_title of first applicant
+            const common_job_title = selected_applicants[0].job_title;
+
+            // Validate all selected applicants are from the same job opening
+            const invalid_applicants = selected_applicants.filter(app => app.job_title !== common_job_title);
+
+            if (invalid_applicants.length > 0) {
+                frappe.msgprint(__('All selected Job Applicants must be from the same Job Opening.'));
                 return;
             }
 
@@ -16,13 +29,9 @@ frappe.listview_settings['Job Opening'] = {
                         fieldname: 'employees',
                         fieldtype: 'Link',
                         options: 'Employee',
-                        get_query: function () {
-                            return {
-                                filters: {
-                                    status: 'Active'
-                                }
-                            };
-                        }
+                        get_query: () => ({
+                            filters: { status: 'Active' }
+                        })
                     },
                     {
                         fieldtype: 'HTML',
@@ -38,29 +47,31 @@ frappe.listview_settings['Job Opening'] = {
                     {
                         fieldtype: 'Small Text',
                         fieldname: 'employee_list',
-                        label: 'Employee List',
                         hidden: 1
                     }
                 ],
                 primary_action_label: 'Submit',
                 primary_action(values) {
-                    const job_opening_ids = selected_jobs.map(row => row.name);
-                    const selected_employees_list = values.employee_list ? JSON.parse(values.employee_list) : [];
+                    const selected_employees = values.employee_list ? JSON.parse(values.employee_list) : [];
 
-                    if (!selected_employees_list.length) {
+                    if (!selected_employees.length) {
                         frappe.msgprint(__('Please select at least one Employee.'));
                         return;
                     }
 
+                    const applicant_ids = selected_applicants.map(a => a.name);
+                    const job_opening = common_job_title;
+
                     frappe.call({
-                        method: 'prompt_hr.py.job_opening.add_to_interview_availability',
+                        method: 'prompt_hr.py.job_applicant.add_to_interview_availability',
                         args: {
-                            job_openings: JSON.stringify(job_opening_ids),
-                            employees: JSON.stringify(selected_employees_list)
+                            job_opening,
+                            job_applicants: JSON.stringify(applicant_ids),
+                            employees: JSON.stringify(selected_employees)
                         },
                         callback: (r) => {
                             if (!r.exc) {
-                                frappe.msgprint(__('Interview Availability updated and shared successfully.'));
+                                frappe.msgprint(__('Interview Availability created and shared.'));
                                 dialog.hide();
                                 listview.refresh();
                             }
