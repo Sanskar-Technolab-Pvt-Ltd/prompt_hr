@@ -74,7 +74,6 @@
   "column_break4",
   "prefered_contact_email",
   "prefered_email",
-  "unsubscribed",
   "address_section",
   "current_address",
   "current_accommodation_type",
@@ -306,10 +305,10 @@
    "fieldtype": "Link",
    "label": "Company",
    "options": "Company",
+   "permlevel": 1,
    "print_hide": 1,
    "remember_last_selected_value": 1,
-   "reqd": 1,
-   "permlevel": 1
+   "reqd": 1
   },
   {
    "fieldname": "department",
@@ -350,8 +349,8 @@
    "oldfieldname": "designation",
    "oldfieldtype": "Link",
    "options": "Designation",
-   "search_index": 1,
-   "permlevel": 1
+   "permlevel": 1,
+   "search_index": 1
   },
   {
    "fieldname": "business_unit",
@@ -399,7 +398,7 @@
    "fieldname": "product_line",
    "fieldtype": "Link",
    "label": "Product Line",
-   "options": "IndiFOSS Product",
+   "options": "Product Line",
    "permlevel": 1
   },
   {
@@ -672,22 +671,22 @@
    "fieldtype": "Data",
    "label": "Attendance Device ID (Biometric/RF tag ID)",
    "no_copy": 1,
-   "unique": 1,
-   "permlevel": 1
+   "permlevel": 1,
+   "unique": 1
   },
   {
    "fieldname": "weekoff",
    "fieldtype": "Select",
    "label": "WeekOff",
-   "permlevel": 1,
-   "options": "Sunday\nMonday\nTuesday\nWednesday\nThursday\nFriday\nSaturday"
+   "options": "Sunday\nMonday\nTuesday\nWednesday\nThursday\nFriday\nSaturday",
+   "permlevel": 1
   },
   {
    "fieldname": "attendance_capture_scheme",
    "fieldtype": "Select",
    "label": "Attendance Capture Scheme",
-   "permlevel": 1,
-   "options": "Biometric\nMobile Clockin-Clockout\nWeb Checkin-Checkout\nGeotracking\nGeofencing"
+   "options": "Biometric\nMobile Clockin-Clockout\nWeb Checkin-Checkout\nGeotracking\nGeofencing",
+   "permlevel": 1
   },
   {
    "fieldname": "column_break_44",
@@ -1110,7 +1109,7 @@
  "icon": "fa fa-user",
  "image_field": "image",
  "links": [],
- "modified": "2025-04-12 14:34:15.850575",
+ "modified": "2025-04-16 12:06:15.372178",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Profile",

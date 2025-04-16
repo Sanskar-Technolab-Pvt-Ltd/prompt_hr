@@ -1,7 +1,7 @@
 // Copyright (c) 2025, Jignasha Chavda and contributors
 // For license information, please see license.txt
 
-// frappe.ui.form.on("IndiFOSS Product", {
+// frappe.ui.form.on("Workflow Approval", {
 // 	refresh(frm) {
 
 // 	},
