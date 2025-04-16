@@ -16,10 +16,7 @@
   "department",
   "designation",
   "approval_flow_section",
-  "stages_column",
-  "stages",
-  "approval_hierarchy_column",
-  "employee"
+  "workflow_approval_hierarchy"
  ],
  "fields": [
   {
@@ -29,31 +26,9 @@
    "options": "DocType"
   },
   {
-   "fieldname": "stages",
-   "fieldtype": "Table MultiSelect",
-   "label": "Stages",
-   "options": "Workflow State Multiselect"
-  },
-  {
    "fieldname": "approval_flow_section",
    "fieldtype": "Section Break",
    "label": "Approval Flow"
-  },
-  {
-   "fieldname": "stages_column",
-   "fieldtype": "Column Break",
-   "label": "Stages"
-  },
-  {
-   "fieldname": "approval_hierarchy_column",
-   "fieldtype": "Column Break",
-   "label": "Approval Hierarchy"
-  },
-  {
-   "fieldname": "employee",
-   "fieldtype": "Table MultiSelect",
-   "label": "Employee",
-   "options": "Employee Multiselect"
   },
   {
    "fieldname": "work_location",
@@ -106,12 +81,18 @@
   {
    "fieldname": "column_break_rcmu",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "workflow_approval_hierarchy",
+   "fieldtype": "Table",
+   "label": "Workflow Approval Hierarchy",
+   "options": "Workflow Approval Hierarchy"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-15 18:38:40.550124",
+ "modified": "2025-04-16 18:53:52.123386",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Workflow Approval",
@@ -130,7 +111,6 @@
    "write": 1
   }
  ],
- "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []

@@ -6,9 +6,36 @@ from hrms.hr.doctype.job_offer.job_offer import JobOffer
 
 
 class CustomInterview(Interview):
+    
+    
+    def show_job_applicant_update_dialog(self):
+        """Override the show_job_applicant_update_dialog method to stop calling update_job_applicant which updates the status of the job applicant.
+        """
+        pass
+        # job_applicant_status = self.get_job_applicant_status()
+        # if not job_applicant_status:
+        #     return
+
+        # job_application_name = frappe.db.get_value("Job Applicant", self.job_applicant, "applicant_name")
+
+        # frappe.msgprint(
+        #     _("Do you want to update the Job Applicant {0} as {1} based on this interview result?").format(
+        #         frappe.bold(job_application_name), frappe.bold(job_applicant_status)
+        #     ),
+        #     title=_("Update Job Applicant"),
+        #     primary_action={
+        #         "label": _("Mark as {0}").format(job_applicant_status),
+        #         "server_action": "hrms.hr.doctype.interview.interview.update_job_applicant_status",
+        #         "args": {"job_applicant": self.job_applicant, "status": job_applicant_status},
+        #     },
+        # )
+    
+    
+    
+    
     @frappe.whitelist()
     def reschedule_interview(self, scheduled_on, from_time, to_time):
-        print("\n\n  override successful \n\n")
+        """ Override this method to Reschedule the interview and send notification to the interviewee."""
         
         if scheduled_on == self.scheduled_on and from_time == self.from_time and to_time == self.to_time:
             frappe.msgprint(
@@ -111,7 +138,7 @@ class CustomInterview(Interview):
             )
 
         frappe.msgprint(_("Interview Rescheduled successfully"), indicator="green")
-  
+
 
 class CustomJobOffer(JobOffer):
     def on_change(self):
