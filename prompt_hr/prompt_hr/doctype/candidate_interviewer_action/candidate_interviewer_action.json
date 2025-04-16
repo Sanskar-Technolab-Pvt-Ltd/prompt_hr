@@ -8,7 +8,12 @@
  "field_order": [
   "job_applicant",
   "applicant_name",
-  "status"
+  "status",
+  "shortlisted_by",
+  "date",
+  "from",
+  "to",
+  "comments"
  ],
  "fields": [
   {
@@ -31,13 +36,39 @@
    "in_list_view": 1,
    "label": "Status",
    "options": "Open\nShortlisted"
+  },
+  {
+   "fieldname": "shortlisted_by",
+   "fieldtype": "Link",
+   "label": "Shortlisted By",
+   "options": "User"
+  },
+  {
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "label": "Date"
+  },
+  {
+   "fieldname": "from",
+   "fieldtype": "Time",
+   "label": "From"
+  },
+  {
+   "fieldname": "to",
+   "fieldtype": "Time",
+   "label": "To"
+  },
+  {
+   "fieldname": "comments",
+   "fieldtype": "Small Text",
+   "label": "Comments"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-04-13 18:35:17.307299",
+ "modified": "2025-04-16 17:58:20.002397",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Candidate Interviewer Action",

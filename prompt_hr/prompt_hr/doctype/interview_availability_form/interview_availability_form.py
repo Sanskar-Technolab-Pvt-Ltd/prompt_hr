@@ -9,6 +9,10 @@ from datetime import datetime
 class InterviewAvailabilityForm(Document):
 	pass
 
+@frappe.whitelist()
+def hello():
+    return "danj"
+
 # ! prompt_hr.prompt_hr.doctype.interview_availibilty_form.interview_availibilty_form.fetch_latest_availability
 # ? FETCH LATEST AVAILABILITY FOR A GIVEN DATE AND TIME RANGE
 @frappe.whitelist()
