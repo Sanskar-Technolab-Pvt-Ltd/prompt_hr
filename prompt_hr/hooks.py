@@ -51,6 +51,7 @@ doctype_js = {
     "Job Opening": "public/js/job_opening.js",
     'Employee': 'public/js/employee.js',
     "Job Applicant": "public/js/job_applicant.js",
+    'Appointment Letter': 'public/js/appointment_letter.js',
 }
 
 doctype_list_js = {"Interview": "public/js/interview.js"}
@@ -142,6 +143,7 @@ override_doctype_class = {
     # "ToDo": "custom_app.overrides.CustomToDo"
     "Interview": "prompt_hr.override.CustomInterview",
     "Job Offer": "prompt_hr.override.CustomJobOffer",
+    "Appointment Letter": "prompt_hr.override.CustomAppointmentLetter",
 }
 
 # Document Events
