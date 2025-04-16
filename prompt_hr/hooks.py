@@ -153,11 +153,12 @@ doc_events = {
         "on_update": "prompt_hr.py.employee_onboarding.on_update",
     },
     "Job Requisition": {
-        "validate": "prompt_hr.custom_methods.update_job_requisition_status",
+        # "validate": "prompt_hr.custom_methods.job_requisition_notification",
         "on_update": "prompt_hr.py.job_requisition.on_update",
     },
     "Interview": {
-        "validate": "prompt_hr.custom_methods.update_job_applicant_status_based_on_interview"
+        "validate": "prompt_hr.custom_methods.update_job_applicant_status_based_on_interview",
+        "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_interview"
     },
     "Job Offer": {
         "validate": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
@@ -175,6 +176,10 @@ doc_events = {
     "Job Requisition": {
          "on_update": "prompt_hr.py.job_requisition.on_update",
      },
+     "LMS Quiz Submission": {
+        "validate":"prompt_hr.py.lms_quiz_submission.update_status"
+    },
+    
     # "User": {
     #     "after_insert": "prompt_hr.py.welcome_status.after_insert"
     # },
