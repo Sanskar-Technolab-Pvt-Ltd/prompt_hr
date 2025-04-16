@@ -410,7 +410,7 @@ def update_job_applicant_status_based_on_job_offer(doc, event):
         
 @frappe.whitelist()
 def add_probation_feedback_data_to_employee(doc, event):
-    """Method to add Probation Details to Employee if company i equal to IndiFOSS Analytical Pvt Ltd when Probation Feedback Form is submitted.
+    """Method to add Probation Details to Employee if company is equal to IndiFOSS Analytical Pvt Ltd when Probation Feedback Form is submitted.
     """
     try:
         if doc.employee and doc.company == "IndiFOSS Analytical Pvt Ltd":
