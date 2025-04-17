@@ -3,6 +3,7 @@ import traceback
 from dateutil.relativedelta import relativedelta
 from frappe.utils import getdate, nowdate
 
+# ! prompt_hr.py.job_opening.send_job_opening_notification
 # ? FUNCTION TO SEND JOB OPENING NOTIFICATION
 @frappe.whitelist()
 def send_job_opening_notification(
@@ -13,7 +14,8 @@ def send_job_opening_notification(
     allowed_department=None,
     allowed_location=None,
     allowed_grade=None,
-    application_link=None
+    job_opening=None,
+    source=None
 ):
     try:
         filters = {"status": "Active"}
@@ -60,7 +62,8 @@ def send_job_opening_notification(
                 emails=eligible_emails,
                 due_date=due_date,
                 notification_name=notification_name,
-                application_link=application_link
+               job_opening= job_opening,
+               source= source
             )
 
         return eligible_emails
@@ -110,13 +113,13 @@ def get_role_tenure_from_map(history_map, emp_id, joining_date):
         return 0
 
 # ? FUNCTION TO SEND NOTIFICATION EMAIL
-def send_notification_email(emails, due_date, notification_name=None, application_link=None):
+def send_notification_email(emails, due_date, notification_name=None, job_opening=None, source = None):
     try:
         subject = "Job Opportunity"
         base_url = frappe.utils.get_url()
 
         # ? Fallback link if application link is not passed
-        apply_link = application_link or f"{base_url}/app/job-applicant/new-job-applicant-1"
+        apply_link = f"{base_url}/app/job-applicant/new-job-applicant-1?job_title={job_opening}&source={source}"
 
         notification_doc = None
         if notification_name:
