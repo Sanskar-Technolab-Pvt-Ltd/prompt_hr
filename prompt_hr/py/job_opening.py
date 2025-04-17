@@ -49,8 +49,10 @@ def send_job_opening_notification(
             if role_months < float(min_tenure_in_current_role):
                 continue
 
-            if emp.personal_email:
-                eligible_emails.append(emp.personal_email)
+            if emp.user_id:
+                eligible_emails.append(emp.user_id)
+            
+        print("Eligible Emails:\n\n", eligible_emails)
 
         # ? SEND NOTIFICATION IF ELIGIBLE EMPLOYEES FOUND
         if eligible_emails:
