@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "field:required_document",
+ "autoname": "format:REQ-DOC-{#####}",
  "creation": "2025-03-26 17:35:08.596941",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -36,17 +36,18 @@
    "fieldname": "company",
    "fieldtype": "Link",
    "label": "Company",
-   "options": "Company"
+   "options": "Company",
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-14 06:18:43.800123",
+ "modified": "2025-04-16 18:38:11.433763",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Required Document Applicant",
- "naming_rule": "By fieldname",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {
@@ -63,7 +64,9 @@
   }
  ],
  "row_format": "Dynamic",
+ "show_title_field_in_link": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "title_field": "required_document"
 }

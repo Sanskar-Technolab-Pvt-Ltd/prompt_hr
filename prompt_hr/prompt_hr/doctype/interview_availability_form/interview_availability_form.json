@@ -6,16 +6,13 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "candidate_action_section",
-  "job_applicants",
   "interview_availability_section",
   "company",
   "job_opening",
-  "for_designation",
   "column_break_lrvb",
-  "date",
-  "from_time",
-  "to_time"
+  "for_designation",
+  "candidate_action_section",
+  "job_applicants"
  ],
  "fields": [
   {
@@ -43,23 +40,6 @@
    "reqd": 1
   },
   {
-   "fieldname": "date",
-   "fieldtype": "Date",
-   "in_list_view": 1,
-   "label": "Date",
-   "reqd": 1
-  },
-  {
-   "fieldname": "from_time",
-   "fieldtype": "Time",
-   "label": "From Time"
-  },
-  {
-   "fieldname": "to_time",
-   "fieldtype": "Time",
-   "label": "To Time"
-  },
-  {
    "fieldname": "candidate_action_section",
    "fieldtype": "Section Break",
    "label": "Candidate Action"
@@ -79,7 +59,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-13 18:35:55.970629",
+ "modified": "2025-04-16 17:56:37.003040",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Interview Availability Form",

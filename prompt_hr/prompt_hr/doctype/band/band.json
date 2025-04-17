@@ -7,10 +7,13 @@
  "engine": "InnoDB",
  "field_order": [
   "band",
+  "company",
+  "column_break_zqff",
   "description"
  ],
  "fields": [
   {
+   "allow_in_quick_entry": 1,
    "fieldname": "band",
    "fieldtype": "Data",
    "in_list_view": 1,
@@ -22,13 +25,25 @@
    "fieldname": "description",
    "fieldtype": "Small Text",
    "label": "Description"
+  },
+  {
+   "allow_in_quick_entry": 1,
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_zqff",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-02 10:44:24.994040",
- "modified_by": "jignasha@sanskartechnolab.com",
+ "modified": "2025-04-16 13:06:20.123681",
+ "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Band",
  "naming_rule": "By fieldname",
@@ -47,6 +62,7 @@
    "write": 1
   }
  ],
+ "quick_entry": 1,
  "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",

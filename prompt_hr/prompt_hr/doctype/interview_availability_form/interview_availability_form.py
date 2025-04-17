@@ -6,8 +6,27 @@ from frappe.model.document import Document
 from datetime import datetime
 
 
+import frappe
+from frappe.model.document import Document
+
 class InterviewAvailabilityForm(Document):
-	pass
+    
+    def before_save(self):
+
+        # ? LOOP THROUGH THE JOB_APPLICANTS CHILD TABLE
+        for applicant in self.job_applicants:
+
+            # ? GET THE CURRENT STATUS OF THE APPLICANT
+            current_status = frappe.db.get_value('Job Applicant', applicant.job_applicant, 'status')
+
+            # ? CHECK IF THE STATUS IS BEING CHANGED TO 'SHORTLISTED'
+            if current_status != 'Shortlisted' and applicant.status == 'Shortlisted':
+
+                # ? UPDATE THE JOB APPLICANT'S STATUS TO 'SHORTLISTED BY INTERVIEWER'
+                frappe.db.set_value('Job Applicant', applicant.job_applicant, 'status', 'Shortlisted by Interviewer')
+                frappe.msgprint(f"Applicant {applicant.job_applicant} status updated to 'Shortlisted by Interviewer'.")
+
+
 
 # ! prompt_hr.prompt_hr.doctype.interview_availibilty_form.interview_availibilty_form.fetch_latest_availability
 # ? FETCH LATEST AVAILABILITY FOR A GIVEN DATE AND TIME RANGE

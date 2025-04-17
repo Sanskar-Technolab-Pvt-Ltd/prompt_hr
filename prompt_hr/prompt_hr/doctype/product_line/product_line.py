@@ -5,5 +5,5 @@
 from frappe.model.document import Document
 
 
-class IndiFOSSProduct(Document):
+class ProductLine(Document):
 	pass
