@@ -144,8 +144,8 @@ doctype_list_js = {
 
 override_doctype_class = {
     # "ToDo": "custom_app.overrides.CustomToDo"
-    "Interview": "prompt_hr.override.CustomInterview",
-    "Job Offer": "prompt_hr.override.CustomJobOffer",
+    "Interview": "prompt_hr.overrides.interview_override.CustomInterview",
+    "Job Offer": "prompt_hr.overrides.job_offer_override.CustomJobOffer",
 }
 
 # Document Events
@@ -210,7 +210,8 @@ scheduler_events = {
 # ------------------------------
 #
 # override_whitelisted_methods = {
-# 	"frappe.desk.doctype.event.event.get_events": "prompt_hr.event.get_events"
+	# "frappe.desk.doctype.event.event.get_events": "prompt_hr.event.get_events"
+    # "frappe.model.workflow.get_transitions": "prompt_hr.overrides.workflow_override.get_transitions",
 # }
 #
 # each overriding function accepts a `data` argument;
