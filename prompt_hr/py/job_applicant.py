@@ -1,5 +1,41 @@
 import frappe
 
+# ? FUNCTION TO FETCH ACTIVE HR MANAGERS FOR A GIVEN COMPANY
+def get_hr_managers_by_company(company):
+    return [
+        row.email for row in frappe.db.sql("""
+            SELECT DISTINCT u.email
+            FROM `tabHas Role` hr
+            JOIN `tabUser` u ON u.name = hr.parent
+            JOIN `tabEmployee` e ON e.user_id = u.name
+            WHERE hr.role = 'HR Manager'
+              AND u.enabled = 1
+              AND e.company = %s
+        """, (company,), as_dict=1) if row.email
+    ]
+
+
+# ? AFTER INSERT HOOK TO SEND EMAIL TO HR MANAGERS OF THE SAME COMPANY
+def after_insert(doc, method):
+    try:
+
+        company = frappe.db.get_value("Job Opening", doc.job_title, "company")
+
+        hr_emails = get_hr_managers_by_company(company)
+
+        if hr_emails:
+            send_notification_from_template(
+                emails=hr_emails,
+                notification_name="HR Interview Availability Revert Mail",
+                doc=doc
+            )
+        else:
+            frappe.log_error("No HR Managers Found", f"No HR Managers found for company: {doc.company}")
+
+    except Exception as e:
+        frappe.log_error("Error in after_insert", str(e))
+
+
 #* API TO SEND EMAIL TO JOB APPLICANT FOR SCREEN TEST
 @frappe.whitelist()
 def check_test_and_invite(job_applicant):
@@ -46,7 +82,7 @@ import frappe
 import json
 import traceback
 
-# Generic helper function to send email using Notification Template
+# ? GENERIC HELPER FUNCTION TO SEND EMAIL USING NOTIFICATION TEMPLATE
 def send_notification_from_template(emails, notification_name, doc=None):
     try:
         notification_doc = frappe.get_doc("Notification", notification_name)
@@ -75,34 +111,34 @@ def send_notification_from_template(emails, notification_name, doc=None):
             title="Notification Sending Failed",
             message=f"Failed to send '{notification_name}': {str(e)}\n{traceback.format_exc()}",
         )
-        # Re-raise the error to be handled by the caller function
+        # ? RE-RAISE THE ERROR TO BE HANDLED BY THE CALLER FUNCTION
         raise
 
 @frappe.whitelist()
 def add_to_interview_availability(job_opening, job_applicants, employees):
     try:
-        # Ensure job_opening is in string format
+        # ? ENSURE JOB_OPENING IS IN STRING FORMAT
         job_opening = str(job_opening) if not isinstance(job_opening, str) else job_opening
         
-        # Ensure job_applicants and employees are lists (parse JSON if strings are provided)
+        # ? ENSURE JOB_APPLICANTS AND EMPLOYEES ARE LISTS (PARSE JSON IF STRINGS ARE PROVIDED)
         job_applicants = json.loads(job_applicants) if isinstance(job_applicants, str) else job_applicants
         employees = json.loads(employees) if isinstance(employees, str) else employees
 
-        # Get job requisition and company details
+        # ? GET JOB REQUISITION AND COMPANY DETAILS
         job_requisition = frappe.db.get_value("Job Opening", job_opening, "custom_job_requisition_record")
         company = None
         if job_requisition:
             company = frappe.db.get_value("Job Requisition", job_requisition, "company")
 
-        # Create Interview Availability Form document
+        # ? CREATE INTERVIEW AVAILABILITY FORM DOCUMENT
         interview_doc = frappe.new_doc("Interview Availability Form")
         interview_doc.job_opening = job_opening
         interview_doc.company = company
 
-        # Set designation, or use default
+        # ? SET DESIGNATION, OR USE DEFAULT
         interview_doc.for_designation = frappe.db.get_value("Job Opening", job_opening, "designation") or "Interview Panel"
 
-        # ADD JOB APPLICANTS TO CHILD TABLE
+        # ? ADD JOB APPLICANTS TO CHILD TABLE
         for applicant in job_applicants:
             interview_doc.append("job_applicants", {
                 "job_applicant": applicant
@@ -145,3 +181,4 @@ def add_to_interview_availability(job_opening, job_applicants, employees):
             message=f"Failed to add to Interview Availability: {str(e)}\n{traceback.format_exc()}",
         )
         return "An error occurred while adding to Interview Availability."
+

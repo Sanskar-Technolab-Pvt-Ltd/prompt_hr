@@ -46,6 +46,7 @@
   {
    "fieldname": "date",
    "fieldtype": "Date",
+   "in_list_view": 1,
    "label": "Date"
   },
   {
@@ -56,11 +57,13 @@
   {
    "fieldname": "from_time",
    "fieldtype": "Time",
+   "in_list_view": 1,
    "label": "From Time"
   },
   {
    "fieldname": "to_time",
    "fieldtype": "Time",
+   "in_list_view": 1,
    "label": "To Time"
   }
  ],
@@ -68,7 +71,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-04-16 22:34:58.570225",
+ "modified": "2025-04-17 17:12:24.454252",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Candidate Interviewer Action",
