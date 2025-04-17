@@ -3,6 +3,7 @@ import traceback
 from dateutil.relativedelta import relativedelta
 from frappe.utils import getdate, nowdate
 
+# ? FUNCTION TO SEND JOB OPENING NOTIFICATION
 @frappe.whitelist()
 def send_job_opening_notification(
     due_date=None,
@@ -17,6 +18,7 @@ def send_job_opening_notification(
     try:
         filters = {"status": "Active"}
 
+        # ? APPLY FILTERS FOR DEPARTMENT, LOCATION, GRADE
         if allowed_department:
             filters["department"] = ["in", allowed_department]
         if allowed_location:
@@ -24,6 +26,7 @@ def send_job_opening_notification(
         if allowed_grade:
             filters["grade"] = ["in", allowed_grade]
 
+        # ? GET LIST OF EMPLOYEES BASED ON FILTERS
         employees = frappe.get_all(
             "Employee",
             filters=filters,
@@ -33,6 +36,7 @@ def send_job_opening_notification(
         role_history_map = get_role_history_map()
         eligible_emails = []
 
+        # ? FILTER EMPLOYEES BASED ON TENURE IN COMPANY AND CURRENT ROLE
         for emp in employees:
             if not emp.date_of_joining:
                 continue
@@ -48,6 +52,7 @@ def send_job_opening_notification(
             if emp.personal_email:
                 eligible_emails.append(emp.personal_email)
 
+        # ? SEND NOTIFICATION IF ELIGIBLE EMPLOYEES FOUND
         if eligible_emails:
             send_notification_email(
                 emails=eligible_emails,
@@ -65,6 +70,7 @@ def send_job_opening_notification(
         )
         return []
 
+# ? FUNCTION TO GET MONTHS BETWEEN DATES
 def get_months_between(from_date, to_date):
     if not from_date or not to_date:
         return 0
@@ -73,6 +79,7 @@ def get_months_between(from_date, to_date):
     diff = relativedelta(to_dt, from_dt)
     return diff.years * 12 + diff.months
 
+# ? FUNCTION TO GET ROLE HISTORY MAP
 def get_role_history_map():
     records = frappe.get_all(
         "Employee Internal Work History",
@@ -84,6 +91,7 @@ def get_role_history_map():
         history_map.setdefault(row.parent, []).append(row)
     return history_map
 
+# ? FUNCTION TO GET ROLE TENURE FROM ROLE HISTORY MAP
 def get_role_tenure_from_map(history_map, emp_id, joining_date):
     try:
         if emp_id in history_map and history_map[emp_id]:
@@ -99,12 +107,13 @@ def get_role_tenure_from_map(history_map, emp_id, joining_date):
         )
         return 0
 
+# ? FUNCTION TO SEND NOTIFICATION EMAIL
 def send_notification_email(emails, due_date, notification_name=None, application_link=None):
     try:
         subject = "Job Opportunity"
         base_url = frappe.utils.get_url()
 
-        # ✅ Fallback link based on type if not passed
+        # ? Fallback link if application link is not passed
         apply_link = application_link or f"{base_url}/app/job-applicant/new-job-applicant-1"
 
         notification_doc = None
@@ -113,6 +122,7 @@ def send_notification_email(emails, due_date, notification_name=None, applicatio
             if result:
                 notification_doc = frappe.get_doc("Notification", result[0].name)
 
+        # ? SEND EMAIL USING THE NOTIFICATION TEMPLATE OR FALLBACK MESSAGE
         if notification_doc:
             for email in emails:
                 context = {"doc": frappe._dict({}), "user": email}
