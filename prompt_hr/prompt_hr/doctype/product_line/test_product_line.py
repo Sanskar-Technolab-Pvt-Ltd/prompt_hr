@@ -5,5 +5,5 @@
 from frappe.tests.utils import FrappeTestCase
 
 
-class TestIndiFOSSProduct(FrappeTestCase):
+class TestProductLine(FrappeTestCase):
 	pass

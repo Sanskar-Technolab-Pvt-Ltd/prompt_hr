@@ -1,0 +1,117 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-15 18:05:15.064380",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "applicable_doctype",
+  "company",
+  "employment_type",
+  "employee_grade",
+  "product_line",
+  "column_break_rcmu",
+  "business_unit",
+  "work_location",
+  "department",
+  "designation",
+  "approval_flow_section",
+  "workflow_approval_hierarchy"
+ ],
+ "fields": [
+  {
+   "fieldname": "applicable_doctype",
+   "fieldtype": "Link",
+   "label": "Applicable Doctype",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "approval_flow_section",
+   "fieldtype": "Section Break",
+   "label": "Approval Flow"
+  },
+  {
+   "fieldname": "work_location",
+   "fieldtype": "Table MultiSelect",
+   "label": "Work Location",
+   "options": "Work Location Multiselect"
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Table MultiSelect",
+   "label": "Department",
+   "options": "Department Multiselect"
+  },
+  {
+   "fieldname": "designation",
+   "fieldtype": "Table MultiSelect",
+   "label": "Designation",
+   "options": "Designation Multiselect"
+  },
+  {
+   "fieldname": "business_unit",
+   "fieldtype": "Table MultiSelect",
+   "label": "Business Unit",
+   "options": "Business Unit Multiselect"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "employment_type",
+   "fieldtype": "Table MultiSelect",
+   "label": "Employment Type",
+   "options": "Employment Type Multiselect"
+  },
+  {
+   "fieldname": "employee_grade",
+   "fieldtype": "Table MultiSelect",
+   "label": "Employee Grade",
+   "options": "Grade Multiselect"
+  },
+  {
+   "fieldname": "product_line",
+   "fieldtype": "Table MultiSelect",
+   "label": "Product Line",
+   "options": "Product Line Multiselect"
+  },
+  {
+   "fieldname": "column_break_rcmu",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "workflow_approval_hierarchy",
+   "fieldtype": "Table",
+   "label": "Workflow Approval Hierarchy",
+   "options": "Workflow Approval Hierarchy"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-04-16 18:53:52.123386",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Workflow Approval",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

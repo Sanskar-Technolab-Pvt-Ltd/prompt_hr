@@ -37,7 +37,7 @@ function fetchAvailableInterviewers(frm) {
     }
 
     frappe.call({
-        method: "prompt_hr.prompt_hr.doctype.interview_availibilty_form.interview_availibilty_form.fetch_latest_availability",
+        method: "prompt_hr.prompt_hr.doctype.interview_availability_form.interview_availability_form.fetch_latest_availability",
         args: {
             'param_date': frm.doc.scheduled_on,
             'param_from_time': frm.doc.from_time,
