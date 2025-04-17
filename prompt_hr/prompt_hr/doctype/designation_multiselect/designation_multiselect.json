@@ -12,6 +12,7 @@
   {
    "fieldname": "designation",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Designation",
    "options": "Designation"
   }
@@ -20,13 +21,12 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-04-02 10:44:22.426115",
- "modified_by": "jignasha@sanskartechnolab.com",
+ "modified": "2025-04-17 10:13:56.269494",
+ "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Designation Multiselect",
  "owner": "Administrator",
  "permissions": [],
- "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []
