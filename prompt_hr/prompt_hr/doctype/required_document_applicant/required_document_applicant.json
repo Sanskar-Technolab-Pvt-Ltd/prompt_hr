@@ -8,18 +8,11 @@
  "field_order": [
   "required_document",
   "document_collection_stage",
+  "type_of_document",
   "column_break_jumz",
   "company"
  ],
  "fields": [
-  {
-   "fieldname": "required_document",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Required Document",
-   "reqd": 1,
-   "unique": 1
-  },
   {
    "fieldname": "document_collection_stage",
    "fieldtype": "Link",
@@ -38,12 +31,25 @@
    "label": "Company",
    "options": "Company",
    "reqd": 1
+  },
+  {
+   "fieldname": "required_document",
+   "fieldtype": "Long Text",
+   "in_list_view": 1,
+   "label": "Required Document",
+   "reqd": 1
+  },
+  {
+   "fieldname": "type_of_document",
+   "fieldtype": "Select",
+   "label": "Type of Document",
+   "options": "\nProof of Qualification\nProof of Address\nProof of Identity\nProof of Work Experience"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-16 18:38:11.433763",
+ "modified": "2025-04-17 18:25:32.621010",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Required Document Applicant",
