@@ -185,6 +185,10 @@ doc_events = {
      "LMS Quiz Submission": {
         "validate":"prompt_hr.py.lms_quiz_submission.update_status"
     },
+    "Job Applicant": {
+        "before_insert": "prompt_hr.py.job_applicant.before_insert",
+    }
+    
     
     # "User": {
     #     "after_insert": "prompt_hr.py.welcome_status.after_insert"
