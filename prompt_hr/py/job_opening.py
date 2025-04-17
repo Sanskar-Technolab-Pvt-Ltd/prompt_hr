@@ -30,7 +30,7 @@ def send_job_opening_notification(
         employees = frappe.get_all(
             "Employee",
             filters=filters,
-            fields=["name", "date_of_joining", "personal_email"]
+            fields=["name", "date_of_joining", "personal_email","user_id"]
         )
 
         role_history_map = get_role_history_map()
