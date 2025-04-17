@@ -13,14 +13,6 @@
  ],
  "fields": [
   {
-   "fieldname": "required_document",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Required Document",
-   "reqd": 1,
-   "unique": 1
-  },
-  {
    "fieldname": "document_collection_stage",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -38,12 +30,19 @@
    "label": "Company",
    "options": "Company",
    "reqd": 1
+  },
+  {
+   "fieldname": "required_document",
+   "fieldtype": "Long Text",
+   "in_list_view": 1,
+   "label": "Required Document",
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-16 18:38:11.433763",
+ "modified": "2025-04-17 17:18:04.105610",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Required Document Applicant",
