@@ -54,7 +54,11 @@ doctype_js = {
     'Appointment Letter': 'public/js/appointment_letter.js',
 }
 
-doctype_list_js = {"Interview": "public/js/interview.js"}
+doctype_list_js = {
+    "Interview": "public/js/interview.js",
+    "Job Applicant": "public/js/job_applicant_list.js",
+}
+
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
 
@@ -155,11 +159,12 @@ doc_events = {
         "on_update": "prompt_hr.py.employee_onboarding.on_update",
     },
     "Job Requisition": {
-        "validate": "prompt_hr.custom_methods.update_job_requisition_status",
+        # "validate": "prompt_hr.custom_methods.job_requisition_notification",
         "on_update": "prompt_hr.py.job_requisition.on_update",
     },
     "Interview": {
-        "validate": "prompt_hr.custom_methods.update_job_applicant_status_based_on_interview"
+        "validate": "prompt_hr.custom_methods.update_job_applicant_status_based_on_interview",
+        "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_interview"
     },
     "Job Offer": {
         "validate": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
@@ -177,6 +182,10 @@ doc_events = {
     "Job Requisition": {
          "on_update": "prompt_hr.py.job_requisition.on_update",
      },
+     "LMS Quiz Submission": {
+        "validate":"prompt_hr.py.lms_quiz_submission.update_status"
+    },
+    
     # "User": {
     #     "after_insert": "prompt_hr.py.welcome_status.after_insert"
     # },

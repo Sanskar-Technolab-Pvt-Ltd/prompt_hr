@@ -68,7 +68,7 @@ function release_offer_letter(frm, is_resend) {
             // ? UPDATE FLAG IF FIRST TIME
             if (!is_resend) {
                 frm.set_value("custom_offer_letter_sent", 1).then(() => {
-                    frm.doc.save();
+                    frm.save_or_update();
                 });
 
 
@@ -80,7 +80,6 @@ function release_offer_letter(frm, is_resend) {
                 indicator: "green"
             });
 
-            frm.save().then(() => frm.reload_doc());
         },
         error: function (err) {
             frappe.msgprint({
