@@ -34,8 +34,8 @@
   {
    "fieldname": "required_document",
    "fieldtype": "Long Text",
-   "in_list_view": 1,
    "label": "Required Document",
+   "max_height": "100px",
    "reqd": 1
   }
  ],

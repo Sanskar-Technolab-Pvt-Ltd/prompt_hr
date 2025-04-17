@@ -7,9 +7,9 @@
  "engine": "InnoDB",
  "field_order": [
   "required_document",
+  "collection_stage",
   "attachment",
   "consent",
-  "collection_stage",
   "column_break_vyuf",
   "upload_date",
   "upload_time",
@@ -60,6 +60,7 @@
    "fetch_from": "required_document.document_collection_stage",
    "fieldname": "collection_stage",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Collection Stage"
   }
  ],
@@ -67,7 +68,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-04-14 06:39:22.785944",
+ "modified": "2025-04-17 15:22:22.594118",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Document Collection",
