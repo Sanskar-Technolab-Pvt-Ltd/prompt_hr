@@ -188,7 +188,8 @@ scheduler_events = {
 # ------------------------------
 #
 # override_whitelisted_methods = {
-# 	"frappe.desk.doctype.event.event.get_events": "prompt_hr.event.get_events"
+	# "frappe.desk.doctype.event.event.get_events": "prompt_hr.event.get_events"
+    # "frappe.model.workflow.get_transitions": "prompt_hr.overrides.workflow_override.get_transitions",
 # }
 #
 # each overriding function accepts a `data` argument;
