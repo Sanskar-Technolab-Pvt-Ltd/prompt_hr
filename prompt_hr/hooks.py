@@ -162,6 +162,9 @@ doc_events = {
         # "validate": "prompt_hr.custom_methods.job_requisition_notification",
         "on_update": "prompt_hr.py.job_requisition.on_update",
     },
+     "Job Applicant": {
+        "after_insert": "prompt_hr.py.job_applicant.after_insert",
+    },
     "Interview": {
         "validate": "prompt_hr.custom_methods.update_job_applicant_status_based_on_interview",
         "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_interview"
@@ -216,7 +219,8 @@ scheduler_events = {
 # ------------------------------
 #
 # override_whitelisted_methods = {
-# 	"frappe.desk.doctype.event.event.get_events": "prompt_hr.event.get_events"
+	# "frappe.desk.doctype.event.event.get_events": "prompt_hr.event.get_events"
+    # "frappe.model.workflow.get_transitions": "prompt_hr.overrides.workflow_override.get_transitions",
 # }
 #
 # each overriding function accepts a `data` argument;

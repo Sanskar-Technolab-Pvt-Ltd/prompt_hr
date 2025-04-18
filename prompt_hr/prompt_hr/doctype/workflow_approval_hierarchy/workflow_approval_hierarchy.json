@@ -6,31 +6,71 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "current_state",
+  "action",
+  "next_state",
+  "allowed_by",
+  "role",
   "employee",
   "employee_name",
-  "employee_user"
+  "user"
  ],
  "fields": [
   {
+   "depends_on": "eval:doc.allowed_by == \"User\";",
    "fieldname": "employee",
    "fieldtype": "Link",
-   "in_list_view": 1,
    "label": "Employee",
    "options": "Employee"
   },
   {
+   "depends_on": "eval:doc.allowed_by == \"User\";",
    "fetch_from": "employee.employee_name",
    "fieldname": "employee_name",
    "fieldtype": "Data",
-   "in_list_view": 1,
    "label": "Employee Name"
   },
   {
-   "fetch_from": "employee.user_id",
-   "fieldname": "employee_user",
+   "fieldname": "current_state",
    "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "Employee User",
+   "label": "Current State",
+   "options": "Workflow State"
+  },
+  {
+   "fieldname": "action",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Action",
+   "options": "Workflow Action Master"
+  },
+  {
+   "fieldname": "next_state",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Next State",
+   "options": "Workflow State"
+  },
+  {
+   "fieldname": "allowed_by",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Allowed By",
+   "options": "\nUser\nRole"
+  },
+  {
+   "depends_on": "eval:doc.allowed_by == \"Role\";",
+   "fieldname": "role",
+   "fieldtype": "Link",
+   "label": "Role",
+   "options": "Role"
+  },
+  {
+   "depends_on": "eval:doc.allowed_by == \"User\";",
+   "fetch_from": "employee.user_id",
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "User",
    "options": "User"
   }
  ],
@@ -38,7 +78,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-04-16 18:54:21.139738",
+ "modified": "2025-04-17 13:04:34.492109",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Workflow Approval Hierarchy",

@@ -1,0 +1,133 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-18 07:53:54.196956",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "employee",
+  "employee_name",
+  "company",
+  "column_break_qefr",
+  "tax_regime",
+  "payroll_period",
+  "tax_summary_section",
+  "total_income_tax",
+  "total_exemptions",
+  "column_break_vyll",
+  "net_income_tax_payable",
+  "section_break_vgiw",
+  "monthly_tax_breakup",
+  "declaration_tab",
+  "table_bftp"
+ ],
+ "fields": [
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "tax_regime",
+   "fieldtype": "Link",
+   "label": "Tax Regime",
+   "options": "Income Tax Slab"
+  },
+  {
+   "fieldname": "column_break_qefr",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "payroll_period",
+   "fieldtype": "Link",
+   "label": "Payroll Period",
+   "options": "Payroll Period"
+  },
+  {
+   "fieldname": "tax_summary_section",
+   "fieldtype": "Section Break",
+   "label": "Tax Summary"
+  },
+  {
+   "fieldname": "total_income_tax",
+   "fieldtype": "Currency",
+   "label": "Total Income Tax",
+   "precision": "2"
+  },
+  {
+   "fieldname": "total_exemptions",
+   "fieldtype": "Currency",
+   "label": "Total Exemptions",
+   "precision": "2"
+  },
+  {
+   "fieldname": "column_break_vyll",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "net_income_tax_payable",
+   "fieldtype": "Currency",
+   "label": "Net Income Tax Payable",
+   "precision": "2"
+  },
+  {
+   "fieldname": "declaration_tab",
+   "fieldtype": "Tab Break",
+   "label": "Declaration"
+  },
+  {
+   "fieldname": "table_bftp",
+   "fieldtype": "Table",
+   "options": "Employee Tax Exemption Declaration Category"
+  },
+  {
+   "fieldname": "section_break_vgiw",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "monthly_tax_breakup",
+   "fieldtype": "Table",
+   "label": "Monthly Tax-Breakup",
+   "options": "Monthly Income Tax Summary"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-04-18 08:02:03.165634",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Income Tax Computation",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
