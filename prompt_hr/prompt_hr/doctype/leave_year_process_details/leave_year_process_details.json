@@ -1,0 +1,94 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-18 07:01:48.928348",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "employee",
+  "employee_name",
+  "leave_type",
+  "remaining_balance",
+  "column_break_jjdo",
+  "carryforward",
+  "encashed",
+  "lapsed"
+ ],
+ "fields": [
+  {
+   "columns": 1,
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "columns": 2,
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Employee Name"
+  },
+  {
+   "columns": 2,
+   "fieldname": "leave_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Leave Type",
+   "options": "Leave Type"
+  },
+  {
+   "columns": 1,
+   "fieldname": "remaining_balance",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Remaining Balance",
+   "precision": "1"
+  },
+  {
+   "fieldname": "column_break_jjdo",
+   "fieldtype": "Column Break"
+  },
+  {
+   "columns": 1,
+   "fieldname": "carryforward",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Carryforward",
+   "precision": "1"
+  },
+  {
+   "columns": 1,
+   "fieldname": "encashed",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Encashed",
+   "precision": "1"
+  },
+  {
+   "columns": 1,
+   "fieldname": "lapsed",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Lapsed",
+   "precision": "1"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-04-18 07:05:44.829192",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Leave Year Process Details",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
