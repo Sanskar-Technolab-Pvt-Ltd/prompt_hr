@@ -1,0 +1,48 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-18 06:49:07.693054",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "in_time",
+  "out_time",
+  "employee_checkin"
+ ],
+ "fields": [
+  {
+   "fieldname": "in_time",
+   "fieldtype": "Time",
+   "in_list_view": 1,
+   "label": "In Time"
+  },
+  {
+   "fieldname": "out_time",
+   "fieldtype": "Time",
+   "in_list_view": 1,
+   "label": "Out Time"
+  },
+  {
+   "fieldname": "employee_checkin",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee Checkin",
+   "options": "Employee Checkin"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-04-18 06:50:36.338514",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Attendance Regularization Details",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

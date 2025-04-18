@@ -1,0 +1,103 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-18 07:18:52.049691",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "posting_date",
+  "employee",
+  "employee_name",
+  "column_break_lhxs",
+  "resignation_approval",
+  "company",
+  "exit_process_section",
+  "raise_exit_checklist",
+  "column_break_crwd",
+  "raise_exit_interview_questionnarie"
+ ],
+ "fields": [
+  {
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "label": "Posting Date"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee",
+   "options": "Employee",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name"
+  },
+  {
+   "fieldname": "column_break_lhxs",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "resignation_approval",
+   "fieldtype": "Select",
+   "label": "Resignation Approval",
+   "options": "\nApproved\nRejected"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "exit_process_section",
+   "fieldtype": "Section Break",
+   "label": "Exit Process"
+  },
+  {
+   "default": "0",
+   "fieldname": "raise_exit_checklist",
+   "fieldtype": "Check",
+   "label": "Raise Exit Checklist"
+  },
+  {
+   "fieldname": "column_break_crwd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "raise_exit_interview_questionnarie",
+   "fieldtype": "Check",
+   "label": "Raise Exit Interview Questionnarie"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-04-18 07:23:02.825450",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Exit Approval Process",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

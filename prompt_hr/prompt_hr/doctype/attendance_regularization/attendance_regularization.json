@@ -1,0 +1,94 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:ATT-REG-{#####}",
+ "creation": "2025-04-18 06:47:02.360289",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "employee",
+  "employee_name",
+  "company",
+  "column_break_yyxg",
+  "attendance",
+  "regularization_date",
+  "section_break_qyza",
+  "checkinpunch_details"
+ ],
+ "fields": [
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee",
+   "options": "Employee",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "column_break_yyxg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "attendance",
+   "fieldtype": "Link",
+   "label": "Attendance",
+   "options": "Attendance"
+  },
+  {
+   "fieldname": "regularization_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Regularization Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_qyza",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "checkinpunch_details",
+   "fieldtype": "Table",
+   "label": "CheckinPunch Details",
+   "options": "Attendance Regularization Details"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-04-18 06:51:46.728041",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Attendance Regularization",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
