@@ -8,6 +8,7 @@
  "field_order": [
   "required_document",
   "document_collection_stage",
+  "type_of_document",
   "column_break_jumz",
   "company"
  ],
@@ -37,12 +38,18 @@
    "label": "Required Document",
    "max_height": "100px",
    "reqd": 1
+  },
+  {
+   "fieldname": "type_of_document",
+   "fieldtype": "Select",
+   "label": "Type of Document",
+   "options": "\nProof of Qualification\nProof of Address\nProof of Identity\nProof of Work Experience"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-17 17:18:04.105610",
+ "modified": "2025-04-17 18:25:32.621010",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Required Document Applicant",
