@@ -145,9 +145,9 @@ doctype_list_js = {
 
 override_doctype_class = {
     # "ToDo": "custom_app.overrides.CustomToDo"
-    "Interview": "prompt_hr.override.CustomInterview",
-    "Job Offer": "prompt_hr.override.CustomJobOffer",
-    "Appointment Letter": "prompt_hr.override.CustomAppointmentLetter",
+    "Interview": "prompt_hr.overrides.interview_override.CustomInterview",
+    "Job Offer": "prompt_hr.overrides.job_offer_override.CustomJobOffer",
+    "Appointment Letter": "prompt_hr.overrides.interview_override.CustomAppointmentLetter",
 }
 
 # Document Events
