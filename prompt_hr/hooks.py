@@ -51,6 +51,7 @@ doctype_js = {
     "Job Opening": "public/js/job_opening.js",
     'Employee': 'public/js/employee.js',
     "Job Applicant": "public/js/job_applicant.js",
+    'Appointment Letter': 'public/js/appointment_letter.js',
 }
 
 doctype_list_js = {
@@ -146,6 +147,7 @@ override_doctype_class = {
     # "ToDo": "custom_app.overrides.CustomToDo"
     "Interview": "prompt_hr.overrides.interview_override.CustomInterview",
     "Job Offer": "prompt_hr.overrides.job_offer_override.CustomJobOffer",
+    "Appointment Letter": "prompt_hr.overrides.interview_override.CustomAppointmentLetter",
 }
 
 # Document Events
@@ -186,6 +188,10 @@ doc_events = {
      "LMS Quiz Submission": {
         "validate":"prompt_hr.py.lms_quiz_submission.update_status"
     },
+    "Job Applicant": {
+        "before_insert": "prompt_hr.py.job_applicant.before_insert",
+    }
+    
     
     # "User": {
     #     "after_insert": "prompt_hr.py.welcome_status.after_insert"

@@ -182,3 +182,35 @@ def add_to_interview_availability(job_opening, job_applicants, employees):
         )
         return "An error occurred while adding to Interview Availability."
 
+@frappe.whitelist()
+def before_insert(doc, method=None):
+    if doc.custom_company:
+        # Set the joining document checklist if found
+        joining_document_checklist = frappe.get_all(
+            "Joining Document Checklist", 
+            filters={"company": doc.custom_company}, 
+            fields=["name"]
+        )
+        
+        if joining_document_checklist:
+            doc.custom_joining_document_checklist = joining_document_checklist[0].name
+
+        # Fetch required documents
+        documents_records = frappe.get_all(
+            "Required Document Applicant", 
+            filters={"company": doc.custom_company}, 
+            fields=["name","required_document", "document_collection_stage"]
+        )
+
+        if documents_records:
+            for record in documents_records:
+                doc.append("custom_documents", {
+                    "required_document": record.name,
+                    "collection_stage": record.document_collection_stage
+                })
+                frappe.get_doc({
+                    "doctype": "Document Collection",
+                    "required_document": record.name,
+                    "collection_stage": record.document_collection_stage,
+                })
+                frappe.db.commit()
