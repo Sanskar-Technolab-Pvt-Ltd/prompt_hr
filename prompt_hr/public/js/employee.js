@@ -69,5 +69,13 @@ frappe.ui.form.on("Employee", {
         }
     },
 
+    
+    // refresh: function (frm){
+    //     prompt_probation_period = frappe.db.get_single_value("HR Settings","custom_probation_period_for_prompt")
+    //     indifoss_probation_period = frappe.db.get_single_value("HR Settings","custom_probation_period_for_indifoss")
+    //     if (frm.doc.company == "Prompt Equipments Pvt Ltd"){
+            
+    //     }
+    // }
 
 });
