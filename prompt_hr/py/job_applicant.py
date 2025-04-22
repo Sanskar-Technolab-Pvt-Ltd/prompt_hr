@@ -1,4 +1,5 @@
 import frappe
+from prompt_hr.py.utils import send_notification_email
 
 # ? FUNCTION TO FETCH ACTIVE HR MANAGERS FOR A GIVEN COMPANY
 def get_hr_managers_by_company(company):
@@ -24,11 +25,19 @@ def after_insert(doc, method):
         hr_emails = get_hr_managers_by_company(company)
 
         if hr_emails:
-            send_notification_from_template(
-                emails=hr_emails,
-                notification_name="HR Interview Availability Revert Mail",
-                doc=doc
-            )
+    
+            send_notification_email(
+            recipients = hr_emails,
+            notification_name="Job Applicant Registration Mail",
+            doctype=doc.doctype,
+            docname=doc.name,
+            button_label="View Details",
+            fallback_subject="Notification",
+            fallback_message="You have a new update. Please check your portal.",
+            extra_context=None
+)
+
+            
         else:
             frappe.log_error("No HR Managers Found", f"No HR Managers found for company: {doc.company}")
 
@@ -48,25 +57,20 @@ def check_test_and_invite(job_applicant):
 
         if not applicant.email_id:
             frappe.throw("No email address found for the applicant.")
-
         
-        subject = "Screen Test Invitation"
-        # test_link = get_url(f"/test?applicant={applicant.name}") 
-        test_link = "Test Link Url"
-        content = f"""
-            Dear {applicant.applicant_name},<br><br>
-            You are invited to take a screen test for the position of <b>{applicant.job_title}</b>.<br>
-            Please click the link below to take the test:<br>
-            LINK
-            Regards,<br>
-            HR Team
-        """
-    # <a href="{test_link}">{test_link}</a><br><br>
-        frappe.sendmail(
-            recipients=[applicant.email_id],
-            subject=subject,
-            message=content
+        send_notification_email(
+            recipients = [applicant.email_id],
+            notification_name="Screen Test Invitation",
+            doctype="Job Applicant",
+            docname=applicant.name,
+            button_label="View Details",
+            fallback_subject="Notification",
+            fallback_message="You have a new update. Please check your portal.",
+            extra_context=None,
+            hash_input_text = applicant.name
         )
+    # <a href="{test_link}">{test_link}</a><br><br>
+       
         
         frappe.db.set_value("Job Applicant", job_applicant, "status", "Screening Test Scheduled")
         
