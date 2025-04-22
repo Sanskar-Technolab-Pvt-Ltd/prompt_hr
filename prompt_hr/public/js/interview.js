@@ -1,4 +1,6 @@
-
+const original_add_custom_buttons = frappe.ui.form.handlers.Interview?.add_custom_buttons;
+const original_submit_feedback = frappe.ui.form.handlers.Interview?.submit_feedback;
+frappe.ui.form.off("Interview", "submit_feedback")
 frappe.ui.form.on("Interview", {
     refresh: function(frm) {
         // Fetch available interviewers on refresh
@@ -6,7 +8,9 @@ frappe.ui.form.on("Interview", {
     
         // Toggle display of custom_available_interviewers field only if the form is new
         frm.toggle_display("custom_available_interviewers", frm.is_new());
-    
+        if (frm.is_new()) {
+            return;
+        }
         // Add "Notify Interviewer" button
         frm.add_custom_button(__("Notify Interviewer"), function() {
             frappe.dom.freeze(__('Notifying Interviewers...'));
@@ -28,9 +32,7 @@ frappe.ui.form.on("Interview", {
                 }
             });
         }).removeClass('btn-default').addClass('btn btn-primary btn-sm primary-action');
-        if (frm.is_new()) {
-            return;
-        }
+
         // Check if current user has shared access to this document
         frappe.call({
             method: "frappe.share.get_users",
@@ -49,14 +51,25 @@ frappe.ui.form.on("Interview", {
                     // Check internal interviewers
                     if (frm.doc.interview_details && frm.doc.interview_details.length) {
                         frm.doc.interview_details.forEach(function(interviewer) {
-                            if (interviewer.custom_interviewer_employee && interviewer.custom_is_confirm === 0) {
-                                // Get the user_id for this employee
-                                frappe.db.get_value("Employee", interviewer.custom_interviewer_employee, "user_id", function(r) {
-                                    if (r && r.user_id === current_user) {
-                                        is_internal_interviewer_not_confirmed = true;
-                                        showConfirmButton();
-                                    }
-                                });
+                            if (interviewer.custom_interviewer_employee) {
+                                if (interviewer.custom_is_confirm === 0 ) {
+                                    frappe.db.get_value("Employee", interviewer.custom_interviewer_employee, "user_id", function(r) {
+                                        if (r && r.user_id === current_user) {
+                                            frm.remove_custom_button(__("Notify Interviewer"));
+                                            is_internal_interviewer_not_confirmed = true;
+                                            showConfirmButton();
+                                        }
+                                    });
+                                }
+                                else {
+                                    console.log("Internal Interviewer:", interviewer.custom_interviewer_employee);
+                                    frappe.db.get_value("Employee", interviewer.custom_interviewer_employee, "user_id", function(r) {
+                                        if (r && r.user_id === current_user) {
+                                            frm.remove_custom_button(__("Notify Interviewer"));
+                                        }
+                                    });
+
+                                }
                             }
                         });
                     }
@@ -65,21 +78,40 @@ frappe.ui.form.on("Interview", {
                     if (frm.doc.custom_external_interviewers && frm.doc.custom_external_interviewers.length) {
                         console.log("External Interviewers:", frm.doc.custom_external_interviewers);
                         frm.doc.custom_external_interviewers.forEach(function(interviewer) {
-                            if (interviewer.user && interviewer.is_confirm === 0) {
-                                frappe.call({
-                                    method: "prompt_hr.py.interview_availability.get_supplier_custom_user",
-                                    args: {
-                                        supplier_name: interviewer.user
-                                    },
-                                    callback: function (r) {
-                                        if (r.message === frappe.session.user) {
-                                            console.log("External Interviewer:", interviewer.user);
-                                            is_external_interviewer_not_confirmed = true;
-                                            showConfirmButton();
+                            if (interviewer.user) {
+                                if (interviewer.is_confirm === 0) {
+                                    frappe.call({
+                                        method: "prompt_hr.py.interview_availability.get_supplier_custom_user",
+                                        args: {
+                                            supplier_name: interviewer.user
+                                        },
+                                        callback: function (r) {
+                                            if (r.message === current_user) {
+                                                frm.remove_custom_button(__("Notify Interviewer"));
+                                                console.log("External Interviewer:", interviewer.user);
+                                                is_external_interviewer_not_confirmed = true;
+                                                showConfirmButton();
+                                            }
                                         }
-                                    }
-                                });
+                                    });
+                                }
+                                else{
+                                    frappe.call({
+                                        method: "prompt_hr.py.interview_availability.get_supplier_custom_user",
+                                        args: {
+                                            supplier_name: interviewer.user
+                                        },
+                                        callback: function (r) {
+                                            console.log(r)
+                                            if (r.message === current_user) {
+                                                frm.remove_custom_button(__("Notify Interviewer"));
+                                            }
+                                        }
+                                    });
+                                }
+                                
                             }
+                            
                         });
                     }
                     
@@ -112,7 +144,98 @@ frappe.ui.form.on("Interview", {
             }
         });
     },
+    add_custom_buttons: async function(frm) {
+        // Call the original function if it exists
+        if (typeof original_add_custom_buttons === "function") {
+            await original_add_custom_buttons(frm);
+        }
     
+        // Skip if doc is canceled or not saved
+        if (frm.doc.docstatus === 2 || frm.doc.__islocal) return;
+    
+        // Check if feedback already submitted
+        const has_submitted_feedback = await frappe.db.get_value(
+            "Interview Feedback",
+            {
+                interviewer: frappe.session.user,
+                interview: frm.doc.name,
+                docstatus: ["!=", 2],
+            },
+            "name"
+        )?.message?.name;
+    
+        if (has_submitted_feedback) return;
+    
+        // Check internal interviewers
+        let allow_internal = false;
+        for (const interviewer of frm.doc.interview_details || []) {
+            if (interviewer.custom_interviewer_employee) {
+                const emp = await frappe.db.get_value("Employee", interviewer.custom_interviewer_employee, "user_id");
+                if (emp?.message?.user_id === frappe.session.user) {
+                    allow_internal = true;
+                    break;
+                }
+            }
+        }
+    
+        // Check external interviewers
+        let allow_external = false;
+        for (const ext of frm.doc.custom_external_interviewers || []) {
+            if (ext.user) {
+                const r = await frappe.call({
+                    method: "prompt_hr.py.interview_availability.get_supplier_custom_user",
+                    args: { supplier_name: ext.user },
+                });
+                if (r?.message === frappe.session.user) {
+                    allow_external = true;
+                    break;
+                }
+            }
+        }
+        if (allow_internal || allow_external) {
+            // Enable "Submit Feedback" buttons
+            frappe.after_ajax(() => {
+                setTimeout(() => {
+                    $('button').filter(function() {
+                        return $(this).text().trim() === "Submit Feedback";
+                    }).each(function() {
+                        $(this)
+                            .prop("disabled", false)
+                            .removeAttr("title")
+                            .removeAttr("data-original-title")
+                            .tooltip('dispose');
+                    });
+                }, 100);
+            });
+        }
+    },
+    submit_feedback: async function (frm) {
+		frappe.call({
+            method: "prompt_hr.py.interview_availability.submit_feedback",
+            args: {
+                doc_name: frm.doc.name,
+                interview_round: frm.doc.interview_round,
+                job_applicant: frm.doc.job_applicant,
+                custom_company: frm.doc.custom_company
+            },
+            callback: function(r) {
+                if (r.message) {
+                    window.location.href = r.message;
+                } else {
+                    frappe.call({
+                        method: "hrms.hr.doctype.interview.interview.get_expected_skill_set",
+                        args: {
+                            interview_round: frm.doc.interview_round,
+                        },
+                        callback: function (r) {
+                            frm.events.show_feedback_dialog(frm, r.message);
+                            frm.refresh();
+                        },
+                    });
+                }
+            }
+        });
+	},
     scheduled_on: function(frm) {
         updateInterviewerAvailability(frm);
     },
