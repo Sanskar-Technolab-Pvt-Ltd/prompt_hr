@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-04-22 19:01:07.389308",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Interview",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "Dear HR Manager,<br><br>\nInterviewer <b>{user_doc.full_name}</b> has confirmed their availability for the interview with the applicant:<br><br>\n<b>Applicant Name:</b> {doc.custom_applicant_name}<br>\n<b>Interview Round:</b> {doc.interview_round}<br>\n<b>Position:</b> {doc.designation}<br><br>\n<a href=\"{frappe.utils.get_url()}/app/interview/{doc.name}\">Please review the applicant's details.</a><br><br>\nRegards,<br>\nHR Team",
+ "message_type": "Markdown",
+ "modified": "2025-04-22 19:15:27.825046",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Notify HR Manager",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 0,
+ "send_to_all_assignees": 0,
+ "subject": "{{user_doc.full_name}} confirmed availability for Interview - {{doc.name}}"
+}
