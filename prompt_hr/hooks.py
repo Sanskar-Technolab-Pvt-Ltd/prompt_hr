@@ -26,7 +26,10 @@ app_license = "mit"
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/prompt_hr/css/prompt_hr.css"
-app_include_js = "assets/prompt_hr/js/welcome_page_check.js"
+app_include_js = [
+                    "assets/prompt_hr/js/welcome_page_check.js",
+                    "assets/prompt_hr/js/frappe/form/workflow.js",
+                ]
 
 
 # include js, css files in header of web template
@@ -159,10 +162,13 @@ doc_events = {
         "on_update": "prompt_hr.py.employee_onboarding.on_update",
     },
     "Job Requisition": {
-        # "validate": "prompt_hr.custom_methods.job_requisition_notification",
+        "validate": [
+                        # "prompt_hr.custom_methods.job_requisition_notification",
+                        "prompt_hr.py.job_requisition.add_or_update_custom_last_updated_by"
+                    ],
         "on_update": "prompt_hr.py.job_requisition.on_update",
     },
-     "Job Applicant": {
+    "Job Applicant": {
         "after_insert": "prompt_hr.py.job_applicant.after_insert",
     },
     "Interview": {
@@ -182,9 +188,9 @@ doc_events = {
     "Confirmation Evaluation Form": {
         "on_submit": "prompt_hr.custom_methods.add_confirmation_evaluation_data_to_employee"
     },
-    "Job Requisition": {
-         "on_update": "prompt_hr.py.job_requisition.on_update",
-     },
+    # "Job Requisition": {
+    #      "on_update": "prompt_hr.py.job_requisition.on_update",
+    #  },
      "LMS Quiz Submission": {
         "validate":"prompt_hr.py.lms_quiz_submission.update_status"
     },
@@ -220,7 +226,8 @@ scheduler_events = {
 #
 # override_whitelisted_methods = {
 	# "frappe.desk.doctype.event.event.get_events": "prompt_hr.event.get_events"
-    # "frappe.model.workflow.get_transitions": "prompt_hr.overrides.workflow_override.get_transitions",
+    # "frappe.model.workflow.get_transitions": "prompt_hr.overrides.workflow_override.custom_get_transitions",
+    # "frappe.model.workflow.apply_workflow": "prompt_hr.overrides.workflow_override.custom_apply_workflow"
 # }
 #
 # each overriding function accepts a `data` argument;
