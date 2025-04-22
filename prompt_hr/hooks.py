@@ -55,10 +55,11 @@ doctype_js = {
     'Employee': 'public/js/employee.js',
     "Job Applicant": "public/js/job_applicant.js",
     'Appointment Letter': 'public/js/appointment_letter.js',
+    "Interview": "public/js/interview.js",
+
 }
 
 doctype_list_js = {
-    "Interview": "public/js/interview.js",
     "Job Applicant": "public/js/job_applicant_list.js",
 }
 
@@ -173,7 +174,8 @@ doc_events = {
     },
     "Interview": {
         "validate": "prompt_hr.custom_methods.update_job_applicant_status_based_on_interview",
-        "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_interview"
+        "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_interview",
+        "after_insert": "prompt_hr.py.interview_availability.after_insert",
     },
     "Job Offer": {
         "validate": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
