@@ -56,6 +56,7 @@ doctype_js = {
     "Job Applicant": "public/js/job_applicant.js",
     'Appointment Letter': 'public/js/appointment_letter.js',
     "Interview": "public/js/interview.js",
+    "Interview Feedback": "public/js/interview_feedback.js",
 
 }
 
@@ -135,10 +136,11 @@ doctype_list_js = {
 # -----------
 # Permissions evaluated in scripted ways
 
-# permission_query_conditions = {
-#     "DocType": "prompt_hr.py.welcome_status.check_welcome_completion"
-# }
-#
+permission_query_conditions = {
+    "Interview": "prompt_hr.py.interview_availability.check_interviewer_permission",
+    "Interview Feedback": "prompt_hr.py.interview_feedback.get_permission_query_conditions",
+}
+
 # has_permission = {
 # 	"Event": "frappe.desk.doctype.event.event.has_permission",
 # }
@@ -175,7 +177,7 @@ doc_events = {
     "Interview": {
         "validate": "prompt_hr.custom_methods.update_job_applicant_status_based_on_interview",
         "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_interview",
-        "after_insert": "prompt_hr.py.interview_availability.after_insert",
+        "on_update": "prompt_hr.py.interview_availability.on_update",
     },
     "Job Offer": {
         "validate": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
@@ -198,6 +200,9 @@ doc_events = {
     },
     "Job Applicant": {
         "before_insert": "prompt_hr.py.job_applicant.before_insert",
+    },
+    "Interview Feedback": {
+        "on_submit": "prompt_hr.py.interview_feedback.on_submit",
     }
     
     
