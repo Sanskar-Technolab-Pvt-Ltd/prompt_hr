@@ -12,7 +12,7 @@ def send_interview_schedule_notification(name, applicant_name):
         filters={"parent": doc.name},
         fields=["custom_interviewer_employee", "custom_interviewer_name", "custom_is_confirm","name"]
     )
-
+    notification = frappe.get_doc("Notification", "Notify Interviewer")
     for interviewer in interviewers:
         if interviewer.custom_interviewer_employee:
             try:
@@ -20,7 +20,6 @@ def send_interview_schedule_notification(name, applicant_name):
                     interviewer.custom_is_confirm = 0
                     frappe.db.set_value("Interview Detail", interviewer.name, "custom_is_confirm", 0)
                     frappe.db.commit()
-                    interviewer.reload()
                 # Fetch Employee details
                 employee = frappe.get_doc("Employee", interviewer.custom_interviewer_employee)
                 if employee.user_id:
@@ -28,26 +27,18 @@ def send_interview_schedule_notification(name, applicant_name):
 
                     # Grant read permission to this user for Interview
                     frappe.share.add(doc.doctype, doc.name, employee.user_id, read=1)
-
+                    
                     if user_email:
                         frappe.sendmail(
                             recipients=[user_email],
-                            subject=f"Interview Availability Request - {doc.name}",
-                            message=f"""
-                                Dear {employee.employee_name or 'Interviewer'},<br><br>
-                                You have been scheduled for an interview session:<br>
-                                <b>Interview:</b> {doc.name}<br>
-                                <b>Date:</b> {frappe.utils.format_date(doc.scheduled_on)}<br>
-                                <b>Time:</b> {doc.from_time} to {doc.to_time}<br><br>
-                                Please confirm your availability for this session.<br><br>
-                                <a href="{frappe.utils.get_url()}/app/interview/{doc.name}">Click here to view the interview details and Confirm Your Availability</a><br><br>
-                                Regards,<br>
-                                HR Team
-                            """,
+                            message = frappe.render_template(notification.message, {"doc": doc,"interviewer": interviewer.custom_interviewer_name}),
+                            subject = frappe.render_template(notification.subject, {"doc": doc}),
                             reference_doctype=doc.doctype,
                             reference_name=doc.name,
                             now=True
                         )
+                interviewer.reload()
+
             except Exception as e:
                 frappe.log_error(f"Failed to send internal email: {e}", "Interview Notification Error")
 
@@ -76,18 +67,8 @@ def send_interview_schedule_notification(name, applicant_name):
                     if user_email:
                         frappe.sendmail(
                             recipients=[user_email],
-                            subject=f"Interview Availability Request - {doc.name}",
-                            message=f"""
-                                Dear {interviewer.user_name or 'Interviewer'},<br><br>
-                                You have been scheduled for an interview session:<br>
-                                <b>Interview:</b> {doc.name}<br>
-                                <b>Date:</b> {frappe.utils.format_date(doc.scheduled_on)}<br>
-                                <b>Time:</b> {doc.from_time} to {doc.to_time}<br><br>
-                                Please confirm your availability for this session.<br><br>
-                                <a href="{frappe.utils.get_url()}/app/interview/{doc.name}">Click here to view the interview details and Confirm Your Availability</a><br><br>
-                                Regards,<br>
-                                HR Team
-                            """,
+                            message = frappe.render_template(notification.message, {"doc": doc,"interviewer": interviewer.custom_interviewer_name}),
+                            subject = frappe.render_template(notification.subject, {"doc": doc}),
                             reference_doctype=doc.doctype,
                             reference_name=doc.name,
                             now=True
@@ -156,10 +137,6 @@ def send_notification_to_hr_manager(name, company, user):
             filters={"parent": doc.name},
             fields=["user", "user_name", "is_confirm","name"]
         )
-        print("External Interviewers:", external_interviewers)
-        print("User Doc:", user_doc)
-        print("User:", user)
-        print("Interviewer:", interviewer)
         external_interviewer = None
         for interviewer in external_interviewers:
             print("Checking External Interviewer:", user_doc,frappe.get_doc("Supplier", interviewer.user).custom_user)
@@ -198,38 +175,118 @@ def send_notification_to_hr_manager(name, company, user):
 def get_supplier_custom_user(supplier_name):
     custom_user = frappe.db.get_value("Supplier", supplier_name, "custom_user")
     return custom_user
-    """Check if the current user is an unconfirmed interviewer for this interview"""
-    result = {
-        "is_internal_interviewer_not_confirmed": False,
-        "is_external_interviewer_not_confirmed": False
-    }
-    
-    # Check internal interviewers
-    internal_interviewers = frappe.get_all(
+
+def after_insert(doc, method):
+    # Get all interview details from the document
+    interviewers = frappe.get_all(
         "Interview Detail",
-        filters={"parent": interview_name, "custom_is_confirm": 0},
-        fields=["custom_interviewer_employee"]
+        filters={"parent": doc.name},
+        fields=["custom_interviewer_employee", "custom_interviewer_name", "custom_is_confirm", "name"]
     )
     
-    for interviewer in internal_interviewers:
-        if interviewer.custom_interviewer_employee:
-            employee_user = frappe.db.get_value("Employee", interviewer.custom_interviewer_employee, "user_id")
-            if employee_user == user:
-                result["is_internal_interviewer_not_confirmed"] = True
-                break
-    
-    # Check external interviewers
+    # Get all external interviewers
     external_interviewers = frappe.get_all(
         "External Interviewer",
-        filters={"parent": interview_name, "is_confirm": 0},
-        fields=["user"]
+        filters={"parent": doc.name},
+        fields=["user", "user_name", "is_confirm", "name"]
     )
     
-    for interviewer in external_interviewers:
-        if interviewer.user:
-            supplier_user = frappe.db.get_value("Supplier", interviewer.user, "custom_user")
-            if supplier_user == user:
-                result["is_external_interviewer_not_confirmed"] = True
-                break
+    # Process internal interviewers
+    for interviewer in interviewers:
+        if interviewer.get("custom_interviewer_employee"):
+            # Check if feedback already exists
+            employee = frappe.get_doc("Employee", interviewer.custom_interviewer_employee)
+            user = None
+            if employee.user_id:
+                user = frappe.get_doc("User", employee.user_id)
+            exists = frappe.db.exists("Interview Feedback", {
+                "interview": doc.name,
+                "job_applicant": doc.job_applicant,
+                "interview_round": doc.interview_round,
+                "custom_company": doc.custom_company,
+                "interviewer": user.name
+            })
+            
+            if not exists:
+                try:
+                    # Create new feedback document
+                    feedback = frappe.get_doc({
+                        "doctype": "Interview Feedback",
+                        "interview": doc.name,
+                        "interview_round": doc.interview_round,
+                        "interviewer": user.name,
+                        "job_applicant": doc.job_applicant,
+                        "custom_company": doc.custom_company,
+                        "result": "Pending"
+                    })
+                    round_doc = frappe.get_doc("Interview Round", doc.interview_round)
+                    for criterion in round_doc.expected_skill_set:
+                        feedback.append("skill_assessment", {
+                            "skill": criterion.skill,
+                            "custom_skill_type": criterion.custom_skill_type,
+                            "custom_rating_scale":criterion.custom_rating_scale
+                        })
+                    feedback.flags.ignore_validate = True
+                    feedback.insert(ignore_permissions=True)
+                    frappe.db.commit()
+                    print(f"Created feedback for internal interviewer: {interviewer.custom_interviewer_employee}")
+                except Exception as e:
+                    frappe.log_error("Failed to create Interview Feedback", f"{user.name}: {str(e)}")
     
-    return result
+    # Process external interviewers
+    for interviewer in external_interviewers:
+        if interviewer.get("user"):
+            # Check if feedback already exists
+            supplier = frappe.get_doc("Supplier", interviewer.user)
+            if supplier.custom_user:
+                user = frappe.get_doc("User", supplier.custom_user)
+            exists = frappe.db.exists("Interview Feedback", {
+                "interview": doc.name,
+                "interview_round": doc.interview_round,
+                "job_applicant": doc.job_applicant,
+                "custom_company": doc.custom_company,
+                "interviewer": user.name
+            })
+            
+            if not exists:
+                try:
+                    # Create new feedback document
+                    feedback = frappe.get_doc({
+                        "doctype": "Interview Feedback",
+                        "interview": doc.name,
+                        "interview_round": doc.interview_round,
+                        "interviewer": user.name,
+                        "job_applicant": doc.job_applicant,
+                        "custom_company": doc.custom_company,
+                        "result": "Pending"
+                    })
+                    round_doc = frappe.get_doc("Interview Round", doc.interview_round)
+                    for criterion in round_doc.expected_skill_set:
+                        feedback.append("skill_assessment", {
+                            "skill": criterion.skill,
+                            "custom_skill_type": criterion.custom_skill_type,
+                            "custom_rating_scale":criterion.custom_rating_scale
+                        })
+                    feedback.flags.ignore_validate = True
+                    feedback.insert(ignore_permissions=True)
+                    frappe.db.commit()
+                    print(f"Created feedback for external interviewer: {interviewer.user}")
+                except Exception as e:
+                    frappe.log_error("Failed to create Interview Feedback", f"{user.name}: {str(e)}")
+
+
+@frappe.whitelist()
+def submit_feedback(doc_name, interview_round, job_applicant, custom_company):
+    # Get the current logged-in user
+    current_user = frappe.session.user
+    feedback_exists = frappe.db.exists("Interview Feedback", {
+        "interview": doc_name,
+        "job_applicant": job_applicant,
+        "interview_round": interview_round,
+        "custom_company": custom_company,
+        "interviewer": current_user
+    })
+    if feedback_exists:
+        # If feedback exists, open the existing feedback record
+        feedback_doc = frappe.get_doc("Interview Feedback", feedback_exists)
+        return f"{frappe.utils.get_url()}/app/interview-feedback/{feedback_doc.name}"
