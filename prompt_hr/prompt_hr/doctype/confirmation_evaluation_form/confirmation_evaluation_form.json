@@ -19,12 +19,16 @@
   "hod",
   "evaluation_details_section",
   "table_txep",
+  "rh_rating_added",
+  "dh_rating_added",
   "confirmation_details_section",
   "probation_status",
   "confirmation_date",
   "column_break_lggp",
   "reason",
   "extension_period",
+  "reason_for_termination",
+  "last_work_date",
   "section_break_csmg",
   "remarks",
   "amended_from"
@@ -49,8 +53,9 @@
   {
    "fetch_from": "employee.department",
    "fieldname": "department",
-   "fieldtype": "Data",
-   "label": "Department"
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department"
   },
   {
    "fetch_from": "employee.designation",
@@ -87,6 +92,7 @@
    "label": "Evaluation Date"
   },
   {
+   "fetch_from": "department.custom_department_head",
    "fieldname": "hod",
    "fieldtype": "Link",
    "label": "HOD",
@@ -157,13 +163,41 @@
    "fieldtype": "Date",
    "label": "Confirmation Date",
    "mandatory_depends_on": "eval:doc.probation_status==\"Confirm\";"
+  },
+  {
+   "default": "0",
+   "fieldname": "rh_rating_added",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "RH Rating Added"
+  },
+  {
+   "default": "0",
+   "fieldname": "dh_rating_added",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "DH Rating Added"
+  },
+  {
+   "depends_on": "eval:doc.probation_status == \"Terminate\";",
+   "fieldname": "reason_for_termination",
+   "fieldtype": "Data",
+   "label": "Reason for Termination",
+   "mandatory_depends_on": "eval:doc.probation_status == \"Terminate\";"
+  },
+  {
+   "depends_on": "eval:doc.probation_status == \"Terminate\";",
+   "fieldname": "last_work_date",
+   "fieldtype": "Date",
+   "label": "Last Work Date",
+   "mandatory_depends_on": "eval:doc.probation_status == \"Terminate\";"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-04-11 16:20:20.446028",
+ "modified": "2025-04-23 18:52:03.938602",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Confirmation Evaluation Form",
