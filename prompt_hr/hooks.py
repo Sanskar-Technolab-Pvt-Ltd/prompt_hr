@@ -154,7 +154,7 @@ override_doctype_class = {
 
 doc_events = {
     "Employee Onboarding": {
-        "on_update": "prompt_hr.py.employee_onboarding.on_update",
+        "validate": "prompt_hr.py.employee_onboarding.validate",
     },
     "Job Requisition": {
         # "validate": "prompt_hr.custom_methods.job_requisition_notification",
@@ -168,7 +168,7 @@ doc_events = {
         "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_interview"
     },
     "Job Offer": {
-        "validate": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
+        "validate": ["prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer","prompt_hr.py.job_offer.validate"],
         "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
     },
     "Employee": {
@@ -281,7 +281,14 @@ scheduler_events = {
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
 
-# fixtures = [
+fixtures = [
+# {"dt":"Notification","filters":[
+#     [
+#         "module","in",[
+#             "Prompt HR"
+#         ]
+#     ]
+# ]},
 # {"dt":"Custom Field","filters":[
 #     [
 #         "module","in",[
@@ -327,4 +334,4 @@ scheduler_events = {
 #     "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled"]]]
 # }
 
-# ]
+]

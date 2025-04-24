@@ -27,7 +27,6 @@ frappe.ui.form.on("Employee Onboarding", {
             console.log(frm.doc.job_applicant)
             frappe.db.get_doc("Job Applicant", frm.doc.job_applicant).then(applicant_data => {
                 if (!applicant_data.custom_is_offer_required_while_onboarding) {
-                    console.log("Shiva")
                     frm.toggle_reqd("job_offer", 0);
                 } else {
                     frm.toggle_reqd("job_offer", 1);

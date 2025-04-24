@@ -112,6 +112,7 @@ def get_role_tenure_from_map(history_map, emp_id, joining_date):
         )
         return 0
 
+
 # ? FUNCTION TO SEND NOTIFICATION EMAIL
 def send_notification_email(emails, due_date, notification_name=None, job_opening=None, source = None):
     try:
@@ -165,4 +166,4 @@ def send_notification_email(emails, due_date, notification_name=None, job_openin
         frappe.log_error(
             title="Notification Email Error",
             message=f"Failed sending notification: {str(e)}\n{traceback.format_exc()}"
-        )
+        ) 

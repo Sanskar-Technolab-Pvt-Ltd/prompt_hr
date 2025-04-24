@@ -5,6 +5,10 @@ frappe.ui.form.on("Interview", {
         // ? ? FETCH AVAILABLE INTERVIEWERS ON REFRESH
         fetchAvailableInterviewers(frm);
         frm.toggle_display("custom_available_interviewers", frm.is_new());
+        if(frm.doc.status == "Cleared") {
+            
+            createInviteButton(frm);
+        }
 
     },
 
@@ -91,3 +95,193 @@ function updateInterviewerAvailability(frm) {
     fetchAvailableInterviewers(frm);
 }
 
+// ? CREATE INVITE FOR DOCUMENT COLLECTION BUTTON
+function createInviteButton(frm) {
+    frm.add_custom_button(__('Invite for Document Collection'), function () {
+        // ? CREATE A DIALOG TO COLLECT EXTRA DETAILS
+        let dialog = new frappe.ui.Dialog({
+            title: 'Invite for Document Collection',
+            fields: [
+                {
+                    label: 'Joining Document Checklist',
+                    fieldname: 'joining_document_checklist',
+                    fieldtype: 'Link',
+                    options: 'Joining Document Checklist',
+                    reqd: 1,
+                    onchange: function() {
+                        // Fetch documents from the selected checklist using a custom method
+                        if (dialog.get_value('joining_document_checklist')) {
+                            dialog.set_df_property('documents', 'data', []); // Clear existing data
+                            
+                            frappe.call({
+                                method: "prompt_hr.py.utils.get_checklist_documents",
+                                args: {
+                                    checklist: dialog.get_value('joining_document_checklist')
+                                },
+                                callback: function(r) {
+                                    // HIDE LOADING INDICATOR
+                                    frappe.hide_progress();
+                                    
+                                    // DEBUG RESPONSE
+                                    console.log("API Response:", r);
+                                    
+                                    // CHECK FOR ERROR IN RESPONSE
+                                    if (r.exc) {
+                                        frappe.msgprint({
+                                            title: __("Error"),
+                                            message: __("Error fetching documents: ") + r.exc,
+                                            indicator: "red"
+                                        });
+                                        return;
+                                    }
+                                    
+                                    // VALIDATE DOCUMENTS DATA
+                                    if (r.message && r.message.documents) {
+                                        let documents = r.message.documents;
+                                        console.log("Documents received:", documents);
+                                        
+                                        if (!documents.length) {
+                                            frappe.msgprint({
+                                                title: __("Info"),
+                                                message: __("No documents found in the selected checklist."),
+                                                indicator: "blue"
+                                            });
+                                            return;
+                                        }
+                                        
+                                        // UPDATE THE DATA FOR THE DOCUMENTS FIELD
+                                        dialog.fields[3].data = documents; 
+                                        
+                                        dialog.fields_dict.documents.grid.refresh();
+                                    } else {
+                                        console.error("Invalid response format:", r.message);
+                                        frappe.msgprint({
+                                            title: __("Error"),
+                                            message: __("Invalid response format from server."),
+                                            indicator: "red"
+                                        });
+                                    }
+                                }
+                            });
+                        }
+                    }
+                },
+                {
+                    label: 'Document Collection Stage',
+                    fieldname: 'document_collection_stage',
+                    fieldtype: 'Link',
+                    options: 'Document Collection Stage',
+                    onchange: function() {
+                        // ? UPDATE ALL ROWS WITH THE SELECTED STAGE
+                        let stage = dialog.get_value('document_collection_stage');
+                        if (stage) {
+                            
+                            let documents = dialog.fields[3].data
+                            let newDocuments = documents.filter(doc => {
+                                return doc.document_collection_stage == stage;
+                            });
+                            
+                            console.log("Filtered documents:", newDocuments);
+
+                            // UPDATE THE DATA FOR THE DOCUMENTS FIELD
+                            dialog.fields[3].data = newDocuments; 
+                            dialog.fields_dict.documents.grid.refresh();
+                        }
+                    }
+                },
+                {
+                    label: 'Documents',
+                    fieldname: 'documents',
+                    fieldtype: 'Table',
+                    cannot_add_rows: true,
+                    fields: [
+                        {
+                            label: 'Required Document',
+                            fieldname: 'required_document',
+                            fieldtype: 'Link',
+                            options: 'Required Document Applicant',
+                            in_list_view: 1,
+                            read_only: 1
+                        },
+                        {
+                            label: 'Document Collection Stage',
+                            fieldname: 'document_collection_stage',
+                            fieldtype: 'Link',
+                            options: 'Document Collection Stage',
+                            in_list_view: 1,
+                            read_only: 1
+                        }
+                    ],
+                    data: [] 
+                }
+            ],
+            primary_action_label: 'Send Invite',
+            primary_action(values) {
+
+                // VALIDATE THAT WE HAVE DOCUMENTS
+                if (!dialog.fields_dict.documents.grid.grid_rows || !dialog.fields_dict.documents.grid.grid_rows.length) {
+                    frappe.msgprint({
+                        title: __("Warning"),
+                        message: __("No documents selected for collection. Please select a valid checklist."),
+                        indicator: "yellow"
+                    });
+                    return;
+                }
+                
+                dialog.hide();
+                
+                // GET SELECTED DOCUMENTS FROM THE CHILD TABLE
+                let selected_documents = [];
+                dialog.fields_dict.documents.grid.grid_rows.forEach(row => {
+                    if (row && row.doc) {
+                        selected_documents.push({
+                            required_document: row.doc.required_document,
+                            document_collection_stage: row.doc.document_collection_stage
+                        });
+                    }
+                });
+                
+                console.log("Selected documents:", selected_documents);
+                
+                // ? TRIGGER BACKEND METHOD WITH EXTRA INFO
+                frappe.call({
+                    method: "prompt_hr.py.utils.invite_for_document_collection",
+                    args: {
+                        args: {
+                            name: frm.doc.job_applicant,  
+                            joining_document_checklist: values.joining_document_checklist,
+                            document_collection_stage: values.document_collection_stage,
+                            documents: selected_documents 
+                        },
+                        joining_document_checklist: values.joining_document_checklist,
+                        document_collection_stage: values.document_collection_stage,
+                        documents: selected_documents
+                    },
+                    callback: function (r) {
+                        if (r.message === "Already invited for document collection.") {
+                            frappe.msgprint({
+                                title: __("Info"),
+                                message: __("This candidate has already been invited for document collection."),
+                                indicator: "blue"
+                            });
+                        } else if (r.message === "An error occurred while inviting for document collection.") {
+                            frappe.msgprint({
+                                title: __("Error"),
+                                message: __("Oops! Something went wrong while sending the invite. Please try again or check the logs."),
+                                indicator: "red"
+                            });
+                        } else {
+                            frappe.msgprint({
+                                title: __("Success"),
+                                message: __("Invite for document collection has been sent successfully!"),
+                                indicator: "green"
+                            });
+                        }
+                    }
+                });
+            }
+        });
+        
+        dialog.show();
+    });
+}
