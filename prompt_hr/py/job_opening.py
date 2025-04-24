@@ -164,7 +164,7 @@ def send_notification_email(emails, due_date=None, notification_name=None, job_o
             # Append common call-to-action
             message += (
                 "<hr>"
-                "<p><b>Interested?</b> Click below to apply:</p>"
+                "<p>Click below to apply:</p>"
                 f"<p><a href=\"{apply_link}\" target=\"_blank\">Apply Now</a></p>"
             )
 

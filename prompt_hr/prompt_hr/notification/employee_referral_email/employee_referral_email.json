@@ -1,7 +1,7 @@
 {
  "attach_print": 0,
  "channel": "Email",
- "creation": "2025-04-16 13:18:38.727717",
+ "creation": "2025-04-23 10:26:36.864950",
  "days_in_advance": 0,
  "docstatus": 0,
  "doctype": "Notification",
@@ -10,9 +10,9 @@
  "event": "Custom",
  "idx": 0,
  "is_standard": 1,
- "message": "Employee Referral Job Opening Alert",
+ "message": "<p>Hello Team,</p>\n\n<p>We\u2019re excited to share that we have an open position for {{ doc.designation }} on our {{ doc.department }} team at {{ doc.company }}!</p>\n\n<p>We believe great people know great people\u2014so if you know someone who would be a great fit, please send them our way! </p>\n\n<p>Deadline to apply: {{ frappe.utils.get_datetime(doc.custom_due_date_for_applying_job_jr).strftime('%d %B, %Y') if doc.custom_due_date_for_applying_job_jr }} </p>\n\n<p>For questions, reach out to HR.</p>\n",
  "message_type": "Markdown",
- "modified": "2025-04-22 16:24:22.366538",
+ "modified": "2025-04-23 15:42:26.731021",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Referral Email",
@@ -20,7 +20,7 @@
  "recipients": [],
  "send_system_notification": 0,
  "send_to_all_assignees": 1,
- "sender": "Malav",
- "sender_email": "malav@sanskartechnolab.com",
- "subject": "Employee Referral Job Opening Alert"
+ "sender": "Jignasha",
+ "sender_email": "jignasha@sanskartechnolab.com",
+ "subject": "Refer Great Talent for {{ doc.designation }} at {{ doc.company }}"
 }
