@@ -51,24 +51,35 @@ frappe.ui.form.on("Interview", {
                     // Check internal interviewers
                     if (frm.doc.interview_details && frm.doc.interview_details.length) {
                         frm.doc.interview_details.forEach(function(interviewer) {
+                            console.log("Internal Interviewers:", interviewer.custom_interviewer_employee);
                             if (interviewer.custom_interviewer_employee) {
                                 if (interviewer.custom_is_confirm === 0 ) {
-                                    frappe.db.get_value("Employee", interviewer.custom_interviewer_employee, "user_id", function(r) {
-                                        if (r && r.user_id === current_user) {
-                                            frm.remove_custom_button(__("Notify Interviewer"));
-                                            is_internal_interviewer_not_confirmed = true;
-                                            showConfirmButton();
+                                    frappe.call({
+                                        method: "prompt_hr.py.interview_availability.get_employee_user_id",
+                                        args: {
+                                            employee_id: interviewer.custom_interviewer_employee
+                                        },
+                                        callback: function (r) {
+                                            if (r.message === current_user) {
+                                                frm.remove_custom_button(__("Notify Interviewer"));
+                                                is_internal_interviewer_not_confirmed = true;
+                                                showConfirmButton();
+                                            }
                                         }
                                     });
                                 }
                                 else {
-                                    console.log("Internal Interviewer:", interviewer.custom_interviewer_employee);
-                                    frappe.db.get_value("Employee", interviewer.custom_interviewer_employee, "user_id", function(r) {
-                                        if (r && r.user_id === current_user) {
-                                            frm.remove_custom_button(__("Notify Interviewer"));
+                                    frappe.call({
+                                        method: "prompt_hr.py.interview_availability.get_employee_user_id",
+                                        args: {
+                                            employee_id: interviewer.custom_interviewer_employee
+                                        },
+                                        callback: function (r) {
+                                            if (r.message === current_user) {
+                                                frm.remove_custom_button(__("Notify Interviewer"));
+                                            }
                                         }
                                     });
-
                                 }
                             }
                         });
@@ -170,8 +181,11 @@ frappe.ui.form.on("Interview", {
         let allow_internal = false;
         for (const interviewer of frm.doc.interview_details || []) {
             if (interviewer.custom_interviewer_employee) {
-                const emp = await frappe.db.get_value("Employee", interviewer.custom_interviewer_employee, "user_id");
-                if (emp?.message?.user_id === frappe.session.user) {
+                const r = await frappe.call({
+                    method: "prompt_hr.py.interview_availability.get_employee_user_id",
+                    args: { employee_id: interviewer.custom_interviewer_employee },
+                });
+                if (r?.message === frappe.session.user) {
                     allow_internal = true;
                     break;
                 }
@@ -220,6 +234,7 @@ frappe.ui.form.on("Interview", {
             },
             callback: function(r) {
                 if (r.message) {
+                    console.log("Feedback submitted successfully.");
                     window.location.href = r.message;
                 } else {
                     frappe.call({

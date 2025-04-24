@@ -25,7 +25,6 @@ def after_insert(doc, method):
         hr_emails = get_hr_managers_by_company(company)
 
         if hr_emails:
-<<<<<<< Updated upstream
     
             send_notification_email(
             recipients = hr_emails,
@@ -39,14 +38,12 @@ def after_insert(doc, method):
 )
 
             
-=======
             send_notification_from_template(
                 emails=hr_emails,
                 notification_name="HR Job Application Creation Mail",
                 doc=doc
             )
             frappe.msgprint(str(hr_emails))
->>>>>>> Stashed changes
         else:
             frappe.log_error("No HR Managers Found", f"No HR Managers found for company: {doc.company}")
 

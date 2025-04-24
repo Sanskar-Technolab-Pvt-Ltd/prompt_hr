@@ -10,9 +10,9 @@
  "event": "Custom",
  "idx": 0,
  "is_standard": 1,
- "message": "Dear HR Manager,<br><br>\nInterviewer <b>{user_doc.full_name}</b> has confirmed their availability for the interview with the applicant:<br><br>\n<b>Applicant Name:</b> {doc.custom_applicant_name}<br>\n<b>Interview Round:</b> {doc.interview_round}<br>\n<b>Position:</b> {doc.designation}<br><br>\n<a href=\"{frappe.utils.get_url()}/app/interview/{doc.name}\">Please review the applicant's details.</a><br><br>\nRegards,<br>\nHR Team",
- "message_type": "Markdown",
- "modified": "2025-04-22 19:15:27.825046",
+ "message": "<p>Dear HR Manager,</p>\n\n<p>\n    Interviewer <strong>{{ interviewer }}</strong> has confirmed their availability for the interview with the applicant:\n</p>\n\n<ul>\n    <li><strong>Applicant Name:</strong> {{ doc.custom_applicant_name }}</li>\n    <li><strong>Interview Round:</strong> {{ doc.interview_round }}</li>\n    <li><strong>Position:</strong> {{ doc.designation }}</li>\n</ul>\n\n<p>\n    <a href=\"{{ frappe.utils.get_url() }}/app/interview/{{ doc.name }}\">\n        Please review the applicant's details.\n    </a>\n</p>",
+ "message_type": "HTML",
+ "modified": "2025-04-23 10:49:26.717880",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Notify HR Manager",
@@ -20,7 +20,7 @@
  "recipients": [
   {}
  ],
- "send_system_notification": 0,
+ "send_system_notification": 1,
  "send_to_all_assignees": 0,
  "subject": "{{user_doc.full_name}} confirmed availability for Interview - {{doc.name}}"
 }
