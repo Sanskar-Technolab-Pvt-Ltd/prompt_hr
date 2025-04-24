@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-04-23 15:16:36.706303",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Interview Feedback",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "Dear HR Manager,\n\n{% set interviewer = frappe.get_all(\"Employee\", filters={\"user_id\": doc.interviewer}, fields=[\"employee_name\"]) %}\n{% if not interviewer %}\n  {% set interviewer = frappe.get_all(\"Supplier\", filters={\"custom_user\": doc.interviewer}, fields=[\"supplier_name\"]) %}\n{% endif %}\n\n{% set interviewer_name = (interviewer[0].employee_name if interviewer and interviewer[0].employee_name else\n                           interviewer[0].supplier_name if interviewer and interviewer[0].supplier_name else \"HR Manager\") %}\n\n<p>The interviewer <b>{{ interviewer_name }}</b> has submitted feedback for the following interview:</p>\n\n<p>\n<b>Interview:</b> {{ doc.interview }}<br>\n<b>Interview Round:</b> {{ doc.interview_round }}<br>\n\n{% set applicant = frappe.get_doc(\"Job Applicant\", doc.job_applicant) %}\n<b>Candidate:</b> {{ applicant.applicant_name }}<br>\n</p>\n\n<p>\nYou can review the feedback using the link below:\n</p>\n\n<p>\n<a href=\"{{ frappe.utils.get_url() }}/app/interview-feedback/{{ doc.name }}\">\n    Click here to view the submitted interview feedback\n</a>\n</p>",
+ "message_type": "HTML",
+ "modified": "2025-04-23 17:07:20.287899",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Interview Feedback Submit Notification",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 0,
+ "send_to_all_assignees": 0,
+ "subject": "Interview Feedback Submitted for {{doc.name}}"
+}

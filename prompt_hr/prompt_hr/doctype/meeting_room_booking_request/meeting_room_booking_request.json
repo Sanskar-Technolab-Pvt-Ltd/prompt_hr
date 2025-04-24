@@ -11,6 +11,8 @@
   "from_time",
   "to_time",
   "participants",
+  "travel_from_datetime",
+  "travel_to_datetime",
   "column_break_uouy",
   "booking_status",
   "mode",
@@ -18,6 +20,9 @@
   "is_recurring_meeting",
   "recurring_frequency",
   "recurring_day",
+  "product_category",
+  "related_to",
+  "related_to_form",
   "room_setup_instruction_section_section",
   "room_setup_instruction",
   "notes"
@@ -65,7 +70,7 @@
    "fieldname": "mode",
    "fieldtype": "Select",
    "label": "Mode",
-   "options": "Offline\nOnline"
+   "options": "Offline\nOnline\nOn Site"
   },
   {
    "fieldname": "booking_status",
@@ -108,12 +113,40 @@
    "fieldname": "room_setup_instruction_section_section",
    "fieldtype": "Section Break",
    "label": "Room Setup Instruction Section"
+  },
+  {
+   "fieldname": "travel_from_datetime",
+   "fieldtype": "Datetime",
+   "label": "Travel From Datetime"
+  },
+  {
+   "fieldname": "travel_to_datetime",
+   "fieldtype": "Datetime",
+   "label": "Travel To Datetime"
+  },
+  {
+   "fieldname": "related_to",
+   "fieldtype": "Link",
+   "label": "Related To",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "related_to_form",
+   "fieldtype": "Dynamic Link",
+   "label": "Related to Form",
+   "options": "related_to"
+  },
+  {
+   "fieldname": "product_category",
+   "fieldtype": "Link",
+   "label": "Product Category",
+   "options": "Item"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-11 07:27:42.922992",
+ "modified": "2025-04-22 15:39:37.819559",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Meeting Room Booking Request",

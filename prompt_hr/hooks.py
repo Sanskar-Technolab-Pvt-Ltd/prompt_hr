@@ -26,7 +26,10 @@ app_license = "mit"
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/prompt_hr/css/prompt_hr.css"
-app_include_js = "assets/prompt_hr/js/welcome_page_check.js"
+app_include_js = [
+                    "assets/prompt_hr/js/welcome_page_check.js",
+                    "assets/prompt_hr/js/frappe/form/workflow.js",
+                ]
 
 
 # include js, css files in header of web template
@@ -51,10 +54,13 @@ doctype_js = {
     "Job Opening": "public/js/job_opening.js",
     'Employee': 'public/js/employee.js',
     "Job Applicant": "public/js/job_applicant.js",
+    'Appointment Letter': 'public/js/appointment_letter.js',
+    "Interview": "public/js/interview.js",
+    "Interview Feedback": "public/js/interview_feedback.js",
+
 }
 
 doctype_list_js = {
-    "Interview": "public/js/interview.js",
     "Job Applicant": "public/js/job_applicant_list.js",
 }
 
@@ -130,10 +136,11 @@ doctype_list_js = {
 # -----------
 # Permissions evaluated in scripted ways
 
-# permission_query_conditions = {
-#     "DocType": "prompt_hr.py.welcome_status.check_welcome_completion"
-# }
-#
+permission_query_conditions = {
+    "Interview": "prompt_hr.py.interview_availability.check_interviewer_permission",
+    "Interview Feedback": "prompt_hr.py.interview_feedback.get_permission_query_conditions",
+}
+
 # has_permission = {
 # 	"Event": "frappe.desk.doctype.event.event.has_permission",
 # }
@@ -146,6 +153,7 @@ override_doctype_class = {
     # "ToDo": "custom_app.overrides.CustomToDo"
     "Interview": "prompt_hr.overrides.interview_override.CustomInterview",
     "Job Offer": "prompt_hr.overrides.job_offer_override.CustomJobOffer",
+    "Appointment Letter": "prompt_hr.overrides.interview_override.CustomAppointmentLetter",
 }
 
 # Document Events
@@ -154,21 +162,25 @@ override_doctype_class = {
 
 doc_events = {
     "Employee Onboarding": {
-        "on_update": "prompt_hr.py.employee_onboarding.on_update",
+        "validate": "prompt_hr.py.employee_onboarding.validate",
     },
     "Job Requisition": {
-        # "validate": "prompt_hr.custom_methods.job_requisition_notification",
+        "validate": [
+                        # "prompt_hr.custom_methods.job_requisition_notification",
+                        "prompt_hr.py.job_requisition.add_or_update_custom_last_updated_by"
+                    ],
         "on_update": "prompt_hr.py.job_requisition.on_update",
     },
-     "Job Applicant": {
+    "Job Applicant": {
         "after_insert": "prompt_hr.py.job_applicant.after_insert",
     },
     "Interview": {
         "validate": "prompt_hr.custom_methods.update_job_applicant_status_based_on_interview",
-        "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_interview"
+        "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_interview",
+        "on_update": "prompt_hr.py.interview_availability.on_update",
     },
     "Job Offer": {
-        "validate": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
+        "validate": ["prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer","prompt_hr.py.job_offer.validate"],
         "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
     },
     "Employee": {
@@ -180,12 +192,19 @@ doc_events = {
     "Confirmation Evaluation Form": {
         "on_submit": "prompt_hr.custom_methods.add_confirmation_evaluation_data_to_employee"
     },
-    "Job Requisition": {
-         "on_update": "prompt_hr.py.job_requisition.on_update",
-     },
+    # "Job Requisition": {
+    #      "on_update": "prompt_hr.py.job_requisition.on_update",
+    #  },
      "LMS Quiz Submission": {
         "validate":"prompt_hr.py.lms_quiz_submission.update_status"
     },
+    "Job Applicant": {
+        "before_insert": "prompt_hr.py.job_applicant.before_insert",
+    },
+    "Interview Feedback": {
+        "on_submit": "prompt_hr.py.interview_feedback.on_submit",
+    }
+    
     
     # "User": {
     #     "after_insert": "prompt_hr.py.welcome_status.after_insert"
@@ -214,7 +233,8 @@ scheduler_events = {
 #
 # override_whitelisted_methods = {
 	# "frappe.desk.doctype.event.event.get_events": "prompt_hr.event.get_events"
-    # "frappe.model.workflow.get_transitions": "prompt_hr.overrides.workflow_override.get_transitions",
+    # "frappe.model.workflow.get_transitions": "prompt_hr.overrides.workflow_override.custom_get_transitions",
+    # "frappe.model.workflow.apply_workflow": "prompt_hr.overrides.workflow_override.custom_apply_workflow"
 # }
 #
 # each overriding function accepts a `data` argument;
@@ -281,7 +301,14 @@ scheduler_events = {
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
 
-# fixtures = [
+fixtures = [
+# {"dt":"Notification","filters":[
+#     [
+#         "module","in",[
+#             "Prompt HR"
+#         ]
+#     ]
+# ]},
 # {"dt":"Custom Field","filters":[
 #     [
 #         "module","in",[
@@ -327,4 +354,4 @@ scheduler_events = {
 #     "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled"]]]
 # }
 
-# ]
+]

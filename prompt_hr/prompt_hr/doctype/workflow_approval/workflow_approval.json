@@ -1,12 +1,14 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "format:WORKFLOW-APPR-{####}",
  "creation": "2025-04-15 18:05:15.064380",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
   "applicable_doctype",
   "workflow_approval_criteria",
+  "add_criteria",
   "approval_flow_section",
   "workflow_approval_hierarchy"
  ],
@@ -33,15 +35,21 @@
    "fieldtype": "Table",
    "label": "Workflow Approval Criteria",
    "options": "Workflow Approval Criteria"
+  },
+  {
+   "fieldname": "add_criteria",
+   "fieldtype": "Button",
+   "label": "Add Criteria"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-17 16:41:38.045692",
+ "modified": "2025-04-23 11:11:35.184164",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Workflow Approval",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {
@@ -57,6 +65,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []

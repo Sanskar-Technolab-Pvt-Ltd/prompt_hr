@@ -1,7 +1,7 @@
 {
  "attach_print": 0,
  "channel": "Email",
- "creation": "2025-04-14 12:54:52.044631",
+ "creation": "2025-04-23 10:26:36.798588",
  "days_in_advance": 0,
  "docstatus": 0,
  "doctype": "Notification",
@@ -10,9 +10,9 @@
  "event": "Custom",
  "idx": 0,
  "is_standard": 1,
- "message": "Kindly apply for the below Internal Job Posting",
+ "message": "<p>Hello Team,</p>\n\n<p> We have released a new internal job opening for the position of {{ doc.designation }}. <br>If you're interested in exploring this opportunity, please through below mentioned link. </p>\n\n<p>Deadline to apply: {{ frappe.utils.get_datetime(doc.custom_due_date_for_applying_job).strftime('%d %B, %Y') if doc.custom_due_date_for_applying_job }} </p>\n\n<p>For questions, reach out to HR.</p>\n",
  "message_type": "Markdown",
- "modified": "2025-04-22 16:24:22.426358",
+ "modified": "2025-04-23 15:24:32.522375",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Internal Job Opening Email",
@@ -20,7 +20,7 @@
  "recipients": [],
  "send_system_notification": 0,
  "send_to_all_assignees": 1,
- "sender": "Malav",
- "sender_email": "malav@sanskartechnolab.com",
+ "sender": "Jignasha",
+ "sender_email": "jignasha@sanskartechnolab.com",
  "subject": "Internal Job Opening Alert"
 }
