@@ -2,23 +2,24 @@ const original_add_custom_buttons = frappe.ui.form.handlers.Interview?.add_custo
 const original_submit_feedback = frappe.ui.form.handlers.Interview?.submit_feedback;
 frappe.ui.form.off("Interview", "submit_feedback")
 frappe.ui.form.on("Interview", {
-    refresh: function(frm) {
-        // Fetch available interviewers on refresh
-        fetchAvailableInterviewers(frm);
-    
-        // Toggle display of custom_available_interviewers field only if the form is new
-        frm.toggle_display("custom_available_interviewers", frm.is_new());
+    refresh: function (frm) {
         
-       if (frm.is_new()) {
+        // ?  FETCH AVAILABLE INTERVIEWERS ON REFRESH
+        fetchAvailableInterviewers(frm);
+
+        // ?  TOGGLE DISPLAY OF CUSTOM_AVAILABLE_INTERVIEWERS FIELD ONLY IF THE FORM IS NEW
+        frm.toggle_display("custom_available_interviewers", frm.is_new());
+
+        if (frm.is_new()) {
             return;
         }
-      
-        if(frm.doc.status == "Cleared") {
-            
+
+        if (frm.doc.status == "Cleared") {
+
             createInviteButton(frm);
         }
-        // Add "Notify Interviewer" button
-        frm.add_custom_button(__("Notify Interviewer"), function() {
+        // ?  ADD "NOTIFY INTERVIEWER" BUTTON
+        frm.add_custom_button(__("Notify Interviewer"), function () {
             frappe.dom.freeze(__('Notifying Interviewers...'));
             frappe.call({
                 method: "prompt_hr.py.interview_availability.send_interview_schedule_notification",
@@ -26,41 +27,41 @@ frappe.ui.form.on("Interview", {
                     name: frm.doc.name,
                     applicant_name: frm.doc.job_applicant,
                 },
-                callback: function(r) {
+                callback: function (r) {
                     if (r.message) {
                         frappe.msgprint(r.message);
                         frm.reload_doc();
                     }
                 },
-                always: function() {
-                    // Remove the freeze after call is done
+                always: function () {
+                    // ?  REMOVE THE FREEZE AFTER CALL IS DONE
                     frappe.dom.unfreeze();
                 }
             });
         }).removeClass('btn-default').addClass('btn btn-primary btn-sm primary-action');
 
 
-        // Check if current user has shared access to this document
+        // ?  CHECK IF CURRENT USER HAS SHARED ACCESS TO THIS DOCUMENT
         frappe.call({
             method: "frappe.share.get_users",
             args: {
                 doctype: frm.doctype,
                 name: frm.doc.name
             },
-            callback: function(r) {
-                if (r.message && r.message.some(function(shared_user) {
+            callback: function (r) {
+                if (r.message && r.message.some(function (shared_user) {
                     return shared_user.user === frappe.session.user;
                 })) {
-                    // First check if the user exists in interview_details
+                    // ?  FIRST CHECK IF THE USER EXISTS IN INTERVIEW_DETAILS
                     let current_user = frappe.session.user;
                     let is_internal_interviewer_not_confirmed = false;
                     let is_external_interviewer_not_confirmed = false;
-                    // Check internal interviewers
+                    // ?  CHECK INTERNAL INTERVIEWERS
                     if (frm.doc.interview_details && frm.doc.interview_details.length) {
-                        frm.doc.interview_details.forEach(function(interviewer) {
+                        frm.doc.interview_details.forEach(function (interviewer) {
                             console.log("Internal Interviewers:", interviewer.custom_interviewer_employee);
                             if (interviewer.custom_interviewer_employee) {
-                                if (interviewer.custom_is_confirm === 0 ) {
+                                if (interviewer.custom_is_confirm === 0) {
                                     frappe.call({
                                         method: "prompt_hr.py.interview_availability.get_employee_user_id",
                                         args: {
@@ -91,11 +92,11 @@ frappe.ui.form.on("Interview", {
                             }
                         });
                     }
-                    
-                    // Check external interviewers
+
+                    // ?  CHECK EXTERNAL INTERVIEWERS
                     if (frm.doc.custom_external_interviewers && frm.doc.custom_external_interviewers.length) {
                         console.log("External Interviewers:", frm.doc.custom_external_interviewers);
-                        frm.doc.custom_external_interviewers.forEach(function(interviewer) {
+                        frm.doc.custom_external_interviewers.forEach(function (interviewer) {
                             if (interviewer.user) {
                                 if (interviewer.is_confirm === 0) {
                                     frappe.call({
@@ -113,7 +114,7 @@ frappe.ui.form.on("Interview", {
                                         }
                                     });
                                 }
-                                else{
+                                else {
                                     frappe.call({
                                         method: "prompt_hr.py.interview_availability.get_supplier_custom_user",
                                         args: {
@@ -127,16 +128,16 @@ frappe.ui.form.on("Interview", {
                                         }
                                     });
                                 }
-                                
+
                             }
-                            
+
                         });
                     }
-                    
+
                     function showConfirmButton() {
                         if (!frm.custom_button_added) {
                             frm.custom_button_added = true;
-                            frm.add_custom_button(__("Confirm"), function() {
+                            frm.add_custom_button(__("Confirm"), function () {
                                 frappe.dom.freeze(__('Confirming Your Availability...'));
                                 frappe.call({
                                     method: "prompt_hr.py.interview_availability.send_notification_to_hr_manager",
@@ -145,9 +146,9 @@ frappe.ui.form.on("Interview", {
                                         company: frm.doc.custom_company,
                                         user: frappe.session.user
                                     },
-                                    callback: function(res) {
+                                    callback: function (res) {
                                         frappe.msgprint(res.message || __("Your availability has been confirmed."));
-                                        // Reload the form to reflect changes
+                                        // ?  RELOAD THE FORM TO REFLECT CHANGES
                                         frm.reload_doc();
                                     }
                                 });
@@ -157,21 +158,21 @@ frappe.ui.form.on("Interview", {
                 }
             },
             always: function () {
-                // Remove the freeze after call is done
+                // ?  REMOVE THE FREEZE AFTER CALL IS DONE
                 frappe.dom.unfreeze();
             }
         });
     },
-    add_custom_buttons: async function(frm) {
-        // Call the original function if it exists
+    add_custom_buttons: async function (frm) {
+        // ?  CALL THE ORIGINAL FUNCTION IF IT EXISTS
         if (typeof original_add_custom_buttons === "function") {
             await original_add_custom_buttons(frm);
         }
-    
-        // Skip if doc is canceled or not saved
+
+        // ?  SKIP IF DOC IS CANCELED OR NOT SAVED
         if (frm.doc.docstatus === 2 || frm.doc.__islocal) return;
-    
-        // Check if feedback already submitted
+
+        // ?  CHECK IF FEEDBACK ALREADY SUBMITTED
         const has_submitted_feedback = await frappe.db.get_value(
             "Interview Feedback",
             {
@@ -181,10 +182,10 @@ frappe.ui.form.on("Interview", {
             },
             "name"
         )?.message?.name;
-    
+
         if (has_submitted_feedback) return;
-    
-        // Check internal interviewers
+
+        // ?  CHECK INTERNAL INTERVIEWERS
         let allow_internal = false;
         for (const interviewer of frm.doc.interview_details || []) {
             if (interviewer.custom_interviewer_employee) {
@@ -198,8 +199,8 @@ frappe.ui.form.on("Interview", {
                 }
             }
         }
-    
-        // Check external interviewers
+
+        // ?  Check external interviewers
         let allow_external = false;
         for (const ext of frm.doc.custom_external_interviewers || []) {
             if (ext.user) {
@@ -214,12 +215,12 @@ frappe.ui.form.on("Interview", {
             }
         }
         if (allow_internal || allow_external) {
-            // Enable "Submit Feedback" buttons
+            // ?  ENABLE "SUBMIT FEEDBACK" BUTTONS
             frappe.after_ajax(() => {
                 setTimeout(() => {
-                    $('button').filter(function() {
+                    $('button').filter(function () {
                         return $(this).text().trim() === "Submit Feedback";
-                    }).each(function() {
+                    }).each(function () {
                         $(this)
                             .prop("disabled", false)
                             .removeAttr("title")
@@ -231,7 +232,7 @@ frappe.ui.form.on("Interview", {
         }
     },
     submit_feedback: async function (frm) {
-		frappe.call({
+        frappe.call({
             method: "prompt_hr.py.interview_availability.submit_feedback",
             args: {
                 doc_name: frm.doc.name,
@@ -239,7 +240,7 @@ frappe.ui.form.on("Interview", {
                 job_applicant: frm.doc.job_applicant,
                 custom_company: frm.doc.custom_company
             },
-            callback: function(r) {
+            callback: function (r) {
                 if (r.message) {
                     console.log("Feedback submitted successfully.");
                     window.location.href = r.message;
@@ -257,20 +258,20 @@ frappe.ui.form.on("Interview", {
                 }
             }
         });
-	},
-    scheduled_on: function(frm) {
+    },
+    scheduled_on: function (frm) {
         updateInterviewerAvailability(frm);
     },
 
-    from_time: function(frm) {
+    from_time: function (frm) {
         updateInterviewerAvailability(frm)
     },
 
-    to_time: function(frm) {
+    to_time: function (frm) {
         updateInterviewerAvailability(frm)
     },
 
-    after_save: function(frm) {
+    after_save: function (frm) {
         // ? HIDE THE AVAILABLE INTERVIEWERS FIELD AFTER SAVING
         frm.toggle_display("custom_available_interviewers", false);
     }
@@ -294,26 +295,25 @@ function fetchAvailableInterviewers(frm) {
             'param_to_time': frm.doc.to_time,
             'designation': frm.doc.designation
         },
-        callback: function(r) {
+        callback: function (r) {
             if (r.message) {
                 let availableInterviewers = r.message.record || [];
-                console.log("Fetched Interviewers:", availableInterviewers);
-                
+
                 // ? GET EXISTING INTERVIEWERS (NO NEED TO JOIN FOR COMPARISON)
                 let existingInterviewers = frm.doc.custom_available_interviewers || [];
-        
+
                 // ? FILTER NEW INTERVIEWERS (AVOID DUPLICATES)
-                let newInterviewers = availableInterviewers.filter(user => 
+                let newInterviewers = availableInterviewers.filter(user =>
                     !existingInterviewers.some(row => row.user === user)
                 );
-        
-               // ? APPEND ONLY NEW INTERVIEWERS
+
+                // ? APPEND ONLY NEW INTERVIEWERS
                 if (newInterviewers.length > 0) {
                     // ? APPEND ONLY NEW INTERVIEWERS
                     if (newInterviewers.length > 0) {
                         newInterviewers.forEach(interviewer => {
                             let row = frm.add_child("custom_available_interviewers");
-                            row.user = interviewer;  // Store plain text (no <br>)
+                            row.user = interviewer; 
                             console.log("New Interviewer:", row.user);
                         });
 
@@ -323,7 +323,7 @@ function fetchAvailableInterviewers(frm) {
                         setTimeout(() => {
                             let formattedInterviewers = (frm.doc.custom_available_interviewers || [])
                                 .map(row => row.user)
-                                .join('<br>'); // Add HTML line break
+                                .join('<br>'); 
 
                             $(".control-value[data-fieldname='custom_available_interviewers']").html(formattedInterviewers);
                         }, 100);
@@ -332,7 +332,7 @@ function fetchAvailableInterviewers(frm) {
                 }
 
             }
-        }        
+        }
     });
 }
 
@@ -354,24 +354,24 @@ function createInviteButton(frm) {
                     fieldtype: 'Link',
                     options: 'Joining Document Checklist',
                     reqd: 1,
-                    onchange: function() {
-                        // Fetch documents from the selected checklist using a custom method
+                    onchange: function () {
+                        // ?  FETCH DOCUMENTS FROM THE SELECTED CHECKLIST USING A CUSTOM METHOD
                         if (dialog.get_value('joining_document_checklist')) {
-                            dialog.set_df_property('documents', 'data', []); // Clear existing data
-                            
+                            dialog.set_df_property('documents', 'data', []); 
+
                             frappe.call({
                                 method: "prompt_hr.py.utils.get_checklist_documents",
                                 args: {
                                     checklist: dialog.get_value('joining_document_checklist')
                                 },
-                                callback: function(r) {
-                                    // HIDE LOADING INDICATOR
+                                callback: function (r) {
+                                    // ?  HIDE LOADING INDICATOR
                                     frappe.hide_progress();
-                                    
-                                    // DEBUG RESPONSE
+
+                                    // ?  DEBUG RESPONSE
                                     console.log("API Response:", r);
-                                    
-                                    // CHECK FOR ERROR IN RESPONSE
+
+                                    // ?  CHECK FOR ERROR IN RESPONSE
                                     if (r.exc) {
                                         frappe.msgprint({
                                             title: __("Error"),
@@ -380,12 +380,12 @@ function createInviteButton(frm) {
                                         });
                                         return;
                                     }
-                                    
-                                    // VALIDATE DOCUMENTS DATA
+
+                                    // ?  VALIDATE DOCUMENTS DATA
                                     if (r.message && r.message.documents) {
                                         let documents = r.message.documents;
                                         console.log("Documents received:", documents);
-                                        
+
                                         if (!documents.length) {
                                             frappe.msgprint({
                                                 title: __("Info"),
@@ -394,10 +394,10 @@ function createInviteButton(frm) {
                                             });
                                             return;
                                         }
-                                        
-                                        // UPDATE THE DATA FOR THE DOCUMENTS FIELD
-                                        dialog.fields[3].data = documents; 
-                                        
+
+                                        // ?  UPDATE THE DATA FOR THE DOCUMENTS FIELD
+                                        dialog.fields[3].data = documents;
+
                                         dialog.fields_dict.documents.grid.refresh();
                                     } else {
                                         console.error("Invalid response format:", r.message);
@@ -417,20 +417,20 @@ function createInviteButton(frm) {
                     fieldname: 'document_collection_stage',
                     fieldtype: 'Link',
                     options: 'Document Collection Stage',
-                    onchange: function() {
+                    onchange: function () {
                         // ? UPDATE ALL ROWS WITH THE SELECTED STAGE
                         let stage = dialog.get_value('document_collection_stage');
                         if (stage) {
-                            
+
                             let documents = dialog.fields[3].data
                             let newDocuments = documents.filter(doc => {
                                 return doc.document_collection_stage == stage;
                             });
-                            
+
                             console.log("Filtered documents:", newDocuments);
 
-                            // UPDATE THE DATA FOR THE DOCUMENTS FIELD
-                            dialog.fields[3].data = newDocuments; 
+                            // ?  UPDATE THE DATA FOR THE DOCUMENTS FIELD
+                            dialog.fields[3].data = newDocuments;
                             dialog.fields_dict.documents.grid.refresh();
                         }
                     }
@@ -458,13 +458,13 @@ function createInviteButton(frm) {
                             read_only: 1
                         }
                     ],
-                    data: [] 
+                    data: []
                 }
             ],
             primary_action_label: 'Send Invite',
             primary_action(values) {
 
-                // VALIDATE THAT WE HAVE DOCUMENTS
+                // ?  VALIDATE THAT WE HAVE DOCUMENTS
                 if (!dialog.fields_dict.documents.grid.grid_rows || !dialog.fields_dict.documents.grid.grid_rows.length) {
                     frappe.msgprint({
                         title: __("Warning"),
@@ -473,10 +473,10 @@ function createInviteButton(frm) {
                     });
                     return;
                 }
-                
+
                 dialog.hide();
-                
-                // GET SELECTED DOCUMENTS FROM THE CHILD TABLE
+
+                // ?  GET SELECTED DOCUMENTS FROM THE CHILD TABLE
                 let selected_documents = [];
                 dialog.fields_dict.documents.grid.grid_rows.forEach(row => {
                     if (row && row.doc) {
@@ -486,18 +486,18 @@ function createInviteButton(frm) {
                         });
                     }
                 });
-                
+
                 console.log("Selected documents:", selected_documents);
-                
+
                 // ? TRIGGER BACKEND METHOD WITH EXTRA INFO
                 frappe.call({
                     method: "prompt_hr.py.utils.invite_for_document_collection",
                     args: {
                         args: {
-                            name: frm.doc.job_applicant,  
+                            name: frm.doc.job_applicant,
                             joining_document_checklist: values.joining_document_checklist,
                             document_collection_stage: values.document_collection_stage,
-                            documents: selected_documents 
+                            documents: selected_documents
                         },
                         joining_document_checklist: values.joining_document_checklist,
                         document_collection_stage: values.document_collection_stage,
@@ -527,7 +527,7 @@ function createInviteButton(frm) {
                 });
             }
         });
-        
+
         dialog.show();
     });
 }
