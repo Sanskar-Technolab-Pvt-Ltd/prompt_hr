@@ -5,5 +5,5 @@
 from frappe.tests.utils import FrappeTestCase
 
 
-class TestPerformanceEvaluationPlan(FrappeTestCase):
+class TestPerformanceImprovementPlan(FrappeTestCase):
 	pass
