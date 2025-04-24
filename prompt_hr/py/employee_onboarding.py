@@ -14,12 +14,13 @@ def get_onboarding_details(parent, parenttype):
 
 # ? MAIN ON_UPDATE EVENT FUNCTION (No doc.save here!)
 @frappe.whitelist()
-def on_update(doc, method):
+def validate(doc, method):
     print("Employee Onboarding Document Updated\n", doc.name)
 
     auto_fill_first_activity(doc)
     fill_missing_checklist_records(doc)
     rows_to_notify = get_pending_activity_rows(doc)
+    frappe.db.commit()
 
     notify_users_for_pending_actions(rows_to_notify)
 
@@ -62,7 +63,13 @@ def get_applicant_email(job_applicant):
 # ? FETCH CHECKLIST RECORD BY DOCTYPE NAME AND JOB APPLICANT
 def get_checklist_record(doctype_name, job_applicant):
     try:
-        return frappe.get_value(doctype_name, {"job_applicant": job_applicant}, "name")
+        checklist_record_name =  frappe.get_value(doctype_name, {"job_applicant": job_applicant}, "name")
+        if not checklist_record_name:
+            checklist_record = frappe.new_doc(doctype_name)
+            checklist_record.job_applicant = job_applicant
+            checklist_record.insert(ignore_permissions=True)
+            checklist_record_name = checklist_record.name
+        return checklist_record_name
     except Exception as e:
         frappe.log_error(f"Error fetching checklist from {doctype_name}: {e}", "Checklist Fetch Error")
         return None
@@ -90,7 +97,7 @@ def get_pending_activity_rows(doc):
 def notify_users_for_pending_actions(rows):
     for row in rows:
         send_pending_action_email(row)
-        row.custom_is_sent = 1  # Frappe will auto-save after hook
+        row.custom_is_sent = 1  
 
 
 # ? COMPOSE + SEND EMAIL FOR A SINGLE ROW
@@ -137,7 +144,7 @@ def send_notification_email(doc_type, doc_name, recipient, fallback_subject, fal
     try:
         doc = frappe.get_doc(doc_type, doc_name)
 
-        # ? Fetch first Notification matching doc_type
+        # ? FETCH FIRST NOTIFICATION MATCHING DOC_TYPE
         notification = frappe.get_all("Notification", filters={"document_type": doc_type,"channel": "Email"}, limit=1)
         if not notification:
             raise Exception(f"No Notification template found for {doc_type}")
@@ -152,7 +159,7 @@ def send_notification_email(doc_type, doc_name, recipient, fallback_subject, fal
         subject = frappe.render_template(notification.subject, context)
         message = frappe.render_template(notification.message, context)
 
-        # ? Append Checklist Link
+        # ? APPEND CHECKLIST LINK
         checklist_name = getattr(doc, "checklist_name", "") or doc_type
         checklist_path = checklist_name.lower().replace(" ", "-")
         base_url = frappe.utils.get_url()

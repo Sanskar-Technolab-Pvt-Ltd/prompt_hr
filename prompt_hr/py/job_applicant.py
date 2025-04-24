@@ -103,7 +103,6 @@ def check_test_and_invite(job_applicant):
             extra_context=None,
             hash_input_text = applicant.name
         )
-    # <a href="{test_link}">{test_link}</a><br><br>
        
         
         frappe.db.set_value("Job Applicant", job_applicant, "status", "Screening Test Scheduled")
