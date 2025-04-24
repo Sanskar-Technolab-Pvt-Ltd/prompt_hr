@@ -8,7 +8,8 @@
  "field_order": [
   "skill_type",
   "rating_scale",
-  "weightage"
+  "weightage",
+  "company"
  ],
  "fields": [
   {
@@ -27,12 +28,18 @@
    "fieldtype": "Percent",
    "label": "Weightage",
    "precision": "2"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-23 17:07:49.297784",
+ "modified": "2025-04-24 12:52:14.117531",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Interview Assessment Skill Type",

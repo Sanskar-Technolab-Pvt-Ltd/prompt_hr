@@ -1,0 +1,11 @@
+<p>Dear HR Manager,</p>
+
+<p>This is to inform you that the assigned recruiter <strong>{{ recruiter_name }}</strong> has confirmed their responsibility for the following job opening:</p>
+
+<ul>
+    <li><strong>Position:</strong> {{ doc.designation }}</li>
+    <li><strong>Job Opening ID:</strong> {{ doc.name }}</li>
+    <li><strong>Company:</strong> {{ doc.company }}</li>
+</ul>
+
+<p>You can <a href="{{ frappe.utils.get_url() }}/app/job-opening/{{ doc.name }}">click here</a> to review the Job Opening in the system.</p>

@@ -57,6 +57,7 @@ doctype_js = {
     'Appointment Letter': 'public/js/appointment_letter.js',
     "Interview": "public/js/interview.js",
     "Interview Feedback": "public/js/interview_feedback.js",
+    "Interview Round": "public/js/interview_round.js",
 
 }
 
@@ -139,6 +140,7 @@ doctype_list_js = {
 permission_query_conditions = {
     "Interview": "prompt_hr.py.interview_availability.check_interviewer_permission",
     "Interview Feedback": "prompt_hr.py.interview_feedback.get_permission_query_conditions",
+    "Job Opening": "prompt_hr.py.job_opening.get_permission_query_conditions",
 }
 
 # has_permission = {
@@ -203,6 +205,7 @@ doc_events = {
     },
     "Interview Feedback": {
         "on_submit": "prompt_hr.py.interview_feedback.on_submit",
+        "on_update": "prompt_hr.py.interview_feedback.on_update",
     }
     
     

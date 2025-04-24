@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-04-24 15:32:33.900549",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Job Opening",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "<p>Hello {{ interviewer }},</p>\n\n<p>You have been assigned as an <strong>interviewer</strong> for the following job opening:</p>\n\n<ul>\n  <li><strong>Position:</strong> {{ doc.designation }}</li>\n  <li><strong>Number of Positions:</strong> {{ doc.custom_no_of_position }}</li>\n    <li><strong>Company:</strong> {{ doc.company }}</li>\n</ul>\n\n<p>Your responsibility is to conduct the interviews associated with this job opening.</p>\n\n<p>Thank you,<br>\nHR Team</p>\n",
+ "message_type": "HTML",
+ "modified": "2025-04-24 18:20:01.766188",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Notify Job Opening Interviewers",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 0,
+ "send_to_all_assignees": 0,
+ "subject": "You Are Assigned as Interviewer for Job Opening - {{ doc.name }}"
+}
