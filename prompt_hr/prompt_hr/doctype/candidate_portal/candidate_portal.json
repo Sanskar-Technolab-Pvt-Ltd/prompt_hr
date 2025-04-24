@@ -13,7 +13,7 @@
   "phone_number",
   "applied_for_designation",
   "upload_docments_section",
-  "table_rzqj",
+  "documents",
   "offer_details_tab",
   "offer_date",
   "offer_acceptance",
@@ -57,11 +57,6 @@
    "label": "Upload Docments"
   },
   {
-   "fieldname": "table_rzqj",
-   "fieldtype": "Table",
-   "options": "Document Collection"
-  },
-  {
    "fieldname": "offer_details_tab",
    "fieldtype": "Tab Break",
    "label": "Offer Details"
@@ -79,11 +74,6 @@
    "fieldtype": "Data",
    "label": "Condition for Offer Acceptance",
    "mandatory_depends_on": "eval:doc.offer_acceptance==\"Accepted with Consition\""
-  },
-  {
-   "fieldname": "offer_letter",
-   "fieldtype": "Attach",
-   "label": "Offer Letter"
   },
   {
    "fieldname": "column_break_qblg",
@@ -104,12 +94,22 @@
    "fieldname": "expected_date_of_joining",
    "fieldtype": "Date",
    "label": "Expected Date of Joining"
+  },
+  {
+   "fieldname": "documents",
+   "fieldtype": "Table",
+   "options": "Document Collection"
+  },
+  {
+   "fieldname": "offer_letter",
+   "fieldtype": "Data",
+   "label": "Offer Letter"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-15 18:53:22.304000",
+ "modified": "2025-04-24 13:14:51.602431",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Candidate Portal",
