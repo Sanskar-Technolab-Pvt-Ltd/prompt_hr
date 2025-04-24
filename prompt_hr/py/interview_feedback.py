@@ -30,6 +30,29 @@ def on_submit(doc,method):
         reference_name=doc.name,
     )
 
+
+def on_update(doc, method):
+    skill_assessments = frappe.get_all("Skill Assessment", filters={"parent": doc.name}, fields=["*"])
+    skill_types = {}
+    final_rating = 0
+    for assessment in skill_assessments:
+        skill_type = assessment.custom_skill_type
+        if skill_type not in skill_types:
+            skill_types[skill_type] = [assessment.custom_rating_given]
+        skill_types[skill_type].append(assessment.custom_rating_given)
+    for skill_type, ratings in skill_types.items():
+        average_rating = sum(ratings) / len(ratings)
+        skill_type_doc = frappe.get_doc("Interview Assessment Skill Type", skill_type)
+        final_rating += skill_type_doc.weightage * average_rating
+    doc.db_set("custom_obtained_average_score", final_rating / 100)
+    if doc.custom_expected_average_score:
+        if doc.has_value_changed("custom_obtained_average_score") and (doc.result == "Pending" or doc.has_value_changed("custom_obtained_average_score")):
+            if doc.custom_obtained_average_score >= doc.custom_expected_average_score:
+                doc.db_set("result", "Cleared")
+            else:
+                doc.db_set("result", "Rejected")
+
+
 @frappe.whitelist()
 def get_permission_query_conditions(user):
     if not user:

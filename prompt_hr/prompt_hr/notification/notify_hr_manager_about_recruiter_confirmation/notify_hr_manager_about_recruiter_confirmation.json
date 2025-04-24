@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-04-24 16:57:16.115814",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Job Opening",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "<p>Dear HR Manager,</p>\n\n<p>This is to inform you that the assigned recruiter <strong>{{ recruiter_name }}</strong> has confirmed their responsibility for the following job opening:</p>\n\n<ul>\n    <li><strong>Position:</strong> {{ doc.designation }}</li>\n    <li><strong>Job Opening ID:</strong> {{ doc.name }}</li>\n    <li><strong>Company:</strong> {{ doc.company }}</li>\n</ul>\n\n<p>You can <a href=\"{{ frappe.utils.get_url() }}/app/job-opening/{{ doc.name }}\">click here</a> to review the Job Opening in the system.</p>\n",
+ "message_type": "HTML",
+ "modified": "2025-04-24 18:05:34.329370",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Notify HR Manager About Recruiter Confirmation",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 0,
+ "send_to_all_assignees": 0,
+ "subject": "Recruiter Confirmed for Job Opening: {{ doc.name }}"
+}
