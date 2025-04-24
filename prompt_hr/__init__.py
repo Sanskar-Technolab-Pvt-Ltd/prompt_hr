@@ -4,6 +4,7 @@ __version__ = "0.0.1"
 import frappe
 from typing import List
 import hrms.hr.doctype.interview_feedback.interview_feedback as interview_feedback_module
+import hrms.hr.doctype.interview.interview as interview_module
 from frappe.model import workflow
 from prompt_hr.overrides.workflow_override import custom_get_transitions, custom_has_approval_access
 
@@ -44,3 +45,11 @@ interview_feedback_module.get_applicable_interviewers = custom_get_applicable_in
 workflow.has_approval_access = custom_has_approval_access
 workflow.get_transitions = custom_get_transitions
 
+@frappe.whitelist()
+
+def custom_get_expected_skill_set(interview_round):
+	return frappe.get_all(
+		"Expected Skill Set", filters={"parent": interview_round}, fields=["skill","custom_skill_type","custom_rating_scale"], order_by="idx"
+	)
+
+interview_module.get_expected_skill_set = custom_get_expected_skill_set
