@@ -20,7 +20,7 @@ frappe.ui.form.on("Probation Feedback Form", {
             // * APPLYING FILTER TO FACTOR CATEGORY LINK FIELD BASED ON SUB CATEGORY AND CATEGORY IN probation_feedback_indifoss
             frm.fields_dict['probation_feedback_indifoss'].grid.get_field('factor_category').get_query = function (doc, cdt, cdn) {
                 let row = locals[cdt][cdn];
-                console.log("get_query (refresh) - Category:", row.category);
+                
                 if (row.category && row.category == "General") {
                     return {
                         filters: [
@@ -50,25 +50,15 @@ frappe.ui.form.on("Probation Feedback Form", {
 
 
                         if (days_diff > 45) {
-                            console.log("Employee has been with IndiFOSS Analytical Pvt Ltd for more than 45 days.");
-
-                        
                             let grid = frm.fields_dict["probation_feedback_indifoss"].grid;
 
                             if (grid && grid.get_docfield) {
-                                console.log("Grid object:", grid);
                                 let docfield = grid.get_docfield("90_days");
-                                console.log("90_days docfield before update:", docfield);
 
                                 if (docfield) {
-                                    docfield.read_only = 1; // Set read-only
-                                    console.log("90_days docfield after update:", docfield);
-
-                                
+                                    docfield.read_only = 1;
                                     grid.refresh();
-                                    console.log("Grid refreshed");
 
-                                    // Additional safeguard: Set read-only on all rows
                                     frm.fields_dict["probation_feedback_indifoss"].grid.grid_rows.forEach(row => {
                                         if (row.docfields) {
                                             row.docfields.forEach(df => {
@@ -84,8 +74,47 @@ frappe.ui.form.on("Probation Feedback Form", {
                         }
                     }
                 });
+        }
+        
+        const user = frappe.session.user;
+        frappe.call({
+            "method": "frappe.client.get_value",
+            "args": {
+                "doctype": "Employee",
+                "filters": {
+                    "name": frm.doc.employee
+                },
+                "fieldname": ["custom_dotted_line_manager"]
+            },
+            callback: function (r) { 
+                if (r.message.custom_dotted_line_manager) {
+                    frappe.call({
+                        "method": "frappe.client.get_value",
+                        "args": {
+                            "doctype": "Employee",
+                            "filters": {
+                                "name": r.message.custom_dotted_line_manager
+                            },
+                            "fieldname": ["user_id"]
+                        },
+                        callback: function (response) {
+                            if (response.message.user_id) {
+                                if (response.message.user_id == user) {
+                                    console.log("Current User is A Dotted Manager")
+                                    frm.add_custom_button("Confirm Rating", function () { 
+                                        
+                                    })
+                                }
+                                
+                            }
+                        }
+                    });
+                    
+                }
             }
-        },
+        })
+    },
+    
     
     probation_feedback_for: function (frm) {
 
@@ -105,6 +134,34 @@ frappe.ui.form.on("Probation Feedback Form", {
         });
 
         frm.refresh_field('probation_feedback_prompt');
+    },
+    probation_status: function (frm) { 
+        // *CALCULATING THE LAST DATE OF WORK FROM THE DATE WHEN PROBATION STATUS IS SET TO TERMINATE TO BASED ON THE NOTICE PERIOD DAYS
+
+        if (frm.doc.probation_status === "Terminate") {
+            frappe.call({
+                method: "frappe.client.get_value",
+                args: {
+                    doctype: "Employee",
+                    filters: { name: frm.doc.employee },
+                    fieldname: ["notice_number_of_days"]
+                },
+                callback: function (r) {
+                    if (r.message) {
+                        const notice_number_of_days = r.message.notice_number_of_days;
+                        let today = frappe.datetime.get_today();
+                        console.log("Today:", today);
+                        const last_work_date = frappe.datetime.add_days(today, notice_number_of_days);
+                        console.log("last work date", last_work_date, "after", notice_number_of_days, "days");
+
+
+                        frm.set_value("last_work_date", last_work_date);
+                    }
+                }
+            });
+        
+        }
+    
     }
     
 

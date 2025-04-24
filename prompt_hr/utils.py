@@ -3,7 +3,7 @@ import frappe
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from frappe.modules.utils import export_customizations
-
+from frappe.utils import flt
 
 def get_next_date(start_date_str, months):
     """Method to calculate the next date based on given start date and number of months.
@@ -32,6 +32,22 @@ def get_next_date(start_date_str, months):
     except Exception as e:
         frappe.log_error("Error while calculating next date", frappe.get_traceback())
         return {"error": 1, "message": str(e)}
+    
+
+
+def convert_month_to_days(months):
+    """Method to Convert Months to days
+    Args:
+        months (any): Months to be converted
+    """
+    try:
+        months = flt(months)
+        days = months * 30
+        return {"error": 0, "message": days}
+    except Exception as e:
+        frappe.log_error("Error while converting months to days", frappe.get_traceback())
+        return {"error": 1, "message": str(e)}
+    
     
     
 @frappe.whitelist()
