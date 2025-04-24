@@ -23,12 +23,15 @@
   "probation_evaluation_section",
   "probation_feedback_prompt",
   "probation_feedback_indifoss",
+  "added_dotted_manager_feedback",
   "confirmation_details_section",
   "probation_status",
   "confirmation_date",
   "column_break_jzpn",
   "reason",
   "extension_period",
+  "reason_for_termination",
+  "last_work_date",
   "training_needs_section",
   "training_requires",
   "section_break_csmg",
@@ -198,13 +201,33 @@
    "fieldtype": "Select",
    "label": "Probation Feedback for",
    "options": "30 Days\n60 Days"
+  },
+  {
+   "depends_on": "eval:doc.probation_status == \"Terminate\";",
+   "fieldname": "reason_for_termination",
+   "fieldtype": "Data",
+   "label": "Reason for Termination",
+   "mandatory_depends_on": "eval:doc.probation_status == \"Terminate\";"
+  },
+  {
+   "depends_on": "eval:doc.probation_status == \"Terminate\";",
+   "fieldname": "last_work_date",
+   "fieldtype": "Date",
+   "label": "Last Work Date",
+   "mandatory_depends_on": "eval:doc.probation_status == \"Terminate\";"
+  },
+  {
+   "default": "0",
+   "fieldname": "added_dotted_manager_feedback",
+   "fieldtype": "Check",
+   "label": "Added Dotted Manager Feedback"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-04-11 13:46:48.599738",
+ "modified": "2025-04-24 18:07:21.915674",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Probation Feedback Form",
