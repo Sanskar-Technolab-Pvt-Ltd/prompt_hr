@@ -110,70 +110,49 @@ def get_role_tenure_from_map(history_map, emp_id, joining_date):
         )
         return 0
 
-
-def send_notification_email(emails, due_date=None, notification_name=None, job_opening=None, source=None):
-    """
-    Render and send notification emails based on a Notification template or fallback.
-    """
+# ? FUNCTION TO SEND NOTIFICATION EMAIL
+def send_notification_email(emails, due_date, notification_name=None, job_opening=None, source = None):
     try:
-        # Fetch Notification document if provided
+        subject = "Job Opportunity"
+        base_url = frappe.utils.get_url()
+
+        # ? Fallback link if application link is not passed
+        apply_link = f"{base_url}/app/job-applicant/new-job-applicant-1?job_title={job_opening}&source={source}"
+
         notification_doc = None
         if notification_name:
-            rec = frappe.get_all(
-                "Notification",
-                filters={"name": notification_name},
-                limit=1
-            )
-            if rec:
-                notification_doc = frappe.get_doc("Notification", rec[0].name)
+            result = frappe.get_all("Notification", filters={"name": notification_name}, limit=1)
+            if result:
+                notification_doc = frappe.get_doc("Notification", result[0].name)
 
-        # Fetch the Job Opening document for context
-        job_doc = None
-        if job_opening:
-            try:
-                job_doc = frappe.get_doc("Job Opening", job_opening)
-            except frappe.DoesNotExistError:
-                job_doc = None
+        # ? SEND EMAIL USING THE NOTIFICATION TEMPLATE OR FALLBACK MESSAGE
+        if notification_doc:
+            for email in emails:
+                context = {"doc": frappe._dict({}), "user": email}
+                rendered_subject = frappe.render_template(notification_doc.subject, context)
+                rendered_message = frappe.render_template(notification_doc.message, context)
 
-        base_url = frappe.utils.get_url()
-        apply_link = (
-            f"{base_url}/app/job-applicant/new-job-applicant-1"
-            f"?job_title={job_opening}&source={source}"
-        )
+                rendered_message += f"""
+                    <hr>
+                    <p><b>Interested?</b> You can apply directly using the link below:</p>
+                    <p><a href="{apply_link}" target="_blank">Apply Now</a></p>
+                """
 
-        for email in emails:
-            # Build template context
-            context = {
-                "doc": job_doc or frappe._dict({}),
-                "user": email,
-                "apply_link": apply_link
-            }
-
-            if notification_doc:
-                subject = frappe.render_template(notification_doc.subject, context)
-                message = frappe.render_template(notification_doc.message, context)
-            else:
-                # Fallback subject and message
-                subject = "New Internal Job Opening – Apply Now!"
-                formatted_due = formatdate(due_date) if due_date else ''
-                message = (
-                    f"<p>A new job opportunity is available until <b>{formatted_due}</b>.</p>"
-                    f"<p>Please check the portal for more information.</p>"
+                frappe.sendmail(
+                    recipients=[email],
+                    subject=rendered_subject,
+                    message=rendered_message
                 )
+        else:
+            fallback_message = f"""
+                <p>A new job opportunity is available until <b>{due_date}</b>.</p>
+                <p>Please check the portal for more information.</p>
+                <hr>
+                <p><b>Interested?</b> Click below to apply:</p>
+                <p><a href="{apply_link}" target="_blank">Apply Now</a></p>
+            """
 
-            # Append common call-to-action
-            message += (
-                "<hr>"
-                "<p>Click below to apply:</p>"
-                f"<p><a href=\"{apply_link}\" target=\"_blank\">Apply Now</a></p>"
-            )
-
-            # Send the email
-            frappe.sendmail(
-                recipients=[email],
-                subject=subject,
-                message=message
-            )
+            frappe.sendmail(recipients=emails, subject=subject, message=fallback_message)
 
         frappe.log_error(
             title="Job Notification Sent",
@@ -184,4 +163,4 @@ def send_notification_email(emails, due_date=None, notification_name=None, job_o
         frappe.log_error(
             title="Notification Email Error",
             message=f"Failed sending notification: {str(e)}\n{traceback.format_exc()}"
-        )
+        ) 
