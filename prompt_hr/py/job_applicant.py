@@ -1,6 +1,10 @@
+import json
+import traceback
 import frappe
+from prompt_hr.py.utils import send_notification_email
 
-# ? FUNCTION TO FETCH ACTIVE HR MANAGERS FOR A GIVEN COMPANY
+
+
 def get_hr_managers_by_company(company):
     return [
         row.email for row in frappe.db.sql("""
@@ -15,7 +19,6 @@ def get_hr_managers_by_company(company):
     ]
 
 
-# ? AFTER INSERT HOOK TO SEND EMAIL TO HR MANAGERS OF THE SAME COMPANY
 def after_insert(doc, method):
     try:
 
@@ -24,65 +27,26 @@ def after_insert(doc, method):
         hr_emails = get_hr_managers_by_company(company)
 
         if hr_emails:
-            send_notification_from_template(
-                emails=hr_emails,
-                notification_name="HR Interview Availability Revert Mail",
-                doc=doc
+    
+            send_notification_email(
+            recipients = hr_emails,
+            notification_name="Job Applicant Registration Mail",
+            doctype=doc.doctype,
+            docname=doc.name,
+            button_label="View Details",
+            fallback_subject="Notification",
+            fallback_message="You have a new update. Please check your portal.",
+            extra_context=None
             )
+
+            
+         
         else:
             frappe.log_error("No HR Managers Found", f"No HR Managers found for company: {doc.company}")
 
     except Exception as e:
         frappe.log_error("Error in after_insert", str(e))
 
-
-#* API TO SEND EMAIL TO JOB APPLICANT FOR SCREEN TEST
-@frappe.whitelist()
-def check_test_and_invite(job_applicant):
-    try:
-        applicant = frappe.get_doc("Job Applicant", job_applicant)
-        job_opening = frappe.get_doc("Job Opening", applicant.job_title)
-
-        if not job_opening.custom_applicable_screening_test:
-            return { "error":0,"message":"redirect"}
-
-        if not applicant.email_id:
-            frappe.throw("No email address found for the applicant.")
-
-        
-        subject = "Screen Test Invitation"
-        # test_link = get_url(f"/test?applicant={applicant.name}") 
-        test_link = "Test Link Url"
-        content = f"""
-            Dear {applicant.applicant_name},<br><br>
-            You are invited to take a screen test for the position of <b>{applicant.job_title}</b>.<br>
-            Please click the link below to take the test:<br>
-            LINK
-            Regards,<br>
-            HR Team
-        """
-    # <a href="{test_link}">{test_link}</a><br><br>
-        frappe.sendmail(
-            recipients=[applicant.email_id],
-            subject=subject,
-            message=content
-        )
-        
-        frappe.db.set_value("Job Applicant", job_applicant, "status", "Screening Test Scheduled")
-        
-        return {"error":0, "message":"invited"}
-    except Exception as e:
-        frappe.log_error(f"Error in check_test_and_invite", frappe.get_traceback())
-        return {"error": 1, "message": str(e)}
-
-
-
-
-import frappe
-import json
-import traceback
-
-# ? GENERIC HELPER FUNCTION TO SEND EMAIL USING NOTIFICATION TEMPLATE
 def send_notification_from_template(emails, notification_name, doc=None):
     try:
         notification_doc = frappe.get_doc("Notification", notification_name)
@@ -96,7 +60,7 @@ def send_notification_from_template(emails, notification_name, doc=None):
             if doc and doc.doctype and doc.name:
                 link = f"{frappe.utils.get_url()}/app/{doc.doctype.replace(' ', '-').lower()}/{doc.name}"
                 message += (
-                    f"<br><br><a href='{link}'>Click here to view the Job Opening</a>"
+                    f"<br><br><a href='{link}'>Click here to view the Record</a>"
                 )
 
             frappe.sendmail(recipients=[email], subject=subject, message=message)
@@ -113,6 +77,42 @@ def send_notification_from_template(emails, notification_name, doc=None):
         )
         # ? RE-RAISE THE ERROR TO BE HANDLED BY THE CALLER FUNCTION
         raise
+
+
+#* API TO SEND EMAIL TO JOB APPLICANT FOR SCREEN TEST
+@frappe.whitelist()
+def check_test_and_invite(job_applicant):
+    try:
+        applicant = frappe.get_doc("Job Applicant", job_applicant)
+        job_opening = frappe.get_doc("Job Opening", applicant.job_title)
+
+        if not job_opening.custom_applicable_screening_test:
+            return { "error":0,"message":"redirect"}
+
+        if not applicant.email_id:
+            frappe.throw("No email address found for the applicant.")
+        
+        send_notification_email(
+            recipients = [applicant.email_id],
+            notification_name="Screen Test Invitation",
+            doctype="Job Applicant",
+            docname=applicant.name,
+            button_label="View Details",
+            fallback_subject="Notification",
+            fallback_message="You have a new update. Please check your portal.",
+            extra_context=None,
+            hash_input_text = applicant.name
+        )
+       
+        
+        frappe.db.set_value("Job Applicant", job_applicant, "status", "Screening Test Scheduled")
+        
+        return {"error":0, "message":"invited"}
+    except Exception as e:
+        frappe.log_error(f"Error in check_test_and_invite", frappe.get_traceback())
+        return {"error": 1, "message": str(e)}
+
+
 
 @frappe.whitelist()
 def add_to_interview_availability(job_opening, job_applicants, employees):
@@ -169,7 +169,7 @@ def add_to_interview_availability(job_opening, job_applicants, employees):
         if shared_users:
             send_notification_from_template(
                 emails=shared_users,  
-                notification_name="Job Applicant Assigning Notification",  
+                notification_name="Send to Interviewer for Availability",  
                 doc=interview_doc  
             )
 
@@ -182,3 +182,35 @@ def add_to_interview_availability(job_opening, job_applicants, employees):
         )
         return "An error occurred while adding to Interview Availability."
 
+@frappe.whitelist()
+def before_insert(doc, method=None):
+    if doc.custom_company:
+        # Set the joining document checklist if found
+        joining_document_checklist = frappe.get_all(
+            "Joining Document Checklist", 
+            filters={"company": doc.custom_company}, 
+            fields=["name"]
+        )
+        
+        if joining_document_checklist:
+            doc.custom_joining_document_checklist = joining_document_checklist[0].name
+
+        # Fetch required documents
+        documents_records = frappe.get_all(
+            "Required Document Applicant", 
+            filters={"company": doc.custom_company}, 
+            fields=["name","required_document", "document_collection_stage"]
+        )
+
+        if documents_records:
+            for record in documents_records:
+                doc.append("custom_documents", {
+                    "required_document": record.name,
+                    "collection_stage": record.document_collection_stage
+                })
+                frappe.get_doc({
+                    "doctype": "Document Collection",
+                    "required_document": record.name,
+                    "collection_stage": record.document_collection_stage,
+                })
+                frappe.db.commit()

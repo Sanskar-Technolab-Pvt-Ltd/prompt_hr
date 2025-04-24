@@ -1,0 +1,31 @@
+{
+ "attach_print": 1,
+ "channel": "Email",
+ "creation": "2025-04-22 10:34:45.850077",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Interview",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "<p>Dear {{ interviewer or \"Interviewer\" }},\n<br>\nYou have been scheduled for an interview session:\n<br>\n<b>Interview:</b> {{ doc.name }}<br>\n<b>Date:</b> {{ frappe.utils.format_date(doc.scheduled_on) }}<br>\n<b>Time:</b> {{ doc.from_time }} to {{ doc.to_time }}<br><br></p>\n\n<p>Please confirm your availability for this session.</p>\n\n<p><a href=\"{{ frappe.utils.get_url() }}/app/interview/{{ doc.name }}\">\n    Click here to view the interview details and Confirm Your Availability\n</a></p>\n\n<p><br><br>Regards,<br>\nHR Team</p>\n",
+ "message_type": "HTML",
+ "method": "send_interview_schedule_notification",
+ "modified": "2025-04-23 10:28:05.968438",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Notify Interviewer",
+ "owner": "Administrator",
+ "print_format": "Appointment Letter - Prompt",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "sender": "Prompt HR",
+ "sender_email": "bansi@sanskartechnolab.com",
+ "set_property_after_alert": "",
+ "subject": "Interview Availability Request - {{doc.name}}"
+}

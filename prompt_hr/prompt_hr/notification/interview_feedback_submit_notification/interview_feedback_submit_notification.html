@@ -1,0 +1,29 @@
+Dear HR Manager,
+
+{% set interviewer = frappe.get_all("Employee", filters={"user_id": doc.interviewer}, fields=["employee_name"]) %}
+{% if not interviewer %}
+  {% set interviewer = frappe.get_all("Supplier", filters={"custom_user": doc.interviewer}, fields=["supplier_name"]) %}
+{% endif %}
+
+{% set interviewer_name = (interviewer[0].employee_name if interviewer and interviewer[0].employee_name else
+                           interviewer[0].supplier_name if interviewer and interviewer[0].supplier_name else "HR Manager") %}
+
+<p>The interviewer <b>{{ interviewer_name }}</b> has submitted feedback for the following interview:</p>
+
+<p>
+<b>Interview:</b> {{ doc.interview }}<br>
+<b>Interview Round:</b> {{ doc.interview_round }}<br>
+
+{% set applicant = frappe.get_doc("Job Applicant", doc.job_applicant) %}
+<b>Candidate:</b> {{ applicant.applicant_name }}<br>
+</p>
+
+<p>
+You can review the feedback using the link below:
+</p>
+
+<p>
+<a href="{{ frappe.utils.get_url() }}/app/interview-feedback/{{ doc.name }}">
+    Click here to view the submitted interview feedback
+</a>
+</p>
