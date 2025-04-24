@@ -195,16 +195,16 @@ def probation_feedback_for_indifoss():
                             probation_form.insert(ignore_permissions=True)
                             frappe.db.set_value("Employee", employee.get("name"), "custom_probation_review_form", probation_form.name)
                             
-                            if probation_form.reporting_manager:
-                                reporting_manager_emp_id = probation_form.reporting_manager
-                                if not reporting_manager_emp_id:
-                                    reporting_manager_emp_id = frappe.db.get_value("Employee", employee.get("name"), "reports_to") or None
-                                reporting_manager_user_id = frappe.db.get_value("Employee", reporting_manager_emp_id, "user_id")
+                            # if probation_form.reporting_manager:
+                            #     reporting_manager_emp_id = probation_form.reporting_manager
+                            #     if not reporting_manager_emp_id:
+                            #         reporting_manager_emp_id = frappe.db.get_value("Employee", employee.get("name"), "reports_to") or None
+                            #     reporting_manager_user_id = frappe.db.get_value("Employee", reporting_manager_emp_id, "user_id")
                                 
-                                if reporting_manager_user_id:
-                                    reporting_manager_email = frappe.db.get_value("User", reporting_manager_user_id, "email")
-                                    if reporting_manager_email:
-                                        send_reminder_mail_to_reporting_manager(reporting_manager_email, reporting_manager_user_id, probation_form.name, employee.get("name"))
+                            #     if reporting_manager_user_id:
+                            #         reporting_manager_email = frappe.db.get_value("User", reporting_manager_user_id, "email")
+                            #         if reporting_manager_email:
+                            #             send_reminder_mail_to_reporting_manager(reporting_manager_email, reporting_manager_user_id, probation_form.name, employee.get("name"))
                         
                         else:
                             remarks_added = frappe.db.exists("Probation Feedback IndiFOSS", {"parenttype": "Probation Feedback Form", "parent": probation_feedback_form_id, "45_days": ["not in", ['0', '']]})
@@ -249,16 +249,16 @@ def probation_feedback_for_indifoss():
                             
                             probation_form.insert(ignore_permissions=True)
                             frappe.db.set_value("Employee", employee.get("name"), "custom_probation_review_form", probation_form.name)
-                            if probation_form.reporting_manager:
-                                reporting_manager_emp_id = probation_form.reporting_manager
-                                if not reporting_manager_emp_id:
-                                    reporting_manager_emp_id = frappe.db.get_value("Employee", employee.get("name"), "reports_to") or None
-                                reporting_manager_user_id = frappe.db.get_value("Employee", reporting_manager_emp_id, "user_id")
+                            # if probation_form.reporting_manager:
+                            #     reporting_manager_emp_id = probation_form.reporting_manager
+                            #     if not reporting_manager_emp_id:
+                            #         reporting_manager_emp_id = frappe.db.get_value("Employee", employee.get("name"), "reports_to") or None
+                            #     reporting_manager_user_id = frappe.db.get_value("Employee", reporting_manager_emp_id, "user_id")
                                 
-                                if reporting_manager_user_id:
-                                    reporting_manager_email = frappe.db.get_value("User", reporting_manager_user_id, "email")
-                                    if reporting_manager_email:
-                                        send_reminder_mail_to_reporting_manager(reporting_manager_email, reporting_manager_user_id, probation_form.name, employee.get("name"))
+                            #     if reporting_manager_user_id:
+                            #         reporting_manager_email = frappe.db.get_value("User", reporting_manager_user_id, "email")
+                            #         if reporting_manager_email:
+                            #             send_reminder_mail_to_reporting_manager(reporting_manager_email, reporting_manager_user_id, probation_form.name, employee.get("name"))
                         
                         else:
                             remarks_added = frappe.db.exists("Probation Feedback IndiFOSS", {"parenttype": "Probation Feedback Form", "parent": probation_feedback_form_id, "90_days": ["not in", ['0', '']]})
@@ -309,16 +309,16 @@ def probation_feedback_for_indifoss():
                             probation_form.insert(ignore_permissions=True)
                             frappe.db.set_value("Employee", employee.get("name"), "custom_probation_review_form", probation_form.name)
                             
-                            if probation_form.reporting_manager:
-                                reporting_manager_emp_id = probation_form.reporting_manager
-                                if not reporting_manager_emp_id:
-                                    reporting_manager_emp_id = frappe.db.get_value("Employee", employee.get("name"), "reports_to") or None
-                                reporting_manager_user_id = frappe.db.get_value("Employee", reporting_manager_emp_id, "user_id")
+                            # if probation_form.reporting_manager:
+                            #     reporting_manager_emp_id = probation_form.reporting_manager
+                            #     if not reporting_manager_emp_id:
+                            #         reporting_manager_emp_id = frappe.db.get_value("Employee", employee.get("name"), "reports_to") or None
+                            #     reporting_manager_user_id = frappe.db.get_value("Employee", reporting_manager_emp_id, "user_id")
                                 
-                                if reporting_manager_user_id:
-                                    reporting_manager_email = frappe.db.get_value("User", reporting_manager_user_id, "email")
-                                    if reporting_manager_email:
-                                        send_reminder_mail_to_reporting_manager(reporting_manager_email, reporting_manager_user_id, probation_form.name, employee.get("name"))
+                            #     if reporting_manager_user_id:
+                            #         reporting_manager_email = frappe.db.get_value("User", reporting_manager_user_id, "email")
+                            #         if reporting_manager_email:
+                            #             send_reminder_mail_to_reporting_manager(reporting_manager_email, reporting_manager_user_id, probation_form.name, employee.get("name"))
                         
                         else:
                             remarks_added = frappe.db.exists("Probation Feedback IndiFOSS", {"parenttype": "Probation Feedback Form", "parent": probation_feedback_form_id, "180_days": ["not in", ['0', '']]})
@@ -381,7 +381,7 @@ def create_confirmation_evaluation_form():
                     
                     joining_date = frappe.db.get_value("Employee", employee_id.get("name"), "date_of_joining")
                     
-                    print(f"\n\n JOINING DATE: {joining_date} {type(joining_date)}\n\n")
+                    print(f"\n\n JOINING DATE: {joining_date} {type(joining_date)}\n\n")  
                     probation_end_date = getdate(add_to_date(joining_date, days=probation_days))
                     print(f"\n\n PROBATION END DATE: {probation_end_date} {type(probation_end_date)}\n\n")
                     
@@ -419,10 +419,71 @@ def create_confirmation_evaluation_form():
                                     frappe.db.commit()
                                     
                                     # frappe.db.set_value("Employee", employee_id.get("name"), "custom_confirmation_evaluation_form", confirmation_eval_doc.name)
+                                elif confirmation_eval_form:
+                                    
+                                    print(f"\n\n confirmation eval form exists \n\n")
+                                    confirmation_eval_form_doc = frappe.get_doc("Confirmation Evaluation Form", confirmation_eval_form)
+                                    
+                                    rh_rating_added = confirmation_eval_form_doc.rh_rating_added
+                                    dh_rating_added = confirmation_eval_form_doc.dh_rating_added
+                                    context = {
+                                        "doc": confirmation_eval_form_doc,
+                                        "doctype": "Confirmation Evaluation Form",
+                                        "docname": confirmation_eval_form_doc.name,}
+                                    notification_template = frappe.get_doc("Notification", "Confirmation Evaluation Form Remarks Reminder")
+                                    subject = frappe.render_template(notification_template.subject, context)
+                                    message = frappe.render_template(notification_template.message, context)
                                     
                                     
+                                    print(f"\n\n messgae {message} \n\n")
+                                    
+                                    if not rh_rating_added:
+                                        print(f"\n\n reporting manager/head has not added remarks \n\n")
+                                        reporting_head = confirmation_eval_form_doc.reporting_manager
+                                        reporting_head_user_id = frappe.db.get_value("Employee", reporting_head, "user_id") if reporting_head else None
+                                        reporting_head_email = frappe.db.get_value("User", reporting_head_user_id, "email") if reporting_head_user_id else None
+                                        
+                                        if reporting_head_email:
+                                            print(f"\n\n Sending mail to reporting manager/head {reporting_head_email}\n\n")
+                                        
+                                    
+                                            
+                                            try:
+                                                frappe.sendmail(
+                                                    recipients=[reporting_head_email],
+                                                    subject=subject,
+                                                    message=message,
+                                                    reference_doctype="Confirmation Evaluation Form",
+                                                    reference_name=confirmation_eval_form_doc.name,
+                                                    now=True
+                                                )
+                                                print(f"\n\n Mail Sent  \n\n")
+                                            except Exception as e:
+                                                frappe.log_error("Error while sending confirmation evaluation form reminder mail", frappe.get_traceback())
+                                            
+                                        
+                                    elif rh_rating_added and not dh_rating_added:
+                                        
+                                        head_of_department = confirmation_eval_form_doc.hod
+                                        head_of_department_employee = frappe.db.get_value("Employee", head_of_department, "user_id") if head_of_department else None
+                                        head_of_department_email = frappe.db.get_value("User", head_of_department_employee, "email") if head_of_department_employee else None
+                                        
+                                        if head_of_department_email:
+                                            frappe.sendmail(
+                                                recipients=[head_of_department_email],
+                                                subject=subject,
+                                                message=message,
+                                                reference_doctype="Confirmation Evaluation Form",
+                                                reference_name=confirmation_eval_form_doc.name,
+                                                now=True
+                                                
+                                            )                                                                                                        
                             except Exception as e:
                                 frappe.log_error("Error while creating confirmation evaluation form", frappe.get_traceback())
                                 
     except Exception as e:
         frappe.log_error("Error while creating confirmation evaluation form", frappe.get_traceback())
+        
+    
+    
+

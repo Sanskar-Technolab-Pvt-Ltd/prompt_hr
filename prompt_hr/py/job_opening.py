@@ -1,10 +1,10 @@
 import frappe
 import traceback
 from dateutil.relativedelta import relativedelta
-from frappe.utils import getdate, nowdate
+from frappe.utils import getdate, nowdate, formatdate
 
 # ! prompt_hr.py.job_opening.send_job_opening_notification
-# ? FUNCTION TO SEND JOB OPENING NOTIFICATION
+
 @frappe.whitelist()
 def send_job_opening_notification(
     due_date=None,
@@ -17,10 +17,12 @@ def send_job_opening_notification(
     job_opening=None,
     source=None
 ):
+    """
+    Send internal job opening notifications to eligible employees.
+    """
     try:
+        # Build employee filters
         filters = {"status": "Active"}
-
-        # ? APPLY FILTERS FOR DEPARTMENT, LOCATION, GRADE
         if allowed_department:
             filters["department"] = ["in", allowed_department]
         if allowed_location:
@@ -28,42 +30,38 @@ def send_job_opening_notification(
         if allowed_grade:
             filters["grade"] = ["in", allowed_grade]
 
-        # ? GET LIST OF EMPLOYEES BASED ON FILTERS
+        # Fetch employees
         employees = frappe.get_all(
             "Employee",
             filters=filters,
-            fields=["name", "date_of_joining", "personal_email","user_id"]
+            fields=["name", "date_of_joining", "personal_email", "user_id"]
         )
 
+        # Build role history map for tenure calculation
         role_history_map = get_role_history_map()
         eligible_emails = []
 
-        # ? FILTER EMPLOYEES BASED ON TENURE IN COMPANY AND CURRENT ROLE
+        # Filter by tenure in company and role
         for emp in employees:
             if not emp.date_of_joining:
                 continue
-
             company_months = get_months_between(emp.date_of_joining, nowdate())
             if company_months < float(min_tenure_in_company):
                 continue
-
             role_months = get_role_tenure_from_map(role_history_map, emp.name, emp.date_of_joining)
             if role_months < float(min_tenure_in_current_role):
                 continue
-
             if emp.user_id:
                 eligible_emails.append(emp.user_id)
-            
-        print("Eligible Emails:\n\n", eligible_emails)
 
-        # ? SEND NOTIFICATION IF ELIGIBLE EMPLOYEES FOUND
+        # Send notification if anyone is eligible
         if eligible_emails:
             send_notification_email(
                 emails=eligible_emails,
                 due_date=due_date,
                 notification_name=notification_name,
-               job_opening= job_opening,
-               source= source
+                job_opening=job_opening,
+                source=source
             )
 
         return eligible_emails
@@ -75,7 +73,7 @@ def send_job_opening_notification(
         )
         return []
 
-# ? FUNCTION TO GET MONTHS BETWEEN DATES
+
 def get_months_between(from_date, to_date):
     if not from_date or not to_date:
         return 0
@@ -84,7 +82,7 @@ def get_months_between(from_date, to_date):
     diff = relativedelta(to_dt, from_dt)
     return diff.years * 12 + diff.months
 
-# ? FUNCTION TO GET ROLE HISTORY MAP
+
 def get_role_history_map():
     records = frappe.get_all(
         "Employee Internal Work History",
@@ -96,7 +94,7 @@ def get_role_history_map():
         history_map.setdefault(row.parent, []).append(row)
     return history_map
 
-# ? FUNCTION TO GET ROLE TENURE FROM ROLE HISTORY MAP
+
 def get_role_tenure_from_map(history_map, emp_id, joining_date):
     try:
         if emp_id in history_map and history_map[emp_id]:
@@ -111,7 +109,6 @@ def get_role_tenure_from_map(history_map, emp_id, joining_date):
             message=f"Error getting role tenure for {emp_id}: {str(e)}\n{traceback.format_exc()}"
         )
         return 0
-
 
 # ? FUNCTION TO SEND NOTIFICATION EMAIL
 def send_notification_email(emails, due_date, notification_name=None, job_opening=None, source = None):
