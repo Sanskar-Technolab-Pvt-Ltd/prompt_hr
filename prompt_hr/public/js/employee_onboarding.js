@@ -17,6 +17,15 @@ frappe.ui.form.on("Employee Onboarding", {
                 ]
             };
         });
+        if (frm.doc.job_applicant) {
+            frappe.db.get_doc("Job Applicant", frm.doc.job_applicant).then(applicant_data => {
+                if (!applicant_data.custom_is_offer_required_while_onboarding) {
+                    frm.toggle_reqd("job_offer", 0);
+                } else {
+                    frm.toggle_reqd("job_offer", 1);
+                }
+            });
+        }
     },
     // ? WHEN ONBOARDING TEMPLATE IS SELECTED
     employee_onboarding_template: function (frm) {
@@ -24,7 +33,6 @@ frappe.ui.form.on("Employee Onboarding", {
     },
     job_applicant: function (frm) {
         if (frm.doc.job_applicant) {
-            console.log(frm.doc.job_applicant)
             frappe.db.get_doc("Job Applicant", frm.doc.job_applicant).then(applicant_data => {
                 if (!applicant_data.custom_is_offer_required_while_onboarding) {
                     frm.toggle_reqd("job_offer", 0);

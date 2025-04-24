@@ -32,7 +32,7 @@ class InterviewAvailabilityForm(Document):
                     applicant.shortlisted_by = frappe.session.user
 
                 # NOTIFY USER IN UI
-                frappe.msgprint(f"Applicant {applicant.job_applicant} status updated to '{new_status}'.")
+                # frappe.msgprint(f"Your availability is notified ")
 
                 # NOTIFY HR MANAGERS
                 send_notification_to_hr(applicant.job_applicant)

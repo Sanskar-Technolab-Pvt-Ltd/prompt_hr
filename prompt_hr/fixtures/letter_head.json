@@ -20,7 +20,7 @@
   "letter_head_name": "Prompt",
   "modified": "2025-04-09 11:26:17.569865",
   "name": "Prompt",
-  "source": "HTML"
+  "source": "Image"
  },
  {
   "align": "Left",
@@ -43,6 +43,29 @@
   "letter_head_name": "Appointment Variable",
   "modified": "2025-04-09 10:58:18.552295",
   "name": "Appointment Variable",
-  "source": "HTML"
+  "source": "Image"
+ },
+ {
+  "align": "Left",
+  "content": "<div style=\"text-align: left;\">\n<img src=\"/files/Screenshot from 2025-04-07 15-46-46.png\" alt=\"Prompt - Letter Head\" height=\"\" style=\"height: px;\">\n</div>",
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Letter Head",
+  "footer": "<footer>\n        <p style=\"color: #5b3f91 !important; text-align:center; font-weight:bold;\">Prompt Equipments Pvt. Ltd.</p>\n        <p style=\"color: #5b3f91 !important; text-align:center;\">Corporate &amp; Regd. Office</p>\n        <p style=\"color: #5b3f91 !important; text-align:center;font-size:12px;\">7th Floor, Shaligram Corporates, Nr. Navratna Building,C J Marg, Iskom-Ambli Road, Ahmedabad, Gujarat- 380058 (India)</p>\n    \n     <p style=\"color: #5b3f91 !important; text-align:center;font-size:12px;\">Ph:  02717 45 1111/ 6111 | info@promptdairytech.com | www.promptdairytech.com | CIN: U39551GJ2001PTC039551</p> \n\n</footer>\n",
+  "footer_align": "Left",
+  "footer_image": null,
+  "footer_image_height": 0.0,
+  "footer_image_width": 0.0,
+  "footer_script": null,
+  "footer_source": "HTML",
+  "header_script": null,
+  "image": "/files/Screenshot from 2025-04-07 15-46-46.png",
+  "image_height": 0.0,
+  "image_width": 0.0,
+  "is_default": 1,
+  "letter_head_name": "Prompt - Letter Head",
+  "modified": "2025-04-17 17:10:40.439565",
+  "name": "Prompt - Letter Head",
+  "source": "Image"
  }
 ]

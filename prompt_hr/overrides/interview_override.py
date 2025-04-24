@@ -1,6 +1,9 @@
 import frappe
 from frappe import _
 from hrms.hr.doctype.interview.interview import Interview, get_recipients
+from hrms.hr.doctype.job_offer.job_offer import JobOffer
+from hrms.hr.doctype.appointment_letter.appointment_letter import AppointmentLetter
+
 
 
 class CustomInterview(Interview):
@@ -137,3 +140,7 @@ class CustomInterview(Interview):
 
         frappe.msgprint(_("Interview Rescheduled successfully"), indicator="green")
 
+class CustomAppointmentLetter(AppointmentLetter):
+    @frappe.whitelist()
+    def send_appointment_letter(self):
+        print("\n\n  override successful \n\n")
