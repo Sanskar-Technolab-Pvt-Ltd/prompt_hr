@@ -11,8 +11,14 @@ frappe.ui.form.on('Job Offer', {
             add_release_offer_button(frm);
         }
 
-        // ? FUNCTION TO CREATE INVITE BUTTON FOR DOCUMENT COLLECTION
+        // ? CREATE INVITE BUTTON FOR DOCUMENT COLLECTION
         createInviteButton(frm);
+
+        // ? ADD UPDATE CANDIDATE PORTAL BUTTON AND FUNCTIONALITY
+        updateCandidatePortal(frm);
+
+        // ? ADD ACCEPT CHANGES BUTTON
+        acceptChangesButton(frm);
     }
 });
 
@@ -46,6 +52,66 @@ function add_release_offer_button(frm) {
             `Are you sure you want to ${already_sent ? "resend" : "release"} the offer letter?`,
             () => release_offer_letter(frm, already_sent)
         );
+    });
+}
+
+// ? FUNCTION TO ADD UPDATE CANDIDATE PORTAL BUTTON AND FUNCTIONALITY
+function updateCandidatePortal(frm) {
+    frm.add_custom_button(__('Update Candidate Portal'), function () {
+        frappe.call({
+            method: "prompt_hr.py.job_offer.sync_candidate_portal_from_job_offer",
+            args: {
+                job_offer: frm.doc.name
+            },
+            callback: function (r) {
+                if (r.message) {
+                    frappe.msgprint({
+                        title: "Success",
+                        message: "Candidate Portal Updated  Successfully!",
+                        indicator: "green"
+                    });
+                } else {
+                    frappe.msgprint({
+                        title: "Error",
+                        message: "Failed to Update Candidate Portal.",
+                        indicator: "red"
+                    });
+                }
+
+                frm.reload_doc();
+            }
+        });
+    });
+}
+
+// ? FUNCTION TO ADD UPDATE CANDIDATE PORTAL BUTTON AND FUNCTIONALITY
+function acceptChangesButton(frm) {
+    frm.add_custom_button(__('Accept Changes'), function () {
+        frappe.call({
+            method: "prompt_hr.py.job_offer.accept_changes",
+            args: {
+                job_offer: frm.doc.name,
+                custom_candidate_date_of_joining: frm.doc.custom_candidate_date_of_joining,
+                custom_candidate_offer_acceptance: frm.doc.custom_candidate_offer_acceptance,
+                custom_candidate_condition_for_offer_acceptance: frm.doc.custom_candidate_condition_for_offer_acceptance,
+            },
+            callback: function (r) {
+                if (r.message) {
+                    frappe.msgprint({
+                        title: "Success",
+                        message: "Changes Updated Successfully!",
+                        indicator: "green"
+                    });
+                } else {
+                    frappe.msgprint({
+                        title: "Error",
+                        message: "Failed to Update Changes.",
+                        indicator: "red"
+                    });
+                }
+                frm.reload_doc();
+            }
+        });
     });
 }
 
@@ -85,7 +151,7 @@ function release_offer_letter(frm, is_resend) {
 
             frappe.msgprint({
                 title: "Success",
-                message: `🎉 Offer Letter ${is_resend ? "Resent" : "Released"}!`,
+                message: `Offer Letter ${is_resend ? "Resent" : "Released"}!`,
                 indicator: "green"
             });
 
@@ -93,7 +159,7 @@ function release_offer_letter(frm, is_resend) {
         error: function (err) {
             frappe.msgprint({
                 title: "Server Error",
-                message: "❌ Could not complete the request. Please try again.",
+                message: "Could not complete the request. Please try again.",
                 indicator: "red"
             });
             console.error("Error releasing/resending offer letter:", err);

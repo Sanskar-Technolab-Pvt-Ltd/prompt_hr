@@ -180,7 +180,8 @@ doc_events = {
         "on_update": "prompt_hr.py.interview_availability.on_update",
     },
     "Job Offer": {
-        "validate": ["prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer","prompt_hr.py.job_offer.validate"],
+        "validate": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
+        "after_insert": "prompt_hr.py.job_offer.after_insert",
         "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
     },
     "Employee": {
