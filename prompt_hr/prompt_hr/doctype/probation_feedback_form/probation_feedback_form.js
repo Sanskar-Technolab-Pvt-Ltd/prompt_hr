@@ -100,10 +100,29 @@ frappe.ui.form.on("Probation Feedback Form", {
                         callback: function (response) {
                             if (response.message.user_id) {
                                 if (response.message.user_id == user) {
-                                    console.log("Current User is A Dotted Manager")
-                                    frm.add_custom_button("Confirm Rating", function () { 
-                                        
-                                    })
+                                    if (!frm.doc.added_dotted_manager_feedback) { 
+                                        frm.add_custom_button("Confirm Rating", function () {
+                                            
+                                            frappe.call({
+                                                method: "prompt_hr.prompt_hr.doctype.probation_feedback_form.probation_feedback_form.send_mail_to_hr",
+                                                args: {
+                                                    docname: frm.doc.name
+                                                },
+                                                callback: function (r) {
+                                                    if (r.message.error) {
+                                                        frappe.throw(r.message.message);
+                                                    }
+                                                    else {
+                                                        frm.set_value('added_dotted_manager_feedback', 1)
+                                                        frm.save();            
+                                                    }
+                                                }
+                                            })
+                                            
+                                        }).addClass("btn-primary");
+
+                                    }
+                                    
                                 }
                                 
                             }
@@ -113,6 +132,49 @@ frappe.ui.form.on("Probation Feedback Form", {
                 }
             }
         })
+
+        if (frappe.user.has_role("HR Manager") || frappe.user.has_role("HR User")) {
+            frappe.call({
+                "method": "frappe.client.get_value",
+                "args": {
+                    "doctype": "Performance Improvement Plan",
+                    "filters": {
+                        "employee": frm.doc.employee
+                    },
+                    "fieldname": ["name"]
+                },
+                callback: function (r) { 
+                    if (r.message.name) {
+                        frm.add_custom_button(__('Go to PIP'), function() {
+                            frappe.set_route("Form", "Performance Improvement Plan", r.message.name);
+                        }).addClass("btn-primary");
+                    }
+                    else {
+                        frm.add_custom_button(__('Create PIP'), function() {
+                            frappe.route_options = {
+                                "employee": frm.doc.employee
+                                // "custom_job_requisition_record": frm.doc.name,
+                                // "designation": frm.doc.designation,
+                                // "department": frm.doc.department,
+                                // "employment_type": frm.doc.custom_employment_type,
+                                // "custom_no_of_position": frm.doc.no_of_positions,
+                                // "custom_priority": frm.doc.custom_priority,
+                                // "description": frm.doc.description,
+                                // "location": frm.doc.custom_work_location,
+                                // "custom_business_unit": frm.doc.custom_business_unit,
+                                // "custom_required_experience": frm.doc.custom_experience
+                            }
+                            frappe.set_route("Form", "Performance Improvement Plan", "new-performance-improvement-plan");
+                        }).addClass("btn-primary");
+                        
+                    }
+                    
+                }
+            })           
+            
+        }   
+
+
     },
     
     
