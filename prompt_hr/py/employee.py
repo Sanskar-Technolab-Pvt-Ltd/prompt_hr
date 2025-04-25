@@ -1,4 +1,7 @@
 import frappe
+from frappe.utils.pdf import get_pdf
+from frappe.www.printview import get_print_format
+
 import traceback
 
 # ? COMMON FIELDS THAT EXIST IN BOTH EMPLOYEE & EMPLOYEE PROFILE
@@ -111,3 +114,131 @@ def on_update(doc, method):
     # ? CREATE WELCOME PAGE IF IT DOESN’T EXIST AND USER ID IS SET
     if doc.user_id and not frappe.db.exists("Welcome Page", {"user": doc.user_id}):
         create_welcome_status(doc.user_id)
+
+@frappe.whitelist()
+def send_service_agreement(name):
+    doc = frappe.get_doc("Employee", name)
+    notification = frappe.get_doc("Notification", "Service Agreement Letter")
+    subject = frappe.render_template(notification.subject, {"doc": doc})
+    message = frappe.render_template(notification.message, {"doc": doc})
+    email = None
+    if doc.prefered_contact_email:
+        if doc.prefered_contact_email == "Company Email":
+            email = doc.company_email
+        elif doc.prefered_contact_email == "Personal Email":
+            email = doc.personal_email
+        elif doc.prefered_contact_email == "User ID":
+            email = doc.prefered_email
+    else:
+        email = doc.personal_email
+    attachment = None
+    if notification.attach_print and notification.print_format:
+        pdf_content = frappe.get_print(
+            "Employee", 
+            doc.name, 
+            print_format=notification.print_format, 
+            as_pdf=True
+        )
+        
+        attachment = {
+            "fname": f"{notification.print_format}.pdf",
+            "fcontent": pdf_content
+        }
+
+    if email:
+        frappe.sendmail(
+            recipients=email,
+            subject=subject,
+            content=message,
+            attachments=[attachment] if attachment else None
+        )
+    else:
+        frappe.throw("No Email found for Employee")
+    return "Service Agreement sent Successfully"
+
+@frappe.whitelist()
+def send_confirmation_letter(name):
+    doc = frappe.get_doc("Employee", name)
+    notification = frappe.get_doc("Notification", "Confirmation Letter Notification")
+    subject = frappe.render_template(notification.subject, {"doc": doc})
+    message = frappe.render_template(notification.message, {"doc": doc})
+    
+    email = None
+    if doc.prefered_contact_email:
+        if doc.prefered_contact_email == "Company Email":
+            email = doc.company_email
+        elif doc.prefered_contact_email == "Personal Email":
+            email = doc.personal_email
+        elif doc.prefered_contact_email == "User ID":
+            email = doc.prefered_email
+    else:
+        email = doc.personal_email
+        
+    attachment = None
+    if notification.attach_print and notification.print_format:
+        pdf_content = frappe.get_print(
+            "Employee", 
+            doc.name, 
+            print_format=notification.print_format, 
+            as_pdf=True
+        )
+        
+        attachment = {
+            "fname": f"{notification.print_format}.pdf",
+            "fcontent": pdf_content
+        }
+
+    # Send the email
+    if email:
+        frappe.sendmail(
+            recipients=email,
+            subject=subject,
+            message=message,
+            attachments=[attachment] if attachment else None
+        )
+    else:
+        frappe.throw("No Email found for Employee")
+        
+    return "Confirmation Letter sent Successfully"
+
+@frappe.whitelist()
+def send_probation_extension_letter(name):
+    doc = frappe.get_doc("Employee", name)
+    notification = frappe.get_doc("Notification", "Probation Extension Letter Notification")
+    subject = frappe.render_template(notification.subject, {"doc": doc})
+    message = frappe.render_template(notification.message, {"doc": doc})
+    email = None
+    if doc.prefered_contact_email:
+        if doc.prefered_contact_email == "Company Email":
+            email = doc.company_email
+        elif doc.prefered_contact_email == "Personal Email":
+            email = doc.personal_email
+        elif doc.prefered_contact_email == "User ID":
+            email = doc.prefered_email
+    else:
+        email = doc.personal_email
+
+    attachment = None
+    if notification.attach_print and notification.print_format:
+        pdf_content = frappe.get_print(
+            "Employee", 
+            doc.name, 
+            print_format=notification.print_format, 
+            as_pdf=True
+        )
+        
+        attachment = {
+            "fname": f"{notification.print_format}.pdf",
+            "fcontent": pdf_content
+        }
+
+    if email:
+        frappe.sendmail(
+            recipients=email,
+            subject=subject,
+            content=message,
+            attachments=[attachment] if attachment else None
+        )
+    else:
+        frappe.throw("No Email found for Employee")
+    return "Probation Extension Letter sent Successfully"
