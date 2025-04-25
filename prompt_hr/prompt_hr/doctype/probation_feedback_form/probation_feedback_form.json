@@ -57,8 +57,9 @@
   {
    "fetch_from": "employee.department",
    "fieldname": "department",
-   "fieldtype": "Data",
-   "label": "Department"
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department"
   },
   {
    "fetch_from": "employee.designation",
@@ -101,6 +102,7 @@
    "label": "Evaluation Date"
   },
   {
+   "fetch_from": "department.custom_department_head",
    "fieldname": "hod",
    "fieldtype": "Link",
    "label": "HOD",
@@ -220,6 +222,7 @@
    "default": "0",
    "fieldname": "added_dotted_manager_feedback",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "Added Dotted Manager Feedback"
   }
  ],
@@ -227,7 +230,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-04-24 18:07:21.915674",
+ "modified": "2025-04-25 15:37:46.054307",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Probation Feedback Form",
