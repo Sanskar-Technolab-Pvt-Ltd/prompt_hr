@@ -34,10 +34,10 @@ class ConfirmationEvaluationForm(Document):
 							self.dh_rating_added = 1
     
 						#* IF THE HEAD OF DEPARTMENT HAS ENTERED THE RATING THEN SEND EMAIL TO HR MANAGER
-							users = frappe.db.get_all("Has Role", filters={"role": "HR Manager"}, fields=["parent"])
+							users = frappe.db.get_all("Has Role", filters={"role": "HR Manager", "parenttype": "User"}, fields=["parent"])
 							if users:
 								for user in users:
-									hr_employee = frappe.db.exists("Employee", {"user_id": user.parent, "company": "Prompt Equipments PVT LTD"})
+									hr_employee = frappe.db.exists("Employee", {"user_id": user.parent, "company": "Prompt Equipments PVT LTD", "status": "Active"})
 									if hr_employee:
 										user_email = frappe.db.get_value("User", {"name": user.parent}, "email")
 										if user_email:

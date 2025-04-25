@@ -1,14 +1,22 @@
-frappe.ready(function () {
-    // Force disable the default web form functionality
+
+frappe.ready(function () {    
+    
+    // ? FORCE DISABLE THE DEFAULT WEB FORM FUNCTIONALITY
     setTimeout(function() {
-        // Remove the standard submit button entirely
+
+        // ? REMOVE THE STANDARD SUBMIT BUTTON ENTIRELY
         $('.web-form-actions .btn-primary').remove();
         
-        // Disable the form submission
+        // ? DISABLE THE FORM SUBMISSION
         $('.web-form-container form').attr('onsubmit', 'return false;');
         $('.web-form-container form').off('submit');
-        
-        // Add our custom update button immediately
+
+        // ? DISABLE ADDING OR DELETING ROWS IN THE DOCUMENTS TABLE
+        frappe.web_form.set_df_property("documents", "cannot_add_rows", 1);
+        frappe.web_form.set_df_property("documents", "cannot_delete_rows", 1);
+        $(".row-check").hide();
+
+        // ? ADD OUR CUSTOM UPDATE BUTTON IMMEDIATELY
         if (!$('#custom-update-btn').length) {
             const customBtn = $(`
                 <button id="custom-update-btn" class="btn btn-primary btn-sm" style="display:none">
@@ -48,8 +56,10 @@ frappe.ready(function () {
                 args: {
                     hash: values.password,
                     doctype: "Candidate Portal",
+                    child_doctype: "Document Collection",
                     filters: filters,
-                    fields: ["phone_number",
+                    fields: [
+                        "phone_number",
                         "offer_acceptance",
                         "expected_date_of_joining",
                         "condition_for_offer_acceptance",
@@ -62,12 +72,15 @@ frappe.ready(function () {
                         "name"
                     ]
                 },
-                callback: function (r) {
-                    if (Array.isArray(r.message) && r.message.length > 0) {
-                        const data = r.message[0];
+                callback: async function (r) {
+                    form_data = r.message.form_data;
+                    child_table_data = r.message.child_table_data;
+                    console.log("Form Data: ", form_data);
+                    if (Array.isArray(form_data) && form_data.length > 0) {
+                        const data = form_data[0];
                         const docName = data.name;
                         
-                        // Store the docName in a global variable
+                        // ? STORE THE DOCNAME IN A GLOBAL VARIABLE
                         window.verifiedDocName = docName;
 
                         frappe.msgprint('Verification successful!');
@@ -79,16 +92,25 @@ frappe.ready(function () {
                                 frappe.web_form.set_value(key, value);
                             }
                         });
+
+                        let idx = frappe.web_form.fields_dict.documents.df.idx;
+
+                        frappe.web_form.fields[idx].data = child_table_data;
                         
-                        // Show our custom update button
+                        await frappe.web_form.fields_dict.documents.grid.refresh();
+
+                        $(".row-check").hide();
+                        
+                        // ? SHOW OUR CUSTOM UPDATE BUTTON
                         $('#custom-update-btn').show().off('click').on('click', function() {
-                            // Get current form values
+
+                            // ? GET CURRENT FORM VALUES
                             const formData = frappe.web_form.get_values();
                             
-                            // Include the record name
+                            // ? INCLUDE THE RECORD NAME
                             formData.name = window.verifiedDocName;
                             
-                            // Make server call to update record
+                            // ? MAKE SERVER CALL TO UPDATE RECORD
                             frappe.call({
                                 method: 'prompt_hr.prompt_hr.web_form.candidate_portal.candidate_portal.update_candidate_portal',
                                 args: {
@@ -98,7 +120,8 @@ frappe.ready(function () {
                                 freeze_message: 'Updating your information...',
                                 callback: function(response) {
                                     if (response.message && response.message.success) {
-                                        // Hide the form and show thank you message
+                                        
+                                        // ? HIDE THE FORM AND SHOW THANK YOU MESSAGE
                                         $('.web-form-container').html(`
                                             <div class="text-center py-5">
                                                 <i class="fa fa-check-circle text-success" style="font-size: 48px;"></i>
