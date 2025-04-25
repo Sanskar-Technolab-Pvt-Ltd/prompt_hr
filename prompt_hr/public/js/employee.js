@@ -9,6 +9,52 @@ frappe.ui.form.on("Employee", {
                 };
             });
         }
+        frm.add_custom_button(__("Release Service Level Agreement"), function () {
+            frappe.dom.freeze(__('Releasing Letter...'));
+            frappe.call({
+                method: "prompt_hr.py.employee.send_service_agreement",
+                args: { name: frm.doc.name },
+                callback: function (r) {
+                    if (r.message) {
+                        frappe.msgprint(r.message);
+                    }
+                },
+                always: function () {
+                    frappe.dom.unfreeze();
+                }
+            });
+        }, __("Release Letters"));
+
+        frm.add_custom_button(__("Release Confirmation Letter"), function () {
+            frappe.dom.freeze(__('Releasing Letter...'));
+            frappe.call({
+                method: "prompt_hr.py.employee.send_confirmation_letter",
+                args: { name: frm.doc.name },
+                callback: function (r) {
+                    if (r.message) {
+                        frappe.msgprint(r.message);
+                    }
+                },
+                always: function () {
+                    frappe.dom.unfreeze();
+                }
+            });
+        }, __("Release Letters"));
+        frm.add_custom_button(__("Release Probation Extension Letter"), function () {
+            frappe.dom.freeze(__('Releasing Letter...'));
+            frappe.call({
+                method: "prompt_hr.py.employee.send_probation_extension_letter",
+                args: { name: frm.doc.name },
+                callback: function (r) {
+                    if (r.message) {
+                        frappe.msgprint(r.message);
+                    }
+                },
+                always: function () {
+                    frappe.dom.unfreeze();
+                }
+            });
+        }, __("Release Letters"));
     },
     department: function(frm) {
         console.log("Employee Form Refreshed");
