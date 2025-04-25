@@ -3,7 +3,7 @@ const original_submit_feedback = frappe.ui.form.handlers.Interview?.submit_feedb
 frappe.ui.form.off("Interview", "submit_feedback")
 frappe.ui.form.on("Interview", {
     refresh: function (frm) {
-        
+
         // ?  FETCH AVAILABLE INTERVIEWERS ON REFRESH
         fetchAvailableInterviewers(frm);
 
@@ -202,7 +202,7 @@ frappe.ui.form.on("Interview", {
             }
         }
 
-        // ?  Check external interviewers
+        // ?  CHECK EXTERNAL INTERVIEWERS
         let allow_external = false;
         for (const ext of frm.doc.custom_external_interviewers || []) {
             if (ext.user) {
@@ -272,8 +272,8 @@ frappe.ui.form.on("Interview", {
     to_time: function (frm) {
         updateInterviewerAvailability(frm)
     },
-
     after_save: function (frm) {
+
         // ? HIDE THE AVAILABLE INTERVIEWERS FIELD AFTER SAVING
         frm.toggle_display("custom_available_interviewers", false);
     }
@@ -311,11 +311,13 @@ function fetchAvailableInterviewers(frm) {
 
                 // ? APPEND ONLY NEW INTERVIEWERS
                 if (newInterviewers.length > 0) {
+
                     // ? APPEND ONLY NEW INTERVIEWERS
                     if (newInterviewers.length > 0) {
                         newInterviewers.forEach(interviewer => {
+
                             let row = frm.add_child("custom_available_interviewers");
-                            row.user = interviewer; 
+                            row.user = interviewer;
                             console.log("New Interviewer:", row.user);
                         });
 
@@ -325,7 +327,7 @@ function fetchAvailableInterviewers(frm) {
                         setTimeout(() => {
                             let formattedInterviewers = (frm.doc.custom_available_interviewers || [])
                                 .map(row => row.user)
-                                .join('<br>'); 
+                                .join('<br>');
 
                             $(".control-value[data-fieldname='custom_available_interviewers']").html(formattedInterviewers);
                         }, 100);
@@ -346,6 +348,7 @@ function updateInterviewerAvailability(frm) {
 // ? CREATE INVITE FOR DOCUMENT COLLECTION BUTTON
 function createInviteButton(frm) {
     frm.add_custom_button(__('Invite for Document Collection'), function () {
+
         // ? CREATE A DIALOG TO COLLECT EXTRA DETAILS
         let dialog = new frappe.ui.Dialog({
             title: 'Invite for Document Collection',
@@ -357,9 +360,10 @@ function createInviteButton(frm) {
                     options: 'Joining Document Checklist',
                     reqd: 1,
                     onchange: function () {
+
                         // ?  FETCH DOCUMENTS FROM THE SELECTED CHECKLIST USING A CUSTOM METHOD
                         if (dialog.get_value('joining_document_checklist')) {
-                            dialog.set_df_property('documents', 'data', []); 
+                            dialog.set_df_property('documents', 'data', []);
 
                             frappe.call({
                                 method: "prompt_hr.py.utils.get_checklist_documents",
@@ -367,6 +371,7 @@ function createInviteButton(frm) {
                                     checklist: dialog.get_value('joining_document_checklist')
                                 },
                                 callback: function (r) {
+
                                     // ?  HIDE LOADING INDICATOR
                                     frappe.hide_progress();
 
@@ -382,7 +387,6 @@ function createInviteButton(frm) {
                                         });
                                         return;
                                     }
-
                                     // ?  VALIDATE DOCUMENTS DATA
                                     if (r.message && r.message.documents) {
                                         let documents = r.message.documents;
@@ -396,7 +400,6 @@ function createInviteButton(frm) {
                                             });
                                             return;
                                         }
-
                                         // ?  UPDATE THE DATA FOR THE DOCUMENTS FIELD
                                         dialog.fields[3].data = documents;
 
@@ -428,8 +431,6 @@ function createInviteButton(frm) {
                             let newDocuments = documents.filter(doc => {
                                 return doc.document_collection_stage == stage;
                             });
-
-                            console.log("Filtered documents:", newDocuments);
 
                             // ?  UPDATE THE DATA FOR THE DOCUMENTS FIELD
                             dialog.fields[3].data = newDocuments;
@@ -475,7 +476,6 @@ function createInviteButton(frm) {
                     });
                     return;
                 }
-
                 dialog.hide();
 
                 // ?  GET SELECTED DOCUMENTS FROM THE CHILD TABLE
@@ -488,8 +488,6 @@ function createInviteButton(frm) {
                         });
                     }
                 });
-
-                console.log("Selected documents:", selected_documents);
 
                 // ? TRIGGER BACKEND METHOD WITH EXTRA INFO
                 frappe.call({

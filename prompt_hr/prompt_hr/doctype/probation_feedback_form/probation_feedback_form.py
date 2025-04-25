@@ -4,7 +4,7 @@
 import frappe
 from frappe.model.document import Document
 from prompt_hr.utils import get_next_date, convert_month_to_days
-
+from prompt_hr.py.utils import send_notification_email
 class ProbationFeedbackForm(Document):
 	def on_submit(self):
 		"""Method to add Probation Details to Employee if company is equal to IndiFOSS Analytical Pvt Ltd when Probation Feedback Form is submitted.
@@ -135,3 +135,35 @@ class ProbationFeedbackForm(Document):
 		except Exception as e:
 			frappe.log_error(f"Error updating job applicant status", frappe.get_traceback())
 			frappe.throw(f"Error updating job applicant status: {str(e)}")
+
+#* THIS METHOD IS CALLED UNDER frappe.call IN probation_feedback_form.js
+@frappe.whitelist(allow_guest=True)
+def send_mail_to_hr(docname):
+	"""Method to send mail to HR When Dotted Manager Confirm's his Ratings
+		"""
+	try:
+		
+		all_hr_role_user = frappe.get_all("Has Role", filters={"role": "HR Manager", "parenttype": "User"}, fields=["parent"])
+		if all_hr_role_user:
+			for hr_user in all_hr_role_user:
+				if frappe.db.exists("Employee", {"user_id": hr_user.get("parent"), "status": "Active", "company": "IndiFOSS Analytical Pvt Ltd"}):
+					hr_user_email = frappe.db.get_value("User", hr_user.get("parent"), "email")
+					
+					if hr_user_email:
+							send_notification_email(
+								recipients=[hr_user_email],
+								notification_name = "Dotted Manager to HR For Probation Feedback Form",
+								doctype = "Probation Feedback Form",
+								docname = docname,
+								fallback_subject = "Probation Feedback Ratings Added by Dotted Manager",
+								fallback_message = f"Hi HR, \n\n     The dotted manager has added their ratings and remarks in the Probation Feedback Form.\n The form is now complete and ready for your review."
+							)
+							return {"error": 0}
+					else:
+						return {"error": 1, "message": "No HR Email Found"}
+		else:
+			return {"error": 1, "message": "No HR users found."}
+	except Exception as e:
+		frappe.log_error(f"Error updating job applicant status", frappe.get_traceback())
+		return {"error": 1, "message": f"Error Sending mail to HR {str(e)} \n For More Info Check Error Log"}
+    
