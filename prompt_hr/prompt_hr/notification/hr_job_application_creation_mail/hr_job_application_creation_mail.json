@@ -1,7 +1,7 @@
 {
  "attach_print": 0,
  "channel": "Email",
- "creation": "2025-04-22 17:46:54.222135",
+ "creation": "2025-04-17 19:03:29.437504",
  "days_in_advance": 0,
  "docstatus": 0,
  "doctype": "Notification",
@@ -10,17 +10,17 @@
  "event": "Custom",
  "idx": 0,
  "is_standard": 1,
- "message": "<p>HR Interview Availability Revert Mail</p>\n",
+ "message": "<p>Dear {{ doc.applicant_name }},</p>\n\n<p>We are pleased to inform you that your job application for the position of <b>{{ doc.position }}</b> at <b>{{ doc.company }}</b> has been successfully created. Thank you for your interest in joining our team!</p>\n\n<p><b>Job Application Details:</b></p>\n\n<ul>\n  <li><b>Position Applied For:</b> {{ doc.position }}</li>\n  <li><b>Application ID:</b> {{ doc.application_id }}</li>\n  <li><b>Job Opening:</b> {{ doc.job_opening }}</li>\n  <li><b>Status:</b> Your application is under review</li>\n</ul>\n\n<p>We will get back to you soon with the next steps. In the meantime, feel free to reach out if you have any questions.</p>\n\n<p>Best regards,<br>The HR Team</p>\n",
  "message_type": "HTML",
- "modified": "2025-04-22 18:19:17.221665",
+ "modified": "2025-04-25 18:11:11.617285",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "HR Job Application Creation Mail",
  "owner": "Administrator",
  "recipients": [],
- "send_system_notification": 1,
+ "send_system_notification": 0,
  "send_to_all_assignees": 1,
- "sender": "Jignasha",
- "sender_email": "jignasha@sanskartechnolab.com",
- "subject": "HR Interview Availability Revert Mail"
+ "sender": "Malav",
+ "sender_email": "malav@sanskartechnolab.com",
+ "subject": "Your Job Application Has Been Created Successfully"
 }
