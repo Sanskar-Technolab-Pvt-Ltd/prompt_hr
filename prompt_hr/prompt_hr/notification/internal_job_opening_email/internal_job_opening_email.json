@@ -1,7 +1,7 @@
 {
  "attach_print": 0,
  "channel": "Email",
- "creation": "2025-04-23 10:26:36.798588",
+ "creation": "2025-04-14 12:54:52.044631",
  "days_in_advance": 0,
  "docstatus": 0,
  "doctype": "Notification",
@@ -10,9 +10,9 @@
  "event": "Custom",
  "idx": 0,
  "is_standard": 1,
- "message": "<p>Hello Team,</p>\n\n<p> We have released a new internal job opening for the position of {{ doc.designation }}. <br>If you're interested in exploring this opportunity, please through below mentioned link. </p>\n\n<p>Deadline to apply: {{ frappe.utils.get_datetime(doc.custom_due_date_for_applying_job).strftime('%d %B, %Y') if doc.custom_due_date_for_applying_job }} </p>\n\n<p>For questions, reach out to HR.</p>\n",
- "message_type": "Markdown",
- "modified": "2025-04-23 15:24:32.522375",
+ "message": "<p>Hi {{ doc.employee_name }},</p>\n\n<p>We are excited to announce a new internal job opening for the position of <b>{{ doc.position }}</b> at <b>{{ doc.company }}</b>!</p>\n\n<p>If you're looking for new challenges and opportunities, this could be a great fit for you. We encourage you to apply for this position and take the next step in your career journey with us.</p>\n\n<p><b>Job Details:</b></p>\n\n<ul>\n  <li><b>Position:</b> {{ doc.position }}</li>\n  <li><b>Department:</b> {{ doc.department }}</li>\n  <li><b>Location:</b> {{ doc.location }}</li>\n  <li><b>Deadline to Apply:</b> {{ doc.application_deadline }}</li>\n</ul>\n\n<p>For more information and to apply, please visit the internal job portal.</p>\n\n<p>We look forward to your application!</p>\n\n<p>Best regards,<br>The {{ doc.company }} HR Team</p>\n",
+ "message_type": "HTML",
+ "modified": "2025-04-25 18:11:11.804159",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Internal Job Opening Email",
@@ -20,7 +20,7 @@
  "recipients": [],
  "send_system_notification": 0,
  "send_to_all_assignees": 1,
- "sender": "Jignasha",
- "sender_email": "jignasha@sanskartechnolab.com",
- "subject": "Internal Job Opening Alert"
+ "sender": "Malav",
+ "sender_email": "malav@sanskartechnolab.com",
+ "subject": "Job Opening Alert - New Opportunity at {{ doc.company }}"
 }
