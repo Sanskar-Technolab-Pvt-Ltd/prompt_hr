@@ -10,9 +10,9 @@
  "event": "Custom",
  "idx": 0,
  "is_standard": 1,
- "message": "<p>Dear {{ doc.applicant_name }},</p>\n\n<p>You are invited to take the screening test for the {{ doc.designation }} position at {{ doc.custom_company }}.</p>\n\n<p>Best regards,</p>\n\n<p>HR Team</p>\n",
- "message_type": "Markdown",
- "modified": "2025-04-23 16:19:45.174181",
+ "message": "<p>Hi {{ doc.applicant_name }},</p>\n\n<p>We are pleased to invite you to the next step in our hiring process: a screen test for the position of <b>{{ doc.position }}</b> at <b>{{ doc.company }}</b>! \ud83c\udfac</p>\n\n<p>Please complete the screen test as per the instructions provided in your candidate portal.</p>\n\n<p><b>Screen Test Details:</b></p>\n\n<ul>\n  <li><b>Deadline:</b> {{ doc.test_deadline }}</li>\n</ul>\n\n<p>We wish you the best of luck and look forward to your participation!</p>\n\n<p>Best regards,<br>The {{ doc.company }} Team</p>\n",
+ "message_type": "HTML",
+ "modified": "2025-04-25 18:11:11.833307",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Screen Test Invitation",
@@ -20,5 +20,5 @@
  "recipients": [],
  "send_system_notification": 0,
  "send_to_all_assignees": 1,
- "subject": "Screen Test Invitation"
+ "subject": "Screen Test Invitation for Your Job Application at {{ doc.company }}"
 }

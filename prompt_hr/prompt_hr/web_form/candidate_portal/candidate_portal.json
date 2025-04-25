@@ -18,7 +18,7 @@
  "list_columns": [],
  "login_required": 0,
  "max_attachment_size": 0,
- "modified": "2025-04-21 19:40:46.727414",
+ "modified": "2025-04-24 16:44:28.881856",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "candidate-portal",
@@ -58,7 +58,7 @@
   },
   {
    "allow_read_on_all_link_options": 0,
-   "fieldname": "table_rzqj",
+   "fieldname": "documents",
    "fieldtype": "Table",
    "hidden": 0,
    "max_length": 0,
