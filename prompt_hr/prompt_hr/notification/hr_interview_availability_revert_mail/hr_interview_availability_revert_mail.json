@@ -10,9 +10,9 @@
  "event": "Custom",
  "idx": 0,
  "is_standard": 1,
- "message": "HR Interview Availability Revert Mail",
- "message_type": "Markdown",
- "modified": "2025-04-22 16:24:22.331251",
+ "message": "<p>Dear HR Team,</p>\n\n<p>The candidate <b>{{ doc.applicant_name }}</b> has provided their availability for the interview for the position of <b>{{ doc.position }}</b> at <b>{{ doc.company }}</b>.</p>\n\n<p><b>Candidate's Interview Availability:</b></p>\n\n<ul>\n  <li><b>Preferred Interview Dates:</b> {{ doc.preferred_dates }}</li>\n  <li><b>Preferred Interview Time:</b> {{ doc.preferred_time }}</li>\n</ul>\n\n<p>Please review the details and proceed with scheduling the interview accordingly.</p>\n\n<p>Best regards,<br>The HR Team</p>\n",
+ "message_type": "HTML",
+ "modified": "2025-04-25 18:11:11.737889",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "HR Interview Availability Revert Mail",
@@ -22,5 +22,5 @@
  "send_to_all_assignees": 1,
  "sender": "Malav",
  "sender_email": "malav@sanskartechnolab.com",
- "subject": "HR Interview Availability Revert Mail"
+ "subject": "HR Interview Availability Revert - Interview Availability Form"
 }

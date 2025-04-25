@@ -1,1 +1,1 @@
-Add your message here
+<p>Add your message here</p>
