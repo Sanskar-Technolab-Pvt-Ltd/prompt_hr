@@ -4,7 +4,7 @@
 import frappe
 from frappe.utils import today, add_days
 from frappe.model.document import Document
-
+from prompt_hr.utils import get_next_date, convert_month_to_days
 
 class ConfirmationEvaluationForm(Document):
 	
@@ -54,23 +54,68 @@ class ConfirmationEvaluationForm(Document):
 						else:
 							self.dh_rating_added = 0
 		
-				
-				
+							
 		except Exception as e:
 			frappe.log_error(frappe.get_traceback(), "Error in Confirmation Evaluation Form")
 			frappe.throw("An error occurred during validation. Please check the logs.")
-	
-	# def probation_status(self):
-	# 	try:
-	# 		print(f"\n\n Printing \n\n")
-	# 		#* CALCULATING THE LAST DATE OF WORK FROM THE DATE WHEN PROBATION STATUS IS SET TO TERMINATE TO BASED ON THE NOTICE PERIOD DAYS
-	# 		if self.probation_status == "Terminate" and not self.last_work_date:
-	# 			notice_period_days = frappe.db.get_value("Employee", {"name": self.employee}, "notice_number_of_days")
 
-	# 			if self.last_work_date:
-	# 				self.last_work_date = add_days(today(), notice_period_days)
-	# 			else:
-	# 				frappe.throw("Please enter the notice period days.")
-	# 	except Exception as e:
-	# 		frappe.log_error(frappe.get_traceback(), "Error in Confirmation Evaluation Form")
-	# 		frappe.throw("An error occurred while calculating the probation status. Please check the logs.")
+	def on_submit(self):
+		"""Method to add Confirmation Evaluation Data to Employee if company  equals to Prompt Equipments PVT LTD when Probation Feedback Form is submitted.
+    """
+		try:
+			if self.employee and self.company == "Prompt Equipments PVT LTD":
+				if self.probation_status == "Confirm":
+					if self.confirmation_date:
+						frappe.db.set_value("Employee", self.employee, "final_confirmation_date", self.confirmation_date)
+						frappe.db.set_value("Employee", self.employee, "custom_probation_status", "Confirmed")
+						
+				
+				elif self.probation_status == "Extend":
+					probation_end_date = str(frappe.db.get_value("Employee", self.employee, "custom_probation_end_date")) or None
+					
+					if probation_end_date:
+						# extended_probation_end_date = add_to_date(probation_end_date, months=self.extension_period)
+						next_date_response = get_next_date(probation_end_date, self.extension_period)
+						
+						if not next_date_response.get("error"):
+							
+							extended_probation_end_date = next_date_response.get("message")
+							
+						else:
+							
+							frappe.throw(f"Error getting next date: {next_date_response.get('message')}")
+					else:
+						frappe.throw("No probation end date found for employee.")
+						extended_probation_end_date = None
+
+					
+					employee_doc = frappe.get_doc("Employee", self.employee)
+					
+					current_user = frappe.session.user
+					
+					if current_user:
+						employee = frappe.db.get_value("Employee", {"user_id": current_user}, ["name", "employee_name"], as_dict=True)
+					else:
+						employee = None
+					if employee_doc:
+						employee_doc.append("custom_probation_extension_details", {
+							"probation_end_date": employee_doc.custom_probation_end_date,
+							"extended_date": extended_probation_end_date,
+							"reason": self.reason,
+							"extended_by": employee.get("name") if employee else '',
+							"extended_by_emp_name": employee.get("employee_name") if employee else ''
+						})
+						
+						employee_doc.custom_probation_status = "Pending"
+						employee_doc.custom_extended_period = convert_month_to_days(self.extension_period) or 0
+						employee_doc.save(ignore_permissions=True)
+						frappe.db.commit()
+				
+				elif self.probation_status == "Terminate":
+						frappe.db.set_value("Employee", self.employee, "custom_probation_status", "Terminated")
+						frappe.db.set_value("Employee", self.employee, "relieving_date", self.last_work_date)
+						frappe.db.set_value("Employee", self.employee, "reason_for_leaving", self.reason_for_termination)
+		except Exception as e:
+			frappe.log_error(f"Error updating job applicant status", frappe.get_traceback())
+			frappe.throw(f"Error updating job applicant status: {str(e)}")
+	
