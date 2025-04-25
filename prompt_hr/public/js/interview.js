@@ -58,8 +58,7 @@ frappe.ui.form.on("Interview", {
                     let is_external_interviewer_not_confirmed = false;
                     // ?  CHECK INTERNAL INTERVIEWERS
                     if (frm.doc.interview_details && frm.doc.interview_details.length) {
-                        frm.doc.interview_details.forEach(function (interviewer) {
-                            console.log("Internal Interviewers:", interviewer.custom_interviewer_employee);
+                        frm.doc.interview_details.forEach(function(interviewer) {
                             if (interviewer.custom_interviewer_employee) {
                                 if (interviewer.custom_is_confirm === 0) {
                                     frappe.call({
