@@ -169,7 +169,8 @@ doc_events = {
     "Job Requisition": {
         "validate": [
                         # "prompt_hr.custom_methods.job_requisition_notification",
-                        "prompt_hr.py.job_requisition.add_or_update_custom_last_updated_by"
+                        "prompt_hr.py.job_requisition.add_or_update_custom_last_updated_by",
+                        "prompt_hr.py.job_requisition.set_requested_by",
                     ],
         "on_update": "prompt_hr.py.job_requisition.on_update",
     },
@@ -191,12 +192,6 @@ doc_events = {
     "Probation Feedback Form": {
         "on_submit": "prompt_hr.custom_methods.add_probation_feedback_data_to_employee"
     },
-    "Confirmation Evaluation Form": {
-        "on_submit": "prompt_hr.custom_methods.add_confirmation_evaluation_data_to_employee"
-    },
-    # "Job Requisition": {
-    #      "on_update": "prompt_hr.py.job_requisition.on_update",
-    #  },
      "LMS Quiz Submission": {
         "validate":"prompt_hr.py.lms_quiz_submission.update_status"
     },
