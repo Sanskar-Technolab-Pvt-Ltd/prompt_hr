@@ -12,7 +12,7 @@ frappe.ui.form.on('Interview Feedback', {
     
                 // Make main form fields read-only
                 const readonly_fields = ["interview", "job_applicant", "custom_company", 
-                                        "interview_round", "interviewer"];
+                                        "interview_round", "interviewer", "custom_obtained_average_score"];
                 readonly_fields.forEach(field => {
                     frm.set_df_property(field, "read_only", 1);
                 });
@@ -40,5 +40,16 @@ frappe.ui.form.on('Interview Feedback', {
         });
         
         return !hasError;
-    }
+    },
+    custom_company: function(frm) {
+        if (frm.doc.custom_company) {
+            frm.set_query("interview_round", function() {
+                return {
+                    filters: {
+                        'custom_company': frm.doc.custom_company
+                    }
+                };
+            });
+        }
+    },
 });
