@@ -1,0 +1,29 @@
+{
+ "add_total_row": 0,
+ "add_translate_data": 0,
+ "columns": [],
+ "creation": "2025-04-25 18:15:55.799374",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": "Prompt - Letter Head",
+ "letterhead": null,
+ "modified": "2025-04-25 18:16:03.073428",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Applicant Count by Stage for Job Openings",
+ "owner": "Administrator",
+ "prepared_report": 0,
+ "ref_doctype": "Job Applicant",
+ "report_name": "Applicant Count by Stage for Job Openings",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "HR User"
+  }
+ ],
+ "timeout": 0
+}
