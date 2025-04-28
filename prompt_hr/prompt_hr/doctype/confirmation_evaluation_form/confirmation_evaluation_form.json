@@ -66,8 +66,9 @@
   {
    "fetch_from": "employee.company",
    "fieldname": "company",
-   "fieldtype": "Data",
-   "label": "Company"
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
   },
   {
    "fieldname": "column_break_dbio",
@@ -93,6 +94,7 @@
   },
   {
    "fetch_from": "department.custom_department_head",
+   "fetch_if_empty": 1,
    "fieldname": "hod",
    "fieldtype": "Link",
    "label": "HOD",
@@ -197,7 +199,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-04-23 18:52:03.938602",
+ "modified": "2025-04-28 17:27:51.364430",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Confirmation Evaluation Form",
