@@ -269,3 +269,35 @@ def send_notification_with_portal_link(
         frappe.logger().debug(f"Email sent successfully to {recipient}")
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), f"Email Sending Error: {str(e)}")
+
+@frappe.whitelist()
+def send_LOI_letter(name):
+    doc = frappe.get_doc("Job Offer", name)
+    notification = frappe.get_doc("Notification", "LOI Letter Notification")
+    subject = frappe.render_template(notification.subject, {"doc": doc})
+    message = frappe.render_template(notification.message, {"doc": doc})
+    email = doc.applicant_email if doc.applicant_email else None
+    attachment = None
+    if notification.attach_print and notification.print_format:
+        pdf_content = frappe.get_print(
+            "Job Offer", 
+            doc.name, 
+            print_format=notification.print_format, 
+            as_pdf=True
+        )
+        
+        attachment = {
+            "fname": f"{notification.print_format}.pdf",
+            "fcontent": pdf_content
+        }
+
+    if email:
+        frappe.sendmail(
+            recipients=email,
+            subject=subject,
+            content=message,
+            attachments=[attachment] if attachment else None
+        )
+    else:
+        frappe.throw("No Email found for Employee")
+    return "LOI Letter sent Successfully"

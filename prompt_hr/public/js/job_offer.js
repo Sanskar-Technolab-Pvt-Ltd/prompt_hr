@@ -19,6 +19,23 @@ frappe.ui.form.on('Job Offer', {
 
         // ? ADD ACCEPT CHANGES BUTTON
         acceptChangesButton(frm);
+        
+        frm.add_custom_button(__("Release LOI Letter"), function () {
+            frappe.dom.freeze(__('Releasing Letter...'));
+            frappe.call({
+                method: "prompt_hr.py.job_offer.send_LOI_letter",
+                args: { name: frm.doc.name },
+                callback: function (r) {
+                    if (r.message) {
+                        frappe.msgprint(r.message);
+                        frm.reload_doc();
+                    }
+                },
+                always: function () {
+                    frappe.dom.unfreeze();
+                }
+            });
+        });
     }
 });
 

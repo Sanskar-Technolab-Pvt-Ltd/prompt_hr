@@ -49,8 +49,10 @@ frappe.ui.form.on("Interview", {
                 name: frm.doc.name
             },
             callback: function (r) {
+                console.log("Shared users:", r.message);
                 if (r.message && r.message.some(function (shared_user) {
                     return shared_user.user === frappe.session.user;
+                    console.log("Hidden user:", shared_user.user);
                 })) {
                     // ?  FIRST CHECK IF THE USER EXISTS IN INTERVIEW_DETAILS
                     let current_user = frappe.session.user;
@@ -69,8 +71,8 @@ frappe.ui.form.on("Interview", {
                                         callback: function (r) {
                                             if (r.message === current_user) {
                                                 frm.remove_custom_button(__("Notify Interviewer"));
-                                                is_internal_interviewer_not_confirmed = true;
                                                 showConfirmButton();
+                                                is_internal_interviewer_not_confirmed = true;
                                             }
                                         }
                                     });
@@ -134,7 +136,8 @@ frappe.ui.form.on("Interview", {
                     }
 
                     function showConfirmButton() {
-                        if (!frm.custom_button_added) {
+                        if (frm) {
+
                             frm.custom_button_added = true;
                             frm.add_custom_button(__("Confirm"), function () {
                                 frappe.dom.freeze(__('Confirming Your Availability...'));
