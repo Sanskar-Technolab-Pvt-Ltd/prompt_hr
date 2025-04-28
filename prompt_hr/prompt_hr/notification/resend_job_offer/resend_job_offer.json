@@ -1,7 +1,7 @@
 {
  "attach_print": 0,
  "channel": "Email",
- "creation": "2025-04-15 15:53:15.178308",
+ "creation": "2025-04-25 18:28:43.030065",
  "days_in_advance": 0,
  "docstatus": 0,
  "doctype": "Notification",
@@ -10,9 +10,9 @@
  "event": "Custom",
  "idx": 0,
  "is_standard": 1,
- "message": "<p>Hi {{ doc.applicant_name }},</p>\n\n<p>We are pleased to inform you that your job offer has been updated. Please review the updated details of your offer for the position of <b>{{ doc.position }}</b> at <b>{{ doc.company }}</b>.</p>\n\n<p><b>Updated Offer Details:</b></p>\n\n<ul>\n  <li><b>Position:</b> {{ doc.position }}</li>\n  <li><b>Salary:</b> {{ doc.salary }}</li>\n  <li><b>Start Date:</b> {{ doc.start_date }}</li>\n  <li><b>Benefits:</b> {{ doc.benefits }}</li>\n</ul>\n\n<p>We encourage you to review the updated offer and let us know if you have any questions. Please check your Candidate Portal for further details.</p>\n\n<p>We look forward to welcoming you to our team!</p>\n\n<p>Best regards,<br>The {{ doc.company }} HR Team</p>\n",
+ "message": "<p>Dear {{ doc.applicant_name }},</p>\n\n<p>We are pleased to inform you that the details of your job offer have been updated. Kindly take a moment to review the updated offer information provided below.</p>\n\n<p><b>Updated Offer Details:</b></p>\n\n<ul>\n  <li><b>Applicant Email:</b> {{ doc.applicant_email }}</li>\n  <li><b>Job Applicant ID:</b> {{ doc.job_applicant }}</li>\n</ul>\n\n<p>We encourage you to carefully review the updated offer and contact us if you have any queries or require further clarification. For additional information, please refer to your Candidate Portal.</p>\n\n<p>We look forward to having you join our team and wish you every success in your future endeavors.</p>\n\n<p>Best regards,<br>The HR Team</p>\n",
  "message_type": "HTML",
- "modified": "2025-04-25 18:11:11.786921",
+ "modified": "2025-04-28 13:56:07.734788",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Resend Job Offer",
@@ -20,5 +20,5 @@
  "recipients": [],
  "send_system_notification": 0,
  "send_to_all_assignees": 1,
- "subject": "Find Your Updated Job Offer - {{ doc.job_offer_title }}"
+ "subject": "Find Your Updated Job Offer"
 }

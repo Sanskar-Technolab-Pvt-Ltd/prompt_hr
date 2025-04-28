@@ -1,9 +1,4 @@
-<p>{% set dotted_manager_name = frappe.db.get_value("Employee", doc.employee, "employee_name") %}</p>
+<p>Hi HR, <br><br>
 
-<p>Hi {{ dotted_manager_name }},</p>
-
-<p>The reporting manager has added their feedback for {{ doc.employee_name }} in the Probation Feedback Form.<br>
-Kindly review the form and add your rating at your earliest convenience.</p>
-
-<p>Thank you!<br>
-HR Team</p>
+    The dotted manager has added their ratings and remarks for {{doc.employee_name}} in the Probation Feedback Form.<br>
+The form is now complete and ready for your review.</p>
