@@ -190,9 +190,9 @@ doc_events = {
     "Employee": {
         "on_update": "prompt_hr.py.employee.on_update",
     },
-    "Probation Feedback Form": {
-        "on_submit": "prompt_hr.custom_methods.add_probation_feedback_data_to_employee"
-    },
+    # "Probation Feedback Form": {
+    #     "on_submit": "prompt_hr.custom_methods.add_probation_feedback_data_to_employee"
+    # },
      "LMS Quiz Submission": {
         "validate":"prompt_hr.py.lms_quiz_submission.update_status"
     },
