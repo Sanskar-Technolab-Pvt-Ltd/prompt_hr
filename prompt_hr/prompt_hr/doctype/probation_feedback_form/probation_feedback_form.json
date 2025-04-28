@@ -70,8 +70,9 @@
   {
    "fetch_from": "employee.company",
    "fieldname": "company",
-   "fieldtype": "Data",
-   "label": "Company"
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
   },
   {
    "fieldname": "column_break_dbio",
@@ -230,7 +231,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-04-25 15:37:46.054307",
+ "modified": "2025-04-28 11:40:02.906261",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Probation Feedback Form",
