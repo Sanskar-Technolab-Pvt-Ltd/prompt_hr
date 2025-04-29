@@ -1,0 +1,59 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-29 06:57:28.946688",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "existing_weekoff_date",
+  "existing_weekoff",
+  "column_break_tlkc",
+  "new_weekoff_date",
+  "new_weekoff"
+ ],
+ "fields": [
+  {
+   "fieldname": "existing_weekoff_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Existing WeekOff Date"
+  },
+  {
+   "fieldname": "existing_weekoff",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Existing WeekOff"
+  },
+  {
+   "fieldname": "column_break_tlkc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "new_weekoff_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "New WeekOff Date"
+  },
+  {
+   "fieldname": "new_weekoff",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "New WeekOff"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-04-29 06:58:41.327743",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "WeekOff Request Details",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
