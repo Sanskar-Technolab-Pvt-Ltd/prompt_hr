@@ -7,7 +7,7 @@ from prompt_hr.py.utils import validate_hash
 def start_quiz_rituals(phone, password):
     try:
         doctype = "Job Applicant"
-        filters_dict = {"phone_number": phone}
+        filters_dict = {"phone_number": phone,"custom_active_quiz": 0}
 
         # ? CONVERT FILTERS_DICT TO JSON STRING
         filters_json = json.dumps(filters_dict)
@@ -16,8 +16,7 @@ def start_quiz_rituals(phone, password):
         status = validate_hash(hash=password, filters=filters_json, doctype=doctype)
 
         if status:
-            frappe.db.set_value("Job Applicant", filters_dict, "custom_active_quiz", 1)
-        
+            frappe.db.set_value("Job Applicant", filters_dict, "custom_active_quiz", 1)  
 
         return status
 
