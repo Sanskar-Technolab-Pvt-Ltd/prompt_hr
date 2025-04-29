@@ -187,9 +187,9 @@ doc_events = {
         "after_insert": "prompt_hr.py.job_offer.after_insert",
         "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
     },
-    "Employee": {
-        "on_update": "prompt_hr.py.employee.on_update",
-    },
+    # "Employee": {
+    #     "on_update": "prompt_hr.py.employee.on_update",
+    # },
     # "Probation Feedback Form": {
     #     "on_submit": "prompt_hr.custom_methods.add_probation_feedback_data_to_employee"
     # },
