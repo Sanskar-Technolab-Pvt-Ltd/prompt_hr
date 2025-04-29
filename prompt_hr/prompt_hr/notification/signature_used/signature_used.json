@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-04-29 13:50:52.339039",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Print Format",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "<p>Dear {{ role }},</p>\n\n<p>\n    This is to inform you that your signature has been used in the {{letter}}\n    for {{name}} under the company <b>{{ company }}</b>.\n</p>\n\n<p>\n    If this was expected, no further action is required.\n</p>\n\n<p>\n    If you were not aware of this activity, please contact the system administrator immediately.\n</p>\n\n<p style=\"margin-top: 30px;\">\n    Best Regards,<br>\n    {{ frappe.session.user }}<br>\n    ERP System Notification\n</p>\n",
+ "message_type": "HTML",
+ "modified": "2025-04-29 15:30:24.842435",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Signature Used",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "Your Signature Was Used in Document Approval"
+}
