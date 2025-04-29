@@ -205,6 +205,15 @@ def invite_for_document_collection(args, joining_document_checklist, document_co
 
             invitation.save(ignore_permissions=True)
             frappe.db.commit()
+            send_notification_email(
+                recipients=[job_applicant.email_id],
+                notification_name="Candidate Portal Link",
+                doctype="Candidate Portal",
+                docname=invitation.name,
+                button_label="Submit Documents",
+                button_link=f"/candidate-portal/",
+                hash_input_text = invitation.name,
+            )
             return _("Invitation updated successfully.")
         else:
             invitation = frappe.new_doc("Candidate Portal")
@@ -230,6 +239,14 @@ def invite_for_document_collection(args, joining_document_checklist, document_co
 
             invitation.insert(ignore_permissions=True)
             frappe.db.commit()
+            send_notification_email(
+                recipients=[job_applicant.email_id],
+                notification_name="Candidate Portal Link",
+                doctype="Candidate Portal",
+                docname=invitation.name,
+                button_label="Submit Documents",
+                button_link=f"/candidate-portal/",
+            )
             return _("Invitation sent successfully.")
 
     except Exception as e:

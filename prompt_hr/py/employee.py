@@ -38,7 +38,7 @@ field_mapping = {
     "nominee_details": "custom_nominee_details",
     "attendance_capture_scheme": "custom_attendance_capture_scheme",
     "weekoff": "custom_weekoff",
-    # Add more if needed
+    # ? ADD MORE IF NEEDED
 }
 
 # ? FUNCTION TO CREATE WELCOME PAGE RECORD FOR GIVEN USER
