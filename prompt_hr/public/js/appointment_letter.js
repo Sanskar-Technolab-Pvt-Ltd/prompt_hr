@@ -2,6 +2,7 @@ frappe.ui.form.on("Appointment Letter", {
     refresh: function(frm) {
         if( !frm.is_new() ){
             frm.add_custom_button("Send Appointment Letter", function() {
+                frappe.dom.freeze("Sending Appointment Letter");
                 frappe.call({
                     method: "prompt_hr.api.main.trigger_appointment_notification",
                     args: {
@@ -12,6 +13,9 @@ frappe.ui.form.on("Appointment Letter", {
                         if (r.message) {
                             frappe.msgprint(r.message);
                         }
+                    },
+                    always: function() {
+                        frappe.dom.unfreeze();
                     }
                 });
             });

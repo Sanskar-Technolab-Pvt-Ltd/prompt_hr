@@ -1,7 +1,7 @@
 import frappe
 from frappe.utils.pdf import get_pdf
 from frappe.www.printview import get_print_format
-
+from prompt_hr.api.main import notify_signatory_on_email
 import traceback
 
 # ? COMMON FIELDS THAT EXIST IN BOTH EMPLOYEE & EMPLOYEE PROFILE
@@ -150,8 +150,12 @@ def send_service_agreement(name):
             recipients=email,
             subject=subject,
             content=message,
+            reference_doctype=doc.doctype,
+            reference_name=doc.name,
             attachments=[attachment] if attachment else None
         )
+        notify_signatory_on_email(doc.company, "HR Manager",doc.name,"Service Agreement Letter")
+        notify_signatory_on_email(doc.company, "Employee",doc.name,"Service Agreement Letter",email)
     else:
         frappe.throw("No Email found for Employee")
     return "Service Agreement sent Successfully"
@@ -194,8 +198,11 @@ def send_confirmation_letter(name):
             recipients=email,
             subject=subject,
             message=message,
+            reference_doctype=doc.doctype,
+            reference_name=doc.name,
             attachments=[attachment] if attachment else None
         )
+        notify_signatory_on_email(doc.company, "HR Manager",doc.name,"Confirmation Letter")
     else:
         frappe.throw("No Email found for Employee")
         
@@ -237,8 +244,11 @@ def send_probation_extension_letter(name):
             recipients=email,
             subject=subject,
             content=message,
+            reference_doctype=doc.doctype,
+            reference_name=doc.name,
             attachments=[attachment] if attachment else None
         )
+        notify_signatory_on_email(doc.company, "HR Manager",doc.name,"Probation Extension Letter")
     else:
         frappe.throw("No Email found for Employee")
     return "Probation Extension Letter sent Successfully"
