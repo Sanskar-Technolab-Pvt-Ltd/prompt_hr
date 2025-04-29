@@ -18,13 +18,14 @@ def get_hr_managers_by_company(company):
         """, (company,), as_dict=1) if row.email
     ]
 
-
+@frappe.whitelist()
 def after_insert(doc, method):
     try:
-
+        print(f"Documentttt: {doc}")
         company = frappe.db.get_value("Job Opening", doc.job_title, "company")
 
         hr_emails = get_hr_managers_by_company(company)
+        print(f"HR Emails: {hr_emails}")
 
         if hr_emails:
     
@@ -39,8 +40,6 @@ def after_insert(doc, method):
             extra_context=None
             )
 
-            
-         
         else:
             frappe.log_error("No HR Managers Found", f"No HR Managers found for company: {doc.company}")
 
@@ -207,10 +206,5 @@ def before_insert(doc, method=None):
                 doc.append("custom_documents", {
                     "required_document": record.name,
                     "collection_stage": record.document_collection_stage
-                })
-                frappe.get_doc({
-                    "doctype": "Document Collection",
-                    "required_document": record.name,
-                    "collection_stage": record.document_collection_stage,
                 })
                 frappe.db.commit()
