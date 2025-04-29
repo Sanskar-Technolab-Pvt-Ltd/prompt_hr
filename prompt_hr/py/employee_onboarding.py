@@ -1,4 +1,5 @@
 import frappe
+from prompt_hr.py.utils import send_notification_email
 
 # ! prompt_hr.py.employee_onboarding.get_onboarding_details
 # ? FETCH TEMPLATE ACTIVITIES FOR CHILD TABLE
@@ -11,8 +12,48 @@ def get_onboarding_details(parent, parenttype):
         order_by="idx"
     )
 
+# ? AFTER INSERT EVENT
+def after_insert(doc, method):
+    # ? SET REQUIRED DOCUMENTS IN THE NEW JOINEE CHECKLIST
+    set_required_documents_in_new_joinee_checklist(doc)
 
-# ? MAIN ON_UPDATE EVENT FUNCTION (No doc.save here!)
+# ? FUNCTION TO SET REQUIRED DOCUMENTS IN THE NEW JOINEE CHECKLIST
+def set_required_documents_in_new_joinee_checklist(doc):
+    if doc.job_applicant:
+        # ? GET JOINING DOCUMENT CHECKLIST
+        joining_document_checklist = frappe.get_value(
+            "Joining Document Checklist",
+            {"company": doc.company},
+            "name"
+        )
+
+        # ? GET JOB APPLICANT'S REQUIRED DOCUMENTS
+        documents = frappe.get_all(
+            "Joining Document",
+            filters={
+                "parent": joining_document_checklist,
+                "document_collection_stage": "Employee Onboarding"
+            },
+            fields=["required_document", "document_collection_stage"]
+        )
+
+        new_joinee_checklist = frappe.get_doc("New Joinee Checklist", {"job_applicant": doc.job_applicant})
+        if not new_joinee_checklist:
+            return
+
+        for doc_item in documents:
+            new_joinee_checklist.append("required_documents", {
+                "required_document": doc_item.required_document,
+                "collection_stage": doc_item.document_collection_stage
+            })
+
+        new_joinee_checklist.save(ignore_permissions=True)
+        frappe.db.commit()
+
+        
+
+
+# ? MAIN ON_UPDATE EVENT FUNCTION
 @frappe.whitelist()
 def validate(doc, method):
     print("Employee Onboarding Document Updated\n", doc.name)
@@ -50,7 +91,7 @@ def auto_fill_first_activity(doc):
 
             # ? ONLY SEND IF IS_RAISED IS ALREADY SET
             if first.custom_is_sent == 0:
-                send_pending_action_email(first)
+                send_pending_action_email(first, notification_name="Onboarding Activity Reminder")
                 first.custom_is_sent = 1
                 print("Email sent immediately for first auto-filled row.")
 
@@ -96,90 +137,20 @@ def get_pending_activity_rows(doc):
 # ? SEND EMAIL TO USERS FOR PENDING CHECKLIST ACTIONS
 def notify_users_for_pending_actions(rows):
     for row in rows:
-        send_pending_action_email(row)
+        send_pending_action_email(row, notification_name="Reporting Manger Checklist")
         row.custom_is_sent = 1  
 
 
 # ? COMPOSE + SEND EMAIL FOR A SINGLE ROW
-def send_pending_action_email(row):
+def send_pending_action_email(row, notification_name):
     doc_type = row.custom_checklist_name
     doc_name = row.custom_checklist_record
     recipient = row.user
 
-    fallback_subject = "Pending Action Required"
-    fallback_message = format_pending_action_message(
-        row.custom_email_description, 
-        row.custom_checklist_name, 
-        row.custom_checklist_record
-    )
-
-    frappe.enqueue(
-        method=send_notification_email,
-        queue="short",
-        timeout=300,
-        doc_type=doc_type,
-        doc_name=doc_name,
-        recipient=recipient,
-        fallback_subject=fallback_subject,
-        fallback_message=fallback_message
-    )
-
-
-# ? FORMAT FALLBACK EMAIL
-def format_pending_action_message(description, checklist_name, checklist_record):
-    base_url = frappe.utils.get_url()
-    checklist_path = checklist_name.lower().replace(" ", "-")
-    record_link = f"{base_url}/app/{checklist_path}/{checklist_record}" if checklist_record else "#"
-
-    return f"""
-        <p>{description or ""}</p>
-        <p><b>Checklist Record:</b> 
-            <a href="{record_link}" target="_blank">{checklist_name} ({checklist_record})</a>
-        </p>
-    """
-
-
-# ? BACKGROUND TASK: FETCH NOTIFICATION BY DOCTYPE & SEND EMAIL
-def send_notification_email(doc_type, doc_name, recipient, fallback_subject, fallback_message):
-    try:
-        doc = frappe.get_doc(doc_type, doc_name)
-
-        # ? FETCH FIRST NOTIFICATION MATCHING DOC_TYPE
-        notification = frappe.get_all("Notification", filters={"document_type": doc_type,"channel": "Email"}, limit=1)
-        if not notification:
-            raise Exception(f"No Notification template found for {doc_type}")
-        
-        notification = frappe.get_doc("Notification", notification[0].name)
-
-        context = {
-            "doc": doc,
-            "user": recipient
-        }
-
-        subject = frappe.render_template(notification.subject, context)
-        message = frappe.render_template(notification.message, context)
-
-        # ? APPEND CHECKLIST LINK
-        checklist_name = getattr(doc, "checklist_name", "") or doc_type
-        checklist_path = checklist_name.lower().replace(" ", "-")
-        base_url = frappe.utils.get_url()
-        record_link = f"{base_url}/app/{checklist_path}/{doc.name}"
-
-        message += f"""
-            <hr>
-            <p><b>Checklist Record:</b> 
-            <a href="{record_link}" target="_blank">{checklist_name} ({doc.name})</a></p>
-        """
-
-    except Exception as e:
-        frappe.log_error(f"Using fallback message due to: {e}", "Notification Template Error")
-        subject = fallback_subject
-        message = fallback_message
-
-    frappe.sendmail(
+    send_notification_email(
         recipients=[recipient],
-        subject=subject,
-        message=message
+        notification_name=notification_name,
+        doctype=doc_type,
+        docname=doc_name,
+        button_label="View Details",
     )
-
-    print(f"✅ Sent '{subject}' to {recipient}")

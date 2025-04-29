@@ -165,6 +165,7 @@ override_doctype_class = {
 doc_events = {
     "Employee Onboarding": {
         "validate": "prompt_hr.py.employee_onboarding.validate",
+        "after_insert": "prompt_hr.py.employee_onboarding.after_insert",
     },
     "Job Requisition": {
         "validate": [
@@ -176,6 +177,7 @@ doc_events = {
     },
     "Job Applicant": {
         "after_insert": "prompt_hr.py.job_applicant.after_insert",
+        "before_insert": "prompt_hr.py.job_applicant.before_insert",
     },
     "Interview": {
         "validate": "prompt_hr.custom_methods.update_job_applicant_status_based_on_interview",
@@ -195,9 +197,6 @@ doc_events = {
     # },
      "LMS Quiz Submission": {
         "validate":"prompt_hr.py.lms_quiz_submission.update_status"
-    },
-    "Job Applicant": {
-        "before_insert": "prompt_hr.py.job_applicant.before_insert",
     },
     "Interview Feedback": {
         "on_submit": "prompt_hr.py.interview_feedback.on_submit",
