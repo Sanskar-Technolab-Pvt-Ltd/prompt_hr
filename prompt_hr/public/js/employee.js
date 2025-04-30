@@ -55,6 +55,16 @@ frappe.ui.form.on("Employee", {
                 }
             });
         }, __("Release Letters"));
+
+        if (frm.doc.custom_state) {
+            frm.set_query("custom_festival_holiday_list", () => {
+                return {
+                    filters: {
+                        state: frm.doc.custom_state
+                    }
+                };
+            });
+        }
     },
     department: function(frm) {
         console.log("Employee Form Refreshed");
