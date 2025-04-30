@@ -1,5 +1,5 @@
 import frappe
-from prompt_hr.py.utils import validate_hash
+from prompt_hr.py.utils import validate_hash,send_notification_email
 import json
 from frappe import _
 
@@ -96,6 +96,14 @@ def update_candidate_portal(doc):
         for row in documents:
             portal_doc.append("documents", row)
 
+        # ? SEND MAIL TO HR
+        send_notification_email(
+            notification_name="HR Candidate Web Form Revert Mail",
+            recipients=[portal_doc.applicant_email],
+            button_label="View Details",
+            doctype="Job Applicant",
+            docname=portal_doc.applicant_email,
+        )
         # ? SAVE DOCUMENT WITH IGNORED PERMISSIONS
         portal_doc.save(ignore_permissions=True)
 
