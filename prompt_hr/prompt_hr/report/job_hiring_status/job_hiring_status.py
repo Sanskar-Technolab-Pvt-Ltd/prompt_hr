@@ -197,7 +197,7 @@ def get_data(filters):
         job["target_hire_date"] = get_target_hire_date(job)
         job["recruiters"] = get_recruiters(job.name)
         if job.location:
-            job["location"] = frappe.get_doc(
+            job["location"] = frappe.get_doc(	
                 "Address", job.location
             ).city  # Set location city from Address DocType
         candidates_stats = get_candidate_stats(
