@@ -19,7 +19,8 @@ frappe.ui.form.on('Job Offer', {
 
         // ? ADD ACCEPT CHANGES BUTTON
         acceptChangesButton(frm);
-        
+
+        // ? ADD RELEASE LOI LETTER BUTTON
         frm.add_custom_button(__("Release LOI Letter"), function () {
             frappe.dom.freeze(__('Releasing Letter...'));
             frappe.call({
@@ -35,7 +36,8 @@ frappe.ui.form.on('Job Offer', {
                     frappe.dom.unfreeze();
                 }
             });
-        });
+        }, 'Offer Actions');
+        
     }
 });
 
@@ -69,39 +71,29 @@ function add_release_offer_button(frm) {
             `Are you sure you want to ${already_sent ? "resend" : "release"} the offer letter?`,
             () => release_offer_letter(frm, already_sent)
         );
-    });
+    }, 'Offer Actions');
 }
 
-// ? FUNCTION TO ADD UPDATE CANDIDATE PORTAL BUTTON AND FUNCTIONALITY
+
+// ? FUNCTION TO ADD UPDATE CANDIDATE PORTAL BUTTON
 function updateCandidatePortal(frm) {
     frm.add_custom_button(__('Update Candidate Portal'), function () {
         frappe.call({
             method: "prompt_hr.py.job_offer.sync_candidate_portal_from_job_offer",
-            args: {
-                job_offer: frm.doc.name
-            },
+            args: { job_offer: frm.doc.name },
             callback: function (r) {
-                if (r.message) {
-                    frappe.msgprint({
-                        title: "Success",
-                        message: "Candidate Portal Updated  Successfully!",
-                        indicator: "green"
-                    });
-                } else {
-                    frappe.msgprint({
-                        title: "Error",
-                        message: "Failed to Update Candidate Portal.",
-                        indicator: "red"
-                    });
-                }
-
+                frappe.msgprint({
+                    title: r.message ? "Success" : "Error",
+                    message: r.message ? "Candidate Portal Updated Successfully!" : "Failed to Update Candidate Portal.",
+                    indicator: r.message ? "green" : "red"
+                });
                 frm.reload_doc();
             }
         });
-    });
+    }, 'Candidate Portal');
 }
 
-// ? FUNCTION TO ADD UPDATE CANDIDATE PORTAL BUTTON AND FUNCTIONALITY
+// ? FUNCTION TO ADD ACCEPT CHANGES BUTTON
 function acceptChangesButton(frm) {
     frm.add_custom_button(__('Accept Changes'), function () {
         frappe.call({
@@ -113,32 +105,23 @@ function acceptChangesButton(frm) {
                 custom_candidate_condition_for_offer_acceptance: frm.doc.custom_candidate_condition_for_offer_acceptance,
             },
             callback: function (r) {
-                if (r.message) {
-                    frappe.msgprint({
-                        title: "Success",
-                        message: "Changes Updated Successfully!",
-                        indicator: "green"
-                    });
-                } else {
-                    frappe.msgprint({
-                        title: "Error",
-                        message: "Failed to Update Changes.",
-                        indicator: "red"
-                    });
-                }
+                frappe.msgprint({
+                    title: r.message ? "Success" : "Error",
+                    message: r.message ? "Changes Updated Successfully!" : "Failed to Update Changes.",
+                    indicator: r.message ? "green" : "red"
+                });
                 frm.reload_doc();
             }
         });
-    });
+    }, 'Candidate Portal');
 }
 
 // ? CALL BACKEND TO RELEASE OR RESEND OFFER LETTER
 function release_offer_letter(frm, is_resend) {
-
-    let notification_name = "Job Application"
+    let notification_name = "Job Application";
 
     if (is_resend) {
-        notification_name = "Resend Job Offer"
+        notification_name = "Resend Job Offer";
     }
 
     frappe.call({
@@ -187,7 +170,6 @@ function release_offer_letter(frm, is_resend) {
 // ? CREATE INVITE FOR DOCUMENT COLLECTION BUTTON
 function createInviteButton(frm) {
     frm.add_custom_button(__('Invite for Document Collection'), function () {
-        // ? CREATE A DIALOG TO COLLECT EXTRA DETAILS
         let dialog = new frappe.ui.Dialog({
             title: 'Invite for Document Collection',
             fields: [
@@ -198,23 +180,15 @@ function createInviteButton(frm) {
                     options: 'Joining Document Checklist',
                     reqd: 1,
                     onchange: function() {
-                        // ? FETCH DOCUMENTS FROM THE SELECTED CHECKLIST USING A CUSTOM METHOD
                         if (dialog.get_value('joining_document_checklist')) {
                             dialog.set_df_property('documents', 'data', []);
-                            
                             frappe.call({
                                 method: "prompt_hr.py.utils.get_checklist_documents",
                                 args: {
                                     checklist: dialog.get_value('joining_document_checklist')
                                 },
                                 callback: function(r) {
-                                    // ? HIDE LOADING INDICATOR
                                     frappe.hide_progress();
-                                    
-                                    // ? DEBUG RESPONSE
-                                    console.log("API Response:", r);
-                                    
-                                    // ? CHECK FOR ERROR IN RESPONSE
                                     if (r.exc) {
                                         frappe.msgprint({
                                             title: __("Error"),
@@ -223,12 +197,8 @@ function createInviteButton(frm) {
                                         });
                                         return;
                                     }
-                                    
-                                    // ? VALIDATE DOCUMENTS DATA
                                     if (r.message && r.message.documents) {
                                         let documents = r.message.documents;
-                                        console.log("Documents received:", documents);
-                                        
                                         if (!documents.length) {
                                             frappe.msgprint({
                                                 title: __("Info"),
@@ -237,13 +207,9 @@ function createInviteButton(frm) {
                                             });
                                             return;
                                         }
-                                        
-                                        // ? UPDATE THE DATA FOR THE DOCUMENTS FIELD
-                                        dialog.fields[3].data = documents; 
-                                        
+                                        dialog.fields[3].data = documents;
                                         dialog.fields_dict.documents.grid.refresh();
                                     } else {
-                                        console.error("Invalid response format:", r.message);
                                         frappe.msgprint({
                                             title: __("Error"),
                                             message: __("Invalid response format from server."),
@@ -261,19 +227,11 @@ function createInviteButton(frm) {
                     fieldtype: 'Link',
                     options: 'Document Collection Stage',
                     onchange: function() {
-                        // ? UPDATE ALL ROWS WITH THE SELECTED STAGE
                         let stage = dialog.get_value('document_collection_stage');
                         if (stage) {
-                            
-                            let documents = dialog.fields[3].data
-                            let newDocuments = documents.filter(doc => {
-                                return doc.document_collection_stage == stage;
-                            });
-                            
-                            console.log("Filtered documents:", newDocuments);
-
-                            // ? UPDATE THE DATA FOR THE DOCUMENTS FIELD
-                            dialog.fields[3].data = newDocuments; 
+                            let documents = dialog.fields[3].data;
+                            let newDocuments = documents.filter(doc => doc.document_collection_stage == stage);
+                            dialog.fields[3].data = newDocuments;
                             dialog.fields_dict.documents.grid.refresh();
                         }
                     }
@@ -301,13 +259,11 @@ function createInviteButton(frm) {
                             read_only: 1
                         }
                     ],
-                    data: [] 
+                    data: []
                 }
             ],
             primary_action_label: 'Send Invite',
             primary_action(values) {
-
-                // ? VALIDATE THAT WE HAVE DOCUMENTS
                 if (!dialog.fields_dict.documents.grid.grid_rows || !dialog.fields_dict.documents.grid.grid_rows.length) {
                     frappe.msgprint({
                         title: __("Warning"),
@@ -316,10 +272,8 @@ function createInviteButton(frm) {
                     });
                     return;
                 }
-                
+
                 dialog.hide();
-                
-                // ? GET SELECTED DOCUMENTS FROM THE CHILD TABLE
                 let selected_documents = [];
                 dialog.fields_dict.documents.grid.grid_rows.forEach(row => {
                     if (row && row.doc) {
@@ -329,18 +283,15 @@ function createInviteButton(frm) {
                         });
                     }
                 });
-                
-                console.log("Selected documents:", selected_documents);
-                
-                // ? TRIGGER BACKEND METHOD WITH EXTRA INFO
+
                 frappe.call({
                     method: "prompt_hr.py.utils.invite_for_document_collection",
                     args: {
                         args: {
-                            name: frm.doc.job_applicant,  
+                            name: frm.doc.job_applicant,
                             joining_document_checklist: values.joining_document_checklist,
                             document_collection_stage: values.document_collection_stage,
-                            documents: selected_documents 
+                            documents: selected_documents
                         },
                         joining_document_checklist: values.joining_document_checklist,
                         document_collection_stage: values.document_collection_stage,
@@ -356,7 +307,7 @@ function createInviteButton(frm) {
                         } else if (r.message === "An error occurred while inviting for document collection.") {
                             frappe.msgprint({
                                 title: __("Error"),
-                                message: __("Oops! Something went wrong while sending the invite. Please try again or check the logs."),
+                                message: __("Oops! Something went wrong while sending the invite."),
                                 indicator: "red"
                             });
                         } else {
@@ -370,7 +321,6 @@ function createInviteButton(frm) {
                 });
             }
         });
-        
         dialog.show();
-    });
+    }, 'Candidate Portal');
 }

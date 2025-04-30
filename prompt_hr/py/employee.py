@@ -1,4 +1,6 @@
 import frappe
+from frappe import throw
+from frappe.utils import getdate
 from frappe.utils.pdf import get_pdf
 from frappe.www.printview import get_print_format
 from prompt_hr.api.main import notify_signatory_on_email
@@ -38,7 +40,7 @@ field_mapping = {
     "nominee_details": "custom_nominee_details",
     "attendance_capture_scheme": "custom_attendance_capture_scheme",
     "weekoff": "custom_weekoff",
-    # Add more if needed
+    # ? ADD MORE IF NEEDED
 }
 
 # ? FUNCTION TO CREATE WELCOME PAGE RECORD FOR GIVEN USER
@@ -114,6 +116,87 @@ def on_update(doc, method):
     # ? CREATE WELCOME PAGE IF IT DOESN’T EXIST AND USER ID IS SET
     if doc.user_id and not frappe.db.exists("Welcome Page", {"user": doc.user_id}):
         create_welcome_status(doc.user_id)
+
+
+def validate(doc, method):
+    
+    # * CHECKING IF HOLIDAY LIST EXISTS IF NOT THEN CREATING A NEW HOLIDAY LIST BASED ON THE WEEKLYOFF TYPE AND FESTIVAL HOLIDAY LIST
+    if doc.custom_weeklyoff and doc.custom_festival_holiday_list:
+        holiday_list = frappe.db.exists("Holiday List", {"custom_weeklyoff_type": doc.custom_weeklyoff, "custom_festival_holiday_list": doc.custom_festival_holiday_list}, "name")
+        
+        if holiday_list:
+            doc.holiday_list = holiday_list
+        else:
+            holiday_list = create_holiday_list(doc)
+
+            if holiday_list:
+                doc.holiday_list = holiday_list
+            
+
+def create_holiday_list(doc):
+    """Creating Holiday list by Fetching Dates from the festival holiday list and calculating date based on days mentioned in weeklyoff type between from date to date in festival holiday list
+    """
+    try:
+        import calendar
+        from datetime import timedelta
+        from dateutil import relativedelta
+        
+        final_date_list = []
+        
+        # * FETCHING FESTIVAL HOLIDAYS DATES
+        festival_holiday_list_doc = frappe.get_doc("Festival Holiday List", doc.custom_festival_holiday_list)
+        
+        if not festival_holiday_list_doc:
+            throw("No Festival Holiday List Found")
+        
+        final_date_list = [{"date":getdate(row.holiday_date), "description": row.description, "weekly_off": row.weekly_off} for row in festival_holiday_list_doc.get("holidays")]
+
+        #* CALCULATING WEEKLYOFF DATES
+        start_date = getdate(festival_holiday_list_doc.from_date)
+        end_date = getdate(festival_holiday_list_doc.to_date)
+        
+        weeklyoff_days = frappe.get_all("WeekOff Multiselect", {"parenttype": "WeeklyOff Type", "parent": doc.custom_weeklyoff}, "weekoff", order_by="weekoff asc", pluck="weekoff")
+        
+        if not weeklyoff_days:
+            throw(f"No WeeklyOff days found for WeeklyOff Type {doc.custom_weeklyoff}")
+        
+        for weeklyoff_day in weeklyoff_days:
+            weekday = getattr(calendar, (weeklyoff_day).upper())
+            reference_date = start_date + relativedelta.relativedelta(weekday=weekday)
+            
+            while reference_date <= end_date:
+                if not any(holiday_date.get("date") == reference_date for holiday_date in final_date_list):
+                    final_date_list.append({
+                        "date": reference_date,
+                        "description": weeklyoff_day,
+                        "weekly_off": 1
+                    })
+                reference_date += timedelta(days=7)
+        
+        if final_date_list:
+            holiday_list_doc = frappe.new_doc("Holiday List")
+            holiday_list_doc.holiday_list_name = "Testing1"
+            holiday_list_doc.from_date = festival_holiday_list_doc.from_date
+            holiday_list_doc.to_date = festival_holiday_list_doc.to_date
+            holiday_list_doc.custom_weeklyoff_type = doc.custom_weeklyoff
+            holiday_list_doc.custom_festival_holiday_list = doc.custom_festival_holiday_list
+                
+            for holiday in final_date_list:
+                holiday_list_doc.append("holidays", {"description": holiday.get("description"),"holiday_date": holiday.get("date"), "weekly_off": holiday.get("weekly_off")})
+        
+            holiday_list_doc.save(ignore_permissions=True)
+            return holiday_list_doc.name
+        else:
+            return None
+
+    except Exception as e:
+        frappe.log_error("Error while creating holiday list", frappe.get_traceback())
+        throw(f"Error while creating Holiday List {str(e)}\n for more info please check error log")
+    
+    
+    
+    
+    
 
 @frappe.whitelist()
 def send_service_agreement(name):
