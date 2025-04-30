@@ -175,7 +175,7 @@ def create_holiday_list(doc):
         
         if final_date_list:
             holiday_list_doc = frappe.new_doc("Holiday List")
-            holiday_list_doc.holiday_list_name = "Testing1"
+            holiday_list_doc.holiday_list_name = f"{festival_holiday_list_doc.name}-{doc.custom_weeklyoff}"
             holiday_list_doc.from_date = festival_holiday_list_doc.from_date
             holiday_list_doc.to_date = festival_holiday_list_doc.to_date
             holiday_list_doc.custom_weeklyoff_type = doc.custom_weeklyoff
