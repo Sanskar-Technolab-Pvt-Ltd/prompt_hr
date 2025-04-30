@@ -1,0 +1,20 @@
+<p>Dear {{ role }},</p>
+
+<p>
+    This is to inform you that your signature has been used in the {{letter}}
+    for {{name}} under the company <b>{{ company }}</b>.
+</p>
+
+<p>
+    If this was expected, no further action is required.
+</p>
+
+<p>
+    If you were not aware of this activity, please contact the system administrator immediately.
+</p>
+
+<p style="margin-top: 30px;">
+    Best Regards,<br>
+    {{ frappe.session.user }}<br>
+    ERP System Notification
+</p>
