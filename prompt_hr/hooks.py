@@ -164,6 +164,7 @@ override_doctype_class = {
 doc_events = {
     "Employee Onboarding": {
         "validate": "prompt_hr.py.employee_onboarding.validate",
+        "after_insert": "prompt_hr.py.employee_onboarding.after_insert",
     },
     "Job Requisition": {
         "validate": [
@@ -175,6 +176,7 @@ doc_events = {
     },
     "Job Applicant": {
         "after_insert": "prompt_hr.py.job_applicant.after_insert",
+        "before_insert": "prompt_hr.py.job_applicant.before_insert",
     },
     "Interview": {
         "validate": "prompt_hr.custom_methods.update_job_applicant_status_based_on_interview",
@@ -186,17 +188,15 @@ doc_events = {
         "after_insert": "prompt_hr.py.job_offer.after_insert",
         "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
     },
-    # "Employee": {
-    #     "on_update": "prompt_hr.py.employee.on_update",
-    # },
+    "Employee": {
+#         "on_update": "prompt_hr.py.employee.on_update",
+        "validate": "prompt_hr.py.employee.validate",
+    },
     # "Probation Feedback Form": {
     #     "on_submit": "prompt_hr.custom_methods.add_probation_feedback_data_to_employee"
     # },
      "LMS Quiz Submission": {
         "validate":"prompt_hr.py.lms_quiz_submission.update_status"
-    },
-    "Job Applicant": {
-        "before_insert": "prompt_hr.py.job_applicant.before_insert",
     },
     "Interview Feedback": {
         "on_submit": "prompt_hr.py.interview_feedback.on_submit",

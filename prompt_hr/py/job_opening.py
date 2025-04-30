@@ -156,7 +156,7 @@ def send_job_opening_interview_notification(name):
         internal_interviewers = frappe.get_all(
             "Internal Interviewer",
             filters={"parent": doc.name},
-            fields=["name", "user", "is_confirm"]
+            fields=["name", "user"]
         )
 
         for interviewer in internal_interviewers:
