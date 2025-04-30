@@ -7,8 +7,10 @@
  "field_order": [
   "employee",
   "employee_name",
+  "column_break_yxha",
+  "status",
   "weekoff_details_section",
-  "table_iwcv"
+  "weekoff_details"
  ],
  "fields": [
   {
@@ -31,15 +33,27 @@
    "label": "WeekOff Details"
   },
   {
-   "fieldname": "table_iwcv",
+   "fieldname": "weekoff_details",
    "fieldtype": "Table",
+   "label": "WeekOff Details",
    "options": "WeekOff Request Details"
+  },
+  {
+   "fieldname": "column_break_yxha",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Status",
+   "options": "Pending\nApproved\nRejected"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-29 06:59:09.475382",
+ "modified": "2025-04-30 19:17:44.192143",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "WeekOff Change Request",
@@ -58,7 +72,6 @@
    "write": 1
   }
  ],
- "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []
