@@ -4,51 +4,8 @@ frappe.ui.form.on('Job Applicant', {
         // ? CREATE INVITE FOR DOCUMENT COLLECTION BUTTON
         createInviteButton(frm);
 
-        frm.add_custom_button('Invite for Screen Test', () => {
-            if (!frm.doc.job_title) {
-                frappe.msgprint(__('No Job Opening linked.'));
-                return;
-            }
-
-            frappe.call({
-                method: "prompt_hr.py.job_applicant.check_test_and_invite",
-                args: {
-                    job_applicant: frm.doc.name
-                },
-                callback: function (r) {
-
-                    if (!r.message['error']) {
-                        if (r.message['message'] === "redirect") {
-
-                            frappe.set_route("Form", "Job Opening", frm.doc.job_title);
-                            
-                            frappe.msgprint("Please create a Screening Test for the job opening before inviting the applicant.");
-                            frappe.after_ajax(() => {
-                            
-                                setTimeout(() => {
-                                    let fieldname = 'custom_applicable_screening_test';
-                                    console.log("Fieldname: ", fieldname);
-                                    if (cur_frm && cur_frm.doc.doctype === 'Job Opening') {
-                                        // Highlight the field's wrapper with a border
-                                        let $field = cur_frm.fields_dict[fieldname]?.$wrapper;
-                                        if ($field) { 
-                                            frappe.utils.scroll_to($field);
-                                        }
-                                    }
-                                }, 600);
-                            });
-                        } else if (r.message['message'] === "invited")
-                        {
-                            frappe.msgprint("Screening Test invitation sent successfully.");
-                        }
-                    }
-                    else if (r.message['error'])  {
-                        frappe.throw(r.message['message'])
-                    }
-                    
-                }
-            });
-        });
+        // ? ADD CUSTOM BUTTON TO INVITE OR RE-INVITE FOR SCREEN TEST
+        screenInviteButton(frm);
     }
 });
 
@@ -65,23 +22,23 @@ function createInviteButton(frm) {
                     fieldtype: 'Link',
                     options: 'Joining Document Checklist',
                     reqd: 1,
-                    onchange: function() {
+                    onchange: function () {
                         // Fetch documents from the selected checklist using a custom method
                         if (dialog.get_value('joining_document_checklist')) {
                             dialog.set_df_property('documents', 'data', []); // Clear existing data
-                            
+
                             frappe.call({
                                 method: "prompt_hr.py.utils.get_checklist_documents",
                                 args: {
                                     checklist: dialog.get_value('joining_document_checklist')
                                 },
-                                callback: function(r) {
+                                callback: function (r) {
                                     // HIDE LOADING INDICATOR
                                     frappe.hide_progress();
-                                    
+
                                     // DEBUG RESPONSE
                                     console.log("API Response:", r);
-                                    
+
                                     // CHECK FOR ERROR IN RESPONSE
                                     if (r.exc) {
                                         frappe.msgprint({
@@ -91,12 +48,12 @@ function createInviteButton(frm) {
                                         });
                                         return;
                                     }
-                                    
+
                                     // VALIDATE DOCUMENTS DATA
                                     if (r.message && r.message.documents) {
                                         let documents = r.message.documents;
                                         console.log("Documents received:", documents);
-                                        
+
                                         if (!documents.length) {
                                             frappe.msgprint({
                                                 title: __("Info"),
@@ -105,10 +62,10 @@ function createInviteButton(frm) {
                                             });
                                             return;
                                         }
-                                        
+
                                         // UPDATE THE DATA FOR THE DOCUMENTS FIELD
-                                        dialog.fields[3].data = documents; 
-                                        
+                                        dialog.fields[3].data = documents;
+
                                         dialog.fields_dict.documents.grid.refresh();
                                     } else {
                                         console.error("Invalid response format:", r.message);
@@ -128,20 +85,20 @@ function createInviteButton(frm) {
                     fieldname: 'document_collection_stage',
                     fieldtype: 'Link',
                     options: 'Document Collection Stage',
-                    onchange: function() {
+                    onchange: function () {
                         // ? UPDATE ALL ROWS WITH THE SELECTED STAGE
                         let stage = dialog.get_value('document_collection_stage');
                         if (stage) {
-                            
+
                             let documents = dialog.fields[3].data
                             let newDocuments = documents.filter(doc => {
                                 return doc.document_collection_stage == stage;
                             });
-                            
+
                             console.log("Filtered documents:", newDocuments);
 
                             // UPDATE THE DATA FOR THE DOCUMENTS FIELD
-                            dialog.fields[3].data = newDocuments; 
+                            dialog.fields[3].data = newDocuments;
                             dialog.fields_dict.documents.grid.refresh();
                         }
                     }
@@ -169,7 +126,7 @@ function createInviteButton(frm) {
                             read_only: 1
                         }
                     ],
-                    data: [] 
+                    data: []
                 }
             ],
             primary_action_label: 'Send Invite',
@@ -184,9 +141,9 @@ function createInviteButton(frm) {
                     });
                     return;
                 }
-                
+
                 dialog.hide();
-                
+
                 // GET SELECTED DOCUMENTS FROM THE CHILD TABLE
                 let selected_documents = [];
                 dialog.fields_dict.documents.grid.grid_rows.forEach(row => {
@@ -197,15 +154,15 @@ function createInviteButton(frm) {
                         });
                     }
                 });
-                
+
                 console.log("Selected documents:", selected_documents);
-                
+
                 // ? TRIGGER BACKEND METHOD WITH EXTRA INFO
                 frappe.call({
                     method: "prompt_hr.py.utils.invite_for_document_collection",
                     args: {
                         args: {
-                            name: frm.doc.name,  
+                            name: frm.doc.name,
                         },
                         joining_document_checklist: values.joining_document_checklist,
                         document_collection_stage: values.document_collection_stage,
@@ -235,7 +192,68 @@ function createInviteButton(frm) {
                 });
             }
         });
-        
+
         dialog.show();
     });
+}
+
+// ? FUNCTION TO ADD CUSTOM BUTTON TO INVITE OR RE-INVITE FOR SCREEN TEST
+function screenInviteButton(frm) {
+
+    frm.add_custom_button(
+        frm.doc.custom_active_quiz === 1 ? 'Invite for Repeat Screen Test' : 'Invite for Screen Test',
+        () => {
+
+            // ? VALIDATE IF JOB OPENING IS LINKED
+            if (!frm.doc.job_title) {
+                frappe.msgprint(__('No Job Opening linked.'));
+                return;
+            }
+
+            // ? CALL SERVER METHOD TO CHECK TEST AND INVITE
+            frappe.call({
+                method: "prompt_hr.py.job_applicant.check_test_and_invite",
+                args: {
+                    job_applicant: frm.doc.name
+                },
+                callback: function (r) {
+
+                    // ? IF NO ERROR RETURNED
+                    if (!r.message?.error) {
+
+                        // ? RESET ACTIVE QUIZ IF IT WAS A REPEAT INVITE
+                        if (frm.doc.custom_active_quiz === 1) {
+                            frappe.db.set_value("Job Applicant", frm.doc.name, "custom_active_quiz", 0);
+                        }
+
+                        // ? IF TEST INVITATION SENT
+                        if (r.message.message === "invited") {
+                            frappe.msgprint("Screening Test invitation sent successfully.");
+
+                            // ? IF QUIZ TEMPLATE IS MISSING, REDIRECT TO JOB OPENING
+                        } else if (r.message.message === "redirect") {
+                            frappe.set_route("Form", "Job Opening", frm.doc.job_title);
+                            frappe.msgprint("Please create a Screening Test for the job opening before inviting the applicant.");
+
+                            // ? SCROLL TO SCREENING TEST FIELD
+                            frappe.after_ajax(() => {
+                                setTimeout(() => {
+                                    let fieldname = 'custom_applicable_screening_test';
+                                    if (cur_frm?.doc.doctype === 'Job Opening') {
+                                        let $field = cur_frm.fields_dict[fieldname]?.$wrapper;
+                                        if ($field) frappe.utils.scroll_to($field);
+                                    }
+                                }, 600);
+                            });
+                        }
+
+                        // ? HANDLE ERROR RESPONSE
+                    } else {
+                        frappe.throw(r.message.message);
+                    }
+                }
+            });
+        }
+    );
+
 }
