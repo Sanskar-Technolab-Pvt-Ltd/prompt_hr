@@ -30,8 +30,7 @@ frappe.ui.form.on('WeekOff Request Details', {
 
         let child = locals[cdt][cdn];
         if (child.existing_weekoff_date) {
-            console.log("Hello")
-            
+    
             frappe.call({
                 method: "prompt_hr.prompt_hr.doctype.weekoff_change_request.weekoff_change_request.check_existing_date",
                 args: {
@@ -42,8 +41,11 @@ frappe.ui.form.on('WeekOff Request Details', {
                     
                     if (!r.message.error) {
                         if (r.message.exists) {
-
-                            frappe.model.set_value(cdt, cdn, 'existing_weekoff', r.message.day);
+                            let date_obj = new Date(child.existing_weekoff_date);
+                            let day_name = date_obj.toLocaleString('en-US', { weekday: 'long' });
+                            // frappe.model.set_value(cdt, cdn, 'existing_weekoff', day_name);
+                            child.existing_weekoff = day_name
+                            frm.refresh_field("weekoff_details")
                         } else {
                             frappe.model.set_value(cdt, cdn, 'existing_weekoff', '');
                             frappe.throw(`Date ${child.existing_weekoff_date} does not exist in Holiday List`)
