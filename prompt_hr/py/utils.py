@@ -62,71 +62,79 @@ def validate_hash(hash, doctype, filters):
 
 
 # ? FUNCTION TO SEND FULLY DYNAMIC NOTIFICATION EMAIL
+# ? FUNCTION TO SEND CUSTOM NOTIFICATION EMAIL WITH OPTIONAL BUTTON, TEMPLATE, AND HASH
 def send_notification_email(
     recipients,
+    doctype,
+    docname,
+    send_link=True,
     notification_name=None,
-    doctype=None,
-    docname=None,
     button_label="View Details",
     button_link="None",
     fallback_subject="Notification",
     fallback_message="You have a new update. Please check your portal.",
-    extra_context=None,
     hash_input_text=None,
 ):
     try:
         hash = None
         base_url = frappe.utils.get_url()
-        doc = frappe.get_doc(doctype, docname) if doctype and docname else frappe._dict({})
 
-        if button_link == "None" and doctype and docname:
+        # ? Generate default button link if not explicitly provided
+        if send_link and button_link == "None" and doctype and docname:
             button_link = f"{base_url}/app/{doctype.lower().replace(' ', '-')}/{docname}"
 
-        context = {
-            "doc": doc,
-            "doctype": doctype,
-            "docname": docname,
-            "button_label": button_label,
-            "button_link": button_link,
-            "base_url": base_url,
-        }
-
+        # ? Generate secure hash if required
         if hash_input_text:
             hash = create_hash(hash_input_text)
 
-        if extra_context:
-            context.update(extra_context)
-
+        # ? Fetch Notification template if provided
         notification_doc = None
         if notification_name:
-            result = frappe.get_all("Notification", filters={"name": notification_name}, limit=1)
-            if result:
-                notification_doc = frappe.get_doc("Notification", result[0].name)
+            notification_doc = frappe.db.get_value(
+                "Notification", notification_name, ["subject", "message"], as_dict=True
+            )
 
         for email in recipients:
-            context["user"] = email
-            subject, message = fallback_subject, fallback_message
+            subject = fallback_subject
+            message = fallback_message
+            user = frappe.db.get_value("User", {"email": email}, "name")
 
             if notification_doc:
-                subject = frappe.render_template(notification_doc.subject or fallback_subject, context)
-                message = frappe.render_template(notification_doc.message or fallback_message, context)
+                doc = frappe.get_doc(doctype, docname)
+                subject = frappe.render_template(notification_doc.subject, {"doc": doc}) or fallback_subject
+                message = frappe.render_template(notification_doc.message, {"doc": doc}) or fallback_message
 
-            hash_message = f"<p>Password: <b>{hash}</b></p>" if hash else ""
+            # ? Add hash and action button to message if link should be included
+            if send_link:
+                hash_message = f"<p>Password: <b>{hash}</b></p>" if hash else ""
+                if button_link:
+                    message += f"""
+                        <hr>
+                        {hash_message}
+                        <p><b>{button_label}</b></p>
+                        <p><a href="{button_link}" target="_blank">{button_label}</a></p>
+                    """
 
-            if button_link:
-                message += f"""
-                    <hr>
-                    {hash_message}
-                    <p><b>{button_label}</b></p>
-                    <p><a href="{button_link}" target="_blank">{button_label}</a></p>
-                """
+            # ? Log Notification in Frappe's Notification Log
+            if user:
+                system_notification = frappe.get_doc({
+                    "doctype": "Notification Log",
+                    "subject": subject,
+                    "for_user": user,
+                    "type": "Energy Point",
+                    "document_type": doctype,
+                    "document_name": docname,
+                })
+                system_notification.insert(ignore_permissions=True)
 
+            # ? Send email
             frappe.sendmail(
                 recipients=[email],
                 subject=subject,
                 message=message
             )
 
+        # ? Log success
         frappe.log_error(
             title="Notification Sent",
             message=f"Sent dynamic notification to {len(recipients)} recipient(s)."

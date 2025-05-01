@@ -65,6 +65,7 @@ def update_job_offer(
 @frappe.whitelist()
 def update_candidate_portal(doc):
     try:
+
         # ? PARSE JSON IF COMING AS STRING
         if isinstance(doc, str):
             doc = frappe.parse_json(doc)
@@ -94,6 +95,9 @@ def update_candidate_portal(doc):
 
         # ? APPEND EACH DOCUMENT ENTRY
         for row in documents:
+            row["upload_date"] = frappe.utils.now()
+            row["upload_time"] = frappe.utils.now()
+            row["ip_address_on_document_upload"] = frappe.local.request_ip
             portal_doc.append("documents", row)
 
         # ? SEND MAIL TO HR

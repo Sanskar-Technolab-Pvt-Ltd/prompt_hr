@@ -5,6 +5,7 @@ from frappe.utils.pdf import get_pdf
 from frappe.www.printview import get_print_format
 from prompt_hr.api.main import notify_signatory_on_email
 import traceback
+from prompt_hr.py.utils import send_notification_email
 
 # ? COMMON FIELDS THAT EXIST IN BOTH EMPLOYEE & EMPLOYEE PROFILE
 common_fields = [
@@ -193,11 +194,6 @@ def create_holiday_list(doc):
         frappe.log_error("Error while creating holiday list", frappe.get_traceback())
         throw(f"Error while creating Holiday List {str(e)}\n for more info please check error log")
     
-    
-    
-    
-    
-
 @frappe.whitelist()
 def send_service_agreement(name):
     doc = frappe.get_doc("Employee", name)
@@ -335,3 +331,80 @@ def send_probation_extension_letter(name):
     else:
         frappe.throw("No Email found for Employee")
     return "Probation Extension Letter sent Successfully"
+
+# ! prompt_hr.py.employee.get_raise_resignation_questions
+@frappe.whitelist()
+def get_raise_resignation_questions():
+    try:
+        # ? FETCH QUIZ NAME FROM HR SETTINGS
+        quiz_name = "prompt-resignation-questionnaire"
+        
+        questions = frappe.get_all(
+            "LMS Quiz Question",
+            filters={"parent": quiz_name},
+            fields=["question", "question_detail"],
+        )
+        return questions
+
+    except Exception as e:
+        frappe.log_error(f"Error fetching resignation questions: {str(e)}")
+        return []
+
+from lms.lms.doctype.lms_quiz.lms_quiz import quiz_summary
+
+import json
+
+@frappe.whitelist()
+def create_resignation_quiz_submission(user_response):
+    try:
+        # ? PARSE USER RESPONSE FROM JSON STRING
+        if isinstance(user_response, str):
+            user_response = json.loads(user_response)
+
+        # ? FETCH QUIZ NAME FROM HR SETTINGS
+        quiz_name = "prompt-resignation-questionnaire"
+
+        submission = frappe.new_doc("LMS Quiz Submission")
+        submission.update({
+            "quiz": quiz_name,
+            "result": user_response,
+            "score": 0,
+            "score_out_of": 0,
+            "member": frappe.session.user,
+            "percentage": 100,
+            "passing_percentage": 0,
+        })
+        submission.save(ignore_permissions=True)
+        frappe.db.commit()
+        create_exit_approval_process()
+
+        return submission
+
+    except Exception as e:
+        frappe.log_error(f"Error creating resignation quiz submission: {str(e)}")
+        return {"error": 1, "message": str(e)}
+
+def create_exit_approval_process():
+
+    try:
+        employee = frappe.db.get_value("Employee", {"user_id": frappe.session.user}, "name")
+        # ? CHECK IF EXIT APPROVAL PROCESS ALREADY EXISTS
+        if frappe.db.exists("Exit Approval Process", {"employee": employee, "resignation_approval": ["!=","Rejected"]}):
+            return
+
+        if not employee:
+            raise("Employee not found")
+        
+        exit_approval_process = frappe.new_doc("Exit Approval Process")
+        exit_approval_process.employee = employee
+        exit_approval_process.resignation_approval = ""
+        exit_approval_process.posting_date = getdate()
+        exit_approval_process.save(ignore_permissions=True)
+        frappe.db.commit()
+        send_n
+
+    except Exception as e:
+        frappe.log_error(
+            title="Exit Approval Process Creation Error",
+            message=f"Error creating Exit Approval Process: {str(e)}\n{traceback.format_exc()}"
+        )
