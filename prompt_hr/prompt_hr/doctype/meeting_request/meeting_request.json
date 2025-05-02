@@ -7,6 +7,7 @@
  "field_order": [
   "meeting_title",
   "organizor_name",
+  "meeting_room",
   "date",
   "from_time",
   "to_time",
@@ -25,6 +26,7 @@
   "related_to_form",
   "room_setup_instruction_section_section",
   "room_setup_instruction",
+  "section_break_nlgt",
   "notes"
  ],
  "fields": [
@@ -70,7 +72,7 @@
    "fieldname": "mode",
    "fieldtype": "Select",
    "label": "Mode",
-   "options": "Offline\nOnline\nOn Site"
+   "options": "Offline\nOnline\nOn Site\nCall"
   },
   {
    "fieldname": "booking_status",
@@ -85,12 +87,14 @@
    "label": "Is Recurring Meeting"
   },
   {
+   "depends_on": "eval:doc.is_recurring_meeting==1",
    "fieldname": "recurring_frequency",
    "fieldtype": "Select",
    "label": "Recurring Frequency",
    "options": "Daily\nWeekly\nMonthly\nQuaterly\nHalf-yearly\nYearly"
   },
   {
+   "depends_on": "eval:doc.is_recurring_meeting==1",
    "fieldname": "recurring_day",
    "fieldtype": "Data",
    "label": "Recurring Day"
@@ -110,9 +114,10 @@
    "fieldtype": "Column Break"
   },
   {
+   "depends_on": "meeting_room",
    "fieldname": "room_setup_instruction_section_section",
    "fieldtype": "Section Break",
-   "label": "Room Setup Instruction Section"
+   "label": "Room Setup Instruction"
   },
   {
    "fieldname": "travel_from_datetime",
@@ -140,16 +145,26 @@
    "fieldname": "product_category",
    "fieldtype": "Link",
    "label": "Product Category",
-   "options": "Item"
+   "options": "Product Group"
+  },
+  {
+   "fieldname": "meeting_room",
+   "fieldtype": "Link",
+   "label": "Meeting Room",
+   "options": "Meeting Room"
+  },
+  {
+   "fieldname": "section_break_nlgt",
+   "fieldtype": "Section Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-25 19:23:35.784080",
+ "modified": "2025-05-02 12:22:37.795099",
  "modified_by": "Administrator",
  "module": "Prompt HR",
- "name": "Meeting Room Booking Request",
+ "name": "Meeting Request",
  "owner": "Administrator",
  "permissions": [
   {

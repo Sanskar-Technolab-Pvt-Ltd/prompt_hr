@@ -125,7 +125,8 @@ def validate(doc, method):
         holiday_list = frappe.db.exists("Holiday List", {"custom_weeklyoff_type": doc.custom_weeklyoff, "custom_festival_holiday_list": doc.custom_festival_holiday_list}, "name")
         
         if holiday_list:
-            doc.holiday_list = holiday_list
+            if doc.holiday_list != holiday_list:
+                doc.holiday_list = holiday_list
         else:
             holiday_list = create_holiday_list(doc)
 
