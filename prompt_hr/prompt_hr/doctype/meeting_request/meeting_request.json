@@ -1,7 +1,8 @@
 {
  "actions": [],
  "allow_rename": 1,
- "creation": "2025-04-11 07:21:16.093813",
+ "creation": "2025-05-02 17:29:09.027532",
+ "default_view": "List",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -33,27 +34,37 @@
   {
    "fieldname": "meeting_title",
    "fieldtype": "Data",
+   "in_preview": 1,
    "label": "Meeting Title"
   },
   {
    "fieldname": "organizor_name",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Organizor Name",
    "options": "Employee"
   },
   {
+   "fieldname": "meeting_room",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Meeting Room",
+   "options": "Meeting Room"
+  },
+  {
    "fieldname": "date",
    "fieldtype": "Datetime",
+   "in_preview": 1,
    "label": "Date"
   },
   {
    "fieldname": "from_time",
-   "fieldtype": "Time",
+   "fieldtype": "Datetime",
    "label": "From Time"
   },
   {
    "fieldname": "to_time",
-   "fieldtype": "Time",
+   "fieldtype": "Datetime",
    "label": "To Time"
   },
   {
@@ -63,22 +74,37 @@
    "options": "Employee Multiselect"
   },
   {
-   "default": "0",
-   "fieldname": "generate_meeting_link",
-   "fieldtype": "Check",
-   "label": "Generate Meeting Link"
+   "fieldname": "travel_from_datetime",
+   "fieldtype": "Datetime",
+   "label": "Travel From Datetime"
   },
   {
-   "fieldname": "mode",
-   "fieldtype": "Select",
-   "label": "Mode",
-   "options": "Offline\nOnline\nOn Site\nCall"
+   "fieldname": "travel_to_datetime",
+   "fieldtype": "Datetime",
+   "label": "Travel To Datetime"
+  },
+  {
+   "fieldname": "column_break_uouy",
+   "fieldtype": "Column Break"
   },
   {
    "fieldname": "booking_status",
    "fieldtype": "Select",
    "label": "Booking Status",
    "options": "Scheduled\nIn-Progress\nCompleted\nVacant\nCancelled"
+  },
+  {
+   "fieldname": "mode",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Mode",
+   "options": "Offline\nOnline\nOn Site\nCall"
+  },
+  {
+   "default": "0",
+   "fieldname": "generate_meeting_link",
+   "fieldtype": "Check",
+   "label": "Generate Meeting Link"
   },
   {
    "default": "0",
@@ -100,34 +126,10 @@
    "label": "Recurring Day"
   },
   {
-   "fieldname": "room_setup_instruction",
-   "fieldtype": "Long Text",
-   "label": "Room Setup Instruction"
-  },
-  {
-   "fieldname": "notes",
-   "fieldtype": "Small Text",
-   "label": "Notes"
-  },
-  {
-   "fieldname": "column_break_uouy",
-   "fieldtype": "Column Break"
-  },
-  {
-   "depends_on": "meeting_room",
-   "fieldname": "room_setup_instruction_section_section",
-   "fieldtype": "Section Break",
-   "label": "Room Setup Instruction"
-  },
-  {
-   "fieldname": "travel_from_datetime",
-   "fieldtype": "Datetime",
-   "label": "Travel From Datetime"
-  },
-  {
-   "fieldname": "travel_to_datetime",
-   "fieldtype": "Datetime",
-   "label": "Travel To Datetime"
+   "fieldname": "product_category",
+   "fieldtype": "Link",
+   "label": "Product Category",
+   "options": "Product Group"
   },
   {
    "fieldname": "related_to",
@@ -142,26 +144,31 @@
    "options": "related_to"
   },
   {
-   "fieldname": "product_category",
-   "fieldtype": "Link",
-   "label": "Product Category",
-   "options": "Product Group"
+   "depends_on": "meeting_room",
+   "fieldname": "room_setup_instruction_section_section",
+   "fieldtype": "Section Break",
+   "label": "Room Setup Instruction"
   },
   {
-   "fieldname": "meeting_room",
-   "fieldtype": "Link",
-   "label": "Meeting Room",
-   "options": "Meeting Room"
+   "fieldname": "room_setup_instruction",
+   "fieldtype": "Long Text",
+   "label": "Room Setup Instruction"
   },
   {
    "fieldname": "section_break_nlgt",
    "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
+ "is_calendar_and_gantt": 1,
  "links": [],
- "modified": "2025-05-02 12:22:37.795099",
+ "modified": "2025-05-02 17:29:09.027532",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Meeting Request",
@@ -183,5 +190,6 @@
  "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }
