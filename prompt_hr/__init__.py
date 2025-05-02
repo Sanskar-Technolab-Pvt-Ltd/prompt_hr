@@ -5,8 +5,12 @@ import frappe
 from typing import List
 import hrms.hr.doctype.interview_feedback.interview_feedback as interview_feedback_module
 import hrms.hr.doctype.interview.interview as interview_module
+from hrms.hr.doctype.leave_policy_assignment.leave_policy_assignment import LeavePolicyAssignment
+import hrms.hr.utils
+import hrms.hr.doctype.leave_application.leave_application as leave_application_module
 from frappe.model import workflow
 from prompt_hr.overrides.workflow_override import custom_get_transitions, custom_has_approval_access
+from prompt_hr.py.leave_application import custom_get_number_of_leave_days, custom_grant_leave_alloc_for_employee, custom_update_previous_leave_allocation, custom_check_effective_date
 
 @frappe.whitelist()
 def custom_get_applicable_interviewers(interview: str) -> List[str]:
@@ -53,3 +57,7 @@ def custom_get_expected_skill_set(interview_round):
 	)
 
 interview_module.get_expected_skill_set = custom_get_expected_skill_set
+LeavePolicyAssignment.grant_leave_alloc_for_employee = custom_grant_leave_alloc_for_employee
+hrms.hr.utils.check_effective_date = custom_check_effective_date
+hrms.hr.utils.update_previous_leave_allocation = custom_update_previous_leave_allocation
+leave_application_module.get_number_of_leave_days = custom_get_number_of_leave_days
