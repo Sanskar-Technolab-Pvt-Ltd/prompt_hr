@@ -177,6 +177,7 @@ function createEmployeeResignationButton(frm) {
                             frappe.call({
                                 method: "prompt_hr.py.employee.create_resignation_quiz_submission",
                                 args: {
+                                    employee: frm.doc.name,
                                     user_response: answers
                                 },
                                 callback: function (r) {

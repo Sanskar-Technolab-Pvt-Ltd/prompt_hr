@@ -87,8 +87,8 @@ def check_test_and_invite(job_applicant):
         if not applicant:
             return {"error": 1, "message": "Job Applicant not found."}
 
-        if not applicant.custom_applicable_screening_test:
-            return {"error": 0, "message": "redirect"}
+        if not applicant.custom_interview_round:
+            return {"error": 0, "message": "redirect","applicant": applicant}
 
         if not applicant.email_id:
             frappe.throw("No email address found for the applicant.")
@@ -103,7 +103,6 @@ def check_test_and_invite(job_applicant):
             button_link=f"http://192.168.2.111:8007/lms/courses/{applicant.custom_interview_round}/learn/1-1",
             fallback_subject="Notification",
             fallback_message="You have a new update. Please check your portal.",
-            extra_context=None,
             hash_input_text=job_applicant
         )
 

@@ -36,9 +36,6 @@ function createInviteButton(frm) {
                                     // HIDE LOADING INDICATOR
                                     frappe.hide_progress();
 
-                                    // DEBUG RESPONSE
-                                    console.log("API Response:", r);
-
                                     // CHECK FOR ERROR IN RESPONSE
                                     if (r.exc) {
                                         frappe.msgprint({
@@ -217,7 +214,7 @@ function screenInviteButton(frm) {
                     job_applicant: frm.doc.name
                 },
                 callback: function (r) {
-
+                    console.log(r)
                     // ? IF NO ERROR RETURNED
                     if (!r.message?.error) {
 
