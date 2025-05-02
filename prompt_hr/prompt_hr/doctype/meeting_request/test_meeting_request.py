@@ -5,5 +5,5 @@
 from frappe.tests.utils import FrappeTestCase
 
 
-class TestMeetingRoomBookingRequest(FrappeTestCase):
+class TestMeetingRequest(FrappeTestCase):
 	pass
