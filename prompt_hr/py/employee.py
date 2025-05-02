@@ -160,7 +160,7 @@ def create_holiday_list(doc):
         
         if not weeklyoff_days:
             throw(f"No WeeklyOff days found for WeeklyOff Type {doc.custom_weeklyoff}")
-        
+            
         for weeklyoff_day in weeklyoff_days:
             weekday = getattr(calendar, (weeklyoff_day).upper())
             reference_date = start_date + relativedelta.relativedelta(weekday=weekday)

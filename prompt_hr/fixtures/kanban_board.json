@@ -1,0 +1,62 @@
+[
+ {
+  "columns": [
+   {
+    "column_name": "Scheduled",
+    "indicator": "Blue",
+    "order": "[\"bv3ggevev3\"]",
+    "parent": "Meetings",
+    "parentfield": "columns",
+    "parenttype": "Kanban Board",
+    "status": "Active"
+   },
+   {
+    "column_name": "In-Progress",
+    "indicator": "Orange",
+    "order": "[\"l75042lgtp\"]",
+    "parent": "Meetings",
+    "parentfield": "columns",
+    "parenttype": "Kanban Board",
+    "status": "Active"
+   },
+   {
+    "column_name": "Completed",
+    "indicator": "Green",
+    "order": "[]",
+    "parent": "Meetings",
+    "parentfield": "columns",
+    "parenttype": "Kanban Board",
+    "status": "Active"
+   },
+   {
+    "column_name": "Vacant",
+    "indicator": "Gray",
+    "order": "[]",
+    "parent": "Meetings",
+    "parentfield": "columns",
+    "parenttype": "Kanban Board",
+    "status": "Active"
+   },
+   {
+    "column_name": "Cancelled",
+    "indicator": "Red",
+    "order": "[]",
+    "parent": "Meetings",
+    "parentfield": "columns",
+    "parenttype": "Kanban Board",
+    "status": "Active"
+   }
+  ],
+  "docstatus": 0,
+  "doctype": "Kanban Board",
+  "field_name": "booking_status",
+  "fields": "[\"mode\", \"organizor_name\", \"meeting_room\"]",
+  "filters": null,
+  "kanban_board_name": "Meetings",
+  "modified": "2025-05-02 17:13:09.338998",
+  "name": "Meetings",
+  "private": 0,
+  "reference_doctype": "Meeting Request",
+  "show_labels": 1
+ }
+]

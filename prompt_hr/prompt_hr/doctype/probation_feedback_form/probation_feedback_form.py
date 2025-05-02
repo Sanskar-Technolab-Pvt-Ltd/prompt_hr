@@ -170,11 +170,9 @@ def send_mail_to_hr(docname):
 			if company_id and all_hr_role_user:
 				for hr_user in all_hr_role_user:
 					if frappe.db.exists("Employee", {"user_id": hr_user.get("parent"), "status": "Active", "company": company_id}):
-						hr_user_email = frappe.db.get_value("User", hr_user.get("parent"), "email")
-						
-						if hr_user_email:
+						if hr_user.get("parent"):
 								send_notification_email(
-									recipients=[hr_user_email],
+									recipients=[hr_user.get("parent")],
 									notification_name = "Dotted Manager to HR For Probation Feedback Form",
 									doctype = "Probation Feedback Form",
 									docname = docname,

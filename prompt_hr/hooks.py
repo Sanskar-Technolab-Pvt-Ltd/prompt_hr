@@ -301,6 +301,20 @@ scheduler_events = {
 # }
 
 fixtures = [
+
+    # {
+    #     "dt": "Kanban Board",
+    #     "filters": [
+    #         [
+    #             "name",
+    #             "in",
+    #             [
+    #                 "Meetings",
+    #             ],
+    #         ]
+    #     ],
+    # },
+
 # {"dt":"Notification","filters":[
 #     [
 #         "module","in",[
