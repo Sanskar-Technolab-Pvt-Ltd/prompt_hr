@@ -2,25 +2,48 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on("WeekOff Change Request", {
+    
+    onload: function(frm) {
+        if (frm.is_new() && !frm.doc.employee) {
+            frappe.call({
+                method: 'frappe.client.get_value',
+                args: {
+                    doctype: 'Employee',
+                    filters: {
+                        user_id: frappe.session.user
+                    },
+                    fieldname: ['name'],
+                },
+                callback: function(r) {
+                    if (r.message && r.message.name) {
+                        frm.set_value('employee', r.message.name);
+                    }
+                }
+            });
+        }
+    },
 	refresh(frm) {
 
         const user = frappe.session.user
-        frappe.call({
-            "method": "prompt_hr.prompt_hr.doctype.weekoff_change_request.weekoff_change_request.check_user_is_reporting_manager",
-            "args": {
-                user_id: user,
-                requesting_employee_id: frm.doc.employee
-            },
-            callback: function (r) {
-                if (!r.message.error) {
-                    if (r.message.is_rh) {
-                        frm.set_df_property("status", "hidden", 0)
+        if (frm.doc.employee) {
+            frappe.call({
+                "method": "prompt_hr.prompt_hr.doctype.weekoff_change_request.weekoff_change_request.check_user_is_reporting_manager",
+                "args": {
+                    user_id: user,
+                    requesting_employee_id: frm.doc.employee
+                },
+                callback: function (r) {
+                    if (!r.message.error) {
+                        if (r.message.is_rh) {
+                            frm.set_df_property("status", "hidden", 0)
+                        }
+                    } else if (r.message.error) {
+                        frappe.throw(r.message.message)
                     }
-                } else if (r.message.error) {
-                    frappe.throw(r.message.message)
                 }
-            }
-        })
+            })
+        }
+        
 
     },
     
