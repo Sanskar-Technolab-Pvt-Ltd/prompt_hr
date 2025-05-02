@@ -24,28 +24,6 @@ class WeekOffChangeRequest(Document):
 		
 		# *CHECKING IF THE CURRENT USER IS THE EMPLOYEE USER LINKED TO DOCUMENT THEN WHEN WE SAVES THIS DOCUMENT THEN SENDING AN EMAIL TO THE EMPLOYEE'S REPORTING HEAD ABOUT THE CREATION WEEKOFF CHANGE REQUEST
 		current_user = frappe.session.user
-		emp_user = frappe.db.get_value("Employee", self.employee, "user_id")
-
-		rh_emp = frappe.db.get_value("Employee", self.employee, "reports_to")
-		if rh_emp:
-			rh_user = frappe.db.get_value("Employee", rh_emp, "user_id")
-			if rh_user:
-				if current_user == emp_user:
-					send_notification_email(
-						recipients=[rh_user],
-						notification_name="Request to RH to Approve WeekOff Change",
-						doctype="WeekOff Change Request",
-						docname= self.name,
-						send_link=True,
-						fallback_subject=" Request for Approval – WeekOff Change Request",
-						fallback_message=f"Dear Reporting Head,\n\n     I am writing to formally request your approval for my WeekOff Change Request.\n Kindly review and approve the request at your earliest convenience."
-					)
-			else:
-				throw(f"No user found for reporting head {rh_emp}")
-		else:
-			throw(f"NO Reporting Head Found for Employee {self.employee}")
-
-
 
 		if self.status == "Approved":
 			is_rh = check_user_is_reporting_manager(current_user, self.employee)
@@ -84,6 +62,39 @@ class WeekOffChangeRequest(Document):
 						)
 			elif is_rh.get("error"):
 				throw(f"{is_rh.get('message')}")
+    
+	def after_insert(self):
+		
+		current_user = frappe.session.user
+		emp_user = frappe.db.get_value("Employee", self.employee, "user_id")
+
+		# * NOTIFY REPORTING MANAGER IF THE CURRENT USER IS THE EMPLOYEE WHOSE WEEKOFF CHANGE REQUEST IS RAISED FOR
+		notify_reporting_manager(self.employee, self.name, emp_user, current_user)
+
+
+
+def notify_reporting_manager(employee_id, docname, emp_user, current_user):
+	"""Method to check if the current user is the employee whose weekoff change request is, if it is the same user then, sending an email to  employee's reporting manager
+	"""
+	rh_emp = frappe.db.get_value("Employee", employee_id, "reports_to")
+	if rh_emp:
+		rh_user = frappe.db.get_value("Employee", rh_emp, "user_id")
+		if rh_user:
+			if current_user == emp_user:
+				send_notification_email(
+					recipients=[rh_user],
+					notification_name="Request to RH to Approve WeekOff Change",
+					doctype="WeekOff Change Request",
+					docname= docname,
+					send_link=True,
+					fallback_subject=" Request for Approval – WeekOff Change Request",
+					fallback_message=f"Dear Reporting Head,\n\n     I am writing to formally request your approval for my WeekOff Change Request.\n Kindly review and approve the request at your earliest convenience."
+				)
+		else:
+			throw(f"No user found for reporting head {rh_emp}")
+	else:
+		throw(f"NO Reporting Head Found for Employee {employee_id}")
+
 @frappe.whitelist()
 def check_existing_date(employee_id, existing_date):
 	"""Method to check of the existing date entered exists in holiday list's holiday child table or not"""
