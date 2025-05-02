@@ -537,7 +537,8 @@ def inform_employee_for_confirmation_process():
                                         )
     except Exception as e:
         frappe.log_error("Error while sending confirmation process reminder email", frappe.get_traceback())
-        
+    
+@frappe.whitelist()
 def validate_employee_holiday_list():
     """ checking if are there any weeklyoff assignment or not if there are then assigning them based on from and to date and updating employee holiday list if required
     """
@@ -550,39 +551,46 @@ def validate_employee_holiday_list():
         today_date = getdate(today())
         
         for employee_id in employee_list:
-            weeklyoff_assignment_id = frappe.db.exists("WeeklyOff Assignment", {"employee": employee_id.get("name")}, "name")
+            weeklyoff_assignment_list = frappe.db.get_all("WeeklyOff Assignment", {"employee": employee_id.get("name"), "docstatus": 1}, "name")
             
-            if weeklyoff_assignment_id:
-                weeklyoff_assignment_doc = frappe.get_doc("WeeklyOff Assignment", weeklyoff_assignment_id)
+            if weeklyoff_assignment_list:
                 
-                if not weeklyoff_assignment_doc:
-                    frappe.log_error("Not able to fetch Weekoff assignment",  f"Weekoff Assignment not found {weeklyoff_assignment_id}")
-                start_date = weeklyoff_assignment_doc.start_date
-                end_date = weeklyoff_assignment_doc.end_date
-                
-                employee_doc = frappe.get_doc("Employee", employee_id)
-                
-                if (start_date and end_date) and (start_date <= today_date <= end_date):
-                    # * SETTING NEW WEEKLYOFF TYPE FOR EMPLOYEE IF THE CURRENT DATE IS WITHIN THE WEEKOFF ASSIGNMENT PERIOD
-                    if weeklyoff_assignment_doc.new_weeklyoff_type != employee_doc.custom_weeklyoff:
-                        employee_doc.custom_weeklyoff = weeklyoff_assignment_doc.new_weeklyoff_type
-                        employee_doc.save(ignore_permissions=True)
-                        frappe.db.commit()
+                for weeklyoff_assignment_id in weeklyoff_assignment_list:
+                    weeklyoff_assignment_doc = frappe.get_doc("WeeklyOff Assignment", weeklyoff_assignment_id.get("name"))
+                    
+                    if not weeklyoff_assignment_doc:
+                        frappe.log_error("Not able to fetch Weekoff assignment",  f"Weekoff Assignment not found {weeklyoff_assignment_id}")
+                        
+                    if weeklyoff_assignment_doc.start_date <= today_date:
+                        start_date = weeklyoff_assignment_doc.start_date
+                        end_date = weeklyoff_assignment_doc.end_date
+                        
+                        employee_doc = frappe.get_doc("Employee", employee_id.get("name"))
+                        
+                        if (start_date and end_date) and (start_date <= today_date < end_date):
+                            # * SETTING NEW WEEKLYOFF TYPE FOR EMPLOYEE IF THE CURRENT DATE IS WITHIN THE WEEKOFF ASSIGNMENT PERIOD
+                            if weeklyoff_assignment_doc.new_weeklyoff_type != employee_doc.custom_weeklyoff:
+                                employee_doc.custom_weeklyoff = weeklyoff_assignment_doc.new_weeklyoff_type
+                                employee_doc.save(ignore_permissions=True)
+                                frappe.db.commit()
 
-                elif not end_date and (start_date and start_date <= today_date):
-                    # * PERMANENTLY SETTING NEW WEEKLYOFF TYPE FOR EMPLOYEE IF END DATE IS NOT DEFINED
-                    if weeklyoff_assignment_doc.new_weeklyoff_type != employee_doc.custom_weeklyoff:
-                        employee_doc.custom_weeklyoff = weeklyoff_assignment_doc.new_weeklyoff_type
-                        employee_doc.save(ignore_permissions=True)
-                        frappe.db.commit()
+                        elif end_date and end_date < today_date:
+                            # * SETTING BACK THE OLD WEEKLYOFF TYPE ONCE THE WEEKOFF ASSIGNMENT PERIOD IS OVER
+                            if weeklyoff_assignment_doc.old_weeklyoff_type != employee_doc.custom_weeklyoff:
+                                employee_doc.custom_weeklyoff = weeklyoff_assignment_doc.old_weeklyoff_type
+                                employee_doc.save(ignore_permissions=True)
+                                frappe.db.commit()
+                                
+                        elif not end_date and (start_date and start_date <= today_date):
+                            # * PERMANENTLY SETTING NEW WEEKLYOFF TYPE FOR EMPLOYEE IF END DATE IS NOT DEFINED
+                            if weeklyoff_assignment_doc.new_weeklyoff_type != employee_doc.custom_weeklyoff:
+                                frappe.db.set_value("WeeklyOff Assignment", {"employee": employee_id.get("name")}, "old_weeklyoff_type", weeklyoff_assignment_doc.new_weeklyoff_type)
+                                employee_doc.custom_weeklyoff = weeklyoff_assignment_doc.new_weeklyoff_type
+                                employee_doc.save(ignore_permissions=True)
+                                frappe.db.commit()
 
                 
-                elif end_date and end_date < today_date:
-                    # * SETTING BACK THE OLD WEEKLYOFF TYPE ONCE THE WEEKOFF ASSIGNMENT PERIOD IS OVER
-                    if weeklyoff_assignment_doc.old_weeklyoff_type != employee_doc.custom_weeklyoff:
-                        employee_doc.custom_weeklyoff = weeklyoff_assignment_doc.old_weeklyoff_type
-                        employee_doc.save(ignore_permissions=True)
-                        frappe.db.commit()
+                
                     
                 
         
