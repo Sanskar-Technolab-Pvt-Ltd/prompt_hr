@@ -27,7 +27,7 @@ frappe.ui.form.on("WeekOff Change Request", {
         const user = frappe.session.user
         if (frm.doc.employee) {
             frappe.call({
-                "method": "prompt_hr.prompt_hr.doctype.weekoff_change_request.weekoff_change_request.check_user_is_reporting_manager",
+                "method": "prompt_hr.py.utils.check_user_is_reporting_manager",
                 "args": {
                     user_id: user,
                     requesting_employee_id: frm.doc.employee
