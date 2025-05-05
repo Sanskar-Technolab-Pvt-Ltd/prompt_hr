@@ -1,12 +1,16 @@
 {
  "actions": [],
  "allow_rename": 1,
- "creation": "2025-04-11 07:21:16.093813",
+ "autoname": "format:Meeting-{DD}-{MM}-{YY}-{#####}",
+ "creation": "2025-05-02 17:29:09.027532",
+ "default_view": "List",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
   "meeting_title",
   "organizor_name",
+  "organizer_name",
+  "meeting_room",
   "date",
   "from_time",
   "to_time",
@@ -23,35 +27,50 @@
   "product_category",
   "related_to",
   "related_to_form",
+  "color",
   "room_setup_instruction_section_section",
   "room_setup_instruction",
+  "section_break_nlgt",
   "notes"
  ],
  "fields": [
   {
    "fieldname": "meeting_title",
    "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_preview": 1,
    "label": "Meeting Title"
   },
   {
    "fieldname": "organizor_name",
    "fieldtype": "Link",
-   "label": "Organizor Name",
+   "in_list_view": 1,
+   "label": "Organizer",
    "options": "Employee"
+  },
+  {
+   "fieldname": "meeting_room",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Meeting Room",
+   "options": "Meeting Room"
   },
   {
    "fieldname": "date",
    "fieldtype": "Datetime",
+   "in_preview": 1,
    "label": "Date"
   },
   {
    "fieldname": "from_time",
-   "fieldtype": "Time",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
    "label": "From Time"
   },
   {
    "fieldname": "to_time",
-   "fieldtype": "Time",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
    "label": "To Time"
   },
   {
@@ -59,60 +78,6 @@
    "fieldtype": "Table MultiSelect",
    "label": "Participants",
    "options": "Employee Multiselect"
-  },
-  {
-   "default": "0",
-   "fieldname": "generate_meeting_link",
-   "fieldtype": "Check",
-   "label": "Generate Meeting Link"
-  },
-  {
-   "fieldname": "mode",
-   "fieldtype": "Select",
-   "label": "Mode",
-   "options": "Offline\nOnline\nOn Site"
-  },
-  {
-   "fieldname": "booking_status",
-   "fieldtype": "Select",
-   "label": "Booking Status",
-   "options": "Scheduled\nIn-Progress\nCompleted\nVacant\nCancelled"
-  },
-  {
-   "default": "0",
-   "fieldname": "is_recurring_meeting",
-   "fieldtype": "Check",
-   "label": "Is Recurring Meeting"
-  },
-  {
-   "fieldname": "recurring_frequency",
-   "fieldtype": "Select",
-   "label": "Recurring Frequency",
-   "options": "Daily\nWeekly\nMonthly\nQuaterly\nHalf-yearly\nYearly"
-  },
-  {
-   "fieldname": "recurring_day",
-   "fieldtype": "Data",
-   "label": "Recurring Day"
-  },
-  {
-   "fieldname": "room_setup_instruction",
-   "fieldtype": "Long Text",
-   "label": "Room Setup Instruction"
-  },
-  {
-   "fieldname": "notes",
-   "fieldtype": "Small Text",
-   "label": "Notes"
-  },
-  {
-   "fieldname": "column_break_uouy",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "room_setup_instruction_section_section",
-   "fieldtype": "Section Break",
-   "label": "Room Setup Instruction Section"
   },
   {
    "fieldname": "travel_from_datetime",
@@ -123,6 +88,54 @@
    "fieldname": "travel_to_datetime",
    "fieldtype": "Datetime",
    "label": "Travel To Datetime"
+  },
+  {
+   "fieldname": "column_break_uouy",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "booking_status",
+   "fieldtype": "Select",
+   "label": "Booking Status",
+   "options": "Scheduled\nIn-Progress\nCompleted\nVacant\nCancelled"
+  },
+  {
+   "fieldname": "mode",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Mode",
+   "options": "Offline\nOnline\nOn Site\nCall"
+  },
+  {
+   "default": "0",
+   "fieldname": "generate_meeting_link",
+   "fieldtype": "Check",
+   "label": "Generate Meeting Link"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_recurring_meeting",
+   "fieldtype": "Check",
+   "label": "Is Recurring Meeting"
+  },
+  {
+   "depends_on": "eval:doc.is_recurring_meeting==1",
+   "fieldname": "recurring_frequency",
+   "fieldtype": "Select",
+   "label": "Recurring Frequency",
+   "options": "Daily\nWeekly\nMonthly\nQuaterly\nHalf-yearly\nYearly"
+  },
+  {
+   "depends_on": "eval:doc.is_recurring_meeting==1",
+   "fieldname": "recurring_day",
+   "fieldtype": "Data",
+   "label": "Recurring Day"
+  },
+  {
+   "fieldname": "product_category",
+   "fieldtype": "Link",
+   "label": "Product Category",
+   "options": "Product Group"
   },
   {
    "fieldname": "related_to",
@@ -137,19 +150,46 @@
    "options": "related_to"
   },
   {
-   "fieldname": "product_category",
-   "fieldtype": "Link",
-   "label": "Product Category",
-   "options": "Item"
+   "depends_on": "meeting_room",
+   "fieldname": "room_setup_instruction_section_section",
+   "fieldtype": "Section Break",
+   "label": "Room Setup Instruction"
+  },
+  {
+   "fieldname": "room_setup_instruction",
+   "fieldtype": "Long Text",
+   "label": "Room Setup Instruction"
+  },
+  {
+   "fieldname": "section_break_nlgt",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fetch_from": "organizor_name.employee_name",
+   "fieldname": "organizer_name",
+   "fieldtype": "Data",
+   "label": "Organizer Name"
+  },
+  {
+   "fieldname": "color",
+   "fieldtype": "Color",
+   "label": "Color"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
+ "is_calendar_and_gantt": 1,
  "links": [],
- "modified": "2025-04-25 19:23:35.784080",
+ "modified": "2025-05-05 17:26:16.123089",
  "modified_by": "Administrator",
  "module": "Prompt HR",
- "name": "Meeting Room Booking Request",
+ "name": "Meeting Request",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {
@@ -168,5 +208,6 @@
  "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }
