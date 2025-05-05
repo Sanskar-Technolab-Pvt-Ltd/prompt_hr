@@ -151,3 +151,4 @@ frappe.ready(function () {
     // ? SHOW DIALOG ON WEB FORM LOAD
     dialog.show();
 });
+
