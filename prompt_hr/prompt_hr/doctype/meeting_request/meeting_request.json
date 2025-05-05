@@ -1,6 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "format:Meeting-{DD}-{MM}-{YY}-{#####}",
  "creation": "2025-05-02 17:29:09.027532",
  "default_view": "List",
  "doctype": "DocType",
@@ -8,6 +9,7 @@
  "field_order": [
   "meeting_title",
   "organizor_name",
+  "organizer_name",
   "meeting_room",
   "date",
   "from_time",
@@ -41,7 +43,7 @@
    "fieldname": "organizor_name",
    "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "Organizor Name",
+   "label": "Organizer",
    "options": "Employee"
   },
   {
@@ -162,16 +164,23 @@
    "fieldname": "notes",
    "fieldtype": "Small Text",
    "label": "Notes"
+  },
+  {
+   "fetch_from": "organizor_name.employee_name",
+   "fieldname": "organizer_name",
+   "fieldtype": "Data",
+   "label": "Organizer Name"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_calendar_and_gantt": 1,
  "links": [],
- "modified": "2025-05-02 17:29:09.027532",
+ "modified": "2025-05-02 19:35:18.639485",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Meeting Request",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {
