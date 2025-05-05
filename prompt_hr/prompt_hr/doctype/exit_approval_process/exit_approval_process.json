@@ -11,6 +11,8 @@
   "column_break_lhxs",
   "resignation_approval",
   "company",
+  "section_break_nreu",
+  "user_response",
   "exit_process_section",
   "raise_exit_checklist",
   "column_break_crwd",
@@ -72,12 +74,22 @@
    "fieldname": "raise_exit_interview_questionnarie",
    "fieldtype": "Check",
    "label": "Raise Exit Interview Questionnarie"
+  },
+  {
+   "fieldname": "section_break_nreu",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "user_response",
+   "fieldtype": "Table",
+   "label": "User Response",
+   "options": "LMS Quiz Result"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-18 07:23:02.825450",
+ "modified": "2025-05-02 19:49:58.109181",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Exit Approval Process",
