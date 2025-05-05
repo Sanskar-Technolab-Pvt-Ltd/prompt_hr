@@ -47,7 +47,6 @@ function add_raise_exit_checklist_button(frm) {
 	});
 }
 
-
 // ? FUNCTION TO ADD THE "RAISE EXIT INTERVIEW QUESTIONNAIRE" BUTTON
 function add_raise_exit_interview_button(frm) {
     frm.add_custom_button('Raise Exit Interview Questionnaire', function () {
@@ -58,9 +57,29 @@ function add_raise_exit_interview_button(frm) {
                 company: frm.doc.company,
             },
             callback: function (r) {
-                console.log(r);
                 if (r.message) {
-                    
+                    const res = r.message;
+
+                    // ? SHOW MESSAGE BASED ON RESPONSE STATUS
+                    if (res.status === "success") {
+                        frappe.msgprint({
+                            title: __("Success"),
+                            indicator: "green",
+                            message: res.message
+                        });
+                    } else if (res.status === "info") {
+                        frappe.msgprint({
+                            title: __("Info"),
+                            indicator: "blue",
+                            message: res.message
+                        });
+                    } else if (res.status === "error") {
+                        frappe.msgprint({
+                            title: __("Error"),
+                            indicator: "red",
+                            message: res.message
+                        });
+                    }
                 }
             }
         });

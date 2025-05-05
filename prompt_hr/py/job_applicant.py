@@ -1,22 +1,9 @@
 import json
 import traceback
 import frappe
-from prompt_hr.py.utils import send_notification_email
+from prompt_hr.py.utils import send_notification_email,get_hr_managers_by_company
 
 
-
-def get_hr_managers_by_company(company):
-    return [
-        row.email for row in frappe.db.sql("""
-            SELECT DISTINCT u.email
-            FROM `tabHas Role` hr
-            JOIN `tabUser` u ON u.name = hr.parent
-            JOIN `tabEmployee` e ON e.user_id = u.name
-            WHERE hr.role = 'HR Manager'
-              AND u.enabled = 1
-              AND e.company = %s
-        """, (company,), as_dict=1) if row.email
-    ]
 
 @frappe.whitelist()
 def after_insert(doc, method):

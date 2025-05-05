@@ -5,6 +5,8 @@ import frappe
 from frappe.model.document import Document
 from frappe import _
 from frappe.utils import nowdate
+import frappe.utils
+from prompt_hr.py.utils import send_notification_email, get_hr_managers_by_company
 
 
 class ExitApprovalProcess(Document):
@@ -64,11 +66,19 @@ def raise_exit_checklist(employee, company):
 					"custom_is_sent", "description", "custom_email_description"
 				]
 			)
+
+			recipients = []
 			for act in activities:
+				recipients.append(act.user)
 				separation.append("activities", act)
+			
+			recipients += get_hr_managers_by_company(company)
+			recipients = list(set(recipients)) 
+			
 
 		separation.insert(ignore_permissions=True)
 		frappe.db.commit()
+		send_notification_email(doctype="Employee Separation", docname=separation.name, recipients=recipients, notification_name="Employee Separation Notification")
 
 		return {
 				"status": "success",
@@ -85,6 +95,47 @@ def raise_exit_checklist(employee, company):
 
 	except Exception as e:
 		frappe.log_error(frappe.get_traceback(), "Error in raise_exit_checklist")
+		return {
+			"status": "error",
+			"message": _("An unexpected error occurred: {0}").format(str(e))
+		}
+
+
+@frappe.whitelist()
+def raise_exit_interview(employee, company):
+	try:
+		# ? CHECK IF EXIT INTERVIEW RECORD ALREADY EXISTS
+		if frappe.db.exists("Exit Interview", {"employee": employee}):
+			return {
+				"status": "info",
+				"message": _("Exit Interview record already exists.")
+			}
+
+		# ? CREATE EXIT INTERVIEW RECORD
+		exit_interview = frappe.new_doc("Exit Interview")
+		exit_interview.employee = employee
+		exit_interview.company = company
+		exit_interview.date = nowdate()
+		exit_interview.custom_resignation_quiz = "prompt-resignation-web-form-quiz"
+
+		exit_interview.insert(ignore_permissions=True)
+		frappe.db.commit()
+
+		send_notification_email(doctype="Exit Interview", docname=exit_interview, recipients=[frappe.db.get_value("Employee", employee, "user_id")], notification_name="Exit Questionnaire Mail To Employee", button_link = frappe.utils.get_url()+"/exit-questionnaire/new")
+		return {
+				"status": "success",
+				"message": _("Exit Interview record created successfully.")
+			}
+
+	except frappe.ValidationError as ve:
+		frappe.log_error(frappe.get_traceback(), "Validation Error in raise_exit_interview")
+		return {
+			"status": "error",
+			"message": _("Validation error: {0}").format(str(ve))
+		}
+
+	except Exception as e:
+		frappe.log_error(frappe.get_traceback(), "Error in raise_exit_interview")
 		return {
 			"status": "error",
 			"message": _("An unexpected error occurred: {0}").format(str(e))

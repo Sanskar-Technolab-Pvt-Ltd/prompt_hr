@@ -121,7 +121,7 @@ def on_update(doc, method):
 
 def validate(doc, method):
     
-    # * CHECKING IF HOLIDAY LIST EXISTS IF NOT THEN CREATING A NEW HOLIDAY LIST BASED ON THE WEEKLYOFF TYPE AND FESTIVAL HOLIDAY LIST
+    # ? * CHECKING IF HOLIDAY LIST EXISTS IF NOT THEN CREATING A NEW HOLIDAY LIST BASED ON THE WEEKLYOFF TYPE AND FESTIVAL HOLIDAY LIST
     if doc.custom_weeklyoff and doc.custom_festival_holiday_list:
         holiday_list = frappe.db.exists("Holiday List", {"custom_weeklyoff_type": doc.custom_weeklyoff, "custom_festival_holiday_list": doc.custom_festival_holiday_list}, "name")
         
@@ -145,7 +145,7 @@ def create_holiday_list(doc):
         
         final_date_list = []
         
-        # * FETCHING FESTIVAL HOLIDAYS DATES
+        # ? * FETCHING FESTIVAL HOLIDAYS DATES
         festival_holiday_list_doc = frappe.get_doc("Festival Holiday List", doc.custom_festival_holiday_list)
         
         if not festival_holiday_list_doc:
@@ -153,7 +153,7 @@ def create_holiday_list(doc):
         
         final_date_list = [{"date":getdate(row.holiday_date), "description": row.description, "weekly_off": row.weekly_off} for row in festival_holiday_list_doc.get("holidays")]
 
-        #* CALCULATING WEEKLYOFF DATES
+        # ?* CALCULATING WEEKLYOFF DATES
         start_date = getdate(festival_holiday_list_doc.from_date)
         end_date = getdate(festival_holiday_list_doc.to_date)
         
@@ -272,7 +272,7 @@ def send_confirmation_letter(name):
             "fcontent": pdf_content
         }
 
-    # Send the email
+    # ? Send the email
     if email:
         frappe.sendmail(
             recipients=email,
@@ -372,7 +372,7 @@ def create_resignation_quiz_submission(user_response, employee):
         
 def create_exit_approval_process(user_response, employee):
     try:
-        # CHECK IF EXIT APPROVAL PROCESS ALREADY EXISTS
+        # ? CHECK IF EXIT APPROVAL PROCESS ALREADY EXISTS
         if frappe.db.exists("Exit Approval Process", {"employee": employee, "resignation_approval": ["!=", "Rejected"]}):
             return
             
@@ -384,11 +384,11 @@ def create_exit_approval_process(user_response, employee):
         exit_approval_process.resignation_approval = ""
         exit_approval_process.posting_date = getdate()
         
-        # Make sure user_response is a list (wrap single dict in a list if needed)
+        # ? MAKE SURE USER_RESPONSE IS A LIST (WRAP SINGLE DICT IN A LIST IF NEEDED)
         if isinstance(user_response, dict):
             user_response = [user_response]
             
-        # Add each response to the child table properly
+        # ? ADD EACH RESPONSE TO THE CHILD TABLE PROPERLY
         for response in user_response:
             exit_approval_process.append("user_response", {
                 "question_name": response.get("question_name"),
