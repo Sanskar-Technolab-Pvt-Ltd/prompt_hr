@@ -261,3 +261,15 @@ def invite_for_document_collection(args, joining_document_checklist, document_co
         frappe.log_error(f"Error inviting for document collection: {str(e)}\n{traceback.format_exc()}")
         frappe.throw(_("An error occurred while inviting for document collection."))
 
+def get_hr_managers_by_company(company):
+    return [
+        row.email for row in frappe.db.sql("""
+            SELECT DISTINCT u.email
+            FROM `tabHas Role` hr
+            JOIN `tabUser` u ON u.name = hr.parent
+            JOIN `tabEmployee` e ON e.user_id = u.name
+            WHERE hr.role = 'HR Manager'
+              AND u.enabled = 1
+              AND e.company = %s
+        """, (company,), as_dict=1) if row.email
+    ]
