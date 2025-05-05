@@ -1,5 +1,8 @@
 frappe.ui.form.on("Employee", {
     refresh: function(frm) {
+
+        // ? EMPLOYEE RESIGNATION BUTTON AND FUNCTIONALITY
+        createEmployeeResignationButton(frm);
         if (!frm.doc.department) {
             frm.set_query("custom_subdepartment", () => {
                 return {
@@ -135,3 +138,69 @@ frappe.ui.form.on("Employee", {
     // }
 
 });
+
+// ? FUNCTION TO CREATE EMPLOYEE RESIGNATION BUTTON AND FUNCTIONALITY
+function createEmployeeResignationButton(frm) {
+    frm.add_custom_button(__("Raise Resignation"), function () {
+
+        // ? FETCH QUESTIONS FROM PYTHON BACKEND
+        frappe.call({
+            method: "prompt_hr.py.employee.get_raise_resignation_questions",
+            callback: function (res) {
+                if (res.message && res.message.length > 0) {
+                    const questions = res.message;
+
+                    // ? BUILD DYNAMIC FIELDS USING QUESTION DATA
+                    const fields = questions.map(q => ({
+                        label: q.question_detail || q.question,
+                        fieldname: q.question,
+                        fieldtype: "Data",
+                        reqd: true
+                    }));
+
+                    // ? CREATE THE DIALOG
+                    const dialog = new frappe.ui.Dialog({
+                        title: __('Resignation Details'),
+                        fields: fields,
+                        primary_action_label: __('Submit'),
+                        primary_action(values) {
+                            frappe.dom.freeze(__('Creating Resignation...'));
+
+                            // ? PREPARE ANSWERS AS A LIST OF {question, answer}
+                            const answers = questions.map(q => ({
+                                question_name: q.question,
+                                question: q.question_detail || q.question,
+                                answer: values[q.question]
+                            }));
+
+                            // ? CALL BACKEND METHOD TO CREATE RESIGNATION
+                            frappe.call({
+                                method: "prompt_hr.py.employee.create_resignation_quiz_submission",
+                                args: {
+                                    employee: frm.doc.name,
+                                    user_response: answers
+                                },
+                                callback: function (r) {
+                                    console.log(answers)
+                                    if (r.message) {
+                                        frappe.msgprint(r.message);
+                                        dialog.hide();
+                                    }
+                                },
+                                always: function () {
+                                    frappe.dom.unfreeze();
+                                }
+                            });
+                        }
+                    });
+
+                    dialog.show();
+
+                } else {
+                    frappe.msgprint(__('No resignation questions found.'));
+                }
+            }
+        });
+    });
+}
+
