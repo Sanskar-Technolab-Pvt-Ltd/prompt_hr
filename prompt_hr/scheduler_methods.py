@@ -1,11 +1,8 @@
 import frappe
 
 import frappe.commands
-from frappe.utils import date_diff, today, add_to_date, getdate
+from frappe.utils import date_diff, today, add_to_date, getdate, get_datetime
 
-
-
-@frappe.whitelist()
 def create_probation_feedback_form():
     """Scheduler method to create probation feedback form based on the days after when employee joined mentioned in the HR Settings.
         - And Also notify the employee's reporting manager if the remarks are not added to the form.  
@@ -20,7 +17,6 @@ def create_probation_feedback_form():
         frappe.log_error("Error while creating probation feedback form", frappe.get_traceback())
 
 #*CREATING PROBATION FEEDBACK FOR PROMPT EMPLOYEES
-@frappe.whitelist()
 def probation_feedback_for_prompt():
     """Method to create probation feedback form for Prompt employees"""
     first_feedback_days = frappe.db.get_single_value("HR Settings", "custom_first_feedback_after")
@@ -157,7 +153,6 @@ def probation_feedback_for_prompt():
     
 
 #*CREATING PROBATION FEEDBACK FOR INDIFOSS EMPLOYEES
-@frappe.whitelist()
 def probation_feedback_for_indifoss():
     """Method to create probation feedback form for Indifoss employees"""
     
@@ -377,7 +372,6 @@ def send_reminder_mail_to_reporting_manager(reporting_manager_email, reporting_m
 
 
 # * CREATING CONFIRMATION EVALUATION FORM AND IF ALREADY CREATED THEN, SENDING MAIL TO REPORTING MANAGER OR HEAD OF DEPARTMENT BASED ON THE RATING ADDED OR NOT
-@frappe.whitelist()
 def create_confirmation_evaluation_form_for_prompt():
     try:
         
@@ -491,10 +485,6 @@ def create_confirmation_evaluation_form_for_prompt():
     except Exception as e:
         frappe.log_error("Error while creating confirmation evaluation form", frappe.get_traceback())
         
-    
-    
-
-@frappe.whitelist()
 def inform_employee_for_confirmation_process():
     """ Method to inform employee about confirmation process  before the days set user in HR Settings probation period is over 
     """
@@ -547,3 +537,85 @@ def inform_employee_for_confirmation_process():
                                         )
     except Exception as e:
         frappe.log_error("Error while sending confirmation process reminder email", frappe.get_traceback())
+    
+@frappe.whitelist()
+def validate_employee_holiday_list():
+    """ checking if are there any weeklyoff assignment or not if there are then assigning them based on from and to date and updating employee holiday list if required
+    """
+    try:
+        employee_list = frappe.db.get_all("Employee",{"status": "Active"}, "name")
+        
+        if not employee_list:
+            frappe.log_error("No Employee Found", "No Employees are found to check for weeklyoff assignment")
+        
+        today_date = getdate(today())
+        
+        for employee_id in employee_list:
+            weeklyoff_assignment_list = frappe.db.get_all("WeeklyOff Assignment", {"employee": employee_id.get("name"), "docstatus": 1}, "name")
+            
+            if weeklyoff_assignment_list:
+                
+                for weeklyoff_assignment_id in weeklyoff_assignment_list:
+                    weeklyoff_assignment_doc = frappe.get_doc("WeeklyOff Assignment", weeklyoff_assignment_id.get("name"))
+                    
+                    if not weeklyoff_assignment_doc:
+                        frappe.log_error("Not able to fetch Weekoff assignment",  f"Weekoff Assignment not found {weeklyoff_assignment_id}")
+                        
+                    if weeklyoff_assignment_doc.start_date <= today_date:
+                        start_date = weeklyoff_assignment_doc.start_date
+                        end_date = weeklyoff_assignment_doc.end_date
+                        
+                        employee_doc = frappe.get_doc("Employee", employee_id.get("name"))
+                        
+                        if (start_date and end_date) and (start_date <= today_date < end_date):
+                            # * SETTING NEW WEEKLYOFF TYPE FOR EMPLOYEE IF THE CURRENT DATE IS WITHIN THE WEEKOFF ASSIGNMENT PERIOD
+                            if weeklyoff_assignment_doc.new_weeklyoff_type != employee_doc.custom_weeklyoff:
+                                employee_doc.custom_weeklyoff = weeklyoff_assignment_doc.new_weeklyoff_type
+                                employee_doc.save(ignore_permissions=True)
+                                frappe.db.commit()
+
+                        elif end_date and end_date < today_date:
+                            # * SETTING BACK THE OLD WEEKLYOFF TYPE ONCE THE WEEKOFF ASSIGNMENT PERIOD IS OVER
+                            if weeklyoff_assignment_doc.old_weeklyoff_type != employee_doc.custom_weeklyoff:
+                                employee_doc.custom_weeklyoff = weeklyoff_assignment_doc.old_weeklyoff_type
+                                employee_doc.save(ignore_permissions=True)
+                                frappe.db.commit()
+                                
+                        elif not end_date and (start_date and start_date <= today_date):
+                            # * PERMANENTLY SETTING NEW WEEKLYOFF TYPE FOR EMPLOYEE IF END DATE IS NOT DEFINED
+                            if weeklyoff_assignment_doc.new_weeklyoff_type != employee_doc.custom_weeklyoff:
+                                frappe.db.set_value("WeeklyOff Assignment", {"employee": employee_id.get("name")}, "old_weeklyoff_type", weeklyoff_assignment_doc.new_weeklyoff_type)
+                                employee_doc.custom_weeklyoff = weeklyoff_assignment_doc.new_weeklyoff_type
+                                employee_doc.save(ignore_permissions=True)
+                                frappe.db.commit()
+
+                
+                
+                    
+                
+        
+    except Exception as e:
+        frappe.log_error("Error while checking for weeklyoff assignment", frappe.get_traceback())
+
+
+@frappe.whitelist()
+def generate_attendance():
+    """Generate Employee Attendance and Check the weekoff 
+    """
+    try:
+        employee_list = frappe.db.get_all("Employee", {"status": "Active"}, "name")
+        
+        yesterday_date = add_to_date(days=-1, as_string=True)
+        
+        start = get_datetime(yesterday_date + " 00:00:00")
+        end = get_datetime(yesterday_date + " 23:59:59")
+        if employee_list:
+            for employee_id in employee_list:
+                emp_check_in = frappe.db.get_all("Employee Checkin", {"employee": employee_id.get("name"), "log_type": "IN", "time": ["between", [start, end]]}, "name", group_by="time asc")
+                print(f"\n\n {emp_check_in} \n\n")
+        
+    except Exception as e:
+        frappe.log_error("Error While Generating Attendance", frappe.get_traceback())
+    
+    
+    

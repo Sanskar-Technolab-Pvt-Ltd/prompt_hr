@@ -58,6 +58,7 @@ doctype_js = {
     "Interview": "public/js/interview.js",
     "Interview Feedback": "public/js/interview_feedback.js",
     "Interview Round": "public/js/interview_round.js",
+    "Attendance": "public/js/attendance.js"
 
 }
 
@@ -218,6 +219,7 @@ scheduler_events = {
         "prompt_hr.py.employee_changes_approval.daily_check_employee_changes_approval",
         # "prompt_hr.scheduler_methods.create_probation_feedback_form",
         # "prompt_hr.scheduler_methods.create_confirmation_evaluation_form_for_prompt",
+        # "prompt_hr.scheduler_methods.validate_employee_holiday_list", 						        
     ],
 }
 
@@ -300,6 +302,20 @@ scheduler_events = {
 # }
 
 fixtures = [
+
+    # {
+    #     "dt": "Kanban Board",
+    #     "filters": [
+    #         [
+    #             "name",
+    #             "in",
+    #             [
+    #                 "Meetings",
+    #             ],
+    #         ]
+    #     ],
+    # },
+
 # {"dt":"Notification","filters":[
 #     [
 #         "module","in",[

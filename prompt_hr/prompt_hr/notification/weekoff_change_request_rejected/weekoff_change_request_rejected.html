@@ -1,0 +1,6 @@
+{% set emp_name = frappe.db.get_value("Employee", self.employee, "employee_name") %}
+
+<p>Dear {% if emp_name %} {{emp_name}} {% else %} {{"Employee"}} {% endif %}</p>
+
+<p>We regret to inform you that your WeekOff Change Request has been rejected.</p>
+

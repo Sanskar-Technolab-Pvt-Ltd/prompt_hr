@@ -126,7 +126,8 @@ def validate(doc, method):
         holiday_list = frappe.db.exists("Holiday List", {"custom_weeklyoff_type": doc.custom_weeklyoff, "custom_festival_holiday_list": doc.custom_festival_holiday_list}, "name")
         
         if holiday_list:
-            doc.holiday_list = holiday_list
+            if doc.holiday_list != holiday_list:
+                doc.holiday_list = holiday_list
         else:
             holiday_list = create_holiday_list(doc)
 
@@ -160,7 +161,7 @@ def create_holiday_list(doc):
         
         if not weeklyoff_days:
             throw(f"No WeeklyOff days found for WeeklyOff Type {doc.custom_weeklyoff}")
-        
+            
         for weeklyoff_day in weeklyoff_days:
             weekday = getattr(calendar, (weeklyoff_day).upper())
             reference_date = start_date + relativedelta.relativedelta(weekday=weekday)
@@ -176,7 +177,7 @@ def create_holiday_list(doc):
         
         if final_date_list:
             holiday_list_doc = frappe.new_doc("Holiday List")
-            holiday_list_doc.holiday_list_name = "Testing1"
+            holiday_list_doc.holiday_list_name = f"{festival_holiday_list_doc.name}-{doc.custom_weeklyoff}"
             holiday_list_doc.from_date = festival_holiday_list_doc.from_date
             holiday_list_doc.to_date = festival_holiday_list_doc.to_date
             holiday_list_doc.custom_weeklyoff_type = doc.custom_weeklyoff
