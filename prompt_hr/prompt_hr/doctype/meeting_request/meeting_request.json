@@ -27,6 +27,7 @@
   "product_category",
   "related_to",
   "related_to_form",
+  "color",
   "room_setup_instruction_section_section",
   "room_setup_instruction",
   "section_break_nlgt",
@@ -36,6 +37,7 @@
   {
    "fieldname": "meeting_title",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "in_preview": 1,
    "label": "Meeting Title"
   },
@@ -62,11 +64,13 @@
   {
    "fieldname": "from_time",
    "fieldtype": "Datetime",
+   "in_list_view": 1,
    "label": "From Time"
   },
   {
    "fieldname": "to_time",
    "fieldtype": "Datetime",
+   "in_list_view": 1,
    "label": "To Time"
   },
   {
@@ -170,13 +174,18 @@
    "fieldname": "organizer_name",
    "fieldtype": "Data",
    "label": "Organizer Name"
+  },
+  {
+   "fieldname": "color",
+   "fieldtype": "Color",
+   "label": "Color"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_calendar_and_gantt": 1,
  "links": [],
- "modified": "2025-05-02 19:35:18.639485",
+ "modified": "2025-05-05 17:26:16.123089",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Meeting Request",

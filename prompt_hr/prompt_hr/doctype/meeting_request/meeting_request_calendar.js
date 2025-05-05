@@ -2,28 +2,18 @@ frappe.views.calendar["Meeting Request"] = {
     field_map: {
         start: "from_time",
         end: "to_time",
-        id: "id",
-        title: "organizor_name",
+        id: "name",
+        title: "meeting_title",
         allDay: 0,
         progress: 50,
         color: "color",
     },
-    gantt: {
-        field_map: {
-            start: "from_time",
-            end: "to_time",
-            id: "name",
-            title: "organizor_name",
-            allDay: 0,
-            progress: 50,
-            color: "color",
-        },
-	},
+    gantt: true,
     color: "color",
     filters: [
         {
-            label: __("Organizor Name"),
-            fieldname: "organizor_name",
+            label: __("Meeting Title"),
+            fieldname: "meeting_title",
             fieldtype: "Link",
             options: "Employee",
         },
