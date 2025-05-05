@@ -58,6 +58,7 @@ doctype_js = {
     "Interview": "public/js/interview.js",
     "Interview Feedback": "public/js/interview_feedback.js",
     "Interview Round": "public/js/interview_round.js",
+    "Leave Application": "public/js/leave_application.js"
 
 }
 

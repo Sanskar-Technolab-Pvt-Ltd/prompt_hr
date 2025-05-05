@@ -10,7 +10,7 @@ import hrms.hr.utils
 import hrms.hr.doctype.leave_application.leave_application as leave_application_module
 from frappe.model import workflow
 from prompt_hr.overrides.workflow_override import custom_get_transitions, custom_has_approval_access
-from prompt_hr.py.leave_application import custom_get_number_of_leave_days, custom_grant_leave_alloc_for_employee, custom_update_previous_leave_allocation, custom_check_effective_date
+from prompt_hr.py.leave_application import custom_get_number_of_leave_days, custom_grant_leave_alloc_for_employee, custom_update_previous_leave_allocation, custom_check_effective_date, custom_get_leave_details
 
 @frappe.whitelist()
 def custom_get_applicable_interviewers(interview: str) -> List[str]:
@@ -61,3 +61,4 @@ LeavePolicyAssignment.grant_leave_alloc_for_employee = custom_grant_leave_alloc_
 hrms.hr.utils.check_effective_date = custom_check_effective_date
 hrms.hr.utils.update_previous_leave_allocation = custom_update_previous_leave_allocation
 leave_application_module.get_number_of_leave_days = custom_get_number_of_leave_days
+leave_application_module.get_leave_details = custom_get_leave_details

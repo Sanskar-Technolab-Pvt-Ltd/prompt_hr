@@ -18,8 +18,14 @@ import datetime
 from erpnext.setup.doctype.employee.employee import get_holiday_list_for_employee
 from hrms.hr.doctype.leave_ledger_entry.leave_ledger_entry import expire_allocation
 from hrms.hr.utils import get_holiday_dates_for_employee
-from hrms.hr.doctype.leave_application.leave_application import get_holidays
-
+from hrms.hr.doctype.leave_application.leave_application import (
+    get_holidays,
+    get_leave_allocation_records,
+    get_leave_approver,
+    get_leave_balance_on,
+    get_leaves_for_period,
+    get_leaves_pending_approval_for_period,
+)
 
 @frappe.whitelist()
 def custom_grant_leave_alloc_for_employee(doc):
@@ -50,9 +56,8 @@ def custom_grant_leave_alloc_for_employee(doc):
     
 def custom_check_effective_date(from_date, today=None, frequency=None, allocate_on_day=None):
     from_date = get_datetime(from_date)
-    today = frappe.flags.current_date or get_datetime(today)
+    today = get_datetime("2025-01-01")#frappe.flags.current_date or get_datetime(today)
     rd = relativedelta.relativedelta(today, from_date)
-    print(rd)
     expected_date = {
         "First Day": get_first_day(today),
         "Last Day": get_last_day(today),
@@ -80,7 +85,7 @@ def custom_update_previous_leave_allocation(allocation, annual_allocation, e_lea
     allocation = frappe.get_doc("Leave Allocation", allocation.name)
     annual_allocation = flt(annual_allocation, allocation.precision("total_leaves_allocated"))
     from_date = get_datetime(allocation.from_date)
-    today = get_datetime()
+    today = get_datetime("2025-10-01")#get_datetime()
     rd = relativedelta.relativedelta(today, from_date)
 
     expected_date = {
@@ -142,7 +147,7 @@ def custom_update_previous_leave_allocation(allocation, annual_allocation, e_lea
         new_allocation != allocation.total_leaves_allocated
         and new_allocation_without_cf <= annual_allocation
     ):
-        today_date = frappe.flags.current_date or getdate()
+        today_date = getdate("2025-10-01")#frappe.flags.current_date or getdate()
 
         allocation.db_set("total_leaves_allocated", new_allocation, update_modified=False)
         create_additional_leave_ledger_entry(allocation, earned_leaves, today_date)
@@ -155,7 +160,7 @@ def custom_update_previous_leave_allocation(allocation, annual_allocation, e_lea
                 "leaves": flt(expired_leaves),
                 "transaction_type": "Leave Allocation",
                 "transaction_name": allocation.name,
-                "from_date": from_date,
+                "from_date": today_date,
                 "to_date": allocation.to_date
             })
             ledger_entry.insert(ignore_permissions=True)
@@ -178,6 +183,7 @@ def custom_get_number_of_leave_days(
 	half_day: int | str | None = None,
 	half_day_date: datetime.date | str | None = None,
 	holiday_list: str | None = None,
+    custom_half_day_time: str | None = None
 ) -> float:
     """Returns number of leave days between 2 dates considering half-day, holidays, and sandwich rules"""
     number_of_days = 0
@@ -198,72 +204,310 @@ def custom_get_number_of_leave_days(
     
     # Sandwich Rule Extension
     leave_type_doc = frappe.get_doc("Leave Type", leave_type)
-    if leave_type_doc.custom_is_sandwich_rule_applicable:
-        if not holiday_list:
-            holiday_list = get_holiday_list_for_employee(employee)
-        holiday_list_doc = frappe.get_doc("Holiday List", holiday_list)
-        all_holidays = list(get_holiday_dates_for_employee(
-            employee,
-            holiday_list_doc.from_date,
-            holiday_list_doc.to_date
-        ))
-        additional_days = 0
-        if leave_type_doc.custom_adjoins_weekoff:
-            additional_days += len(get_all_weekoff_days(from_date, to_date, holiday_list))
 
-        if leave_type_doc.custom_adjoins_holiday:
-            additional_days += len(get_all_holidays(from_date, to_date, holiday_list))
-        if (
-            leave_type_doc.custom_consider_full_day_leave_for_before_day or
-            leave_type_doc.custom_consider_full_day_leave_for_after_day
-        ):
-            additional_days += len(get_all_holidays(from_date, to_date, holiday_list))
-            additional_days += len(get_all_weekoff_days(from_date, to_date, holiday_list))
-            if not (leave_type_doc.custom_ignore_if_half_day_leave_for_day_before_or_day_after and half_day):
-                if leave_type_doc.custom_consider_full_day_leave_for_before_day:
-                    for i in range(1, len(all_holidays)):
-                        future_day = add_days(to_date, i)
-                        if str(future_day) in all_holidays:
-                            additional_days += 1
-                        else:
-                            break
+    if any([
+        leave_type_doc.custom_sw_applicable_to_business_unit,
+        leave_type_doc.custom_sw_applicable_to_department,
+        leave_type_doc.custom_sw_applicable_to_location,
+        leave_type_doc.custom_sw_applicable_to_employment_type,
+        leave_type_doc.custom_sw_applicable_to_grade,
+        leave_type_doc.custom_sw_applicable_to_product_line
+    ]):
+        employee_doc = frappe.get_doc("Employee", employee)
 
-                if leave_type_doc.custom_consider_full_day_leave_for_after_day:
-                    for i in range(1, len(all_holidays)):
-                        previous_day = add_days(from_date, -i)
-                        if str(previous_day) in all_holidays:
-                            additional_days += 1
-                        else:
-                            break
-        number_of_days += additional_days
+        # Format: (LeaveType field, Employee field)
+        criteria = [
+            ("custom_sw_applicable_to_business_unit", "custom_business_unit"),
+            ("custom_sw_applicable_to_department", "department"),
+            ("custom_sw_applicable_to_location", "custom_work_location"),
+            ("custom_sw_applicable_to_employment_type", "employment_type"),
+            ("custom_sw_applicable_to_grade", "grade"),
+            ("custom_sw_applicable_to_product_line", "custom_product_line"),
+        ]
+
+        for leave_field, employee_field in criteria:
+            leave_values = getattr(leave_type_doc, leave_field)
+            employee_value = getattr(employee_doc, employee_field)
+
+            if not leave_values:
+                continue
+
+            leave_ids = []
+
+            if isinstance(leave_values, list) and isinstance(leave_values[0], frappe.model.document.Document):
+                for d in leave_values:
+                    if not d:
+                        continue
+
+                    if leave_field == "custom_sw_applicable_to_product_line":
+                        leave_ids.append(frappe.get_doc("Product Line Multiselect", d.name).indifoss_product)
+                    elif leave_field == "custom_sw_applicable_to_business_unit":
+                        leave_ids.append(frappe.get_doc("Business Unit Multiselect", d.name).bussiness_unit)
+                    elif leave_field == "custom_sw_applicable_to_department":
+                        leave_ids.append(frappe.get_doc("Department Multiselect", d.name).department)
+                    elif leave_field == "custom_sw_applicable_to_location":
+                        leave_ids.append(frappe.get_doc("Work Location Multiselect", d.name).work_location)
+                    elif leave_field == "custom_sw_applicable_to_employment_type":
+                        leave_ids.append(frappe.get_doc("Employment Type Multiselect", d.name).employement_type)
+                    elif leave_field == "custom_sw_applicable_to_grade":
+                        leave_ids.append(frappe.get_doc("Grade Multiselect", d.name).grade)
+
+            if employee_value in leave_ids:
+                return get_additional_days(
+                    leave_type_doc,
+                    employee,
+                    from_date,
+                    to_date,
+                    number_of_days,
+                    half_day,
+                    holiday_list,
+                    half_day_date,
+                    custom_half_day_time
+                )
+        else:
+            return number_of_days
+
+    return get_additional_days(
+        leave_type_doc,
+        employee,
+        from_date,
+        to_date,
+        number_of_days,
+        half_day,
+        holiday_list,
+        half_day_date,
+        custom_half_day_time
+    )
+
+def get_additional_days(leave_type_doc, employee, from_date, to_date, number_of_days, half_day, holiday_list, half_day_date, custom_half_day_time):
+    """
+    Calculate additional days for leave based on sandwich rule, weekoffs, and holidays.
+    """
+    # Convert dates to proper date objects
+    from_date = getdate(from_date)
+    to_date = getdate(to_date)
+    
+    if not leave_type_doc.custom_is_sandwich_rule_applicable:
+        return number_of_days
         
+    if not holiday_list:
+        holiday_list = get_holiday_list_for_employee(employee)
+
+    holiday_list_doc = frappe.get_doc("Holiday List", holiday_list)
+    all_holidays = list(get_holiday_dates_for_employee(
+        employee,
+        holiday_list_doc.from_date,
+        holiday_list_doc.to_date
+    ))
+
+    additional_days = 0
+    # Ignore Holidays for First and Last Days
+    while next_day_is_holiday_or_weekoff(from_date, holiday_list) and from_date<= to_date:
+            from_date = add_days(from_date, 1)
+    while next_day_is_holiday_or_weekoff(to_date, holiday_list) and to_date>= from_date:
+            to_date = add_days(to_date, -1)
+    # Convert half_day_date to date object
+    if half_day_date:
+        half_day_date = getdate(half_day_date)
+    # Process weekoff days
+    if leave_type_doc.custom_adjoins_weekoff:
+        if leave_type_doc.custom_ignore_if_half_day_leave_for_day_before_or_day_after and cint(half_day):
+            if half_day_date:
+                if half_day_date != from_date and half_day_date != to_date:
+                    # Exclude adjacent days if half-day is not on boundary
+                    additional_days += len(get_all_weekoff_days(from_date, to_date, holiday_list, half_day_date))
+        else:
+            # Always include full weekoffs in range
+            additional_days += len(get_all_weekoff_days(from_date, to_date, holiday_list))
+
+    
+    # Process holiday days
+    if leave_type_doc.custom_adjoins_holiday:
+        if leave_type_doc.custom_ignore_if_half_day_leave_for_day_before_or_day_after and cint(half_day):
+            if half_day_date:
+                if half_day_date == from_date or half_day_date == to_date:
+                    additional_days += 0
+                else:
+                    # Get holidays between leave dates, excluding days adjacent to half-day
+                    additional_days += len(get_all_holidays(from_date, to_date, holiday_list, half_day_date))
+        else:
+            # Get all holidays between leave dates which is not weekoff
+            additional_days += len(get_all_holidays(from_date, to_date, holiday_list))
+
+    if (leave_type_doc.custom_half_day_leave_taken_in_second_half_on_day_before or leave_type_doc.custom_half_day_leave_taken_in_first_half_on_day_after) and not leave_type_doc.custom_ignore_if_half_day_leave_for_day_before_or_day_after:
+        if not leave_type_doc.custom_adjoins_holiday:
+            additional_days += len(get_all_holidays(from_date, to_date, holiday_list))
+        if not leave_type_doc.custom_adjoins_weekoff:
+            additional_days += len(get_all_weekoff_days(from_date, to_date, holiday_list))
+
+        # Handle half-day in second half on day before
+        if leave_type_doc.custom_half_day_leave_taken_in_second_half_on_day_before and not leave_type_doc.custom_ignore_if_half_day_leave_for_day_before_or_day_after:
+            if half_day and half_day_date:
+                if custom_half_day_time == "First":
+                    next_day = add_days(half_day_date, 1)
+                    while next_day_is_holiday_or_weekoff(next_day, holiday_list) and next_day<= to_date:
+                        additional_days -= 1
+                        next_day = add_days(next_day, 1)
+
+        # Handle half-day in first half on day after
+        if leave_type_doc.custom_half_day_leave_taken_in_first_half_on_day_after and not leave_type_doc.custom_ignore_if_half_day_leave_for_day_before_or_day_after:
+            if half_day and half_day_date:
+                if custom_half_day_time == "Second":
+                    prev_day = add_days(half_day_date, -1)
+                    while next_day_is_holiday_or_weekoff(prev_day, holiday_list) and prev_day>=from_date:
+                        additional_days -= 1
+                        prev_day = add_days(prev_day, -1)
+    # Add the additional days to the total
+    number_of_days += additional_days
+
     return number_of_days
 
+def next_day_is_holiday_or_weekoff(date, holiday_list):
+    """Check if the given date is a holiday or weekoff"""
+    is_holiday = frappe.db.exists("Holiday", {
+        "parent": holiday_list,
+        "holiday_date": date
+    })
+    return bool(is_holiday)
 
-def get_all_weekoff_days(from_date, to_date, holiday_list_name):
+def get_all_weekoff_days(from_date, to_date, holiday_list_name, half_day_date=None):
+    """
+    Get all weekoff days between from_date and to_date.
+    If half_day_date is provided, exclude the day after and before the half day.
+    """
+    from_date = getdate(from_date)
+    to_date = getdate(to_date)
+    # For proper SQL comparison
+    from_date_str = from_date.strftime('%Y-%m-%d')
+    to_date_str = to_date.strftime('%Y-%m-%d')
+    conditions = """
+        holiday_date > %s AND holiday_date < %s
+        AND weekly_off = 1 
+        AND parent = %s
+    """
+    
+    params = [from_date_str, to_date_str, holiday_list_name]
+    
+    if half_day_date:
+        half_day_date = getdate(half_day_date)
+        half_day_date_str = half_day_date.strftime('%Y-%m-%d')
+        next_day = add_days(half_day_date, 1)
+        prev_day = add_days(half_day_date, -1)
+        
+        # Skip the day immediately after half day if half day is on Friday
+        if half_day_date.weekday() == 4:  # Friday is weekday 4
+            conditions += " AND holiday_date != %s"
+            params.append(next_day.strftime('%Y-%m-%d'))
+        else:
+            # Otherwise skip days adjacent to half day
+            conditions += " AND holiday_date NOT IN (%s, %s, %s)"
+            params.extend([half_day_date_str, prev_day.strftime('%Y-%m-%d'), next_day.strftime('%Y-%m-%d')])
+    
     return [
-        d[0] for d in frappe.db.sql(
-            """
+        getdate(d[0]) for d in frappe.db.sql(
+            f"""
             SELECT holiday_date 
             FROM `tabHoliday` 
-            WHERE holiday_date > %s AND holiday_date < %s
-            AND weekly_off = 1 
-            AND parent = %s
+            WHERE {conditions}
             """,
-            (from_date, to_date, holiday_list_name)
+            tuple(params)
         )
     ]
 
-def get_all_holidays(from_date, to_date, holiday_list_name):
+def get_all_holidays(from_date, to_date, holiday_list_name, half_day_date=None):
+    """
+    Get all holidays (non-weekoffs) between from_date and to_date.
+    If half_day_date is provided, exclude the day after and before the half day.
+    """
+    from_date = getdate(from_date)
+    to_date = getdate(to_date)
+    
+    # For proper SQL comparison
+    from_date_str = from_date.strftime('%Y-%m-%d')
+    to_date_str = to_date.strftime('%Y-%m-%d')
+    
+    conditions = """
+        holiday_date > %s AND holiday_date < %s
+        AND weekly_off = 0 
+        AND parent = %s
+    """
+    
+    params = [from_date_str, to_date_str, holiday_list_name]
+    
+    if half_day_date:
+        half_day_date = getdate(half_day_date)
+        half_day_date_str = half_day_date.strftime('%Y-%m-%d')
+        next_day = add_days(half_day_date, 1)
+        prev_day = add_days(half_day_date, -1)
+        
+        # Skip the day immediately after half day if half day is on Friday
+        if half_day_date.weekday() == 4:  # Friday is weekday 4
+            conditions += " AND holiday_date != %s"
+            params.append(next_day.strftime('%Y-%m-%d'))
+        else:
+            # Otherwise skip days adjacent to half day
+            conditions += " AND holiday_date NOT IN (%s, %s, %s)"
+            params.extend([half_day_date_str, prev_day.strftime('%Y-%m-%d'), next_day.strftime('%Y-%m-%d')])
+    
     return [
-        d[0] for d in frappe.db.sql(
-            """
+        getdate(d[0]) for d in frappe.db.sql(
+            f"""
             SELECT holiday_date 
             FROM `tabHoliday` 
-            WHERE holiday_date > %s AND holiday_date < %s
-            AND weekly_off = 0 
-            AND parent = %s
+            WHERE {conditions}
             """,
-            (from_date, to_date, holiday_list_name)
+            tuple(params)
         )
     ]
+
+@frappe.whitelist()
+def custom_get_leave_details(employee, date, for_salary_slip=False):
+	allocation_records = get_leave_allocation_records(employee, date)
+	leave_allocation = {}
+	precision = cint(frappe.db.get_single_value("System Settings", "float_precision")) or 2
+	for d in allocation_records:
+		allocation = allocation_records.get(d, frappe._dict())
+
+		to_date = date if for_salary_slip else allocation.to_date
+
+		remaining_leaves = get_leave_balance_on(
+			employee,
+			d,
+			date,
+			to_date=to_date,
+			consider_all_leaves_in_the_allocation_period=False if for_salary_slip else True,
+		)
+
+		leave_ledger_entry = frappe.get_all(
+			"Leave Ledger Entry",
+			filters={
+				"employee": employee,
+				"leave_type": allocation.leave_type,
+				"docstatus": 1,
+				"from_date": ["<=", date],
+				"leaves": [">", 0],
+			},
+			fields=["name", "leaves"]
+		)
+
+		total_leaves = sum([flt(d.leaves) for d in leave_ledger_entry])
+		leaves_taken = get_leaves_for_period(employee, d, allocation.from_date, to_date) * -1
+		leaves_pending = get_leaves_pending_approval_for_period(employee, d, allocation.from_date, to_date)
+		expired_leaves = total_leaves - (remaining_leaves + leaves_taken)
+
+		leave_allocation[d] = {
+			"total_leaves": flt(total_leaves),
+			"expired_leaves": flt(expired_leaves, precision) if expired_leaves > 0 else 0,
+			"leaves_taken": flt(leaves_taken, precision),
+			"leaves_pending_approval": flt(leaves_pending, precision),
+			"remaining_leaves": flt(remaining_leaves, precision),
+		}
+
+	lwp = frappe.get_list("Leave Type", filters={"is_lwp": 1}, pluck="name")
+
+	return {
+		"leave_allocation": leave_allocation,
+		"leave_approver": get_leave_approver(employee),
+		"lwps": lwp,
+	}
+
