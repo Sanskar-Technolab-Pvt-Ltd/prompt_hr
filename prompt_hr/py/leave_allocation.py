@@ -18,7 +18,6 @@ def on_update(doc, method=None):
                 # Check if unused leaves exceed the maximum carry forward limit
                 if doc.unused_leaves > check_carry_forward_criteria(employee_doc, leave_type):
                     doc.db_set("unused_leaves", check_carry_forward_criteria(employee_doc, leave_type))
-                    frappe.refresh_field("unused_leaves")
 
 def check_carry_forward_criteria(employee_doc, leave_type):
     # Check if custom carry forward conditions are defined
