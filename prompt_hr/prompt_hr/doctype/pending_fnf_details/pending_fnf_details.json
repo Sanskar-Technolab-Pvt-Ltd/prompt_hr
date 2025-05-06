@@ -44,7 +44,8 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "FnF Record",
-   "options": "Full and Final Statement"
+   "options": "Full and Final Statement",
+   "read_only": 1
   },
   {
    "default": "0",
@@ -57,7 +58,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-05-06 17:16:00.378330",
+ "modified": "2025-05-06 19:37:27.915634",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Pending FnF Details",

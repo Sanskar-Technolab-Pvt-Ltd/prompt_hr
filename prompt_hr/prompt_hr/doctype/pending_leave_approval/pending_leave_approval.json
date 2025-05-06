@@ -8,7 +8,8 @@
  "field_order": [
   "employee",
   "employee_name",
-  "leave_date",
+  "from_date",
+  "to_date",
   "column_break_tltn",
   "status",
   "leave_application"
@@ -29,12 +30,6 @@
    "label": "Employee Name"
   },
   {
-   "fieldname": "leave_date",
-   "fieldtype": "Date",
-   "in_list_view": 1,
-   "label": "Leave Date"
-  },
-  {
    "fieldname": "status",
    "fieldtype": "Data",
    "in_list_view": 1,
@@ -50,13 +45,25 @@
   {
    "fieldname": "column_break_tltn",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "from_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "From Date"
+  },
+  {
+   "fieldname": "to_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "To Date"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-05-06 18:52:22.716398",
+ "modified": "2025-05-06 20:00:16.050329",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Pending Leave Approval",
