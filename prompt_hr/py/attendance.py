@@ -8,6 +8,8 @@ from prompt_hr.py.utils import send_notification_email
 
 @frappe.whitelist()
 def create_attendance_regularization(attendance_id, update_data):
+    """Method to create Attendance Regularization
+    """
     try:
         regularization_data = frappe.parse_json(update_data)
         
@@ -87,10 +89,8 @@ def validate_for_regularization(attendance_id, attendance_date, employee_id):
             is_allowed = allow_regularization_for_prompt(attendance_date)
 
             if not is_allowed.get("error") and is_allowed.get("is_allowed"):
-                # return {"is_allowed": 1}
                 return {"error": 0, "is_allowed": 1}
             elif is_allowed.get("error"):
-                # throw(is_allowed.get("message"))
                 return {"error": 1, "message": is_allowed.get("message")}
             
             
