@@ -598,24 +598,30 @@ def validate_employee_holiday_list():
         frappe.log_error("Error while checking for weeklyoff assignment", frappe.get_traceback())
 
 
-@frappe.whitelist()
-def generate_attendance():
-    """Generate Employee Attendance and Check the weekoff 
-    """
-    try:
-        employee_list = frappe.db.get_all("Employee", {"status": "Active"}, "name")
+# @frappe.whitelist()
+# def generate_attendance():
+#     """Generate Employee Attendance and Check the weekoff 
+#     """
+#     try:
+#         employee_list = frappe.db.get_all("Employee", {"status": "Active"}, "name")
         
-        yesterday_date = add_to_date(days=-1, as_string=True)
+#         yesterday_date = add_to_date(days=-1, as_string=True)
         
-        start = get_datetime(yesterday_date + " 00:00:00")
-        end = get_datetime(yesterday_date + " 23:59:59")
-        if employee_list:
-            for employee_id in employee_list:
-                emp_check_in = frappe.db.get_all("Employee Checkin", {"employee": employee_id.get("name"), "log_type": "IN", "time": ["between", [start, end]]}, "name", group_by="time asc")
-                print(f"\n\n {emp_check_in} \n\n")
+#         start = get_datetime(yesterday_date + " 00:00:00")
+#         end = get_datetime(yesterday_date + " 23:59:59")
+#         if employee_list:
+#             for employee_id in employee_list:
+#                 emp_check_in = frappe.db.get_all("Employee Checkin", {"employee": employee_id.get("name"), "log_type": "IN", "time": ["between", [start, end]]}, "name", group_by="time asc")
+#                 print(f"\n\n {emp_check_in} \n\n")
         
-    except Exception as e:
-        frappe.log_error("Error While Generating Attendance", frappe.get_traceback())
+#     except Exception as e:
+#         frappe.log_error("Error While Generating Attendance", frappe.get_traceback())
     
-    
-    
+# @frappe.whitelist()
+# def allow_checkin_from_website_to_employee():
+#     """Method to check if the current date is between the from and to date of attendance request then allow the employee to checkin from website for the time period
+#     """
+#     try:
+#         attendance_request = frappe.db.get_all("Attendance Request", {"docstatus": 1, "custom_status": "Approved"})
+#     except Exception as e:
+#         frappe.log_error("Error in allow_checkin_from_website_to_employee schedular method", frappe.get_traceback())
