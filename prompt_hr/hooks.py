@@ -58,7 +58,8 @@ doctype_js = {
     "Interview": "public/js/interview.js",
     "Interview Feedback": "public/js/interview_feedback.js",
     "Interview Round": "public/js/interview_round.js",
-    "Attendance": "public/js/attendance.js"
+    "Attendance": "public/js/attendance.js",
+    "Payroll Entry": "public/js/payroll_entry.js",
 
 }
 
@@ -202,12 +203,15 @@ doc_events = {
     "Interview Feedback": {
         "on_submit": "prompt_hr.py.interview_feedback.on_submit",
         "on_update": "prompt_hr.py.interview_feedback.on_update",
-    }
+    },
     
     
     # "User": {
     #     "after_insert": "prompt_hr.py.welcome_status.after_insert"
     # },
+    "Payroll Entry": {
+        "before_save": "prompt_hr.py.payroll_entry.before_save",
+    },
 }
 
 
