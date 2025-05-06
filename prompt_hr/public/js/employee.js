@@ -142,7 +142,7 @@ frappe.ui.form.on("Employee", {
 // ? FUNCTION TO CREATE EMPLOYEE RESIGNATION BUTTON AND FUNCTIONALITY
 function createEmployeeResignationButton(frm) {
     frm.add_custom_button(__("Raise Resignation"), function () {
-
+        console.log(frm.doc.notice_number_of_days)
         // ? FETCH QUESTIONS FROM PYTHON BACKEND
         frappe.call({
             method: "prompt_hr.py.employee.get_raise_resignation_questions",
@@ -178,7 +178,8 @@ function createEmployeeResignationButton(frm) {
                                 method: "prompt_hr.py.employee.create_resignation_quiz_submission",
                                 args: {
                                     employee: frm.doc.name,
-                                    user_response: answers
+                                    user_response: answers,
+                                    notice_number_of_days: frm.doc.notice_number_of_days,
                                 },
                                 callback: function (r) {
                                     console.log(answers)
