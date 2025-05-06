@@ -59,6 +59,7 @@ doctype_js = {
     "Interview Feedback": "public/js/interview_feedback.js",
     "Interview Round": "public/js/interview_round.js",
     "Attendance": "public/js/attendance.js",
+    "Attendance Request": "public/js/attendance_request.js"
     "Payroll Entry": "public/js/payroll_entry.js",
 
 }
@@ -197,7 +198,7 @@ doc_events = {
     # "Probation Feedback Form": {
     #     "on_submit": "prompt_hr.custom_methods.add_probation_feedback_data_to_employee"
     # },
-     "LMS Quiz Submission": {
+    "LMS Quiz Submission": {
         "validate":"prompt_hr.py.lms_quiz_submission.update_status"
     },
     "Interview Feedback": {
@@ -209,6 +210,9 @@ doc_events = {
     # "User": {
     #     "after_insert": "prompt_hr.py.welcome_status.after_insert"
     # },
+    "Attendance Request": {
+        "after_insert": "prompt_hr.py.attendance_request.after_insert"
+    }
     "Payroll Entry": {
         "before_save": "prompt_hr.py.payroll_entry.before_save",
     },
