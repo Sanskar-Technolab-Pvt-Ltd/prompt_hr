@@ -10,7 +10,6 @@
   "employee_name",
   "column_break_osll",
   "is_fnf_processed",
-  "process_fnf",
   "fnf_record",
   "hold_fnf"
  ],
@@ -37,18 +36,13 @@
    "label": "Is FnF Processed"
   },
   {
-   "fieldname": "process_fnf",
-   "fieldtype": "Button",
-   "in_list_view": 1,
-   "label": "Process FnF"
-  },
-  {
    "fieldname": "column_break_osll",
    "fieldtype": "Column Break"
   },
   {
    "fieldname": "fnf_record",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "FnF Record",
    "options": "Full and Final Statement"
   },
@@ -63,7 +57,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-04-18 07:36:10.643166",
+ "modified": "2025-05-06 17:16:00.378330",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Pending FnF Details",

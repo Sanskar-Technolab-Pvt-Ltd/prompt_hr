@@ -1,22 +1,17 @@
 $(document).ready(function () {
-    console.log("Display Fix Solution loaded");
-	let employeeField = getEmployeeField();
-        if (employeeField.length > 0) {
-            employeeField.prop('readonly', true);
-            console.log("Employee field enabled for HR/Admin.");
-        }
-    // Call the backend method to check user role and employee
+
+    // ? CALL THE BACKEND METHOD TO CHECK USER ROLE AND EMPLOYEE
     frappe.call({
-        method: "prompt_hr.prompt_hr.web_form.exit_questionnaire.exit_questionnaire.check_user_role_and_employee",  // Update this with your actual method path
+        method: "prompt_hr.prompt_hr.web_form.exit_questionnaire.exit_questionnaire.check_user_role_and_employee",  
         callback: function(response) {
             const isHrOrAdmin = response.message.is_hr_or_admin;
             const sessionEmployee = response.message.employee;
 
             if (isHrOrAdmin) {
-                // Allow HR or Admin to fill the employee field
+                // ? ALLOW HR OR ADMIN TO FILL THE EMPLOYEE FIELD
                 enableEmployeeField();
             } else {
-                // Set the employee field to session's employee
+                // ? SET THE EMPLOYEE FIELD TO SESSION'S EMPLOYEE
                 setEmployeeField(sessionEmployee);
             }
         },
@@ -25,26 +20,23 @@ $(document).ready(function () {
         }
     });
 
-    // Function to enable the employee field (allow HR or Admin to select)
+    // ? FUNCTION TO ENABLE THE EMPLOYEE FIELD (ALLOW HR OR ADMIN TO SELECT)
     function enableEmployeeField() {
         let employeeField = getEmployeeField();
         if (employeeField.length > 0) {
             employeeField.prop('readonly', false);
-            console.log("Employee field enabled for HR/Admin.");
         }
     }
 
-    // Function to set the employee field value for non-HR/Admin (set from session)
+    // ? FUNCTION TO SET THE EMPLOYEE FIELD VALUE FOR NON-HR/ADMIN (SET FROM SESSION)
  	function setEmployeeField(employee) {
         let employeeField = getEmployeeField();
         if (employeeField.length > 0) {
-            employeeField.val(employee)
-			// frappe.web_form.set_df_property('employee', 'read_only', 1);
-            console.log("Employee field set to session employee:", employee);
+            employeeField.val(employee).prop('readonly', true);
         }
     }
 
-    // Function to get the employee field
+    // ? FUNCTION TO GET THE EMPLOYEE FIELD
     function getEmployeeField() {
         let field = $('select[name="employee"], input[name="employee"]');
         if (field.length === 0) {
@@ -56,18 +48,18 @@ $(document).ready(function () {
         return field;
     }
 
-    // Hide the default Save button but keep the discard button visible
+    // ? HIDE THE DEFAULT SAVE BUTTON BUT KEEP THE DISCARD BUTTON VISIBLE
     $('.right-area .submit-btn').hide();
     $('.web-form-actions .discard-btn').show();
     
-    // Prevent default form submission
+    // ? PREVENT DEFAULT FORM SUBMISSION
     $('form.web-form').on('submit', function(e) {
         e.preventDefault();
         console.log("Default form submission prevented");
         return false;
     });
 
-    // Function to periodically check for changes in employee field value
+    // ? FUNCTION TO PERIODICALLY CHECK FOR CHANGES IN EMPLOYEE FIELD VALUE
     function setupValueChangeDetection() {
         let lastVal = '';
         let employeeField = getEmployeeField();
@@ -76,7 +68,7 @@ $(document).ready(function () {
             console.log("Setting up value change detection");
             lastVal = employeeField.val();
 
-            // Polling for value changes
+            // ? POLLING FOR VALUE CHANGES
             setInterval(function () {
                 const currentVal = employeeField.val();
                 if (currentVal !== lastVal && currentVal) {
@@ -86,7 +78,7 @@ $(document).ready(function () {
                 }
             }, 500);
 
-            // Manual event handlers
+            // ? MANUAL EVENT HANDLERS
             employeeField.on('change input blur', function () {
                 const val = $(this).val();
                 console.log("Direct event detected, value:", val);
@@ -95,27 +87,27 @@ $(document).ready(function () {
                 }
             });
 
-            // Initial value trigger
+            // ? INITIAL VALUE TRIGGER
             const initialVal = employeeField.val();
             if (initialVal) {
                 console.log("Initial value found:", initialVal);
                 fetchQuestions(initialVal);
             }
 
-            // Make employee field readonly after interaction
+            // ? MAKE EMPLOYEE FIELD READONLY AFTER INTERACTION
             employeeField.on('blur', function () {
                 $(this).prop('readonly', true);
                 console.log("Employee field set to read-only");
             });
         } else {
-            setTimeout(setupValueChangeDetection, 1000); // Retry if not found
+            setTimeout(setupValueChangeDetection, 1000); 
         }
     }
 
-    // Begin monitoring employee field
+    // ? BEGIN MONITORING EMPLOYEE FIELD
     setupValueChangeDetection();
 
-    // Fetch interview questions from backend
+    // ? FETCH INTERVIEW QUESTIONS FROM BACKEND
     function fetchQuestions(employee) {
         console.log("Fetching questions for employee:", employee);
 
@@ -143,7 +135,7 @@ $(document).ready(function () {
         });
     }
 
-    // Render the questions into the DOM
+    // ? RENDER THE QUESTIONS INTO THE DOM
     function displayQuestions(questions) {
         const questionContainer = $('#question-container');
         questionContainer.empty();
@@ -165,7 +157,7 @@ $(document).ready(function () {
         addButtons();
     }
 
-    // Add Save Response button (only once)
+    // ? ADD SAVE RESPONSE BUTTON (ONLY ONCE)
     function addButtons() {
         if ($('#save-response').length === 0) {
             const buttonsHtml = `
@@ -194,13 +186,13 @@ $(document).ready(function () {
         }
     }
 
-    // Collect and save responses via API
+    // ? COLLECT AND SAVE RESPONSES VIA API
     function saveResponse() {
         const responses = [];
         const employeeField = getEmployeeField();
         const employee = employeeField.val();
     
-        // Loop through each textarea and map answers to question.name
+        // ? LOOP THROUGH EACH TEXTAREA AND MAP ANSWERS TO QUESTION.NAME
         $('#question-container textarea').each(function () {
             const questionName = $(this).attr('name').replace('answer-', '');
             const answer = $(this).val();
@@ -229,15 +221,15 @@ $(document).ready(function () {
         });
     }
     
-    // Disable only the default save button but keep discard button
+    // ? DISABLE ONLY THE DEFAULT SAVE BUTTON BUT KEEP DISCARD BUTTON
     setTimeout(function() {
-        // Target only the submit/save button in web-form-actions, not all buttons
+        // ? TARGET ONLY THE SUBMIT/SAVE BUTTON IN WEB-FORM-ACTIONS, NOT ALL BUTTONS
         $('.web-form-actions .btn-primary, .right-area .submit-btn').off('click').prop('disabled', true);
         console.log("Disabled default save button, kept discard button functional");
     }, 1000);
 });
 
-// Show Thank You page after successful response save
+// ? SHOW THANK YOU PAGE AFTER SUCCESSFUL RESPONSE SAVE
 function showThankYouPage() {
     $('.web-form-container').html(`
         <div class="text-center py-5">
