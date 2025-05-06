@@ -261,3 +261,38 @@ def invite_for_document_collection(args, joining_document_checklist, document_co
         frappe.log_error(f"Error inviting for document collection: {str(e)}\n{traceback.format_exc()}")
         frappe.throw(_("An error occurred while inviting for document collection."))
 
+def get_hr_managers_by_company(company):
+    return [
+        row.email for row in frappe.db.sql("""
+            SELECT DISTINCT u.email
+            FROM `tabHas Role` hr
+            JOIN `tabUser` u ON u.name = hr.parent
+            JOIN `tabEmployee` e ON e.user_id = u.name
+            WHERE hr.role = 'HR Manager'
+              AND u.enabled = 1
+              AND e.company = %s
+        """, (company,), as_dict=1) if row.email
+    ]
+
+
+@frappe.whitelist()
+def check_user_is_reporting_manager(user_id, requesting_employee_id):
+	""" Method to check if the current user is Employees reporting manager
+	"""
+	try:
+		reporting_manager_emp_id = frappe.db.get_value("Employee", requesting_employee_id, "reports_to")
+
+		if reporting_manager_emp_id:
+			rh_user_id = frappe.db.get_value("Employee", reporting_manager_emp_id, "user_id")
+			if rh_user_id and (user_id == rh_user_id):
+				return {"error": 0, "is_rh": 1}
+			else:
+				return {"error": 0, "is_rh": 0}
+		else:
+			return {"error": 0, "is_rh": 0}
+	except Exception as e:
+		frappe.log_error("Error while Verifying User", frappe.get_traceback())
+		return {"error":1, "message": f"{str(e)}"}
+
+
+
