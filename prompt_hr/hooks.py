@@ -58,6 +58,8 @@ doctype_js = {
     "Interview": "public/js/interview.js",
     "Interview Feedback": "public/js/interview_feedback.js",
     "Interview Round": "public/js/interview_round.js",
+    "Attendance": "public/js/attendance.js",
+    "Payroll Entry": "public/js/payroll_entry.js",
 
 }
 
@@ -155,7 +157,6 @@ override_doctype_class = {
     # "ToDo": "custom_app.overrides.CustomToDo"
     "Interview": "prompt_hr.overrides.interview_override.CustomInterview",
     "Job Offer": "prompt_hr.overrides.job_offer_override.CustomJobOffer",
-    "Appointment Letter": "prompt_hr.overrides.interview_override.CustomAppointmentLetter",
 }
 
 # Document Events
@@ -189,9 +190,10 @@ doc_events = {
         "after_insert": "prompt_hr.py.job_offer.after_insert",
         "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
     },
-    # "Employee": {
-    #     "on_update": "prompt_hr.py.employee.on_update",
-    # },
+    "Employee": {
+#         "on_update": "prompt_hr.py.employee.on_update",
+        "validate": "prompt_hr.py.employee.validate",
+    },
     # "Probation Feedback Form": {
     #     "on_submit": "prompt_hr.custom_methods.add_probation_feedback_data_to_employee"
     # },
@@ -201,12 +203,15 @@ doc_events = {
     "Interview Feedback": {
         "on_submit": "prompt_hr.py.interview_feedback.on_submit",
         "on_update": "prompt_hr.py.interview_feedback.on_update",
-    }
+    },
     
     
     # "User": {
     #     "after_insert": "prompt_hr.py.welcome_status.after_insert"
     # },
+    "Payroll Entry": {
+        "before_save": "prompt_hr.py.payroll_entry.before_save",
+    },
 }
 
 
@@ -218,6 +223,7 @@ scheduler_events = {
         "prompt_hr.py.employee_changes_approval.daily_check_employee_changes_approval",
         # "prompt_hr.scheduler_methods.create_probation_feedback_form",
         # "prompt_hr.scheduler_methods.create_confirmation_evaluation_form_for_prompt",
+        # "prompt_hr.scheduler_methods.validate_employee_holiday_list", 						        
     ],
 }
 
@@ -300,6 +306,20 @@ scheduler_events = {
 # }
 
 fixtures = [
+
+    # {
+    #     "dt": "Kanban Board",
+    #     "filters": [
+    #         [
+    #             "name",
+    #             "in",
+    #             [
+    #                 "Meetings",
+    #             ],
+    #         ]
+    #     ],
+    # },
+
 # {"dt":"Notification","filters":[
 #     [
 #         "module","in",[

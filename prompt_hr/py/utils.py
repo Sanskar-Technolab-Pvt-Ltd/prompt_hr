@@ -62,71 +62,78 @@ def validate_hash(hash, doctype, filters):
 
 
 # ? FUNCTION TO SEND FULLY DYNAMIC NOTIFICATION EMAIL
+# ? FUNCTION TO SEND CUSTOM NOTIFICATION EMAIL WITH OPTIONAL BUTTON, TEMPLATE, AND HASH
 def send_notification_email(
     recipients,
-    notification_name=None,
-    doctype=None,
-    docname=None,
+    doctype,
+    docname,
+    notification_name,
+    send_link=True,
     button_label="View Details",
     button_link="None",
     fallback_subject="Notification",
     fallback_message="You have a new update. Please check your portal.",
-    extra_context=None,
     hash_input_text=None,
 ):
     try:
         hash = None
         base_url = frappe.utils.get_url()
-        doc = frappe.get_doc(doctype, docname) if doctype and docname else frappe._dict({})
 
-        if button_link == "None" and doctype and docname:
+        # ? GENERATE DEFAULT BUTTON LINK IF NOT EXPLICITLY PROVIDED
+        if send_link and button_link == "None" and doctype and docname:
             button_link = f"{base_url}/app/{doctype.lower().replace(' ', '-')}/{docname}"
 
-        context = {
-            "doc": doc,
-            "doctype": doctype,
-            "docname": docname,
-            "button_label": button_label,
-            "button_link": button_link,
-            "base_url": base_url,
-        }
-
+        # ? GENERATE SECURE HASH IF REQUIRED
         if hash_input_text:
             hash = create_hash(hash_input_text)
 
-        if extra_context:
-            context.update(extra_context)
-
+        # ? FETCH NOTIFICATION TEMPLATE IF PROVIDED
         notification_doc = None
         if notification_name:
-            result = frappe.get_all("Notification", filters={"name": notification_name}, limit=1)
-            if result:
-                notification_doc = frappe.get_doc("Notification", result[0].name)
-
-        for email in recipients:
-            context["user"] = email
-            subject, message = fallback_subject, fallback_message
-
+            notification_doc = frappe.db.get_value(
+                "Notification", notification_name, ["subject", "message"], as_dict=True
+            )
             if notification_doc:
-                subject = frappe.render_template(notification_doc.subject or fallback_subject, context)
-                message = frappe.render_template(notification_doc.message or fallback_message, context)
+                doc = frappe.get_doc(doctype, docname)
+                message = frappe.render_template(notification_doc.message, {"doc": doc})
+                subject = frappe.render_template(notification_doc.subject, {"doc": doc})
+            else:
+                message = fallback_message
+                subject = fallback_subject  
+        for email in recipients:
+            user = frappe.db.get_value("User", {"email": email}, "name")
 
-            hash_message = f"<p>Password: <b>{hash}</b></p>" if hash else ""
+            # ? ADD HASH AND ACTION BUTTON TO MESSAGE IF LINK SHOULD BE INCLUDED
+            if send_link:
+                hash_message = f"<p>Password: <b>{hash}</b></p>" if hash else ""
+                if button_link:
+                    message += f"""
+                        <hr>
+                        {hash_message}
+                        <p><b>{button_label}</b></p>
+                        <p><a href="{button_link}" target="_blank">{button_label}</a></p>
+                    """
 
-            if button_link:
-                message += f"""
-                    <hr>
-                    {hash_message}
-                    <p><b>{button_label}</b></p>
-                    <p><a href="{button_link}" target="_blank">{button_label}</a></p>
-                """
+            # ? LOG NOTIFICATION IN FRAPPE'S NOTIFICATION LOG
+            if user:
+                system_notification = frappe.get_doc({
+                    "doctype": "Notification Log",
+                    "subject": subject,
+                    "for_user": user,
+                    "type": "Energy Point",
+                    "document_type": doctype,
+                    "document_name": docname,
+                })
+                system_notification.insert(ignore_permissions=True)
 
+            # ? SEND EMAIL
             frappe.sendmail(
                 recipients=[email],
                 subject=subject,
                 message=message
             )
 
+        # ? LOG SUCCESS
         frappe.log_error(
             title="Notification Sent",
             message=f"Sent dynamic notification to {len(recipients)} recipient(s)."
@@ -246,10 +253,46 @@ def invite_for_document_collection(args, joining_document_checklist, document_co
                 docname=invitation.name,
                 button_label="Submit Documents",
                 button_link=f"/candidate-portal/",
+                hash_input_text = invitation.name,
             )
             return _("Invitation sent successfully.")
 
     except Exception as e:
         frappe.log_error(f"Error inviting for document collection: {str(e)}\n{traceback.format_exc()}")
         frappe.throw(_("An error occurred while inviting for document collection."))
+
+def get_hr_managers_by_company(company):
+    return [
+        row.email for row in frappe.db.sql("""
+            SELECT DISTINCT u.email
+            FROM `tabHas Role` hr
+            JOIN `tabUser` u ON u.name = hr.parent
+            JOIN `tabEmployee` e ON e.user_id = u.name
+            WHERE hr.role = 'HR Manager'
+              AND u.enabled = 1
+              AND e.company = %s
+        """, (company,), as_dict=1) if row.email
+    ]
+
+
+@frappe.whitelist()
+def check_user_is_reporting_manager(user_id, requesting_employee_id):
+	""" Method to check if the current user is Employees reporting manager
+	"""
+	try:
+		reporting_manager_emp_id = frappe.db.get_value("Employee", requesting_employee_id, "reports_to")
+
+		if reporting_manager_emp_id:
+			rh_user_id = frappe.db.get_value("Employee", reporting_manager_emp_id, "user_id")
+			if rh_user_id and (user_id == rh_user_id):
+				return {"error": 0, "is_rh": 1}
+			else:
+				return {"error": 0, "is_rh": 0}
+		else:
+			return {"error": 0, "is_rh": 0}
+	except Exception as e:
+		frappe.log_error("Error while Verifying User", frappe.get_traceback())
+		return {"error":1, "message": f"{str(e)}"}
+
+
 

@@ -11,10 +11,10 @@
   "column_break_lhxs",
   "resignation_approval",
   "company",
-  "exit_process_section",
-  "raise_exit_checklist",
-  "column_break_crwd",
-  "raise_exit_interview_questionnarie"
+  "notice_period_days",
+  "last_date_of_working",
+  "section_break_nreu",
+  "user_response"
  ],
  "fields": [
   {
@@ -53,31 +53,30 @@
    "options": "Company"
   },
   {
-   "fieldname": "exit_process_section",
-   "fieldtype": "Section Break",
-   "label": "Exit Process"
+   "fieldname": "section_break_nreu",
+   "fieldtype": "Section Break"
   },
   {
-   "default": "0",
-   "fieldname": "raise_exit_checklist",
-   "fieldtype": "Check",
-   "label": "Raise Exit Checklist"
+   "fieldname": "user_response",
+   "fieldtype": "Table",
+   "label": "User Response",
+   "options": "LMS Quiz Result"
   },
   {
-   "fieldname": "column_break_crwd",
-   "fieldtype": "Column Break"
+   "fieldname": "notice_period_days",
+   "fieldtype": "Data",
+   "label": "Notice Period Days"
   },
   {
-   "default": "0",
-   "fieldname": "raise_exit_interview_questionnarie",
-   "fieldtype": "Check",
-   "label": "Raise Exit Interview Questionnarie"
+   "fieldname": "last_date_of_working",
+   "fieldtype": "Date",
+   "label": "Last Date of Working"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-18 07:23:02.825450",
+ "modified": "2025-05-06 12:16:40.796153",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Exit Approval Process",
