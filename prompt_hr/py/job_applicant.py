@@ -1,22 +1,9 @@
 import json
 import traceback
 import frappe
-from prompt_hr.py.utils import send_notification_email
+from prompt_hr.py.utils import send_notification_email,get_hr_managers_by_company
 
 
-
-def get_hr_managers_by_company(company):
-    return [
-        row.email for row in frappe.db.sql("""
-            SELECT DISTINCT u.email
-            FROM `tabHas Role` hr
-            JOIN `tabUser` u ON u.name = hr.parent
-            JOIN `tabEmployee` e ON e.user_id = u.name
-            WHERE hr.role = 'HR Manager'
-              AND u.enabled = 1
-              AND e.company = %s
-        """, (company,), as_dict=1) if row.email
-    ]
 
 @frappe.whitelist()
 def after_insert(doc, method):
@@ -82,31 +69,35 @@ def send_notification_from_template(emails, notification_name, doc=None):
 @frappe.whitelist()
 def check_test_and_invite(job_applicant):
     try:
-        applicant = frappe.get_doc("Job Applicant", job_applicant)
-        job_opening = frappe.get_doc("Job Opening", applicant.job_title)
+        # ? GET BASIC INFO OF THE APPLICANT
+        applicant = frappe.db.get_value("Job Applicant", job_applicant, ["email_id", "job_title","custom_interview_round"], as_dict=True)
+        if not applicant:
+            return {"error": 1, "message": "Job Applicant not found."}
 
-        if not job_opening.custom_applicable_screening_test:
-            return { "error":0,"message":"redirect"}
+        if not applicant.custom_interview_round:
+            return {"error": 0, "message": "redirect","applicant": applicant}
 
         if not applicant.email_id:
             frappe.throw("No email address found for the applicant.")
-        
+
+        # ? SEND SCREENING TEST INVITATION
         send_notification_email(
-            recipients = [applicant.email_id],
+            recipients=[applicant.email_id],
             notification_name="Screen Test Invitation",
             doctype="Job Applicant",
-            docname=applicant.name,
+            docname=job_applicant,
             button_label="View Details",
+            button_link=f"http://192.168.2.111:8007/lms/courses/{applicant.custom_interview_round}/learn/1-1",
             fallback_subject="Notification",
             fallback_message="You have a new update. Please check your portal.",
-            extra_context=None,
-            hash_input_text = applicant.name
+            hash_input_text=job_applicant
         )
-       
-        
+
+        # ? UPDATE STATUS TO INDICATE SCREENING TEST IS SCHEDULED
         frappe.db.set_value("Job Applicant", job_applicant, "status", "Screening Test Scheduled")
-        
-        return {"error":0, "message":"invited"}
+
+        return {"error": 0, "message": "invited"}
+
     except Exception as e:
         frappe.log_error(f"Error in check_test_and_invite", frappe.get_traceback())
         return {"error": 1, "message": str(e)}

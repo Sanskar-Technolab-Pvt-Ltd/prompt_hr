@@ -10,9 +10,9 @@
  "event": "Custom",
  "idx": 0,
  "is_standard": 1,
- "message": "Add your message heredsas",
+ "message": "<p>Dear {{ doc.owner }},</p>\n\n<p>We are pleased to inform you that an interview has been scheduled for the job opening of <b>{{ doc.job_opening }}</b> at <b>{{ doc.company }}</b> for the position of <b>{{ doc.for_designation }}</b>.</p>\n\n<p><b>Interview Details:</b></p>\n\n<ul>\n  <li><b>Date:</b> {{ doc.date }}</li>\n  <li><b>From Time:</b> {{ doc.from_time }}</li>\n  <li><b>To Time:</b> {{ doc.to_time }}</li>\n</ul>\n\n<p>For further details, please review the <a href=\"{{ frappe.utils.get_url() }}/app/interview-availability-form/{{ doc.name }}\">Interview Availability Form</a> and take the necessary actions as required.</p>\n\n<p>If you have any questions or require further assistance, please do not hesitate to contact us.</p>\n\n<p>Best regards,<br>The {{ doc.company }} HR Team</p>\n",
  "message_type": "HTML",
- "modified": "2025-04-25 18:11:11.872937",
+ "modified": "2025-04-28 14:34:33.129848",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Job Applicant Assigning Notification",
@@ -20,7 +20,7 @@
  "recipients": [],
  "send_system_notification": 0,
  "send_to_all_assignees": 1,
- "sender": "Malav",
+ "sender": "malav",
  "sender_email": "malav@sanskartechnolab.com",
  "subject": "Job Applicant Assigning Notification"
 }

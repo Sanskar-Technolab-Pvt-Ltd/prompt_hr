@@ -1,7 +1,7 @@
 {
  "attach_print": 0,
  "channel": "Email",
- "creation": "2025-04-16 13:18:38.727717",
+ "creation": "2025-04-25 18:28:43.065644",
  "days_in_advance": 0,
  "docstatus": 0,
  "doctype": "Notification",
@@ -10,9 +10,9 @@
  "event": "Custom",
  "idx": 0,
  "is_standard": 1,
- "message": "<p>Dear Team,</p>\n\n<p>We are excited to announce a new job opening for the position of <b>{{ doc.position }}</b> at <b>{{ doc.company }}</b>. We encourage all employees to refer qualified candidates for this opportunity!</p>\n\n<p><b>Job Opening Details:</b></p>\n\n<ul>\n  <li><b>Position:</b> {{ doc.position }}</li>\n  <li><b>Location:</b> {{ doc.location }}</li>\n  <li><b>Job Description:</b> {{ doc.job_description }}</li>\n  <li><b>Referral Deadline:</b> {{ doc.referral_deadline }}</li>\n</ul>\n\n<p>Feel free to share this opportunity with your network and help us find the best fit for the role.</p>\n\n<p>Best regards,<br>The HR Team</p>\n",
+ "message": "<p>Hello Team,</p>\n\n<p>We\u2019re excited to share that we have an open position for <b>{{ doc.designation }}</b> on our <b>{{ doc.department }}</b> team at <b>{{ doc.company }}</b>!</p>\n\n<p>We believe great people know great people \u2014 so if you know someone who would be a great fit, please send them our way!</p>\n\n<p><b>Deadline to apply:</b> {{ frappe.utils.get_datetime(doc.custom_due_date_for_applying_job_jr).strftime('%d %B, %Y') if doc.custom_due_date_for_applying_job_jr }}</p>\n\n<p>For any questions, please reach out to HR.</p>\n",
  "message_type": "HTML",
- "modified": "2025-04-25 18:11:11.719839",
+ "modified": "2025-04-28 13:48:49.721070",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Referral Email",
@@ -22,5 +22,5 @@
  "send_to_all_assignees": 1,
  "sender": "Malav",
  "sender_email": "malav@sanskartechnolab.com",
- "subject": "Employee Referral Job Opening Alert - Job Opening"
+ "subject": "Employee Referral Job Opening Alert"
 }
