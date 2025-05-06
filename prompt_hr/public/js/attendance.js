@@ -15,7 +15,7 @@ frappe.ui.form.on('Attendance', {
                 },
                 callback(r) {
                     // if (!r.message.name) {
-                    frm.add_custom_button('Regularize Punches', () => {
+                    frm.add_custom_button('Regularize Attendance', () => {
                             
                         if (!r.message.name) {
                             frappe.call({
@@ -36,7 +36,7 @@ frappe.ui.form.on('Attendance', {
                                 }
                             })
                         } else {
-                            frappe.throw(`Regularization already created: <a href="/app/attendance-regularization/${res.message.name}">${res.message.name}</a>`);
+                            frappe.throw(`Regularization already created: <a href="/app/attendance-regularization/${r.message.name}">${r.message.name}</a>`);
                             
                             }
                         });
@@ -74,31 +74,41 @@ function show_checkin_dialog(frm) {
 
             //* Setting in_time or out_time based on log_type
             const table_data = [];
-            let i = 0;
+            let last_in = null
 
-            while (i < checkins.length) {
+            for (let i = 0; i < checkins.length; i++) {
                 const current = checkins[i];
 
                 if (current.log_type === 'IN') {
-                    let row = {
-                        in_time: current.time,
-                        out_time: '',
-                        employee_checkin    : current.name
-                    };
-
-                    if (i + 1 < checkins.length && checkins[i + 1].log_type === 'OUT') {
-                        row.out_time = checkins[i + 1].time;
-                        i += 2;
-                    } else {
-                        i += 1;
+                    if (last_in && !last_in.out_time)
+                    {
+                        table_data.push(last_in)
+                        last_in = null
                     }
-
-                    table_data.push(row);
-                } else {
-                    i += 1; // skip stray OUT
+                    last_in = {
+                        in_time: frappe.datetime.str_to_obj(current.time).toTimeString().split(' ')[0],
+                        // in_time: current.time,
+                        out_time: '',
+                        employee_checkin : current.name
+                    }
+                } else if (current.log_type === "OUT") {
+                    if (last_in) {
+                        last_in.out_time = frappe.datetime.str_to_obj(current.time).toTimeString().split(' ')[0]
+                        table_data.push(last_in)
+                        
+                        last_in = null
+                    } else {
+                        table_data.push({
+                            in_time: '',
+                            out_time: frappe.datetime.str_to_obj(current.time).toTimeString().split(' ')[0],
+                            employee_checkin: current.name
+                        })
+                        
+                    }
                 }
             }
 
+            console.log(table_data)
             const d = new frappe.ui.Dialog({
                 title: 'Edit Check-in/Out Records',
                 fields: [
@@ -110,13 +120,13 @@ function show_checkin_dialog(frm) {
                         // in_place_edit: true,
                         fields: [
                             {
-                                fieldtype: 'Datetime',
+                                fieldtype: 'Time',
                                 fieldname: 'in_time',
                                 label: 'In Time',
                                 in_list_view: 1
                             },
                             {
-                                fieldtype: 'Datetime',
+                                fieldtype: 'Time',
                                 fieldname: 'out_time',
                                 label: 'Out Time',
                                 in_list_view: 1,
@@ -142,7 +152,6 @@ function show_checkin_dialog(frm) {
                         return;
                     }
 
-
                     frappe.call({
                         method: "prompt_hr.py.attendance.create_attendance_regularization",
                         args: {
@@ -150,7 +159,9 @@ function show_checkin_dialog(frm) {
                             update_data: all_entries
                         },
                         callback: function (res) {
-                            frappe.msgprint(`Regularization Created: <a href="/app/attendance-regularization/${res.message.attendance_regularization_id}">${res.message.attendance_regularization_id}</a>`);
+                            // frappe.msgprint(`Regularization Created: <a href="/app/attendance-regularization/${res.message.attendance_regularization_id}">${res.message.attendance_regularization_id}</a>`);
+                            d.hide();
+                            frm.reload_doc();
                         }
                     })
                     // frappe.call({
@@ -167,8 +178,6 @@ function show_checkin_dialog(frm) {
                     //     callback(res) {
                     //         console.log(res)
                     //         frappe.msgprint(`Regularization Created: <a href="/app/attendance-regularization/${res.message.name}">${res.message.name}</a>`);
-                    //         d.hide();
-                    //         frm.reload_doc();
                     //     }
                     // });
                 }
