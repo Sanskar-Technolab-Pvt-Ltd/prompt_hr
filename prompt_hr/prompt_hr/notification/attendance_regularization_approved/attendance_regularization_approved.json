@@ -10,9 +10,9 @@
  "event": "Custom",
  "idx": 0,
  "is_standard": 1,
- "message": "<p>Dear {{doc.employee_name}},</p><br>\n\n<p>This is to inform you that your Attendance Regularization request for {{doc.regularization_date}} has been reviewed and approved.</p>\n",
+ "message": "<p>Dear {{doc.employee_name}},</p><br>\n\n<p>This is to inform you that your Attendance Regularization request for {{doc.regularization_date.strftime('%d-%m-%Y')}} has been reviewed and approved.</p>\n",
  "message_type": "Markdown",
- "modified": "2025-05-05 16:09:10.118462",
+ "modified": "2025-05-06 15:05:24.127031",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Attendance Regularization Approved",
@@ -20,5 +20,5 @@
  "recipients": [],
  "send_system_notification": 0,
  "send_to_all_assignees": 1,
- "subject": "Attendance Regularization Approved for {{ doc.regularization_date }}"
+ "subject": "Attendance Regularization Approved"
 }
