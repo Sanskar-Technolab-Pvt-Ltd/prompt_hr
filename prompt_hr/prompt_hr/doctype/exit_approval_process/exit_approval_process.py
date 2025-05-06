@@ -10,7 +10,12 @@ from prompt_hr.py.utils import send_notification_email, get_hr_managers_by_compa
 
 
 class ExitApprovalProcess(Document):
-	pass
+	def on_update(self):
+		# ? CHECK IF RESIGNATION_APPROVAL CHANGED TO "APPROVED"
+		if self.resignation_approval == "Approved" and frappe.db.get_value("Employee", self.employee, "relieving_date") != self.last_date_of_working:
+			if self.last_date_of_working:
+				frappe.db.set_value("Employee", self.employee, "relieving_date", self.last_date_of_working)
+
 
 # ? FUNCTION TO AUTO CREATE EMPLOYEE SEPARATION RECORD
 @frappe.whitelist()
