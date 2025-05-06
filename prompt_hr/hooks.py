@@ -60,6 +60,7 @@ doctype_js = {
     "Interview Round": "public/js/interview_round.js",
     "Attendance": "public/js/attendance.js",
     "Attendance Request": "public/js/attendance_request.js"
+    "Payroll Entry": "public/js/payroll_entry.js",
 
 }
 
@@ -212,6 +213,9 @@ doc_events = {
     "Attendance Request": {
         "after_insert": "prompt_hr.py.attendance_request.after_insert"
     }
+    "Payroll Entry": {
+        "before_save": "prompt_hr.py.payroll_entry.before_save",
+    },
 }
 
 

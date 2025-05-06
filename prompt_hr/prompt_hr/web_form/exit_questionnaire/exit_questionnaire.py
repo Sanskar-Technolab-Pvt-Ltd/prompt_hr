@@ -8,32 +8,32 @@ def get_context(context):
 # ! prompt_hr.prompt_hr.web_form.exit_questionnaire.exit_questionnaire.fetch_interview_questions
 @frappe.whitelist()
 def fetch_interview_questions(employee=None):
-    # Get the current logged-in user
+    # ? GET THE CURRENT LOGGED-IN USER
     user = frappe.session.user
     
-    # Check if user is HR or Admin
+    # ? CHECK IF USER IS HR OR ADMIN
     roles = frappe.get_roles(user)
     is_hr_or_admin = any(role in ['HR Manager', 'Administrator'] for role in roles)
 
-    # If the user is neither HR nor Admin, allow them to fetch only their own questions
+    # ? IF THE USER IS NEITHER HR NOR ADMIN, ALLOW THEM TO FETCH ONLY THEIR OWN QUESTIONS
     if not is_hr_or_admin:
-        # If the employee is not provided, fetch the employee linked to the current session user
+        # ? IF THE EMPLOYEE IS NOT PROVIDED, FETCH THE EMPLOYEE LINKED TO THE CURRENT SESSION USER
         if not employee:
             employee = frappe.db.get_value("Employee", {"user_id": user}, "name")
-        # Ensure the current user is allowed to access their own employee record
+        # ? ENSURE THE CURRENT USER IS ALLOWED TO ACCESS THEIR OWN EMPLOYEE RECORD
         if employee != frappe.db.get_value("Employee", {"user_id": user}, "name"):
             frappe.throw("You are not authorized to fetch questions for another employee.")
 
     if not employee:
         frappe.throw("Employee not provided and no employee linked to the current user.")
     
-    # Fetching the quiz related to the employee
+    # ? FETCHING THE QUIZ RELATED TO THE EMPLOYEE
     quiz = frappe.db.get_value("Exit Interview", {"employee": employee}, "custom_resignation_quiz")
 
     if not quiz:
         frappe.throw(f"No quiz found for employee {employee}.")
 
-    # Fetch all questions associated with that quiz
+    # ? FETCH ALL QUESTIONS ASSOCIATED WITH THAT QUIZ
     questions = frappe.get_all("LMS Quiz Question", filters={"parent": quiz}, fields=["question", "question_detail"])
 
     return questions
@@ -59,7 +59,6 @@ def save_response(employee, response):
 	# ? FETCH THE EXIT INTERVIEW DOCUMENT FOR THE EMPLOYEE
 	exit_doc = frappe.get_all("Exit Interview", filters={"employee": employee}, fields=["name"])
 	if not exit_doc:
-		print("\n\n\nemployee", employee)
 		frappe.throw(f"Exit Interview not found for the selected employee.", {employee})
 	
 	exit_doc_name = exit_doc[0].name
@@ -86,26 +85,26 @@ def save_response(employee, response):
 
 	hr_managers = get_hr_managers_by_company(doc.company)
 
-	send_notification_email(doctype="Exit Interview", docname=doc.name, recipients=hr_managers, notification_name="Employee Separation Notification")
+	send_notification_email(doctype="Exit Interview", docname=doc.name, recipients=hr_managers, notification_name="Exit Questionnaire Form Submission")
 
 	return {"status": "success", "message": "Responses saved successfully."}
 
 
 @frappe.whitelist()
 def check_user_role_and_employee():
-    # Get the current logged-in user
+    # ? GET THE CURRENT LOGGED-IN USER
     user = frappe.session.user
     
-    # Check if user is HR or Admin
+    # ? CHECK IF USER IS HR OR ADMIN
     roles = frappe.get_roles(user)
     
-    # Return if the user is HR or Admin
+    # ? RETURN IF THE USER IS HR OR ADMIN
     is_hr_or_admin = any(role in ['HR', 'Administrator'] for role in roles)
     
-    # Get the employee linked to the user (if any)
+    # ? GET THE EMPLOYEE LINKED TO THE USER (IF ANY)
     employee = None
     if not is_hr_or_admin:
-        # For non-HR/Admin, fetch the session employee
+        # ? FOR NON-HR/ADMIN, FETCH THE SESSION EMPLOYEE
         employee = frappe.db.get_value("Employee", {"user_id": user}, "name")	
 		
     
