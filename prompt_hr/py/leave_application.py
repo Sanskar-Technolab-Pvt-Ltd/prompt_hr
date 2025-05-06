@@ -16,7 +16,7 @@ from dateutil import relativedelta
 from hrms.hr.utils import create_additional_leave_ledger_entry, get_monthly_earned_leave
 import datetime
 from erpnext.setup.doctype.employee.employee import get_holiday_list_for_employee
-from hrms.hr.doctype.leave_ledger_entry.leave_ledger_entry import expire_allocation
+from hrms.hr.report.employee_leave_balance.employee_leave_balance import get_leave_ledger_entries
 from hrms.hr.utils import get_holiday_dates_for_employee
 from hrms.hr.doctype.leave_application.leave_application import (
     get_holidays,
@@ -26,37 +26,10 @@ from hrms.hr.doctype.leave_application.leave_application import (
     get_leaves_for_period,
     get_leaves_pending_approval_for_period,
 )
-
-@frappe.whitelist()
-def custom_grant_leave_alloc_for_employee(doc):
-    if doc.leaves_allocated:
-        frappe.throw(_("Leave already have been assigned for this Leave Policy Assignment"))
-    else:
-        leave_allocations = {}
-        leave_type_details = get_leave_type_details()
-
-        leave_policy = frappe.get_doc("Leave Policy", doc.leave_policy)
-        date_of_joining = frappe.db.get_value("Employee", doc.employee, "date_of_joining")
-
-        for leave_policy_detail in leave_policy.leave_policy_details:
-            leave_details = leave_type_details.get(leave_policy_detail.leave_type)
-
-            if not leave_details.is_lwp:
-                leave_allocation, new_leaves_allocated = doc.create_leave_allocation(
-                    leave_policy_detail.annual_allocation/4 if leave_details.earned_leave_frequency == 'Quarterly' else leave_policy_detail.annual_allocation,
-                    leave_details,
-                    date_of_joining,
-                )
-                leave_allocations[leave_details.name] = {
-                    "name": leave_allocation,
-                    "leaves": new_leaves_allocated,
-                }
-        doc.db_set("leaves_allocated", 1)
-        return leave_allocations
     
 def custom_check_effective_date(from_date, today=None, frequency=None, allocate_on_day=None):
     from_date = get_datetime(from_date)
-    today = get_datetime("2025-01-01")#frappe.flags.current_date or get_datetime(today)
+    today = get_datetime("2025-02-01")#frappe.flags.current_date or get_datetime(today)
     rd = relativedelta.relativedelta(today, from_date)
     expected_date = {
         "First Day": get_first_day(today),
@@ -68,7 +41,6 @@ def custom_check_effective_date(from_date, today=None, frequency=None, allocate_
 
     if expected_date.day != today.day:
         return False
-
     if frequency == "Monthly":
         return True
     elif frequency == "Quarterly" and (rd.months) % 3 == 0:
@@ -85,7 +57,7 @@ def custom_update_previous_leave_allocation(allocation, annual_allocation, e_lea
     allocation = frappe.get_doc("Leave Allocation", allocation.name)
     annual_allocation = flt(annual_allocation, allocation.precision("total_leaves_allocated"))
     from_date = get_datetime(allocation.from_date)
-    today = get_datetime("2025-10-01")#get_datetime()
+    today = get_datetime("2025-02-01")#get_datetime()
     rd = relativedelta.relativedelta(today, from_date)
 
     expected_date = {
@@ -126,14 +98,14 @@ def custom_update_previous_leave_allocation(allocation, annual_allocation, e_lea
             },
             as_dict=True,
         )
-
+        print(used_leave_entries)
         total_used_in_period = abs(sum(flt(entry.leaves) for entry in used_leave_entries))
-
+        print(total_used_in_period)
         unused_leaves_in_period = allocated_in_quarter - total_used_in_period if total_used_in_period < allocated_in_quarter else 0
-
+        print(unused_leaves_in_period)
         # Make leaves negative to expire them
         expired_leaves = -1 * max(unused_leaves_in_period, 0)
-
+        print(expired_leaves)
     new_allocation = flt(allocation.total_leaves_allocated) + flt(earned_leaves)
     new_allocation_without_cf = flt(
         flt(allocation.get_existing_leave_count()) + flt(earned_leaves),
@@ -147,7 +119,7 @@ def custom_update_previous_leave_allocation(allocation, annual_allocation, e_lea
         new_allocation != allocation.total_leaves_allocated
         and new_allocation_without_cf <= annual_allocation
     ):
-        today_date = getdate("2025-10-01")#frappe.flags.current_date or getdate()
+        today_date = getdate("2025-02-01")#frappe.flags.current_date or getdate()
 
         allocation.db_set("total_leaves_allocated", new_allocation, update_modified=False)
         create_additional_leave_ledger_entry(allocation, earned_leaves, today_date)
@@ -335,28 +307,42 @@ def get_additional_days(leave_type_doc, employee, from_date, to_date, number_of_
             additional_days += len(get_all_holidays(from_date, to_date, holiday_list))
 
     if (leave_type_doc.custom_half_day_leave_taken_in_second_half_on_day_before or leave_type_doc.custom_half_day_leave_taken_in_first_half_on_day_after) and not leave_type_doc.custom_ignore_if_half_day_leave_for_day_before_or_day_after:
-        if not leave_type_doc.custom_adjoins_holiday:
-            additional_days += len(get_all_holidays(from_date, to_date, holiday_list))
-        if not leave_type_doc.custom_adjoins_weekoff:
-            additional_days += len(get_all_weekoff_days(from_date, to_date, holiday_list))
-
+        
         # Handle half-day in second half on day before
         if leave_type_doc.custom_half_day_leave_taken_in_second_half_on_day_before and not leave_type_doc.custom_ignore_if_half_day_leave_for_day_before_or_day_after:
             if half_day and half_day_date:
                 if custom_half_day_time == "First":
                     next_day = add_days(half_day_date, 1)
-                    while next_day_is_holiday_or_weekoff(next_day, holiday_list) and next_day<= to_date:
-                        additional_days -= 1
-                        next_day = add_days(next_day, 1)
+                    if leave_type_doc.custom_adjoins_holiday and leave_type_doc.custom_adjoins_weekoff:
+                        while next_day_is_holiday_or_weekoff(next_day,holiday_list):
+                            additional_days -= 1
+                            next_day = add_days(next_day, 1)
+                    elif leave_type_doc.custom_adjoins_holiday:
+                        while next_day_is_holiday(next_day, holiday_list) and next_day<= to_date:
+                            additional_days -= 1
+                            next_day = add_days(next_day, 1)
+                    elif leave_type_doc.custom_adjoins_weekoff:
+                        while next_day_is_weekoff(next_day, holiday_list) and next_day<= to_date:
+                            additional_days -= 1
+                            next_day = add_days(next_day, 1)
 
         # Handle half-day in first half on day after
         if leave_type_doc.custom_half_day_leave_taken_in_first_half_on_day_after and not leave_type_doc.custom_ignore_if_half_day_leave_for_day_before_or_day_after:
             if half_day and half_day_date:
                 if custom_half_day_time == "Second":
                     prev_day = add_days(half_day_date, -1)
-                    while next_day_is_holiday_or_weekoff(prev_day, holiday_list) and prev_day>=from_date:
-                        additional_days -= 1
-                        prev_day = add_days(prev_day, -1)
+                    if leave_type_doc.custom_adjoins_holiday and leave_type_doc.custom_adjoins_weekoff:
+                        while next_day_is_holiday_or_weekoff(prev_day, holiday_list):
+                            additional_days -= 1
+                            prev_day = add_days(prev_day, -1)
+                    elif leave_type_doc.custom_adjoins_holiday:
+                        while next_day_is_holiday(prev_day, holiday_list) and prev_day>= from_date:
+                            additional_days -= 1
+                            prev_day = add_days(prev_day, -1)
+                    elif leave_type_doc.custom_adjoins_weekoff:
+                        while next_day_is_weekoff(prev_day, holiday_list) and prev_day>= from_date:
+                            additional_days -= 1
+                            prev_day = add_days(prev_day, -1)
     # Add the additional days to the total
     number_of_days += additional_days
 
@@ -369,6 +355,24 @@ def next_day_is_holiday_or_weekoff(date, holiday_list):
         "holiday_date": date
     })
     return bool(is_holiday)
+
+def next_day_is_holiday(date, holiday_list):
+    """Check if the given date is a holiday"""
+    is_holiday = frappe.db.exists("Holiday", {
+        "parent": holiday_list,
+        "holiday_date": date,
+        "weekly_off": 0
+    })
+    return bool(is_holiday)
+
+def next_day_is_weekoff(date, holiday_list):
+    """Check if the given date is a weekoff"""
+    is_weekoff = frappe.db.exists("Holiday", {
+        "parent": holiday_list,
+        "holiday_date": date,
+        "weekly_off": 1
+    })
+    return bool(is_weekoff)
 
 def get_all_weekoff_days(from_date, to_date, holiday_list_name, half_day_date=None):
     """
@@ -511,3 +515,35 @@ def custom_get_leave_details(employee, date, for_salary_slip=False):
 		"lwps": lwp,
 	}
 
+def custom_get_allocated_and_expired_leaves(
+	from_date: str, to_date: str, employee: str, leave_type: str
+) -> tuple[float, float, float]:
+	new_allocation = 0
+	expired_leaves = 0
+	carry_forwarded_leaves = 0
+	records = get_leave_ledger_entries(from_date, add_days(to_date,-1), employee, leave_type)
+
+	for record in records:
+		# new allocation records with `is_expired=1` are created when leave expires
+		# these new records should not be considered, else it leads to negative leave balance
+		if record.is_expired:
+			continue
+		if record.leaves < 0 and record.from_date >= getdate(from_date):
+			expired_leaves += abs(record.leaves)
+			
+		else:
+			if record.to_date < getdate(to_date):
+				# leave allocations ending before to_date, reduce leaves taken within that period
+				# since they are already used, they won't expire
+				expired_leaves += record.leaves
+
+				leaves_for_period = get_leaves_for_period(employee, leave_type, record.from_date, record.to_date)
+				expired_leaves -= min(abs(leaves_for_period), record.leaves)
+
+			if record.from_date >= getdate(from_date):
+				if record.is_carry_forward:
+					carry_forwarded_leaves += record.leaves
+				else:
+					new_allocation += record.leaves
+
+	return new_allocation, expired_leaves, carry_forwarded_leaves

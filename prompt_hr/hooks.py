@@ -58,6 +58,7 @@ doctype_js = {
     "Interview": "public/js/interview.js",
     "Interview Feedback": "public/js/interview_feedback.js",
     "Interview Round": "public/js/interview_round.js",
+    "Attendance": "public/js/attendance.js",
     "Leave Application": "public/js/leave_application.js"
 
 }
@@ -203,8 +204,6 @@ doc_events = {
         "on_submit": "prompt_hr.py.interview_feedback.on_submit",
         "on_update": "prompt_hr.py.interview_feedback.on_update",
     }
-    
-    
     # "User": {
     #     "after_insert": "prompt_hr.py.welcome_status.after_insert"
     # },
