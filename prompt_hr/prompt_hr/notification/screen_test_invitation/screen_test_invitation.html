@@ -1,15 +1,19 @@
-<p>Hi {{ doc.applicant_name }},</p>
+<p>Dear HR Team,</p>
 
-<p>We are pleased to invite you to the next step in our hiring process: a screen test for the position of <b>{{ doc.position }}</b> at <b>{{ doc.company }}</b>! 🎬</p>
-
-<p>Please complete the screen test as per the instructions provided in your candidate portal.</p>
-
-<p><b>Screen Test Details:</b></p>
+<p>We would like to inform you that a new job applicant has been successfully registered in the system. Below are the applicant’s key details:</p>
 
 <ul>
-  <li><b>Deadline:</b> {{ doc.test_deadline }}</li>
+  <li><b>Name:</b> {{ doc.applicant_name }}</li>
+  <li><b>Email:</b> {{ doc.email_id }}</li>
+  <li><b>Phone:</b> {{ doc.phone_number }}</li>
+  <li><b>Position Applied:</b> {{ doc.designation }}</li>
+  <li><b>Company:</b> {{ doc.custom_company }}</li>
+  <li><b>Department:</b> {{ doc.custom_department }}</li>
+  <li><b>Current Role:</b> {{ doc.custom_current_designation }}</li>
+  <li><b>Experience:</b> {{ doc.custom_experience }} years</li>
+  <li><b>Available to Join In:</b> {{ doc.custom_available_to_join_in_days }} days</li>
 </ul>
 
-<p>We wish you the best of luck and look forward to your participation!</p>
+<p>Additional documents and detailed information are available in the Job Applicant record on the system.</p>
 
-<p>Best regards,<br>The {{ doc.company }} Team</p>
+<p>Regards,<br>The Recruitment System</p>
