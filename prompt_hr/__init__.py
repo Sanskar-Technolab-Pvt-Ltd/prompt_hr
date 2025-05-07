@@ -11,8 +11,10 @@ import hrms.hr.doctype.leave_application.leave_application as leave_application_
 import hrms.hr.report.employee_leave_balance.employee_leave_balance as leave_balance_report
 from frappe.model import workflow
 from hrms.hr.doctype.leave_allocation.leave_allocation import LeaveAllocation
+from hrms.hr.doctype.leave_encashment.leave_encashment import LeaveEncashment
 from prompt_hr.overrides.workflow_override import custom_get_transitions, custom_has_approval_access
 from prompt_hr.py.leave_allocation import custom_set_total_leaves_allocated
+from prompt_hr.py.leave_encashment import custom_set_actual_encashable_days, custom_set_encashment_amount
 from prompt_hr.py.leave_application import custom_get_number_of_leave_days, custom_update_previous_leave_allocation, custom_check_effective_date, custom_get_leave_details, custom_get_allocated_and_expired_leaves
 
 @frappe.whitelist()
@@ -66,3 +68,5 @@ leave_application_module.get_number_of_leave_days = custom_get_number_of_leave_d
 leave_application_module.get_leave_details = custom_get_leave_details
 leave_balance_report.get_allocated_and_expired_leaves = custom_get_allocated_and_expired_leaves 
 LeaveAllocation.set_total_leaves_allocated = custom_set_total_leaves_allocated
+LeaveEncashment.set_actual_encashable_days = custom_set_actual_encashable_days
+LeaveEncashment.set_encashment_amount = custom_set_encashment_amount
