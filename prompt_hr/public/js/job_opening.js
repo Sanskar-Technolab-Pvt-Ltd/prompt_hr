@@ -1,3 +1,4 @@
+frappe.ui.form.off("Job Opening","company")
 frappe.ui.form.on("Job Opening", {
     refresh: (frm) => {
         handleInternalJobPosting(frm);

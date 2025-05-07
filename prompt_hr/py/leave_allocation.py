@@ -39,7 +39,12 @@ def check_carry_forward_criteria(employee_doc, leave_type):
 def get_matching_link_field(document_name):
     # Retrieve the metadata for the Employee Doctype
     meta = frappe.get_meta("Employee")
-    
+    # Special case: If the document is "Employee" itself,
+    # return the fieldname "employee" directly (if it exists in the metadata)
+    if document_name == "Employee":
+        for field in meta.fields:
+            if field.fieldname == "employee":
+                return field.fieldname
     # Search for the Link field in Employee Doctype that links to the specified document
     for df in meta.fields:
         if df.fieldtype == "Link" and df.options == document_name:
