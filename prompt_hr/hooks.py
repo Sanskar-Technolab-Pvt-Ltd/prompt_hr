@@ -61,6 +61,7 @@ doctype_js = {
     "Attendance": "public/js/attendance.js",
     "Attendance Request": "public/js/attendance_request.js",
     "Payroll Entry": "public/js/payroll_entry.js",
+    "Leave Application": "public/js/leave_application.js"
 
 }
 
@@ -216,6 +217,9 @@ doc_events = {
     "Payroll Entry": {
         "before_save": "prompt_hr.py.payroll_entry.before_save",
     },
+    "Leave Allocation":{
+        "on_update": "prompt_hr.py.leave_allocation.on_update"
+    }
 }
 
 
