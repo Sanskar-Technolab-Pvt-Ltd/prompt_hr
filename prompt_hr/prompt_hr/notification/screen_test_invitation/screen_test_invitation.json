@@ -10,9 +10,9 @@
  "event": "Custom",
  "idx": 0,
  "is_standard": 1,
- "message": "<p>Hi {{ doc.applicant_name }},</p>\n\n<p>We are pleased to invite you to the next step in our hiring process: a screen test for the position of <b>{{ doc.position }}</b> at <b>{{ doc.company }}</b>! \ud83c\udfac</p>\n\n<p>Please complete the screen test as per the instructions provided in your candidate portal.</p>\n\n<p><b>Screen Test Details:</b></p>\n\n<ul>\n  <li><b>Deadline:</b> {{ doc.test_deadline }}</li>\n</ul>\n\n<p>We wish you the best of luck and look forward to your participation!</p>\n\n<p>Best regards,<br>The {{ doc.company }} Team</p>\n",
+ "message": "<p>Dear HR Team,</p>\n\n<p>We would like to inform you that a new job applicant has been successfully registered in the system. Below are the applicant\u2019s key details:</p>\n\n<ul>\n  <li><b>Name:</b> {{ doc.applicant_name }}</li>\n  <li><b>Email:</b> {{ doc.email_id }}</li>\n  <li><b>Phone:</b> {{ doc.phone_number }}</li>\n  <li><b>Position Applied:</b> {{ doc.designation }}</li>\n  <li><b>Company:</b> {{ doc.custom_company }}</li>\n  <li><b>Department:</b> {{ doc.custom_department }}</li>\n  <li><b>Current Role:</b> {{ doc.custom_current_designation }}</li>\n  <li><b>Experience:</b> {{ doc.custom_experience }} years</li>\n  <li><b>Available to Join In:</b> {{ doc.custom_available_to_join_in_days }} days</li>\n</ul>\n\n<p>Additional documents and detailed information are available in the Job Applicant record on the system.</p>\n\n<p>Regards,<br>The Recruitment System</p>\n",
  "message_type": "HTML",
- "modified": "2025-04-25 18:11:11.833307",
+ "modified": "2025-05-08 01:01:49.362020",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Screen Test Invitation",
@@ -20,5 +20,5 @@
  "recipients": [],
  "send_system_notification": 0,
  "send_to_all_assignees": 1,
- "subject": "Screen Test Invitation for Your Job Application at {{ doc.company }}"
+ "subject": "Screen Test Invitation for Your Job Application at {{ doc.custom_company }}"
 }

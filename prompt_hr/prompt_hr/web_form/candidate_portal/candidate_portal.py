@@ -105,8 +105,8 @@ def update_candidate_portal(doc):
             notification_name="HR Candidate Web Form Revert Mail",
             recipients=[portal_doc.applicant_email],
             button_label="View Details",
-            doctype="Job Applicant",
-            docname=portal_doc.applicant_email,
+            doctype="Candidate Portal",
+            docname=portal_doc.name,
         )
         # ? SAVE DOCUMENT WITH IGNORED PERMISSIONS
         portal_doc.save(ignore_permissions=True)

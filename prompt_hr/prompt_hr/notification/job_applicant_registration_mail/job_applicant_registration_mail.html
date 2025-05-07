@@ -1,11 +1,10 @@
-<p>Dear {{ doc.applicant_name }},</p>
-
-<p>Thank you for your interest in joining <b>{{ doc.custom_company }}</b>. We are pleased to receive your application and are excited about the possibility of you becoming part of our team.</p>
-
-<p>In order to proceed with your application, we have created a personalized Candidate Portal for you. Kindly follow the link provided in your email to complete your profile and submit any additional required information.</p>
-
-<p>If you encounter any issues or have any questions during the process, please do not hesitate to contact us. Our HR team is available to assist you and ensure a smooth application experience.</p>
-
-<p>We look forward to reviewing your application in more detail and wish you the best of luck in the selection process.</p>
-
-<p>Best regards,<br>The {{ doc.custom_company }} HR Team</p>
+<p>Dear HR Team,</p>
+<p>We would like to inform you that a new job applicant has successfully registered on the system.</p>
+<h3>Applicant Details:</h3>
+<ul>
+   <li><strong>Name:</strong> {{ doc.applicant_name }}</li>
+   <li><strong>Email:</strong> {{ doc.email_id }}</li>
+   <li><strong>Phone:</strong> {{ doc.phone_number }}</li>
+   <li><strong>Position Applied For:</strong> {{ doc.job_title }}</li>
+</ul>
+<p>Best regards,<br> {{ doc.custom_company }}</p>

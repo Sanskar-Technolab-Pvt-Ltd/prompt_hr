@@ -10,9 +10,9 @@
  "event": "Custom",
  "idx": 0,
  "is_standard": 1,
- "message": "<p>Dear {{ doc.applicant_name }},</p>\n\n<p>Thank you for your interest in joining <b>{{ doc.custom_company }}</b>. We are pleased to receive your application and are excited about the possibility of you becoming part of our team.</p>\n\n<p>In order to proceed with your application, we have created a personalized Candidate Portal for you. Kindly follow the link provided in your email to complete your profile and submit any additional required information.</p>\n\n<p>If you encounter any issues or have any questions during the process, please do not hesitate to contact us. Our HR team is available to assist you and ensure a smooth application experience.</p>\n\n<p>We look forward to reviewing your application in more detail and wish you the best of luck in the selection process.</p>\n\n<p>Best regards,<br>The {{ doc.custom_company }} HR Team</p>\n",
+ "message": "<p>Dear HR Team,</p>\r\n<p>We would like to inform you that a new job applicant has successfully registered on the system.</p>\r\n<h3>Applicant Details:</h3>\r\n<ul>\r\n   <li><strong>Name:</strong> {{ doc.applicant_name }}</li>\r\n   <li><strong>Email:</strong> {{ doc.email_id }}</li>\r\n   <li><strong>Phone:</strong> {{ doc.phone_number }}</li>\r\n   <li><strong>Position Applied For:</strong> {{ doc.job_title }}</li>\r\n</ul>\r\n<p>Best regards,<br> {{ doc.custom_company }}</p>",
  "message_type": "HTML",
- "modified": "2025-04-28 14:31:39.659479",
+ "modified": "2025-05-08 01:00:02.329285",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Job Applicant Registration Mail",
@@ -20,5 +20,5 @@
  "recipients": [],
  "send_system_notification": 0,
  "send_to_all_assignees": 1,
- "subject": "You're One Step Closer! Complete Your Job Application at {{ doc.company }}"
+ "subject": "New Job Applicant Registered: {{ doc.applicant_name }}"
 }
