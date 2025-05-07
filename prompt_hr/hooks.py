@@ -218,7 +218,7 @@ doc_events = {
         "before_save": "prompt_hr.py.payroll_entry.before_save",
     },
     "Leave Allocation":{
-        "on_update": "prompt_hr.py.leave_allocation.on_update"
+        "before_validate": "prompt_hr.py.leave_allocation.before_validate"
     }
 }
 
