@@ -12,7 +12,7 @@
  "is_standard": 1,
  "message": "<p>Hi {{ doc.employee_name }},</p>\n\n<p>We are excited to announce a new internal job opening at <b>{{ doc.company }}</b> for the position of <b>{{ doc.job_title }}</b>!</p>\n\n<p>If you're seeking new challenges and opportunities, this could be the perfect next step in your career journey with us. We encourage you to apply for this position and explore the exciting prospects it offers.</p>\n\n<p><b>Job Details:</b></p>\n\n<ul>\n  <li><b>Position:</b> {{ doc.job_title }}</li>\n  <li><b>Designation:</b> {{ doc.designation }}</li>\n  <li><b>Department:</b> {{ doc.department }}</li>\n  <li><b>Location:</b> {{ doc.location }}</li>\n</ul>\n\n<p>For more details and to apply, please visit the internal job portal.</p>\n\n<p>We look forward to receiving your application!</p>\n\n<p>Best regards,<br>The {{ doc.company }} HR Team</p>\n",
  "message_type": "HTML",
- "modified": "2025-04-28 14:22:25.764790",
+ "modified": "2025-05-07 06:59:22.259806",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Internal Job Opening Email",
@@ -20,7 +20,7 @@
  "recipients": [],
  "send_system_notification": 0,
  "send_to_all_assignees": 1,
- "sender": "malav",
- "sender_email": "malav@sanskartechnolab.com",
+ "sender": "Jignasha",
+ "sender_email": "jignasha@sanskartechnolab.com",
  "subject": "Job Opening Alert - New Opportunity at {{ doc.company }}"
 }
