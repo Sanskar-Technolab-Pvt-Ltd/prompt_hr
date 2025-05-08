@@ -51,7 +51,6 @@ frappe.ui.form.States.prototype.show_actions = function () {
                     });
                 });
             } else if (d.allowed_by === "User" && d.allowed == frappe.session.user && has_approval_access(d)) {
-                console.log("User Wise");
                 added = true;
                 me.frm.page.add_action_item(__(d.action), function() {
                     frappe.dom.freeze();

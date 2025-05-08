@@ -598,6 +598,18 @@ def validate_employee_holiday_list():
         frappe.log_error("Error while checking for weeklyoff assignment", frappe.get_traceback())
 
 
+def assign_checkin_role():
+    """ Method to assign create checkin role to the employee if that employee has attendance request and the current date falls within the from and to date of that attendance request
+    """
+    
+    employee_list = frappe.db.get_all("Employee", {"status": "Active"}, ["name", "user_id"])
+    
+    if employee_list:
+        for employee_id in employee_list:
+            pass
+
+
+
 # @frappe.whitelist()
 # def generate_attendance():
 #     """Generate Employee Attendance and Check the weekoff 
