@@ -4,6 +4,7 @@ from dateutil.relativedelta import relativedelta
 from frappe.utils import getdate, nowdate, formatdate
 from prompt_hr.py.utils import send_notification_email
 
+
 # ! prompt_hr.py.job_opening.send_job_opening_notification
 @frappe.whitelist()
 def send_job_opening_notification(

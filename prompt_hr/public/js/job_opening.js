@@ -145,7 +145,18 @@ frappe.ui.form.on("Job Opening", {
         }
 
         handleEmployeeReferral(frm);
-    }
+    },
+    custom_job_requisition_record(frm) {
+            if (frm.doc.custom_job_requisition_record) {
+                frappe.db.get_value('Job Requisition', frm.doc.custom_job_requisition_record, 'designation')
+                    .then(({ message }) => {
+                        if (message && message.designation) {
+                            frm.set_value('designation', message.designation);
+                        }
+                    });
+            }
+        }
+    
 });
 
 function fetchReferralBonusPolicy(frm) {
