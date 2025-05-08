@@ -219,6 +219,9 @@ doc_events = {
     },
     "Leave Allocation":{
         "on_update": "prompt_hr.py.leave_allocation.on_update"
+    },
+    "Additional Salary": {
+        "before_save": "prompt_hr.py.additional_salary.before_save"
     }
 }
 
