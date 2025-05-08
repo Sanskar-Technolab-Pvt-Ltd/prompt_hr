@@ -16,6 +16,8 @@ from prompt_hr.overrides.workflow_override import custom_get_transitions, custom
 from prompt_hr.py.leave_allocation import custom_set_total_leaves_allocated
 from prompt_hr.py.leave_encashment import custom_set_actual_encashable_days, custom_set_encashment_amount
 from prompt_hr.py.leave_application import custom_get_number_of_leave_days, custom_update_previous_leave_allocation, custom_check_effective_date, custom_get_leave_details, custom_get_allocated_and_expired_leaves
+from hrms.payroll.doctype.payroll_entry import payroll_entry 
+from prompt_hr.py.salary_slip_overriden_methods import custom_create_salary_slips_for_employees
 
 @frappe.whitelist()
 def custom_get_applicable_interviewers(interview: str) -> List[str]:
@@ -70,3 +72,4 @@ leave_balance_report.get_allocated_and_expired_leaves = custom_get_allocated_and
 LeaveAllocation.set_total_leaves_allocated = custom_set_total_leaves_allocated
 LeaveEncashment.set_actual_encashable_days = custom_set_actual_encashable_days
 LeaveEncashment.set_encashment_amount = custom_set_encashment_amount
+payroll_entry.create_salary_slips_for_employees = custom_create_salary_slips_for_employees
