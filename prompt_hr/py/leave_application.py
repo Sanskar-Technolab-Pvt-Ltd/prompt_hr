@@ -29,7 +29,7 @@ from hrms.hr.doctype.leave_application.leave_application import (
     
 def custom_check_effective_date(from_date, today=None, frequency=None, allocate_on_day=None):
     from_date = get_datetime(from_date)
-    today = get_datetime("2025-02-01")#frappe.flags.current_date or get_datetime(today)
+    today = frappe.flags.current_date or get_datetime(today)
     rd = relativedelta.relativedelta(today, from_date)
     expected_date = {
         "First Day": get_first_day(today),
@@ -57,7 +57,7 @@ def custom_update_previous_leave_allocation(allocation, annual_allocation, e_lea
     allocation = frappe.get_doc("Leave Allocation", allocation.name)
     annual_allocation = flt(annual_allocation, allocation.precision("total_leaves_allocated"))
     from_date = get_datetime(allocation.from_date)
-    today = get_datetime("2025-02-01")#get_datetime()
+    today = get_datetime()
     rd = relativedelta.relativedelta(today, from_date)
 
     expected_date = {
@@ -98,14 +98,10 @@ def custom_update_previous_leave_allocation(allocation, annual_allocation, e_lea
             },
             as_dict=True,
         )
-        print(used_leave_entries)
         total_used_in_period = abs(sum(flt(entry.leaves) for entry in used_leave_entries))
-        print(total_used_in_period)
         unused_leaves_in_period = allocated_in_quarter - total_used_in_period if total_used_in_period < allocated_in_quarter else 0
-        print(unused_leaves_in_period)
         # Make leaves negative to expire them
         expired_leaves = -1 * max(unused_leaves_in_period, 0)
-        print(expired_leaves)
     new_allocation = flt(allocation.total_leaves_allocated) + flt(earned_leaves)
     new_allocation_without_cf = flt(
         flt(allocation.get_existing_leave_count()) + flt(earned_leaves),
@@ -119,7 +115,7 @@ def custom_update_previous_leave_allocation(allocation, annual_allocation, e_lea
         new_allocation != allocation.total_leaves_allocated
         and new_allocation_without_cf <= annual_allocation
     ):
-        today_date = getdate("2025-02-01")#frappe.flags.current_date or getdate()
+        today_date = frappe.flags.current_date or getdate()
 
         allocation.db_set("total_leaves_allocated", new_allocation, update_modified=False)
         create_additional_leave_ledger_entry(allocation, earned_leaves, today_date)
