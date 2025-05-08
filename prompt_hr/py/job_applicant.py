@@ -8,11 +8,8 @@ from prompt_hr.py.utils import send_notification_email,get_hr_managers_by_compan
 @frappe.whitelist()
 def after_insert(doc, method):
     try:
-        print(f"Documentttt: {doc}")
-        company = frappe.db.get_value("Job Opening", doc.job_title, "company")
 
-        hr_emails = get_hr_managers_by_company(company)
-        print(f"HR Emails: {hr_emails}")
+        hr_emails = get_hr_managers_by_company(doc.custom_company)
 
         if hr_emails:
     
@@ -21,12 +18,8 @@ def after_insert(doc, method):
             notification_name="Job Applicant Registration Mail",
             doctype=doc.doctype,
             docname=doc.name,
-            button_label="View Details",
-            fallback_subject="Notification",
-            fallback_message="You have a new update. Please check your portal.",
-            extra_context=None
+            button_label="View Details",    
             )
-
         else:
             frappe.log_error("No HR Managers Found", f"No HR Managers found for company: {doc.company}")
 
@@ -35,7 +28,7 @@ def after_insert(doc, method):
 
 def send_notification_from_template(emails, notification_name, doc=None):
     try:
-        notification_doc = frappe.get_doc("Notification", notification_name)
+        notification_doc = frappe.db.get_value("Notification", notification_name,["subject", "message"])
 
         for email in emails:
             context = {"doc": doc or frappe._dict({}), "user": email}
@@ -62,19 +55,20 @@ def send_notification_from_template(emails, notification_name, doc=None):
             message=f"Failed to send '{notification_name}': {str(e)}\n{traceback.format_exc()}",
         )
         # ? RE-RAISE THE ERROR TO BE HANDLED BY THE CALLER FUNCTION
-        raise
+        raise   
 
 
-#* API TO SEND EMAIL TO JOB APPLICANT FOR SCREEN TEST
+# ? API TO SEND EMAIL TO JOB APPLICANT FOR SCREEN TEST
 @frappe.whitelist()
 def check_test_and_invite(job_applicant):
     try:
         # ? GET BASIC INFO OF THE APPLICANT
-        applicant = frappe.db.get_value("Job Applicant", job_applicant, ["email_id", "job_title","custom_interview_round"], as_dict=True)
+        applicant = frappe.db.get_value("Job Applicant", job_applicant, ["email_id", "job_title",], as_dict=True)
+        interview_round = frappe.db.get_value("Job Opening", applicant.job_title, "custom_applicable_screening_test")
         if not applicant:
             return {"error": 1, "message": "Job Applicant not found."}
 
-        if not applicant.custom_interview_round:
+        if not interview_round:
             return {"error": 0, "message": "redirect","applicant": applicant}
 
         if not applicant.email_id:
@@ -175,7 +169,7 @@ def add_to_interview_availability(job_opening, job_applicants, employees):
 @frappe.whitelist()
 def before_insert(doc, method=None):
     if doc.custom_company:
-        # Set the joining document checklist if found
+        # ? SET THE JOINING DOCUMENT CHECKLIST IF FOUND
         joining_document_checklist = frappe.get_all(
             "Joining Document Checklist", 
             filters={"company": doc.custom_company}, 
@@ -185,7 +179,7 @@ def before_insert(doc, method=None):
         if joining_document_checklist:
             doc.custom_joining_document_checklist = joining_document_checklist[0].name
 
-        # Fetch required documents
+        # ? FETCH REQUIRED DOCUMENTS
         documents_records = frappe.get_all(
             "Required Document Applicant", 
             filters={"company": doc.custom_company}, 
