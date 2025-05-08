@@ -37,11 +37,9 @@ def custom_get_transitions(
 	user = frappe.session.user
 	approval = get_matching_workflow_approval(doc)
 	if approval:
-		print(f"\n\n  Going with Custom Flow {user}\n\n")
 		for transition in approval.workflow_approval_hierarchy:
             
 				if transition.allowed_by == "User" and transition.user == user:
-					print(f"\n\n User wise \n\n")
 					if transition.state == current_state:
 						transitions.append(frappe._dict({
 							"state": transition.state,
@@ -54,7 +52,6 @@ def custom_get_transitions(
 							"condition": transition.condition,
 						}))
 				elif transition.allowed_by == "Role" and transition.role in roles:
-					print(f"\n\n role wise\n\n")
 					if transition.state == current_state:
 						transitions.append(frappe._dict({
 							"state": transition.state,
