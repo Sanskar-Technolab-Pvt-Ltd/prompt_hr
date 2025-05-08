@@ -18,10 +18,15 @@ def before_save(doc, method):
 # ? METHOD TO SET EMPLOYEE COUNT AND APPEND IN PENDING FNF TABLE
 # ! prompt_hr.py.payroll_entry.append_exit_employees
 def append_exit_employees(doc):
+
+    # ? FETCH ELIGIBLE EMPLOYEES BASED ON PAYROLL EMPLOYEE DETAIL AND APPLY DATE RANGE FILTER
+    eligible_employees = get_eligible_employees(doc.name)
+
     # ? FETCH EMPLOYEES WHO HAVE A RELIEVING DATE BETWEEN THE START AND END DATES
     exit_employees = frappe.db.get_all(
         "Employee",
         filters={
+            "name": ["in", eligible_employees],
             "relieving_date": ["between", [doc.start_date, doc.end_date]],
         },
         fields=["name", "employee_name"],
@@ -57,7 +62,7 @@ def append_exit_employees(doc):
         # ? FETCH THE F&F RECORD NAME FOR THE EMPLOYEE IF AVAILABLE
         fnf_record = full_and_final_statement_record_names.get(employee, None)
 
-        # APPEND TO THE CHILD TABLE WITH EMPLOYEE, FULL NAME, FNF STATUS AND FNF RECORD
+        # ? APPEND TO THE CHILD TABLE WITH EMPLOYEE, FULL NAME, FNF STATUS AND FNF RECORD
         doc.append(
             "custom_pending_fnf_details",
             {
@@ -72,9 +77,14 @@ def append_exit_employees(doc):
 # ? METHOD TO SET NEW JOINEE COUNT
 # ! prompt_hr.py.payroll_entry.set_new_joinee_count
 def set_new_joinee_count(doc):
+
+    # ? FETCH ELIGIBLE EMPLOYEES BASED ON PAYROLL EMPLOYEE DETAIL AND APPLY DATE RANGE FILTER
+    eligible_employees = get_eligible_employees(doc.name)
+
     new_joinees = frappe.db.get_all(
         "Employee",
         filters={
+            "name": ["in", eligible_employees],
             "status": "Active",
             "date_of_joining": ["between", [doc.start_date, doc.end_date]],
         },
@@ -86,17 +96,9 @@ def set_new_joinee_count(doc):
 # ? METHOD TO APPEND PENDING LEAVE APPLICATIONS
 # ! prompt_hr.py.payroll_entry.append_pending_leave_approvals
 def append_pending_leave_approvals(doc):
+    
     # ? FETCH ELIGIBLE EMPLOYEES BASED ON PAYROLL EMPLOYEE DETAIL AND APPLY DATE RANGE FILTER
-    eligible_employee_ids = frappe.db.get_all(
-        "Payroll Employee Detail",  # Assuming this DocType stores payroll employee details
-        filters={
-            "parent": doc.name,  # Assuming the payroll entry's name is linked in the employee detail
-        },
-        fields=["employee"],  # Fetch employee names linked to the payroll entry
-        pluck="employee",
-    )
-
-
+    eligible_employee_ids = get_eligible_employees(doc.name)
 
     # ? FETCH LEAVE APPLICATIONS WITH STATUS "Open" FOR THESE ELIGIBLE EMPLOYEES
     # ? AND WHERE LEAVE PERIOD OVERLAPS WITH THE PAYROLL PERIOD
@@ -128,3 +130,14 @@ def append_pending_leave_approvals(doc):
                 "leave_application": leave_application["name"],
             },
         )
+
+# ? FUNCTION TO FETCH ELIGIBLE EMPLOYEES BASED ON PAYROLL EMPLOYEE DETAIL AND APPLY DATE RANGE FILTER
+def get_eligible_employees(name):
+    return frappe.db.get_all(
+        "Payroll Employee Detail",  # Assuming this DocType stores payroll employee details
+        filters={
+            "parent": name,  # Assuming the payroll entry's name is linked in the employee detail
+        },
+        fields=["employee"],  # Fetch employee names linked to the payroll entry
+        pluck="employee",
+    )
