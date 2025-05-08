@@ -1,4 +1,6 @@
 import frappe
+from frappe import throw
+from prompt_hr.py.utils import send_notification_email
 
 @frappe.whitelist()
 def on_update(doc, method):
@@ -11,6 +13,93 @@ def on_update(doc, method):
             except (ValueError, IndexError):
                 days = 0
             doc.db_set("custom_target_hiring_date", frappe.utils.add_days(doc.posting_date, days))
+
+
+def notify_approver(doc, method):
+    """Method to notify the approver when a job requisition is created or saved until workflow state is not pending
+    """
+    try:
+        
+        is_insert = doc.flags.in_insert
+        workflow_approval_list = frappe.db.get_all("Workflow Approval", {"applicable_doctype": 'Job Requisition'}, 'name')
+        applicable_workflow_approval = None
+        user_emails = []
+        by_roles = []
+    
+        if workflow_approval_list:
+            for workflow_approval in workflow_approval_list:
+                all_criteria = frappe.db.get_all("Workflow Approval Criteria", {"parenttype": "Workflow Approval", "parent": workflow_approval.get("name")}, ["field_name",   "expected_value"])
+            
+                if all(str(doc.get(criteria.get("field_name"))).strip() == str(criteria.get("expected_value")).strip() for criteria in all_criteria):
+                    applicable_workflow_approval = workflow_approval.get("name")
+                    break
+            
+            if applicable_workflow_approval:
+                workflow_approval_doc = frappe.get_doc("Workflow Approval", {"applicable_doctype": doc.doctype})
+
+                transitions_list = [row for row in workflow_approval_doc.workflow_approval_hierarchy if row.state == doc.workflow_state]
+                
+                if transitions_list:
+                    for transition in transitions_list:
+                        if transition.get("allowed_by") == "User":
+                            if transition.get("user") not in user_emails:
+                                user_emails.append(transition.get("user"))
+                        
+                        elif transition.get("allowed_by") == "Role":
+                            if transition.get("role") not in by_roles:
+                                by_roles.append(transition.get("role"))
+                    
+                    if by_roles:
+                        for role in by_roles:
+                            user_list = frappe.db.get_all("Has Role", {"parenttype": "User", "role": role}, "parent as user")
+
+                            for user in user_list:
+                                user_id = user.get("user")
+                                if user_id and (user_id not in user_emails and user_id != "Administrator"):
+                                    user_emails.append(user_id)
+
+                    if user_emails:
+                        if is_insert:
+                            send_notification_email(
+                                recipients=user_emails,
+                                notification_name="Job Requisition Created",
+                                doctype="Job Requisition",
+                                docname=doc.name,
+                                fallback_subject= "Job Requisition Created",
+                                fallback_message="Job Requisition has been created. Please check and perform next process"
+                            )
+                        else:
+                            send_notification_email(
+                                recipients=user_emails,
+                                notification_name="Job Requisition Updated",
+                                doctype="Job Requisition",
+                                docname=doc.name,
+                                fallback_subject="Job Requisition Updated",
+                                fallback_message="Job Requisition has been updated"
+                            )
+                else:
+                    hr_manager_user_emails = []
+                    hr_manager_user_list = frappe.db.get_all("Has Role", {"parenttype": "User", "role": "HR Manager"}, "parent as user")
+                    
+                    if hr_manager_user_list:
+                        for hr_manager in hr_manager_user_list:
+                            if frappe.db.exists("Employee", {"user_id": hr_manager.get("user"), "status":"Active", "company": doc.company}):
+                                hr_manager_user_emails.append(hr_manager.get("user"))
+                        
+                        send_notification_email(
+                            recipients=hr_manager_user_emails,
+                            notification_name="Job Requisition Final Stage",
+                            doctype="Job Requisition",
+                            docname=doc.name,
+                            fallback_subject="Job Requisition Update",
+                            fallback_message=f"Dear HR Manager, <br> There is an update in job requisition, please review it"
+                        )
+        
+    except Exception as e:
+        frappe.log_error("Error while notifying approver", frappe.get_traceback())
+        throw(str(e))
+
+
 
 @frappe.whitelist()
 def add_or_update_custom_last_updated_by(doc, method):
@@ -47,3 +136,5 @@ def set_requested_by(doc, event):
 # 
     except Exception as e:
         frappe.log_error(f"Error in set_requested_by Job Requisition", frappe.get_traceback())
+    
+    
