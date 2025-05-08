@@ -15,6 +15,9 @@ def before_validate(doc, method=None):
             
             # Check if carry forward criteria is met
             if not check_carry_forward_criteria(employee_doc, leave_type):
+                if not leave_type.custom_maximum_ctc_limit_for_carry_forward:
+                    doc.db_set("carry_forward", 0)
+            if leave_type.custom_maximum_ctc_limit_for_carry_forward and leave_type.custom_maximum_ctc_limit_for_carry_forward >= employee_doc.ctc:
                 doc.db_set("carry_forward", 0)
 
 
@@ -63,6 +66,9 @@ def custom_set_total_leaves_allocated(doc, method=None):
         leave_type = frappe.get_doc("Leave Type", doc.leave_type)
         if doc.unused_leaves > check_carry_forward_criteria(employee_doc, leave_type):
             doc.unused_leaves =  check_carry_forward_criteria(employee_doc, leave_type)
+        elif leave_type.custom_maximum_ctc_limit_for_carry_forward:
+            if employee_doc.ctc > leave_type.custom_maximum_ctc_limit_for_carry_forward:
+                doc.unused_leaves =  leave_type.maximum_carry_forwarded_leaves
 
     doc.total_leaves_allocated = flt(
         flt(doc.unused_leaves) + flt(doc.new_leaves_allocated),
