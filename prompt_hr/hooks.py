@@ -225,7 +225,14 @@ doc_events = {
     },
     "Leave Allocation":{
         "before_validate": "prompt_hr.py.leave_allocation.before_validate"
-    }
+    },
+    "Leave Encashment":{
+        "before_save": "prompt_hr.py.leave_encashment.before_save",
+    },
+    "Compensatory Leave Request": {
+        "before_save": "prompt_hr.py.compensatory_leave_request.before_save",
+        "on_cancel": "prompt_hr.py.compensatory_leave_request.on_cancel"
+    },
 }
 
 
@@ -235,6 +242,7 @@ doc_events = {
 scheduler_events = {
     "daily": [
         "prompt_hr.py.employee_changes_approval.daily_check_employee_changes_approval",
+        "prompt_hr.py.compensatory_leave_request.expire_compensatory_leave_after_confirmation"
         # "prompt_hr.scheduler_methods.create_probation_feedback_form",
         # "prompt_hr.scheduler_methods.create_confirmation_evaluation_form_for_prompt",
         # "prompt_hr.scheduler_methods.validate_employee_holiday_list", 						        
@@ -380,7 +388,7 @@ fixtures = [
 #     "dt":"Role", "filters": [["name", "in", ["Job Requisition", "Head of Department", "Managing Director"]]]
 # },
 # {
-#     "dt":"Workflow", "filters": [["name", "in", ["Job Requisition"]]]
+#     "dt":"Workflow", "filters": [["name", "in", ["Job Requisition", "Compensatory Leave Request"]]]
 # },
 # {
 #     "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled"]]]

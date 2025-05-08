@@ -15,16 +15,15 @@ def custom_set_actual_encashable_days(doc, method=None):
     leave_type = frappe.get_doc("Leave Type", doc.leave_type)
     employee_doc = frappe.get_doc("Employee", doc.employee)
     if leave_type.custom_encashment_applicable_to:
-        if leave_type.custom_encashment_applicable_to:
-            for encashment_applicable_to in leave_type.custom_encashment_applicable_to:
-                fieldname = get_matching_link_field(encashment_applicable_to.document)
-                if fieldname:
-                    field_value = getattr(employee_doc, fieldname, None)
-                    if field_value == encashment_applicable_to.value:
-                        if encashment_applicable_to.maximum_limit == 0:
-                            max_encashable_leave = 0
-                        else:
-                            max_encashable_leave =  cint(encashment_applicable_to.maximum_limit)
+        for encashment_applicable_to in leave_type.custom_encashment_applicable_to:
+            fieldname = get_matching_link_field(encashment_applicable_to.document)
+            if fieldname:
+                field_value = getattr(employee_doc, fieldname, None)
+                if field_value == encashment_applicable_to.value:
+                    if encashment_applicable_to.maximum_limit == 0:
+                        max_encashable_leave = 0
+                    else:
+                        max_encashable_leave =  cint(encashment_applicable_to.maximum_limit)
 
     if encashment_settings.non_encashable_leaves:
             actual_encashable_days = doc.leave_balance - encashment_settings.non_encashable_leaves
@@ -35,7 +34,12 @@ def custom_set_actual_encashable_days(doc, method=None):
                     leave_form_link,
                 ),
             )
-
+    if leave_type.custom_maximum_ctc_limit_to_eligible_for_encashment:
+        if employee_doc.ctc <= leave_type.custom_maximum_ctc_limit_to_eligible_for_encashment:
+            max_encashable_leave = doc.leave_balance
+        else:
+            max_encashable_leave = 0
+           
     if max_encashable_leave:
         doc.actual_encashable_days = min(
             doc.actual_encashable_days, max_encashable_leave
@@ -51,35 +55,16 @@ def custom_set_actual_encashable_days(doc, method=None):
         )
 
 def custom_set_encashment_amount(doc, method=None):
-    # Fetch the latest base salary from Salary Structure Assignment
-    salary_structure = frappe.db.sql(
-        """
-        SELECT base 
-        FROM `tabSalary Structure Assignment`
-        WHERE employee = %(employee)s
-          AND docstatus = 1
-          AND %(on_date)s >= from_date
-        ORDER BY from_date DESC
-        LIMIT 1
-        """,
-        {
-            "employee": doc.employee,
-            "on_date": doc.encashment_date,
-        },
-        as_list=True
-    )
-
+    employee = frappe.get_doc("Employee", doc.employee)
+    gross_salary = employee.get("custom_gross_salary")
     # Get the encashment salary days setting from HR Settings
     encashment_salary_days = frappe.db.get_single_value("HR Settings", "custom_encashment_salary_days")
 
     if not encashment_salary_days:
         frappe.throw(_("Please set 'Encashment Salary Days' in HR Settings."))
 
-    if salary_structure:
-        base_salary = salary_structure[0][0]
-        doc.encashment_amount = (doc.encashment_days * base_salary) / cint(encashment_salary_days)
-    else:
-        doc.encashment_amount = 0
-
-        
-    
+    doc.encashment_amount = (doc.encashment_days * gross_salary) / cint(encashment_salary_days)
+   
+def before_save(doc, method=None):
+    if cint(doc.actual_encashable_days) == 0:
+        frappe.throw(_("Encashment failed: You have zero encashable days available."))
