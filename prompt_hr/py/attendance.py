@@ -111,7 +111,6 @@ def allow_regularization_for_prompt(attendance_date):
     """Method to check if the employee is allowed to create attendance regularization for PROMPT
     """
     try:
-        print(f"\n\n for prompt \n\n")
         allowed_past_days = frappe.db.get_single_value("HR Settings", "custom_allowed_to_raise_regularizations_for_past_days_for_prompt")
         
         if not allowed_past_days or allowed_past_days == 0 or allowed_past_days is None:
@@ -122,11 +121,10 @@ def allow_regularization_for_prompt(attendance_date):
         
         past_days_diff = days_diff(today_date, attendance_date)
 
-        print(f"\n\n past_days_diff {past_days_diff}\n\n")
         if past_days_diff <= allowed_past_days:
             return {"error": 0, "is_allowed": 1}
         elif past_days_diff > allowed_past_days:
-            return {"error": 1, "message": "Days Limit Exceeded. Regularization cannot be created"}
+            return {"error": 1, "message": f"Only allowed to Regularize Attendance for past {allowed_past_days} days"}
         
     except Exception as e:
         frappe.log_error("Error While checking for is employee allowed to create regularization", frappe.get_traceback())
