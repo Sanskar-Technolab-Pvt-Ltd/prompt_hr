@@ -61,7 +61,8 @@ doctype_js = {
     "Attendance": "public/js/attendance.js",
     "Attendance Request": "public/js/attendance_request.js",
     "Payroll Entry": "public/js/payroll_entry.js",
-    "Leave Application": "public/js/leave_application.js"
+    "Leave Application": "public/js/leave_application.js",
+    "Employee Checkin": "public/js/employee_checkin.js"
 
 }
 
@@ -172,11 +173,14 @@ doc_events = {
     },
     "Job Requisition": {
         "validate": [
-                        # "prompt_hr.custom_methods.job_requisition_notification",
+                        
                         "prompt_hr.py.job_requisition.add_or_update_custom_last_updated_by",
                         "prompt_hr.py.job_requisition.set_requested_by",
                     ],
-        "on_update": "prompt_hr.py.job_requisition.on_update",
+        
+        "on_update": [ "prompt_hr.py.job_requisition.on_update", 
+                        "prompt_hr.py.job_requisition.notify_approver",
+                    ]
     },
     "Job Applicant": {
         "after_insert": "prompt_hr.py.job_applicant.after_insert",
@@ -212,7 +216,9 @@ doc_events = {
     #     "after_insert": "prompt_hr.py.welcome_status.after_insert"
     # },
     "Attendance Request": {
-        "after_insert": "prompt_hr.py.attendance_request.after_insert"
+        "after_insert": "prompt_hr.py.attendance_request.notify_reporting_manager",
+        "validate": "prompt_hr.py.attendance_request.notify_reporting_manager",
+        "before_submit": "prompt_hr.py.attendance_request.before_submit"
     },
     "Payroll Entry": {
         "before_save": "prompt_hr.py.payroll_entry.before_save",

@@ -18,5 +18,27 @@ frappe.ui.form.on('Attendance Request', {
                 }
             });
         }
+    },
+
+    refresh: function (frm) {
+        if (frm.doc.employee) {
+            frappe.call({
+                method: "prompt_hr.py.utils.check_user_is_reporting_manager",
+                args: {
+                    user_id: frappe.session.user,
+                    requesting_employee_id: frm.doc.employee
+                },
+                callback: function (res) {
+                    if (!res.message.error) {
+                        if (res.message.is_rh) {
+                            frm.set_df_property("custom_status", "hidden", 0)
+                        }
+
+                    } else if (res.message.error) {
+                        frappe.throw(res.message.message)
+                    }
+                }
+            })
+        }
     }
 });
