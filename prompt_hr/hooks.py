@@ -234,6 +234,7 @@ doc_events = {
         "before_save": "prompt_hr.py.compensatory_leave_request.before_save",
         "on_cancel": "prompt_hr.py.compensatory_leave_request.on_cancel"
     },
+    "Leave Allocation"  : {  
         "on_update": "prompt_hr.py.leave_allocation.on_update"
     },
     "Additional Salary": {
