@@ -11,7 +11,7 @@ def trigger_appointment_notification(name):
         employee.company_email if preferred == "Company Email"
         else employee.personal_email if preferred == "Personal Email"
         else employee.prefered_email if preferred == "User ID"
-        else employee.personal_email
+        else employee.personal_email 
     )
 
     notification = frappe.get_doc("Notification", "Send Appointment Letter")
