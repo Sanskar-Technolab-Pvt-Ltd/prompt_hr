@@ -232,10 +232,8 @@ doc_events = {
     },
     "Compensatory Leave Request": {
         "before_save": "prompt_hr.py.compensatory_leave_request.before_save",
-        "on_cancel": "prompt_hr.py.compensatory_leave_request.on_cancel"
-    },
-    "Leave Allocation"  : {  
-        "on_update": "prompt_hr.py.leave_allocation.on_update"
+        "on_cancel": "prompt_hr.py.compensatory_leave_request.on_cancel",
+        "on_update": "prompt_hr.py.compensatory_leave_request.on_update"
     },
     "Additional Salary": {
         "before_save": "prompt_hr.py.additional_salary.before_save"
@@ -394,9 +392,12 @@ fixtures = [
 # {
 #     "dt":"Role", "filters": [["name", "in", ["Job Requisition", "Head of Department", "Managing Director"]]]
 # },
-# {
-#     "dt":"Workflow", "filters": [["name", "in", ["Job Requisition", "Compensatory Leave Request"]]]
-# },
+{
+    "dt":"Workflow", "filters": [["name", "in", ["Job Requisition", "Compensatory Leave Request"]]]
+},
+{
+    "dt":"Workflow", "filters": [["name", "in", ["Job Requisition", "Compensatory Leave Request"]]]
+},
 # {
 #     "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled"]]]
 # }

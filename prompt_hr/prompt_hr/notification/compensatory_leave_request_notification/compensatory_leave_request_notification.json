@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-05-09 11:19:15.109072",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Compensatory Leave Request",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "Dear {{ role }},<br><br>\n\nA compensatory leave request has been submitted and requires your attention. Please find the details below:<br>\n <br>\n- <b>Employee Name:</b> {{ doc.employee_name }}  <br>\n- <b>Employee ID:</b> {{ doc.employee }}  <br>\n- <b>Leave Type:</b> {{ doc.leave_type }}  <br>\n- <b>Compensatory Work Period:</b> {{ doc.work_from_date }} to {{ doc.work_end_date }}  <br>\n- <b>Reason:</b> {{ doc.reason or 'Not provided' }}  <br>\n- <b>Request Link:</b> <a href=\"{{ frappe.utils.get_url() }}/app/compensatory-leave-request/{{ doc.name }}\">View Request</a>  <br><br>\n\nWe request you to kindly review the application and take appropriate action at your earliest convenience.<br><br>\n\nThank you,  <br>\nHR System\n",
+ "message_type": "HTML",
+ "modified": "2025-05-09 12:47:44.680128",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Compensatory Leave Request Notification",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "Compensatory Leave Request of {{doc.employee_name}}"
+}
