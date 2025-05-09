@@ -147,7 +147,7 @@ def parse_resume(file_url):
                 "skills": skills,
             })
             
-            # print(lists)
+            print(lists)
             return lists
         
         else:
