@@ -3,13 +3,14 @@ import frappe
 import frappe.commands
 from frappe.utils import date_diff, today, add_to_date, getdate, get_datetime
 
+@frappe.whitelist()
 def create_probation_feedback_form():
     """Scheduler method to create probation feedback form based on the days after when employee joined mentioned in the HR Settings.
         - And Also notify the employee's reporting manager if the remarks are not added to the form.  
     """
     
     try:          
-        
+        print("aaaa\n\n\n\n")
         probation_feedback_for_prompt()
         probation_feedback_for_indifoss()
                                                         
@@ -19,6 +20,7 @@ def create_probation_feedback_form():
 #*CREATING PROBATION FEEDBACK FOR PROMPT EMPLOYEES
 def probation_feedback_for_prompt():
     """Method to create probation feedback form for Prompt employees"""
+    print("jsfdjsfdndksfdnsfdnknsfd\n\n\n\n")
     first_feedback_days = frappe.db.get_single_value("HR Settings", "custom_first_feedback_after")
     second_feedback_days = frappe.db.get_single_value("HR Settings", "custom_second_feedback_after")
     company_abbr = frappe.db.get_single_value("HR Settings", "custom_prompt_abbr")
@@ -30,6 +32,7 @@ def probation_feedback_for_prompt():
             if company_id:
                 # employees_list = frappe.db.get_all("Employee", {"status": "Active", "company": "Prompt Equipments PVT LTD", "custom_probation_status": "Pending"}, "name")
                 employees_list = frappe.db.get_all("Employee", {"status": "Active", "company": company_id, "custom_probation_status": "Pending"}, "name")
+                print(f"\n\n\n\n\n\n\n\n\n\n {employees_list} \n\n\n\n")
                 for employee in employees_list:
                     if employee.get("name"):
                         emp_joining_date = frappe.db.get_value("Employee", employee.get("name"), "date_of_joining")
@@ -372,6 +375,7 @@ def send_reminder_mail_to_reporting_manager(reporting_manager_email, reporting_m
 
 
 # * CREATING CONFIRMATION EVALUATION FORM AND IF ALREADY CREATED THEN, SENDING MAIL TO REPORTING MANAGER OR HEAD OF DEPARTMENT BASED ON THE RATING ADDED OR NOT
+@frappe.whitelist()
 def create_confirmation_evaluation_form_for_prompt():
     try:
         

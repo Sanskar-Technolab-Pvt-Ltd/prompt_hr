@@ -5,6 +5,7 @@ import frappe
 import traceback
 from frappe.model.document import Document
 from datetime import datetime
+from prompt_hr.py.utils import send_notification_email, get_hr_managers_by_company
 
 class InterviewAvailabilityForm(Document):
 
@@ -24,37 +25,31 @@ class InterviewAvailabilityForm(Document):
 
             # ? UPDATE ONLY IF THE STATUS HAS ACTUALLY CHANGED
             if current_status != new_status:
-                # UPDATE JOB APPLICANT DOC
+                
+                # ? UPDATE JOB APPLICANT DOC
                 frappe.db.set_value('Job Applicant', applicant.job_applicant, 'status', new_status)
 
-                # SET WHO SHORTLISTED
+                # ? SET WHO SHORTLISTED
                 if applicant.status == "Shortlisted":
                     applicant.shortlisted_by = frappe.session.user
 
-                # NOTIFY USER IN UI
-                # frappe.msgprint(f"Your availability is notified ")
+                # ? CLEAR TIME FIELDS IF STATUS CHANGES
+                applicant.from_time = None
+                applicant.to_time = None
 
-                # NOTIFY HR MANAGERS
-                send_notification_to_hr(applicant.job_applicant)
+        # ? GET HR EMAILS BASED ON COMPANY
+        hr_emails = get_hr_managers_by_company(self.company)
+        
+        if hr_emails:
+            # ? SEND NOTIFICATION EMAIL TO HR MANAGERS
+            send_notification_email(
+                recipients=hr_emails,
+                doctype="Interview Availability Form",
+                docname=self.name,
+                notification_name="HR Interview Availability Revert Mail"
+            )
 
-# ? FUNCTION TO NOTIFY HR USERS VIA EMAIL TEMPLATE
-def send_notification_to_hr(job_applicant_name):
-    hr_users = frappe.db.sql("""
-        SELECT DISTINCT hr.parent as email
-        FROM `tabHas Role` hr
-        INNER JOIN `tabUser` u ON u.name = hr.parent
-        WHERE hr.role = 'HR Manager' AND u.enabled = 1
-    """, as_dict=1)
-
-    hr_emails = [user.email for user in hr_users]
-    
-    if hr_emails:
-        job_applicant_doc = frappe.get_doc('Job Applicant', job_applicant_name)
-        send_notification_from_template(
-            emails=hr_emails,
-            notification_name="HR Interview Availability Revert Mail",
-            doc=job_applicant_doc
-        )
+              
 
 # ? FUNCTION TO FETCH LATEST INTERVIEW AVAILABILITY FOR A TIME SLOT
 @frappe.whitelist()
@@ -83,27 +78,4 @@ def fetch_latest_availability(param_date, param_from_time, param_to_time, design
         frappe.log_error(f"Error in fetch_latest_availability: {str(e)}", "Interview Availability")
         return {"status": "Error", "message": str(e)}
 
-# ? FUNCTION TO SEND EMAIL USING TEMPLATE
-def send_notification_from_template(emails, notification_name, doc=None):
-    try:
-        notification_doc = frappe.get_doc("Notification", notification_name)
 
-        for email in emails:
-            context = {"doc": doc or frappe._dict({}), "user": email}
-            subject = frappe.render_template(notification_doc.subject, context)
-            message = frappe.render_template(notification_doc.message, context)
-
-            # ADD LINK TO JOB APPLICANT FORM
-            if doc and doc.doctype and doc.name:
-                link = f"{frappe.utils.get_url()}/app/{doc.doctype.replace(' ', '-').lower()}/{doc.name}"
-                message += f"<br><br><a href='{link}'>Click here to view the Job Opening</a>"
-
-            frappe.sendmail(recipients=[email], subject=subject, message=message)
-
-        frappe.log_error("Notification Sent", f"Notification '{notification_name}' sent to {len(emails)} employees.")
-
-    except Exception as e:
-        frappe.log_error(
-            title="Notification Sending Failed",
-            message=f"Failed to send '{notification_name}': {str(e)}\n{traceback.format_exc()}",
-        )
