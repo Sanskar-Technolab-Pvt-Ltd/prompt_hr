@@ -180,7 +180,8 @@ doc_events = {
         
         "on_update": [ "prompt_hr.py.job_requisition.on_update", 
                         "prompt_hr.py.job_requisition.notify_approver",
-                    ]
+                    ],
+        "after_insert": "prompt_hr.py.job_requisition.after_insert",        
     },
     "Job Applicant": {
         "after_insert": "prompt_hr.py.job_applicant.after_insert",

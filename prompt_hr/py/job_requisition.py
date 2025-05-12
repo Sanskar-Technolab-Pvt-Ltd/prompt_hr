@@ -1,6 +1,6 @@
 import frappe
 from frappe import throw
-from prompt_hr.py.utils import send_notification_email
+from prompt_hr.py.utils import send_notification_email,get_hr_managers_by_company
 
 @frappe.whitelist()
 def on_update(doc, method):
@@ -137,4 +137,19 @@ def set_requested_by(doc, event):
     except Exception as e:
         frappe.log_error(f"Error in set_requested_by Job Requisition", frappe.get_traceback())
     
-    
+
+def after_insert(doc, event):
+    try:
+        # ? SEND NOTIFICATION EMAIL TO HR MANAGERS
+        hr_emails = get_hr_managers_by_company(doc.company)
+        if hr_emails:
+            send_notification_email(
+                recipients=hr_emails,
+                doctype=doc.doctype,
+                docname=doc.name,
+                notification_name="New Job Requisition Alert"
+            )
+        else:
+            frappe.log_error("No HR Managers Found", f"No HR Managers found for company: {doc.company}")
+    except Exception as e:
+        frappe.log_error("Error in after_insert", str(e))
