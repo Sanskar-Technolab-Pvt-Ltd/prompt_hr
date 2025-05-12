@@ -81,7 +81,7 @@ def check_test_and_invite(job_applicant):
             doctype="Job Applicant",
             docname=job_applicant,
             button_label="View Details",
-            button_link=f"http://192.168.2.111:8007/lms/courses/{applicant.custom_interview_round}/learn/1-1",
+            button_link=f"http://192.168.2.111:8007/lms/courses/{interview_round}/learn/1-1",
             fallback_subject="Notification",
             fallback_message="You have a new update. Please check your portal.",
             hash_input_text=job_applicant
