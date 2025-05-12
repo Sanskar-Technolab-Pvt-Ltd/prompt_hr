@@ -107,7 +107,8 @@ def send_notification_email(
             if send_link:
                 hash_message = f"<p>Password: <b>{hash}</b></p>" if hash else ""
                 if button_link:
-                    message += f"""
+                    final_message = message
+                    final_message += f"""
                         <hr>
                         {hash_message}
                         <p><b>{button_label}</b></p>
@@ -130,7 +131,7 @@ def send_notification_email(
             frappe.sendmail(
                 recipients=[email],
                 subject=subject,
-                message=message
+                message=final_message,
             )
 
         # ? LOG SUCCESS

@@ -5,7 +5,6 @@ def custom_create_salary_slips_for_employees(employees, args, publish_progress=T
 	payroll_entry = frappe.get_cached_doc("Payroll Entry", args.payroll_entry)
 
 	try:
-		print("Starting salary slip creation...\n\n\n")  # Debug print
 
 		salary_slips_exist_for = get_existing_salary_slips(employees, args)
 		count = 0
@@ -39,5 +38,5 @@ def custom_create_salary_slips_for_employees(employees, args, publish_progress=T
 		log_payroll_failure("creation", payroll_entry, e)
 
 	finally:
-		frappe.db.commit()  # nosemgrep
+		frappe.db.commit() 
 		frappe.publish_realtime("completed_salary_slip_creation", user=frappe.session.user)
