@@ -1,7 +1,9 @@
 import frappe
 
 import frappe.commands
-from frappe.utils import date_diff, today, add_to_date, getdate, get_datetime
+from frappe.utils import date_diff, today, add_to_date, getdate, get_datetime, add_months
+from prompt_hr.py.utils import fetch_company_name
+from datetime import timedelta
 
 @frappe.whitelist()
 def create_probation_feedback_form():
@@ -657,6 +659,63 @@ def user_has_role(user, role):
     """Method to check if the user has the given role or not
     """
     return frappe.db.exists("Has Role", {"parent": user, "role": role})
+
+
+
+
+def penalize_employee_for_late_entry():
+    """Method to check if the employee is late and the penalization criteria is satisfied then give penalty to employee
+    """
+    try:
+        
+        
+        late_coming_per_month = frappe.db.get_single_value("HR Settings", "custom_late_coming_allowed_per_month_for_indifoss")
+        
+        if late_coming_per_month:
+        
+            company_id = fetch_company_name(indifoss=1)
+            
+            if company_id.get("error"):
+                frappe.log_error("Error in penalize_employee_for_late_entry", frappe
+                                .get_traceback())
+            
+            if not company_id.get("error") and company_id.get("company_id"):
+                indifoss_employee_list = frappe.db.get_all("Employee", {"status":"Active", "company": company_id.get("company_id")}, "name")
+                
+                if indifoss_employee_list:
+                    
+                    penalization_count = 0
+                    last_penalized_date = ''
+                    
+                    today_date = getdate(today())
+                                    
+                    month_first_date = today_date.replace(day=1)
+        
+                    next_month = add_months(month_first_date, 1)
+            
+                    month_last_date = next_month - timedelta(days=1)
+                    
+                    days_diff_from_month_first_date = date_diff(today_date, month_first_date)
+                    
+                    
+                    
+                    for emp_id in indifoss_employee_list:
+                        
+                        late_entires_count = frappe.db.count("Attendance", {"employee": emp_id.get("name"), "attendance_date": ["between", [month_first_date, month_last_date]]})
+                
+            else:
+                if not company_id.get("company_id"):
+                    frappe.log_error("Error in penalize_employee_for_later_entry", "Company ID not found")
+    except Exception as e:
+        frappe.log_error("Error in penalize_employee_for_late_entry", frappe.get_traceback())
+
+def create_leave_application():
+    """Method to create leave application
+    """
+    try:
+        "Create Leave Application"
+    except Exception as e:
+        frappe.log_error("Error while creating leave application", frappe.get_traceback())
 
 # @frappe.whitelist()
 # def generate_attendance():
