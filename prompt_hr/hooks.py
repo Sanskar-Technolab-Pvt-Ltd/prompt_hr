@@ -173,12 +173,10 @@ doc_events = {
         "after_insert": "prompt_hr.py.employee_onboarding.after_insert",
     },
     "Job Requisition": {
-        "validate": [
-                        
+        "validate": [                        
                         "prompt_hr.py.job_requisition.add_or_update_custom_last_updated_by",
                         "prompt_hr.py.job_requisition.set_requested_by",
-                    ],
-        
+                    ],        
         "on_update": [ "prompt_hr.py.job_requisition.on_update", 
                         "prompt_hr.py.job_requisition.notify_approver",
                     ],
@@ -228,15 +226,16 @@ doc_events = {
     "Leave Allocation":{
         "before_validate": "prompt_hr.py.leave_allocation.before_validate"
     },
+    "Additional Salary": {
+        "before_save": "prompt_hr.py.additional_salary.before_save"
+    },
     "Leave Encashment":{
         "before_save": "prompt_hr.py.leave_encashment.before_save",
     },
     "Compensatory Leave Request": {
         "before_save": "prompt_hr.py.compensatory_leave_request.before_save",
-        "on_cancel": "prompt_hr.py.compensatory_leave_request.on_cancel"
-    },
-    "Leave Allocation"  : {  
-        "on_update": "prompt_hr.py.leave_allocation.on_update"
+        "on_cancel": "prompt_hr.py.compensatory_leave_request.on_cancel",
+        "on_update": "prompt_hr.py.compensatory_leave_request.on_update"
     },
     "Additional Salary": {
         "before_save": "prompt_hr.py.additional_salary.before_save"

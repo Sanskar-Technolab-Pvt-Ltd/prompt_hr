@@ -67,5 +67,28 @@
   "modified": "2025-04-17 17:10:40.439565",
   "name": "Prompt - Letter Head",
   "source": "Image"
+ },
+ {
+  "align": "Right",
+  "content": "<div style=\"text-align: right;\">\n<img src=\"/files/Screenshot from 2025-05-12 16-52-09.png\" alt=\"Prompt - Letter Head - Annexure\" height=\"\" style=\"height: px;\">\n</div>",
+  "disabled": 0,
+  "docstatus": 0,
+  "doctype": "Letter Head",
+  "footer": null,
+  "footer_align": "Left",
+  "footer_image": null,
+  "footer_image_height": 0.0,
+  "footer_image_width": 0.0,
+  "footer_script": null,
+  "footer_source": "HTML",
+  "header_script": null,
+  "image": "/files/Screenshot from 2025-05-12 16-52-09.png",
+  "image_height": 0.0,
+  "image_width": 0.0,
+  "is_default": 0,
+  "letter_head_name": "Prompt - Letter Head - Annexure",
+  "modified": "2025-05-12 17:12:20.491603",
+  "name": "Prompt - Letter Head - Annexure",
+  "source": "Image"
  }
 ]
