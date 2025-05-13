@@ -239,6 +239,9 @@ doc_events = {
     },
     "Additional Salary": {
         "before_save": "prompt_hr.py.additional_salary.before_save"
+    },
+    "Job Opening": {
+        "before_insert": "prompt_hr.py.job_opening.before_insert"
     }
 }
 

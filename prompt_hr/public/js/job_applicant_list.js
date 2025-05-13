@@ -80,11 +80,16 @@ frappe.listview_settings['Job Applicant'] = {
                         callback: (r) => {
                             // ? HANDLE RESPONSE AND UPDATE UI
                             if (!r.exc) {
-                                frappe.msgprint(__('Interview Availability created and shared.'));
+                                frappe.msgprint(__(r.message));
                                 dialog.hide();
-                                listview.refresh();
+                        
+                                // ? DELAYED FORM REFRESH AFTER 3 SECONDS
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 3000);
                             }
                         }
+                        
                     });
                 }
             });

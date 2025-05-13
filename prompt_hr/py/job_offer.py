@@ -1,7 +1,7 @@
 import frappe
 from frappe.utils.print_format import download_pdf
 from frappe.utils.file_manager import save_file
-from prompt_hr.py.utils import create_hash
+from prompt_hr.py.utils import create_hash,send_notification_email
 
 
 # ? SYNC CANDIDATE PORTAL ON JOB OFFER INSERT
@@ -173,15 +173,26 @@ def send_mail_to_job_applicant(doc, is_resend=False, notification_name=None):
         if is_resend:
             notification_name = notification_name or "Resend Job Offer"
 
-        send_notification_with_portal_link(
+        # send_notification_with_portal_link(
+        #     notification_name=notification_name,
+        #     doc=doc,
+        #     recipient=candidate.applicant_email,
+        #     portal=candidate.name,
+        #     attachments=attachments,
+        #     fallback_subject="Update on Your Job Application",
+        #     fallback_message=f"Hello, we've updated your job application. Please check your offer: {doc.name}",
+        # )
+        send_notification_email(
+            recipients=[candidate.applicant_email],
             notification_name=notification_name,
-            doc=doc,
-            recipient=candidate.applicant_email,
-            portal=candidate.name,
-            attachments=attachments,
-            fallback_subject="Update on Your Job Application",
-            fallback_message=f"Hello, we've updated your job application. Please check your offer: {doc.name}",
+            doctype="Candidate Portal",
+            docname=doc.name,
+            button_label="View Details",
+            button_link="/candidate-portal/",
+            hash_input_text=candidate.name,
         )
+
+        
 
     except Exception:
         frappe.log_error(frappe.get_traceback(), "Error in send_mail_to_job_applicant")
@@ -205,49 +216,6 @@ def get_offer_letter_attachment(doc):
     except Exception:
         frappe.log_error(frappe.get_traceback(), "PDF Generation Error")
         return []
-
-
-# ? SEND EMAIL WITH CANDIDATE PORTAL LINK + ATTACHMENTS
-def send_notification_with_portal_link(
-    notification_name,
-    doc,
-    recipient,
-    portal,
-    attachments,
-    fallback_subject=None,
-    fallback_message=None,
-):
-    try:
-        frappe.logger().debug(
-            f"Sending notification: {notification_name} for {doc.name} to {recipient}"
-        )
-
-        notification = (
-            frappe.get_doc("Notification", notification_name)
-            if notification_name
-            else frappe.get_doc(
-                "Notification",
-                frappe.get_all(
-                    "Notification",
-                    filters={"document_type": doc.doctype, "channel": "Email"},
-                    limit=1,
-                )[0].name,
-            )
-        )
-
-        context = {"doc": doc, "user": recipient}
-        subject = frappe.render_template(notification.subject, context)
-        message = frappe.render_template(notification.message, context)
-
-        # ? APPEND CANDIDATE PORTAL LINK + HASH
-        hash_value = create_hash(portal)
-        base_url = frappe.utils.get_url()
-        message += f"""
-            <hr>
-            <p><b>Access Your Candidate Portal:</b> 
-            <div>Password: {hash_value}</div>
-            <a href="{base_url}/app/candidate-portal/{portal}" target="_blank">Click here to view your offer</a></p>
-        """
 
     except Exception as e:
         frappe.log_error(
