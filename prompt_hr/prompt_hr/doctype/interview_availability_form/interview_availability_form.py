@@ -11,6 +11,11 @@ class InterviewAvailabilityForm(Document):
 
     # ? FUNCTION TO UPDATE JOB APPLICANT STATUS + HANDLE HR NOTIFICATIONS
     def before_save(self):
+
+        # ? EXIT IF DOCUMENT IS NEW (DO NOT PERFORM ACTIONS YET)
+        if self.is_new():
+            return
+
         for applicant in self.job_applicants:
 
             # ? MAP CHILD STATUS TO JOB APPLICANT STATUS
