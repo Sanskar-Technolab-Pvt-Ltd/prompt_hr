@@ -75,6 +75,9 @@ def add_to_interview_availability(job_opening, job_applicants, employees):
         job_applicants = json.loads(job_applicants) if isinstance(job_applicants, str) else job_applicants
         employees = json.loads(employees) if isinstance(employees, str) else employees
 
+        if frappe.db.exists("Candidate Interviewer Action", {"job_applicant": ["in", job_applicants], "parenttype": "Interview Availability Form"}):
+            return("Interview Availability already exists for the selected job applicants.")
+
         # ? GET JOB REQUISITION AND COMPANY DETAILS
         job_requisition = frappe.db.get_value("Job Opening", job_opening, "custom_job_requisition_record")
         company = None
