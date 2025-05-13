@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-05-09 12:11:44.192470",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Compensatory Leave Request",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "Dear HR Manager,<br><br>\n\nThe Reporting Manager has <b>{{ doc.workflow_state }}</b> a compensatory leave request. Please find the details below:<br><br>\n\n<b>Employee Details:</b><br>\n- <b>Name:</b> {{ doc.employee_name }}<br>\n- <b>Employee ID:</b> {{ doc.employee }}<br>\n<br>\n<b>Leave Details:</b><br>\n- <b>Leave Type:</b> {{ doc.leave_type }}<br>\n- <b>Compensatory Work Period:</b> {{ doc.work_from_date }} to {{ doc.work_end_date }}<br>\n- <b>Current Status:</b> {{ doc.workflow_state }}<br>\n<br>\n<b>Request Link:</b> <a href=\"{{ frappe.utils.get_url() }}/app/compensatory-leave-request/{{ doc.name }}\">View Request</a><br><br>\n\n{% if doc.workflow_state == \"Approved\" %}\nAs the request has been approved by the Reporting Manager, your review is now required. Kindly proceed to either <b>Approve</b> or <b>Reject</b> this request.\n<br><br>\n{% endif %}\n\nThank you,<br>\nHR System\n",
+ "message_type": "HTML",
+ "modified": "2025-05-09 13:16:56.412456",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Compensatory Leave Request Status Update to HR Manager",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "Reporting Manager {{manager}} has {{ doc.workflow_state }} a Compensatory Leave Request"
+}
