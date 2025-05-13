@@ -62,7 +62,8 @@ doctype_js = {
     "Attendance Request": "public/js/attendance_request.js",
     "Payroll Entry": "public/js/payroll_entry.js",
     "Leave Application": "public/js/leave_application.js",
-    "Employee Checkin": "public/js/employee_checkin.js"
+    "Employee Checkin": "public/js/employee_checkin.js",
+    "HR Settings": "public/js/hr_settings.js"
 
 }
 
