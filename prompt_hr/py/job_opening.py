@@ -3,6 +3,7 @@ import traceback
 from dateutil.relativedelta import relativedelta
 from frappe.utils import getdate, nowdate, formatdate
 from prompt_hr.py.utils import send_notification_email
+import json
 
 # ? before_insert HOOK
 def before_insert(doc, method):
@@ -30,16 +31,25 @@ def send_job_opening_notification(
     Send internal job opening notifications to eligible employees.
     """
     try:
+        if isinstance(allowed_department, str):
+            allowed_department = json.loads(allowed_department)
+        if isinstance(allowed_location, str):
+            allowed_location = json.loads(allowed_location)
+        if isinstance(allowed_grade, str):
+            allowed_grade = json.loads(allowed_grade)
+
         # ? BUILD EMPLOYEE FILTERS
         filters = {"status": "Active"}
         if allowed_department:
             filters["department"] = ["in", allowed_department]
         if allowed_location:
-            filters["location"] = ["in", allowed_location]
+            filters["custom_work_location"] = ["in", allowed_location]
         if allowed_grade:
             filters["grade"] = ["in", allowed_grade]
         if company:
             filters["company"] = company
+        
+        print(f"{filters}bfdhbfdhs\n\n\n")
         
 
         # FETCH EMPLOYEES
@@ -47,7 +57,9 @@ def send_job_opening_notification(
             "Employee",
             filters=filters,
             fields=["name", "date_of_joining", "personal_email", "user_id"],
-        )
+        ) 
+
+        print(f"Eligible Employees\n\n\n: {employees}")
 
         # BUILD ROLE HISTORY MAP FOR TENURE CALCULATION
         role_history_map = get_role_history_map()
