@@ -16,8 +16,7 @@
   "user",
   "allow_self_approval",
   "send_email_to_creator",
-  "condition",
-  "is_final"
+  "condition"
  ],
  "fields": [
   {
@@ -98,20 +97,13 @@
    "hidden": 1,
    "label": "Condition",
    "options": "Python"
-  },
-  {
-   "default": "0",
-   "fieldname": "is_final",
-   "fieldtype": "Check",
-   "in_list_view": 1,
-   "label": "is Final?"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-05-13 18:48:36.331878",
+ "modified": "2025-05-14 17:52:37.849782",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Workflow Approval Hierarchy",
