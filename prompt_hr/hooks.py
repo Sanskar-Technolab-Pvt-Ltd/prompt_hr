@@ -161,6 +161,7 @@ override_doctype_class = {
     # "ToDo": "custom_app.overrides.CustomToDo"
     "Interview": "prompt_hr.overrides.interview_override.CustomInterview",
     "Job Offer": "prompt_hr.overrides.job_offer_override.CustomJobOffer",
+    "Leave Application": "prompt_hr.overrides.leave_application_override.CustomLeaveApplication"
 }
 
 # Document Events
@@ -239,6 +240,9 @@ doc_events = {
     },
     "Additional Salary": {
         "before_save": "prompt_hr.py.additional_salary.before_save"
+    },
+    "Job Opening": {
+        "before_insert": "prompt_hr.py.job_opening.before_insert"
     }
 }
 

@@ -4,6 +4,14 @@ from dateutil.relativedelta import relativedelta
 from frappe.utils import getdate, nowdate, formatdate
 from prompt_hr.py.utils import send_notification_email
 
+# ? before_insert HOOK
+def before_insert(doc, method):
+    current_workflow_state = frappe.db.get_value("Job Requisition", doc.custom_job_requisition_record, "workflow_state")
+    
+    workflow_approval = frappe.db.get_value("Workflow Approval", {"applicable_doctype": "Job Requisition"},"name")
+    if not frappe.db.exists("Workflow Approval Hierarchy", {"parent": workflow_approval, "parenttype": "Workflow Approval", "is_final": 1, "state": current_workflow_state}): 
+        frappe.throw(f"You are not authorized to create a Job Opening from this Job Requisition. Final Stage of Approval is not reached.")
+    
 
 # ! prompt_hr.py.job_opening.send_job_opening_notification
 @frappe.whitelist()

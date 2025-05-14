@@ -3,7 +3,8 @@ import frappe
 import frappe.commands
 from frappe.utils import date_diff, today, add_to_date, getdate, get_datetime, add_months
 from prompt_hr.py.utils import fetch_company_name
-from datetime import timedelta
+from datetime import timedelta, datetime
+
 
 @frappe.whitelist()
 def create_probation_feedback_form():
@@ -647,8 +648,6 @@ def assign_checkin_role():
                             break
                     
                     user_doc.save(ignore_permissions=True)
-                    
-                    print("\n\n This employee does not have right to use this role \n\n")
             frappe.db.commit()
     except Exception as e:
         frappe.log_error("Error in assign_checkin_role scheduler method", frappe.get_traceback())
@@ -662,16 +661,18 @@ def user_has_role(user, role):
 
 
 
-
-def penalize_employee_for_late_entry():
+@frappe.whitelist()
+def penalize_employee_for_late_entry_for_indifoss():
     """Method to check if the employee is late and the penalization criteria is satisfied then give penalty to employee
     """
     try:
         
         
-        late_coming_per_month = frappe.db.get_single_value("HR Settings", "custom_late_coming_allowed_per_month_for_indifoss")
+        allowed_late_entries = frappe.db.get_single_value("HR Settings", "custom_late_coming_allowed_per_month_for_indifoss")
         
-        if late_coming_per_month:
+        
+        
+        if allowed_late_entries:
         
             company_id = fetch_company_name(indifoss=1)
             
@@ -684,9 +685,6 @@ def penalize_employee_for_late_entry():
                 
                 if indifoss_employee_list:
                     
-                    penalization_count = 0
-                    last_penalized_date = ''
-                    
                     today_date = getdate(today())
                                     
                     month_first_date = today_date.replace(day=1)
@@ -696,24 +694,66 @@ def penalize_employee_for_late_entry():
                     month_last_date = next_month - timedelta(days=1)
                     
                     days_diff_from_month_first_date = date_diff(today_date, month_first_date)
-                    
-                    
-                    
+
                     for emp_id in indifoss_employee_list:
                         
-                        late_entires_count = frappe.db.count("Attendance", {"employee": emp_id.get("name"), "attendance_date": ["between", [month_first_date, month_last_date]]})
-                
+                        late_attendance_list = frappe.db.get_all("Attendance", {"docstatus": 1, "employee": emp_id.get("name"), "attendance_date": ["between", [month_first_date, month_last_date]], "late_entry":1}, ["name", "attendance_date"], order_by="attendance_date asc")
+                    
+                        if late_attendance_list:
+                            for attendance_id in late_attendance_list[allowed_late_entries:]:
+                                if not frappe.db.exists("Leave Application", {"employee": emp_id.get("name"), "from_date": attendance_id.get("attendance_date")}):
+                                        create_leave_application(emp_id.get("name"), attendance_id.get("attendance_date"), attendance_id.get("name"))
             else:
                 if not company_id.get("company_id"):
                     frappe.log_error("Error in penalize_employee_for_later_entry", "Company ID not found")
     except Exception as e:
         frappe.log_error("Error in penalize_employee_for_late_entry", frappe.get_traceback())
 
-def create_leave_application():
+
+@frappe.whitelist()
+def penalize_incomplete_week_for_indifoss():
+    """Method to apply penalty if the employee has not completed the weekly hours
+    """
+    try:
+        today = getdate() #* GETTING TODAY DATE
+        last_monday = today - timedelta(days=today.weekday() + 7)  #* PREVIOUS WEEK MONDAY
+        last_sunday = last_monday + timedelta(days=6)
+    
+    except Exception as e:
+        frappe.log_error("Error in penalize_incomplete_week scheduler", frappe.get_traceback())
+        
+    
+    
+def create_leave_application(emp_id, leave_date, attendance_id):
     """Method to create leave application
     """
     try:
-        "Create Leave Application"
+        leave_type = frappe.db.get_single_value("HR Settings", "custom_leave_type_for_indifoss")
+        deduction_of_leave = frappe.db.get_single_value("HR Settings", "custom_deduction_of_leave_for_indifoss")
+        
+        rh_employee = frappe.db.get_value("Employee", emp_id, "reports_to")
+
+        leave_application_doc = frappe.new_doc("Leave Application") 
+        
+        leave_application_doc.employee = emp_id
+        leave_application_doc.leave_type = leave_type
+        leave_application_doc.from_date = leave_date
+        leave_application_doc.to_date = leave_date
+        leave_application_doc.custom_is_penalty_leave = 1
+
+        # if rh_employee:   
+        #     if rh_employee:
+        #         rh_emp_id = frappe.db.get_value("Employee", rh_employee, "user_id")
+        #         leave_application_doc.leave_approver = rh_emp_id
+
+        if deduction_of_leave == "Half day":
+            leave_application_doc.half_day = 1
+        
+        leave_application_doc.description = f"Late Entry Penalization for Attendance - {attendance_id}"
+        leave_application_doc.status = "Approved"
+        leave_application_doc.insert(ignore_permissions=True)
+        leave_application_doc.submit()
+        frappe.db.commit()
     except Exception as e:
         frappe.log_error("Error while creating leave application", frappe.get_traceback())
 

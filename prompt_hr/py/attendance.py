@@ -149,7 +149,7 @@ def validate_regularization_creation_for_indifoss(attendance_date, employee_id):
         last_date = next_month - timedelta(days=1)
         
         
-        regularizations_count = frappe.db.get_count("Attendance Regularization", {"employee": employee_id, "regularization_date": ["between", [first_date, last_date]]})
+        regularizations_count = frappe.db.count("Attendance Regularization", {"employee": employee_id, "regularization_date": ["between", [first_date, last_date]]})
         
         
         if regularizations_count < allowed_times_in_month:
