@@ -7,9 +7,8 @@ from prompt_hr.py.utils import send_notification_email
 # ? before_insert HOOK
 def before_insert(doc, method):
     current_workflow_state = frappe.db.get_value("Job Requisition", doc.custom_job_requisition_record, "workflow_state")
-    
-    workflow_approval = frappe.db.get_value("Workflow Approval", {"applicable_doctype": "Job Requisition"},"name")
-    if not frappe.db.exists("Workflow Approval Hierarchy", {"parent": workflow_approval, "parenttype": "Workflow Approval", "is_final": 1, "state": current_workflow_state}): 
+    final_workflow_state = "Final Approval"
+    if current_workflow_state != final_workflow_state: 
         frappe.throw(f"You are not authorized to create a Job Opening from this Job Requisition. Final Stage of Approval is not reached.")
     
 

@@ -50,7 +50,7 @@ app_include_js = [
 doctype_js = {
     "Employee Onboarding": "public/js/employee_onboarding.js",
     "Job Offer": "public/js/job_offer.js",
-    # "Job Requisition": "public/js/job_requisition.js",
+    "Job Requisition": "public/js/job_requisition.js",
     "Job Opening": "public/js/job_opening.js",
     'Employee': 'public/js/employee.js',
     "Job Applicant": "public/js/job_applicant.js",
@@ -181,7 +181,7 @@ doc_events = {
         "on_update": [ "prompt_hr.py.job_requisition.on_update", 
                         "prompt_hr.py.job_requisition.notify_approver",
                     ],
-        "after_insert": "prompt_hr.py.job_requisition.after_insert",        
+        # "after_insert": "prompt_hr.py.job_requisition.after_insert",        
     },
     "Job Applicant": {
         "after_insert": "prompt_hr.py.job_applicant.after_insert",
@@ -191,6 +191,7 @@ doc_events = {
         "validate": "prompt_hr.custom_methods.update_job_applicant_status_based_on_interview",
         "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_interview",
         "on_update": "prompt_hr.py.interview_availability.on_update",
+        "before_save": "prompt_hr.py.interview.before_save",
     },
     "Job Offer": {
         "validate": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
