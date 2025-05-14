@@ -709,20 +709,47 @@ def penalize_employee_for_late_entry_for_indifoss():
     except Exception as e:
         frappe.log_error("Error in penalize_employee_for_late_entry", frappe.get_traceback())
 
-
-@frappe.whitelist()
+@frappe.whitelist() 
 def penalize_incomplete_week_for_indifoss():
     """Method to apply penalty if the employee has not completed the weekly hours
     """
     try:
-        today = getdate() #* GETTING TODAY DATE
-        last_monday = today - timedelta(days=today.weekday() + 7)  #* PREVIOUS WEEK MONDAY
-        last_sunday = last_monday + timedelta(days=6)
-    
+        
+        company_id = fetch_company_name(indifoss=1)
+        today_date = getdate(today())
+        
+        if company_id.get("error"):
+            frappe.log_error("Error in penalize_incomplete_week scheduler", frappe.get_traceback())
+        
+        employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": company_id.get("company_id")}, ["name","custom_last_weekly_hours_evaluation", "custom_next_weekly_hours_evaluation", "custom_weeklyoff"])
+
+        if employee_list:
+            for emp in employee_list:
+                weekly_off_type = emp.get("custom_weeklyoff")
+                
+                if weekly_off_type:
+                    weekly_off_days = get_week_off_days(emp.get("custom_weeklyoff"))
+                    print(f"\n\n weekly off days {emp.get('name')} {weekly_off_days} {type(weekly_off_days)}\n\n")
+                    if weekly_off_days:
+                        num_weekoffs = len(weekly_off_days)
+                        expected_work_hours = 7 - num_weekoffs
+                        
+                        if emp.get("custom_next_weekly_hours_evaluation") and getdate(emp.get("custom_next_weekly_hours_evaluation")) > today_date:
+                            pass
+                        
+                        if emp.get("custom_last_weekly_hours_evaluation"):
+                            pass
+                        else:
+                            pass
+                
     except Exception as e:
         frappe.log_error("Error in penalize_incomplete_week scheduler", frappe.get_traceback())
         
-    
+        
+def get_week_off_days(weekly_off_type):
+    print(f"\n\n weekly_off_type {weekly_off_type} \n\n")
+    days = frappe.db.get_all("WeekOff Multiselect", {"parenttype": "WeeklyOff Type", "parent": weekly_off_type}, "weekoff", pluck="weekoff")
+    return days or []
     
 def create_leave_application(emp_id, leave_date, attendance_id):
     """Method to create leave application
