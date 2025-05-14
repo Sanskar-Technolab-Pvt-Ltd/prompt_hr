@@ -15,6 +15,7 @@ def before_insert(doc, method):
 # ! prompt_hr.py.job_opening.send_job_opening_notification
 @frappe.whitelist()
 def send_job_opening_notification(
+    company=None,
     due_date=None,
     notification_name=None,
     min_tenure_in_company=0,
@@ -37,6 +38,9 @@ def send_job_opening_notification(
             filters["location"] = ["in", allowed_location]
         if allowed_grade:
             filters["grade"] = ["in", allowed_grade]
+        if company:
+            filters["company"] = company
+        
 
         # FETCH EMPLOYEES
         employees = frappe.get_all(
