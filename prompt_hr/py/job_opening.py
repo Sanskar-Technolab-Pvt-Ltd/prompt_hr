@@ -30,7 +30,9 @@ def send_job_opening_notification(
     """
     Send internal job opening notifications to eligible employees.
     """
+    
     try:
+
         if isinstance(allowed_department, str):
             allowed_department = json.loads(allowed_department)
         if isinstance(allowed_location, str):
@@ -48,9 +50,7 @@ def send_job_opening_notification(
             filters["grade"] = ["in", allowed_grade]
         if company:
             filters["company"] = company
-        
-        print(f"{filters}bfdhbfdhs\n\n\n")
-        
+                
 
         # FETCH EMPLOYEES
         employees = frappe.get_all(
