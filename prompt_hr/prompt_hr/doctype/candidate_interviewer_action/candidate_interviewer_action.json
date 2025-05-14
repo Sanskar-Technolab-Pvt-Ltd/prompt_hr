@@ -13,7 +13,8 @@
   "date",
   "from_time",
   "to_time",
-  "comments"
+  "comments",
+  "mode_of_interview"
  ],
  "fields": [
   {
@@ -41,7 +42,8 @@
    "fieldname": "shortlisted_by",
    "fieldtype": "Link",
    "label": "Shortlisted By",
-   "options": "User"
+   "options": "User",
+   "read_only": 1
   },
   {
    "fieldname": "date",
@@ -65,13 +67,20 @@
    "fieldtype": "Time",
    "in_list_view": 1,
    "label": "To Time"
+  },
+  {
+   "fieldname": "mode_of_interview",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Mode of Interview",
+   "options": "\nOnline\nOffline"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-04-17 17:12:24.454252",
+ "modified": "2025-05-13 16:19:44.400896",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Candidate Interviewer Action",
