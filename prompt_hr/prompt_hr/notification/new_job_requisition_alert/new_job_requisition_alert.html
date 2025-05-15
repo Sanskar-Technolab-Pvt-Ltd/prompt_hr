@@ -1,0 +1,21 @@
+<p>Dear HR Team,</p>
+
+<p>A new job requisition has been submitted. Please review the details below and initiate the required process:</p>
+
+<p><b>Job Requisition Details:</b></p>
+
+<ul>
+  <li><b>Designation:</b> {{ doc.designation }}</li>
+  <li><b>Number of Positions:</b> {{ doc.no_of_positions }}</li>
+  <li><b>Company:</b> {{ doc.company }}</li>
+  <li><b>Department:</b> {{ doc.department }}</li>
+  <li><b>Priority:</b> {{ doc.custom_priority }}</li>
+  <li><b>Employment Type:</b> {{ doc.custom_employment_type }}</li>
+  <li><b>Target Hiring Duration:</b> {{ doc.custom_target_hiring_duration }}</li>
+  <li><b>Posting Date:</b> {{ doc.posting_date.strftime('%d-%b-%Y') }}</li>
+</ul>
+
+<p>Please log in to the system to review and take further action.</p>
+
+<p>Best regards,<br>
+{{ doc.owner or "Hiring Manager" }}</p>

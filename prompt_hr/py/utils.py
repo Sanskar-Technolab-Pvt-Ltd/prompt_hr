@@ -107,7 +107,8 @@ def send_notification_email(
             if send_link:
                 hash_message = f"<p>Password: <b>{hash}</b></p>" if hash else ""
                 if button_link:
-                    message += f"""
+                    final_message = message
+                    final_message += f"""
                         <hr>
                         {hash_message}
                         <p><b>{button_label}</b></p>
@@ -130,7 +131,7 @@ def send_notification_email(
             frappe.sendmail(
                 recipients=[email],
                 subject=subject,
-                message=message
+                message=final_message,
             )
 
         # ? LOG SUCCESS
@@ -295,4 +296,44 @@ def check_user_is_reporting_manager(user_id, requesting_employee_id):
 		return {"error":1, "message": f"{str(e)}"}
 
 
+@frappe.whitelist()
+def fetch_company_name(indifoss=0, prompt=0):
+    """Method to fetch the company abbreviation from hr settings then based on the abbreviation fetch the company name
 
+    Args:
+        indifoss (int, optional):  to fetch the indifoss company's abbreviation. Defaults to 0.
+        prompt (int, optional): to fetch the prompt company's abbreviation. Defaults to 0.
+    """
+    
+    try:
+        if indifoss:
+            indifoss_abbr = frappe.db.get_single_value("HR Settings", "custom_indifoss_abbr")
+            
+            if not indifoss_abbr:
+                return {"error": 1, "message": "No Abbreviation found in HR Settings, Please set abbreviation first"}
+
+            return {"error": 0, "company_id": frappe.db.get_value("Company", {"abbr": indifoss_abbr}, "name") or None}
+            
+        
+        if prompt:
+            prompt_abbr = frappe.db.get_single_value("HR Settings", "custom_indifoss_abbr")
+            
+            if not prompt_abbr:
+                return {"error": 1, "message": "No Abbreviation found in HR Settings, Please set abbreviation first"}
+            
+            return {"error": 0, "company_id": frappe.db.get_value("Company", {"abbr": prompt_abbr}, "name") or None}
+            
+    except Exception as e:
+        return {"error": 1, "message": str(e)}
+    
+@frappe.whitelist()
+def fetch_leave_type_for_indifoss(doctype, txt, searchfield, start, page_len, filters):
+    """ Static method to fetch options for leave type link field. Field is in  HR Settings 
+    """
+    company_id = filters.get("company_id")
+
+    return frappe.db.sql("""
+        SELECT name FROM `tabLeave Type`
+        WHERE custom_company = %s
+        AND (is_earned_leave = 1 OR custom_is_quarterly_carryforward_rule_applied = 1)
+    """, (company_id))
