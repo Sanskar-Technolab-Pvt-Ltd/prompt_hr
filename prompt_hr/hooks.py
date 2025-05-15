@@ -244,6 +244,9 @@ doc_events = {
     },
     "Job Opening": {
         "before_insert": "prompt_hr.py.job_opening.before_insert"
+    },
+    "Leave Application": {
+        "on_update": "prompt_hr.py.leave_application.on_update",
     }
 }
 
@@ -399,11 +402,14 @@ fixtures = [
 # {
 #     "dt":"Role", "filters": [["name", "in", ["Job Requisition", "Head of Department", "Managing Director"]]]
 # },
+{
+    "dt":"Workflow", "filters": [["name", "in", ["Job Requisition", "Compensatory Leave Request"]]]
+},
 # {
-#     "dt":"Workflow", "filters": [["name", "in", ["Job Requisition", "Compensatory Leave Request"]]]
+#     "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled", "Confirmed"]]]
 # },
 # {
-#     "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled"]]]
+#     "dt":"Workflow Action Master", "filters": [["name", "in", ["Confirm"]]]
 # }
 
 ]

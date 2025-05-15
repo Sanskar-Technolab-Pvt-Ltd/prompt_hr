@@ -1,0 +1,27 @@
+Dear HR Manager,<br><br>
+
+The Reporting Manager {{ manager }} has <b>{{ doc.workflow_state }}</b> a {{ doc.leave_type }} request. Please find the details below:<br><br>
+
+<b>Employee Details:</b><br>
+- <b>Name:</b> {{ doc.employee_name }}<br>
+- <b>Employee ID:</b> {{ doc.employee }}<br>
+<br>
+
+<b>Leave Details:</b><br>
+- <b>Leave Type:</b> {{ doc.leave_type }}<br>
+{% if doc.doctype == "Compensatory Leave Request" %}
+- <b>Compensatory Work Period:</b> {{ doc.work_from_date }} to {{ doc.work_end_date }}<br>
+{% else %}
+- <b>Leave Period:</b> {{ doc.from_date }} to {{ doc.to_date }}<br>
+{% endif %}
+- <b>Current Status:</b> {{ doc.workflow_state }}<br>
+<br>
+
+<b>Request Link:</b> <a href="{{ frappe.utils.get_url() }}/app/{{ doc.doctype|lower|replace(' ', '-') }}/{{ doc.name }}">View Request</a><br><br>
+
+{% if doc.workflow_state == "Approved" %}
+As this request has been approved by the Reporting Manager, it is now pending your action. Kindly proceed to <b>Confirm</b> the request.<br><br>
+{% endif %}
+
+Thank you,<br>
+HR System
