@@ -321,7 +321,7 @@ def fetch_company_name(indifoss=0, prompt=0):
             if not prompt_abbr:
                 return {"error": 1, "message": "No Abbreviation found in HR Settings, Please set abbreviation first"}
             
-            return {"error": 0, "message": frappe.db.get_value("Company", {"abbr": prompt_abbr}, "name") or None}
+            return {"error": 0, "company_id": frappe.db.get_value("Company", {"abbr": prompt_abbr}, "name") or None}
             
     except Exception as e:
         return {"error": 1, "message": str(e)}
