@@ -39,8 +39,8 @@ def execute(filters=None):
 
     # Header
     header_message = [
-        f"<b>Name and Address of Principal Employer :\t\t{'N/A'}, {address_display}<b><br>",
-        f"<b>Name and Address of Establishment :\t\t{company_doc.name}, {address_display}<b><br>",
+        f"<b>Name and Address of Principal Employer :\t\tSHREYAS MEHTA, 11, SWI PARK SOCIETY, NEAR MANARAV HALL, RANNA PARK, GHATLODIA, , AHMEDABAD Gujarat, IN 380061</b><br>",
+        f"<b>Name and Address of Establishment :\t\t{company_doc.name}, {address_display}</b><br>",
         f"<b>For the Month of:\t\t{formatdate(from_date, 'MMM-YYYY')}</b>"
     ]
     # Threshold
@@ -58,14 +58,15 @@ def execute(filters=None):
 
     for att in attendance_records:
         # Get in_time/out_time or use defaults
-        in_time = att.in_time or datetime.combine(att.attendance_date, datetime.strptime("09:00", "%H:%M").time())
-        out_time = att.out_time or datetime.combine(att.attendance_date, datetime.strptime("18:00", "%H:%M").time())
+        # in_time = att.in_time or datetime.combine(att.attendance_date, datetime.strptime("09:00", "%H:%M").time())
+        # out_time = att.out_time or datetime.combine(att.attendance_date, datetime.strptime("18:00", "%H:%M").time())
 
         # Convert if str
-        if isinstance(in_time, str): in_time = datetime.strptime(in_time, "%Y-%m-%d %H:%M:%S")
-        if isinstance(out_time, str): out_time = datetime.strptime(out_time, "%Y-%m-%d %H:%M:%S")
-
-        worked_hours = att.working_hours or round((out_time - in_time).total_seconds() / 3600, 2)
+        # if isinstance(in_time, str): in_time = datetime.strptime(in_time, "%Y-%m-%d %H:%M:%S")
+        # if isinstance(out_time, str): out_time = datetime.strptime(out_time, "%Y-%m-%d %H:%M:%S")
+        worked_hours = att.working_hours or 0
+        if att.in_time and att.out_time and worked_hours == 0:
+            worked_hours = att.working_hours or round((att.out_time - att.in_time).total_seconds() / 3600, 2)
         overtime_hours = max(0, worked_hours - threshold_hours)
 
         if overtime_hours > 0:

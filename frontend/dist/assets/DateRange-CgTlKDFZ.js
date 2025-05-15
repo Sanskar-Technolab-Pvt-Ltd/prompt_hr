@@ -1,1 +1,0 @@
-import{d as s,e as r,g as n,f as o,k as t,an as c,t as p,aS as i}from"./index-OSkjyhkw.js";const l={class:"flex items-center text-ink-gray-7"},m={__name:"DateRange",props:{startDate:{type:String},endDate:{type:String}},setup(a){const e=a;return(d,_)=>(r(),s("div",l,[n(t(c),{class:"h-4 w-4 stroke-1.5 mr-2"}),o("span",null,p(t(i)(e.startDate,e.endDate)),1)]))}};export{m as _};
