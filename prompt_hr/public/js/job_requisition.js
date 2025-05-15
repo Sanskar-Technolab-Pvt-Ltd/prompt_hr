@@ -29,7 +29,7 @@ function show_job_opening_buttons(frm) {
         if (!job_openings.length) {
             // ? CREATE JOB OPENING BUTTON
             frm.add_custom_button(__("Create Job Opening"), () => {
-                window.location.href = `/app/job-opening/new?job_requisition=${frm.doc.name}`;
+                window.location.href = `/app/job-opening/new-?custom_job_requisition_record=${frm.doc.name}`;
             });
         } else {
             // ? VIEW JOB OPENINGS BUTTON GROUP
