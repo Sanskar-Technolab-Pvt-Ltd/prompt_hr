@@ -718,6 +718,9 @@ def penalize_incomplete_week_for_indifoss():
         company_id = fetch_company_name(indifoss=1)
         today_date = getdate(today())
         
+        grace_hours = frappe.db.get_single_value("HR Settings", "custom_weekly_hours_criteria_for_penalty_for_indifoss")
+        
+        
         if company_id.get("error"):
             frappe.log_error("Error in penalize_incomplete_week scheduler", frappe.get_traceback())
         
@@ -729,28 +732,98 @@ def penalize_incomplete_week_for_indifoss():
                 
                 if weekly_off_type:
                     weekly_off_days = get_week_off_days(emp.get("custom_weeklyoff"))
-                    print(f"\n\n weekly off days {emp.get('name')} {weekly_off_days} {type(weekly_off_days)}\n\n")
                     if weekly_off_days:
                         num_weekoffs = len(weekly_off_days)
-                        expected_work_hours = 7 - num_weekoffs
+                        expected_work_days = 7 - num_weekoffs
                         
-                        if emp.get("custom_next_weekly_hours_evaluation") and getdate(emp.get("custom_next_weekly_hours_evaluation")) > today_date:
-                            pass
+                        if emp.get("custom_next_weekly_hours_evaluation") and getdate(emp.get("custom_next_weekly_hours_evaluation")) != today_date:
+                            continue
                         
                         if emp.get("custom_last_weekly_hours_evaluation"):
-                            pass
+                            eval_start, eval_end = get_next_work_week(emp.get("custom_last_weekly_hours_evaluation"), weekly_off_days, expected_work_days)
                         else:
-                            pass
-                
+                            eval_start, eval_end = get_last_full_work_week(today_date, weekly_off_days, expected_work_days)
+                            
+                        leave_application_list = frappe.db.get_all("Leave Application", {"employee": emp.get("name"), "status": "Approved", "from_date":["between", [eval_start, eval_end]]}, ["name", "half_day"])
+                        
+                        if leave_application_list:
+                            leave_count = 0
+                            full_day_leave_hours = 9
+                            half_day_leave_hours = 4.5
+
+                            for leave in leave_application_list:
+                                pass
+                        
+                        
+                        last_update_date = get_next_working_day_after_weekoffs(eval_end + timedelta(days=1), weekly_off_days)
+                        next_update_date = get_next_working_day_after_weekoffs(last_update_date + timedelta(days=7), weekly_off_days)
+                            
     except Exception as e:
         frappe.log_error("Error in penalize_incomplete_week scheduler", frappe.get_traceback())
         
         
 def get_week_off_days(weekly_off_type):
-    print(f"\n\n weekly_off_type {weekly_off_type} \n\n")
+    """Method to get the week off days based on the weekly off type
+    """
     days = frappe.db.get_all("WeekOff Multiselect", {"parenttype": "WeeklyOff Type", "parent": weekly_off_type}, "weekoff", pluck="weekoff")
     return days or []
+
+
+def get_last_full_work_week(ref_date, weekly_off_days, expected_work_days):
+    """Method to get the last full work week based on the reference date and weekly off days and expected work days
+    """
+    day = ref_date
+    while True:    
+        #* GOING BACKWARDS FORM THE REFERENCE DATE TO LOCATE THE LAST CONTINUOUS BLOCK OF WEEKLY OFF DAYS.
+        
+        if day.strftime("%A") in weekly_off_days:
+            prev_day = day - timedelta(days=1)
+            if prev_day.strftime("%A") in weekly_off_days:
+                day = prev_day #* CONTINUE GOING BACKWARDS IF THE PREVIOUS DAY IS ALSO A WEEKOFF
+                continue
+            break
+        day -= timedelta(days=1) #* KEEP MOVING BACK UNTIL WE FIND A WEEKOFF DAY
     
+    
+    #* DEPENDING ON THE FIRST WEEKOFF DAY WE ARE GOING BACKWARDS TO FIND THE LAST FULL WORK WEEK
+    start = day - timedelta(days=1)
+    working_days = []
+    current = start
+    while len(working_days) < expected_work_days:
+        if current.strftime("%A") not in weekly_off_days:
+            working_days.insert(0, current)  # prepend to maintain chronological order
+        current -= timedelta(days=1)
+    return working_days[0], working_days[-1]
+    # print(f"\n\n {day} \n\n")
+    # start = day + timedelta(days=1)
+    # working_days = []
+    # current = start
+    
+    # print(f"\n\n {current} \n\n")
+    # while len(working_days) < expected_work_days:
+    #     if current.strftime("%A") not in weekly_off_days:
+    #         working_days.append(current)
+    #     current += timedelta(days=1)
+    # return working_days[0], working_days[-1]
+
+def get_next_work_week(last_eval_date, weekly_off_days, expected_work_days):
+    
+    current = last_eval_date
+    working_days = []
+    while len(working_days) < expected_work_days:
+        if current.strftime("%A") not in weekly_off_days:
+            working_days.append(current)
+        current += timedelta(days=1)
+    return working_days[0], working_days[-1]
+
+
+def get_next_working_day_after_weekoffs(start_date, weekly_off_days):
+    
+    current = start_date
+    while current.strftime("%A") in weekly_off_days:
+        current += timedelta(days=1)
+    print(f"\n\n current {current} \n\n")
+    return current
 def create_leave_application(emp_id, leave_date, attendance_id):
     """Method to create leave application
     """
