@@ -43,6 +43,9 @@ def check_test_and_invite(job_applicant):
         if not applicant.email_id:
             frappe.throw("No email address found for the applicant.")
 
+        # ? FETCH BASE URL DYNAMICALLY FROM SITE CONFIG
+        base_url = frappe.utils.get_url()  # gets the current site URL like "http://example.com"
+
         # ? SEND SCREENING TEST INVITATION
         send_notification_email(
             recipients=[applicant.email_id],
@@ -50,7 +53,7 @@ def check_test_and_invite(job_applicant):
             doctype="Job Applicant",
             docname=job_applicant,
             button_label="View Details",
-            button_link=f"http://192.168.2.111:8007/lms/courses/{interview_round}/learn/1-1",
+            button_link=f"{base_url}/lms/courses/{interview_round}/learn/1-1",
             hash_input_text=job_applicant
         )
 
