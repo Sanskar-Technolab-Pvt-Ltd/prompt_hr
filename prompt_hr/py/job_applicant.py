@@ -26,37 +26,6 @@ def after_insert(doc, method):
     except Exception as e:
         frappe.log_error("Error in after_insert", str(e))
 
-def send_notification_from_template(emails, notification_name, doc=None):
-    try:
-        notification_doc = frappe.db.get_value("Notification", notification_name,["subject", "message"])
-
-        for email in emails:
-            context = {"doc": doc or frappe._dict({}), "user": email}
-
-            subject = frappe.render_template(notification_doc.subject, context)
-            message = frappe.render_template(notification_doc.message, context)
-
-            if doc and doc.doctype and doc.name:
-                link = f"{frappe.utils.get_url()}/app/{doc.doctype.replace(' ', '-').lower()}/{doc.name}"
-                message += (
-                    f"<br><br><a href='{link}'>Click here to view the Record</a>"
-                )
-
-            frappe.sendmail(recipients=[email], subject=subject, message=message)
-
-        frappe.log_error(
-            title="Notification Sent",
-            message=f"Notification '{notification_name}' sent to {len(emails)} employees.",
-        )
-
-    except Exception as e:
-        frappe.log_error(
-            title="Notification Sending Failed",
-            message=f"Failed to send '{notification_name}': {str(e)}\n{traceback.format_exc()}",
-        )
-        # ? RE-RAISE THE ERROR TO BE HANDLED BY THE CALLER FUNCTION
-        raise   
-
 
 # ? API TO SEND EMAIL TO JOB APPLICANT FOR SCREEN TEST
 @frappe.whitelist()
@@ -81,9 +50,7 @@ def check_test_and_invite(job_applicant):
             doctype="Job Applicant",
             docname=job_applicant,
             button_label="View Details",
-            button_link=f"http://192.168.2.111:8007/lms/courses/{applicant.custom_interview_round}/learn/1-1",
-            fallback_subject="Notification",
-            fallback_message="You have a new update. Please check your portal.",
+            button_link=f"http://192.168.2.111:8007/lms/courses/{interview_round}/learn/1-1",
             hash_input_text=job_applicant
         )
 
@@ -108,6 +75,9 @@ def add_to_interview_availability(job_opening, job_applicants, employees):
         job_applicants = json.loads(job_applicants) if isinstance(job_applicants, str) else job_applicants
         employees = json.loads(employees) if isinstance(employees, str) else employees
 
+        if frappe.db.exists("Candidate Interviewer Action", {"job_applicant": ["in", job_applicants], "parenttype": "Interview Availability Form"}):
+            return("Interview Availability already exists for the selected job applicants.")
+
         # ? GET JOB REQUISITION AND COMPANY DETAILS
         job_requisition = frappe.db.get_value("Job Opening", job_opening, "custom_job_requisition_record")
         company = None
@@ -129,6 +99,7 @@ def add_to_interview_availability(job_opening, job_applicants, employees):
             })
 
         interview_doc.insert(ignore_permissions=True)
+        frappe.db.commit()
 
         # ? SHARE WITH SELECTED EMPLOYEES
         shared_users = [] 
@@ -148,13 +119,14 @@ def add_to_interview_availability(job_opening, job_applicants, employees):
                     shared_users.append(user)
                 except Exception as e:
                     frappe.log_error(f"Sharing failed for {emp} ({user}): {str(e)}", "Interview Availability Share Error")
-
+        
         # ? SEND EMAIL NOTIFICATION AFTER SHARING THE DOCUMENT
         if shared_users:
-            send_notification_from_template(
-                emails=shared_users,  
+            send_notification_email(
+                recipients=shared_users,  
                 notification_name="Send to Interviewer for Availability",  
-                doc=interview_doc  
+                doctype=interview_doc.doctype,
+                docname=interview_doc.name,
             )
 
         return "Interview Availability created, shared, and email sent successfully."

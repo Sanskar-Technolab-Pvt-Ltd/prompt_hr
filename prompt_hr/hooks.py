@@ -50,7 +50,7 @@ app_include_js = [
 doctype_js = {
     "Employee Onboarding": "public/js/employee_onboarding.js",
     "Job Offer": "public/js/job_offer.js",
-    # "Job Requisition": "public/js/job_requisition.js",
+    "Job Requisition": "public/js/job_requisition.js",
     "Job Opening": "public/js/job_opening.js",
     'Employee': 'public/js/employee.js',
     "Job Applicant": "public/js/job_applicant.js",
@@ -62,7 +62,8 @@ doctype_js = {
     "Attendance Request": "public/js/attendance_request.js",
     "Payroll Entry": "public/js/payroll_entry.js",
     "Leave Application": "public/js/leave_application.js",
-    "Employee Checkin": "public/js/employee_checkin.js"
+    "Employee Checkin": "public/js/employee_checkin.js",
+    "HR Settings": "public/js/hr_settings.js"
 
 }
 
@@ -160,6 +161,7 @@ override_doctype_class = {
     # "ToDo": "custom_app.overrides.CustomToDo"
     "Interview": "prompt_hr.overrides.interview_override.CustomInterview",
     "Job Offer": "prompt_hr.overrides.job_offer_override.CustomJobOffer",
+    "Leave Application": "prompt_hr.overrides.leave_application_override.CustomLeaveApplication"
 }
 
 # Document Events
@@ -172,15 +174,14 @@ doc_events = {
         "after_insert": "prompt_hr.py.employee_onboarding.after_insert",
     },
     "Job Requisition": {
-        "validate": [
-                        
+        "validate": [                        
                         "prompt_hr.py.job_requisition.add_or_update_custom_last_updated_by",
                         "prompt_hr.py.job_requisition.set_requested_by",
-                    ],
-        
+                    ],        
         "on_update": [ "prompt_hr.py.job_requisition.on_update", 
                         "prompt_hr.py.job_requisition.notify_approver",
-                    ]
+                    ],
+        # "after_insert": "prompt_hr.py.job_requisition.after_insert",        
     },
     "Job Applicant": {
         "after_insert": "prompt_hr.py.job_applicant.after_insert",
@@ -190,6 +191,7 @@ doc_events = {
         "validate": "prompt_hr.custom_methods.update_job_applicant_status_based_on_interview",
         "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_interview",
         "on_update": "prompt_hr.py.interview_availability.on_update",
+        "before_save": "prompt_hr.py.interview.before_save",
     },
     "Job Offer": {
         "validate": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
@@ -226,18 +228,22 @@ doc_events = {
     "Leave Allocation":{
         "before_validate": "prompt_hr.py.leave_allocation.before_validate"
     },
+    "Additional Salary": {
+        "before_save": "prompt_hr.py.additional_salary.before_save"
+    },
     "Leave Encashment":{
         "before_save": "prompt_hr.py.leave_encashment.before_save",
     },
     "Compensatory Leave Request": {
         "before_save": "prompt_hr.py.compensatory_leave_request.before_save",
-        "on_cancel": "prompt_hr.py.compensatory_leave_request.on_cancel"
-    },
-    "Leave Allocation"  : {  
-        "on_update": "prompt_hr.py.leave_allocation.on_update"
+        "on_cancel": "prompt_hr.py.compensatory_leave_request.on_cancel",
+        "on_update": "prompt_hr.py.compensatory_leave_request.on_update"
     },
     "Additional Salary": {
         "before_save": "prompt_hr.py.additional_salary.before_save"
+    },
+    "Job Opening": {
+        "before_insert": "prompt_hr.py.job_opening.before_insert"
     }
 }
 

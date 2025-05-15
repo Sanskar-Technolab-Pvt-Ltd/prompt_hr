@@ -3,6 +3,10 @@ frappe.ui.form.on("Job Opening", {
     refresh: (frm) => {
         handleInternalJobPosting(frm);
         handleEmployeeReferral(frm);
+
+        // ? FUNCTION TO APPLY FILTER ON JOB REQUISITION WITH STATUS == "FINAL APPROVAL"
+        applyJobRequisitionFilter(frm)
+
         const current_user = frappe.session.user;
         let hide_notify_buttons = false;
         let show_confirm_button = false;
@@ -178,12 +182,13 @@ function handleInternalJobPosting(frm) {
             frappe.call({
                 method: "prompt_hr.py.job_opening.send_job_opening_notification",
                 args: {
+                    company: frm.doc.company,
                     due_date: frm.doc.custom_due_date_for_applying_job,
                     min_tenure_in_company: frm.doc.custom_minimum_tenure_in_company_in_months,
                     min_tenure_in_current_role: frm.doc.custom_minimum_tenure_in_current_role_in_months,
-                    allowed_department: frm.doc.custom_can_apply_from_department,
-                    allowed_location: frm.doc.custom_can_apply_from_location,
-                    allowed_grade: frm.doc.custom_can_apply_from_grade,
+                    allowed_department: (frm.doc.custom_can_refer_from_department_internal).map(item => item.department),
+                    allowed_location: (frm.doc.custom_can_refer_from_work_location_internal).map(item => item.work_location),
+                    allowed_grade: (frm.doc.custom_can_refer_from_grade_internal).map(item => item.grade),
                     notification_name: "Internal Job Opening Email",
                     job_opening: frm.doc.name,
                     source: "Internal Application"
@@ -203,12 +208,13 @@ function handleEmployeeReferral(frm) {
             frappe.call({
                 method: "prompt_hr.py.job_opening.send_job_opening_notification",
                 args: {
+                    company: frm.doc.company,
                     due_date: frm.doc.custom_due_date_for_applying_job_jr,
                     min_tenure_in_company: frm.doc.custom_minimum_tenure_in_company_in_months_jr,
                     min_tenure_in_current_role: frm.doc.custom_minimum_tenure_in_current_role_in_months_jr,
-                    allowed_department: frm.doc.custom_can_apply_from_department_jr,
-                    allowed_location: frm.doc.custom_can_apply_from_location_jr,
-                    allowed_grade: frm.doc.custom_can_apply_from_grade_jr,
+                    allowed_department: (frm.doc.custom_can_refer_from_department_referral).map(item => item.department),
+                    allowed_location: (frm.doc.custom_can_refer_from_work_location_referral).map(item => item.work_location),
+                    allowed_grade: (frm.doc.custom_can_refer_from_grade_referral).map(item => item.grade),
                     notification_name: "Employee Referral Email",
                     job_opening: frm.doc.name,
                     source: "Employee Referral"
@@ -219,4 +225,15 @@ function handleEmployeeReferral(frm) {
             });
         });
     }
+}
+
+// ? FUNCTION TO APPLY FILTER ON JOB REQUISITION WITH STATUS == "FINAL APPROVAL"
+function applyJobRequisitionFilter(frm) {
+    frm.set_query("custom_job_requisition_record", () => {
+        return {
+            filters: {
+                workflow_state: "Final Approval",
+            }
+        };
+    });
 }
