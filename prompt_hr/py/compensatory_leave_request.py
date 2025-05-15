@@ -59,9 +59,9 @@ def on_update(doc, method):
 
                             
         if doc.workflow_state == "Pending":
-            notification = frappe.get_doc("Notification", "Compensatory Leave Request Notification")
+            notification = frappe.get_doc("Notification", "Leave Request Notification")
             if notification:
-                subject = frappe.render_template(notification.subject, {"doc":doc})
+                subject = frappe.render_template(notification.subject, {"doc":doc,"request_type":"Compensatory Leave Request"})
                 if reporting_manager_id:
                     frappe.sendmail(
                     recipients=reporting_manager_id,
@@ -70,23 +70,12 @@ def on_update(doc, method):
                     reference_doctype=doc.doctype,
                     reference_name=doc.name,
                 )
-                if hr_manager_email:
-                    frappe.sendmail(
-                        recipients=hr_manager_email,
-                        message = frappe.render_template(notification.message, {"doc": doc,"role":"HR Manager"}),
-                        subject = subject,
-                        reference_doctype=doc.doctype,
-                        reference_name=doc.name,
-                    )
-
-                if not hr_manager_email:
-                    frappe.throw("HR Manager email not found.")
 
         elif doc.workflow_state == "Approved":
             employee_notification = frappe.get_doc("Notification", "Leave Request Response By Reporting Manager")
-            hr_notification = frappe.get_doc("Notification", "Compensatory Leave Request Status Update to HR Manager")
+            hr_notification = frappe.get_doc("Notification", "Leave Request Status Update to HR Manager")
             if employee_notification:
-                subject = frappe.render_template(employee_notification.subject, {"doc":doc,"manager":reporting_manager_name})
+                subject = frappe.render_template(employee_notification.subject, {"doc":doc,"manager":reporting_manager_name,"request_type":"Compensatory Leave Request"})
                 if employee_id:
                     frappe.sendmail(
                     recipients=employee_id,
@@ -98,8 +87,8 @@ def on_update(doc, method):
             if hr_notification:
                 frappe.sendmail(
                     recipients=hr_manager_email,
-                    message = frappe.render_template(hr_notification.message, {"doc": doc}),
-                    subject = frappe.render_template(hr_notification.subject, {"doc":doc,"manager":reporting_manager_name}),
+                    message = frappe.render_template(hr_notification.message, {"doc": doc, "manager":reporting_manager_name}),
+                    subject = frappe.render_template(hr_notification.subject, {"doc":doc,"manager":reporting_manager_name, "request_type":"Compensatory Leave Request"}),
                     reference_doctype=doc.doctype,
                     reference_name=doc.name,
                 )
@@ -109,9 +98,8 @@ def on_update(doc, method):
 
         elif doc.workflow_state == "Rejected":
             employee_notification = frappe.get_doc("Notification", "Leave Request Response By Reporting Manager")
-            hr_notification = frappe.get_doc("Notification", "Compensatory Leave Request Status Update to HR Manager")
             if employee_notification:
-                subject = frappe.render_template(employee_notification.subject, {"doc":doc, "manager":reporting_manager_name})
+                subject = frappe.render_template(employee_notification.subject, {"doc":doc, "manager":reporting_manager_name,"request_type":"Compensatory Leave Request"})
                 if employee_id:
                     frappe.sendmail(
                     recipients=employee_id,
@@ -120,22 +108,11 @@ def on_update(doc, method):
                     reference_doctype=doc.doctype,
                     reference_name=doc.name,
                 )
-            if hr_notification:
-                frappe.sendmail(
-                    recipients=hr_manager_email,
-                    message = frappe.render_template(hr_notification.message, {"doc": doc}),
-                    subject = frappe.render_template(hr_notification.subject, {"doc":doc, "manager":reporting_manager_name}),
-                    reference_doctype=doc.doctype,
-                    reference_name=doc.name,
-                )
 
-                if not hr_manager_email:
-                    frappe.throw("HR Manager email not found.")
-
-        elif doc.workflow_state == "Approved by HR" or doc.workflow_state == "Rejected by HR":
-            employee_notification = frappe.get_doc("Notification", "Compensatory Leave Status Update to Employee")
+        elif doc.workflow_state == "Confirmed":
+            employee_notification = frappe.get_doc("Notification", "Leave Status Update to Employee")
             if employee_notification:
-                subject = frappe.render_template(employee_notification.subject, {"doc":doc})
+                subject = frappe.render_template(employee_notification.subject, {"doc":doc,"request_type":"Compensatory Leave Request"})
                 if employee_id:
                     frappe.sendmail(
                     recipients=employee_id,
