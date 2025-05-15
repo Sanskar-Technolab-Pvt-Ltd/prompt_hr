@@ -368,7 +368,7 @@ def check_interviewer_permission(user=None):
 @frappe.whitelist()
 def get_employee_user_id(employee_id):
     # Only allow if the session user is linked
-    emp = frappe.db.get_value("Employee", employee_id, "user_id")
+    emp = frappe.get_doc("Employee", employee_id)
     if emp.user_id == frappe.session.user:
         return emp.user_id
     # or apply other business logic
