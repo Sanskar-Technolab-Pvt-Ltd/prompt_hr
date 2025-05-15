@@ -1,13 +1,18 @@
 Dear {{ doc.employee_name }},<br><br>
 
-Your compensatory leave request submitted for the period from <b>{{ doc.work_from_date }}</b> to <b>{{ doc.work_end_date }}</b> has been <b>{{ doc.workflow_state }}</b> by your Reporting Manager.<br>
-<br>
-<b>Request Details:</b><br>
+{% if doc.doctype == "Compensatory Leave Request" %}
+Your compensatory leave request submitted for the period from <b>{{ doc.work_from_date }}</b> to <b>{{ doc.work_end_date }}</b>
+{% else %}
+Your leave application for <b>{{ doc.leave_type }}</b>
+{% endif %}
+has been <b>{{ doc.workflow_state }}</b> by your Reporting Manager.<br><br>
+
+<b>Request Summary:</b><br>
 - <b>Leave Type:</b> {{ doc.leave_type }}<br>
 - <b>Status:</b> {{ doc.workflow_state }}<br>
-- <b>Link of Request:</b> <a href="{{ frappe.utils.get_url() }}/app/compensatory-leave-request/{{ doc.name }}">View Request</a><br><br>
+- <b>View Request:</b> <a href="{{ frappe.utils.get_url() }}/app/{{ doc.doctype|lower|replace(' ', '-') }}/{{ doc.name }}">Click here</a><br><br>
 
-If you have any questions, please contact your Reporting Manager.<br><br>
+If you have any questions or concerns, please reach out to your Reporting Manager.<br><br>
 
 Thank you,<br>
 HR System
