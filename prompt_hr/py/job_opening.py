@@ -52,7 +52,7 @@ def send_job_opening_notification(
             filters["company"] = company
                 
 
-        # FETCH EMPLOYEES
+        # ? FETCH EMPLOYEES
         employees = frappe.get_all(
             "Employee",
             filters=filters,
@@ -61,11 +61,11 @@ def send_job_opening_notification(
 
         print(f"Eligible Employees\n\n\n: {employees}")
 
-        # BUILD ROLE HISTORY MAP FOR TENURE CALCULATION
+        # ? BUILD ROLE HISTORY MAP FOR TENURE CALCULATION
         role_history_map = get_role_history_map()
         eligible_emails = []
 
-        # FILTER BY TENURE IN COMPANY AND ROLE
+        # ? FILTER BY TENURE IN COMPANY AND ROLE
         for emp in employees:
             if not emp.date_of_joining:
                 continue
@@ -80,7 +80,7 @@ def send_job_opening_notification(
             if emp.user_id:
                 eligible_emails.append(emp.user_id)
 
-        # SEND NOTIFICATION IF ANYONE IS ELIGIBLE
+        # ? SEND NOTIFICATION IF ANYONE IS ELIGIBLE
         if eligible_emails:
             base_url = frappe.utils.get_url()
             apply_link = f"{base_url}/app/job-applicant/new-job-applicant-1?job_title={job_opening}&source={source}"

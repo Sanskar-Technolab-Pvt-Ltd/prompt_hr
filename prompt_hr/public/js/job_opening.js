@@ -3,6 +3,10 @@ frappe.ui.form.on("Job Opening", {
     refresh: (frm) => {
         handleInternalJobPosting(frm);
         handleEmployeeReferral(frm);
+
+        // ? FUNCTION TO APPLY FILTER ON JOB REQUISITION WITH STATUS == "FINAL APPROVAL"
+        applyJobRequisitionFilter(frm)
+
         const current_user = frappe.session.user;
         let hide_notify_buttons = false;
         let show_confirm_button = false;
@@ -221,4 +225,15 @@ function handleEmployeeReferral(frm) {
             });
         });
     }
+}
+
+// ? FUNCTION TO APPLY FILTER ON JOB REQUISITION WITH STATUS == "FINAL APPROVAL"
+function applyJobRequisitionFilter(frm) {
+    frm.set_query("custom_job_requisition_record", () => {
+        return {
+            filters: {
+                workflow_state: "Final Approval",
+            }
+        };
+    });
 }
