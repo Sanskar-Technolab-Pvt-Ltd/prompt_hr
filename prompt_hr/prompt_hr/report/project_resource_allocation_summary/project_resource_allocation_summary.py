@@ -60,8 +60,8 @@ def execute(filters=None):
             "location": frappe.get_value("Address",employee.custom_work_location,"city"),
             "employment_status": "Working",
             "reporting_to": frappe.get_value("Employee", employee.reports_to, "employee_name"),
-            "start_date": ts.start_date,
-            "end_date": ts.end_date,
+            "start_date": p.get("expected_start_date"),
+            "end_date": p.get("expected_end_date"),
             "allocation_percentage": 100,  # Default
             "project_start_date": p.get("expected_start_date"),
             "project_end_date": p.get("expected_end_date"),
