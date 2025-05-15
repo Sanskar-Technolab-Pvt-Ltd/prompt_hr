@@ -1,6 +1,8 @@
 import frappe, requests
 import os
 
+# Resume Parsing API Integration with Affinda
+# This function parses a resume file using the Affinda API and returns the parsed data.
 @frappe.whitelist()
 def parse_resume(file_url):
     """
