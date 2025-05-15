@@ -18,5 +18,6 @@ frappe.views.calendar["Meeting Request"] = {
             options: "Employee",
         },
     ],
+    fields:["meeting_title","mode","organizer_name","from_time","to_time","color","name"],
     get_events_method: "frappe.desk.calendar.get_events",
 };
