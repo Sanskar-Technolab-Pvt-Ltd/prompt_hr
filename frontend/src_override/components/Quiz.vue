@@ -416,7 +416,7 @@ watch(
 );
 
 const quizSubmission = createResource({
-  url: "lms.lms.doctype.lms_quiz.lms_quiz.quiz_summary",
+  url: "prompt_hr.py.lms.quiz_summary",
   makeParams(values) {
     return {
       quiz: quiz.data.name,
