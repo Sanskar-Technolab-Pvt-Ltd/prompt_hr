@@ -9,7 +9,7 @@ from frappe import _
 # ? FUNCTION TO GENERATE HMAC HASH FROM INPUT USING SITE SECRET
 def create_hash(input_text: str) -> str:
     try:
-        hash_secret = frappe.local.conf.get("candidate_hash_key")
+        hash_secret = frappe.local.conf.get("candidate_hash_generation_key")
         if not hash_secret:
             frappe.throw(_("Hash secret not found in site_config.json"))
 
