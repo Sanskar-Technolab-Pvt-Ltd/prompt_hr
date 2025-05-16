@@ -75,18 +75,9 @@
   "docstatus": 0,
   "doctype": "Workflow State",
   "icon": "",
-  "modified": "2025-05-08 15:56:20.913535",
-  "name": "Rejected by HR",
-  "style": "Danger",
-  "workflow_state_name": "Rejected by HR"
- },
- {
-  "docstatus": 0,
-  "doctype": "Workflow State",
-  "icon": "",
-  "modified": "2025-05-08 16:04:26.758867",
-  "name": "Approved by HR",
+  "modified": "2025-05-15 10:42:52.572200",
+  "name": "Confirmed",
   "style": "Success",
-  "workflow_state_name": "Approved by HR"
+  "workflow_state_name": "Confirmed"
  }
 ]

@@ -1,0 +1,32 @@
+{
+ "add_total_row": 0,
+ "add_translate_data": 0,
+ "columns": [],
+ "creation": "2025-05-14 15:36:07.893117",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": "Prompt - Letter Head",
+ "letterhead": null,
+ "modified": "2025-05-14 15:36:07.893117",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Monthly Salary Structure Report",
+ "owner": "Administrator",
+ "prepared_report": 0,
+ "ref_doctype": "Salary Structure",
+ "report_name": "Monthly Salary Structure Report",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "HR User"
+  },
+  {
+   "role": "HR Manager"
+  }
+ ],
+ "timeout": 0
+}

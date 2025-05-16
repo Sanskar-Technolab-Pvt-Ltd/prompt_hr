@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-05-15 13:48:46.077726",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Compensatory Leave Request",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "Dear {{ doc.employee_name }},<br><br>\n\n{% if doc.doctype == \"Compensatory Leave Request\" %}\nYour compensatory leave request has been <b>{{ doc.workflow_state }}</b> by your HR Manager. Please find the details below:<br><br>\n\n<b>Leave Details:</b><br>\n- <b>Leave Type:</b> {{ doc.leave_type }}<br>\n- <b>Compensatory Work Period:</b> {{ doc.work_from_date }} to {{ doc.work_end_date }}<br>\n- <b>Status:</b> {{ doc.workflow_state }}<br>\n\n<b>Request Link:</b> <a href=\"{{ frappe.utils.get_url() }}/app/compensatory-leave-request/{{ doc.name }}\">View Your Request</a><br><br>\n{% else %}\nYour leave application has been <b>{{ doc.workflow_state }}</b> by your HR Manager. Please find the details below:<br><br>\n\n<b>Leave Details:</b><br>\n- <b>Leave Type:</b> {{ doc.leave_type }}<br>\n- <b>Leave Period:</b> {{ doc.from_date }} to {{ doc.to_date }}<br>\n- <b>Status:</b> {{ doc.workflow_state }}<br>\n\n<b>Request Link:</b> <a href=\"{{ frappe.utils.get_url() }}/app/leave-application/{{ doc.name }}\">View Your Request</a><br><br>\n{% endif %}\n\nIf you have any questions or require further clarification, please contact the HR department.<br><br>\n\nThank you,<br>\nHR Team\n",
+ "message_type": "HTML",
+ "modified": "2025-05-15 14:34:17.229864",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Leave Status Update to Employee",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "Your {{request_type}} Has Been {{ doc.workflow_state }}"
+}
