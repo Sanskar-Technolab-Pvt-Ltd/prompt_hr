@@ -718,7 +718,7 @@ def penalize_incomplete_week_for_indifoss():
         company_id = fetch_company_name(indifoss=1)
         today_date = getdate(today())
         
-        grace_hours = frappe.db.get_single_value("HR Settings", "custom_weekly_hours_criteria_for_penalty_for_indifoss")
+        expected_work_hours = frappe.db.get_single_value("HR Settings", "custom_weekly_hours_criteria_for_penalty_for_indifoss")
         
         
         if company_id.get("error"):
@@ -726,37 +726,68 @@ def penalize_incomplete_week_for_indifoss():
         
         employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": company_id.get("company_id")}, ["name","custom_last_weekly_hours_evaluation", "custom_next_weekly_hours_evaluation", "custom_weeklyoff"])
 
+        
+        print(f"\n\n employee list {employee_list}\n\n")
         if employee_list:
             for emp in employee_list:
+                print(f"\n\n employee {emp} \n\n")
+                
                 weekly_off_type = emp.get("custom_weeklyoff")
                 
                 if weekly_off_type:
+                    print(f"\n\n weekly off type {weekly_off_type} \n\n")
                     weekly_off_days = get_week_off_days(emp.get("custom_weeklyoff"))
                     if weekly_off_days:
+                        print(f"\n\n weekly off days {weekly_off_days} \n\n")
                         num_weekoffs = len(weekly_off_days)
                         expected_work_days = 7 - num_weekoffs
-                        
+                        print(f"\n\n expected work days {expected_work_days} \n\n")
                         if emp.get("custom_next_weekly_hours_evaluation") and getdate(emp.get("custom_next_weekly_hours_evaluation")) != today_date:
+                            print(f"\n\n this is getting  \n\n")
                             continue
                         
                         if emp.get("custom_last_weekly_hours_evaluation"):
                             eval_start, eval_end = get_next_work_week(emp.get("custom_last_weekly_hours_evaluation"), weekly_off_days, expected_work_days)
                         else:
                             eval_start, eval_end = get_last_full_work_week(today_date, weekly_off_days, expected_work_days)
-                            
+                        
+                        print(f"\n\n eval start {eval_start} {eval_end}\n\n")
                         leave_application_list = frappe.db.get_all("Leave Application", {"employee": emp.get("name"), "status": "Approved", "from_date":["between", [eval_start, eval_end]]}, ["name", "half_day"])
                         
+                        print(f"\n\n leave application {leave_application_list} \n\n")
+                        leave_hours = 0
                         if leave_application_list:
-                            leave_count = 0
+                            
                             full_day_leave_hours = 9
                             half_day_leave_hours = 4.5
 
                             for leave in leave_application_list:
-                                pass
+                                if leave.get("half_day") == 1:
+                                    leave_hours += half_day_leave_hours
+                                else:
+                                    leave_hours += full_day_leave_hours
                         
                         
+                        working_days = get_working_days(eval_start, eval_end, weekly_off_days)
+                        total_hours = get_total_working_hours(emp.name, working_days)
+                        print(f"\n\n working days {working_days}")
+                        print(f"\n\n total hours {total_hours}")
+                        print(f"\n\n Leave Hours {leave_hours}")
+                        
+                        print(f"\n\n expected work hours {expected_work_hours} \n\n")
+                        
+                        if leave_hours:
+                            expected_work_hours -= leave_hours
+                        
+                        if total_hours < expected_work_hours:
+                            
+                            print(f"\n\n Create Leave Application {expected_work_hours} \n\n")
                         last_update_date = get_next_working_day_after_weekoffs(eval_end + timedelta(days=1), weekly_off_days)
                         next_update_date = get_next_working_day_after_weekoffs(last_update_date + timedelta(days=7), weekly_off_days)
+                        print(f"\n\n last update date {last_update_date} next update date {next_update_date} \n\n")
+                        
+                        
+                        
                             
     except Exception as e:
         frappe.log_error("Error in penalize_incomplete_week scheduler", frappe.get_traceback())
@@ -806,6 +837,14 @@ def get_last_full_work_week(ref_date, weekly_off_days, expected_work_days):
     #     current += timedelta(days=1)
     # return working_days[0], working_days[-1]
 
+def get_next_working_day_after_weekoffs(start_date, weekly_off_days):
+    
+    current = start_date
+    while current.strftime("%A") in weekly_off_days:
+        current += timedelta(days=1)
+    print(f"\n\n current {current} \n\n")
+    return current
+
 def get_next_work_week(last_eval_date, weekly_off_days, expected_work_days):
     
     current = last_eval_date
@@ -816,15 +855,38 @@ def get_next_work_week(last_eval_date, weekly_off_days, expected_work_days):
         current += timedelta(days=1)
     return working_days[0], working_days[-1]
 
-
-def get_next_working_day_after_weekoffs(start_date, weekly_off_days):
-    
+def get_working_days(start_date, end_date, weekly_off_days):
+    days = []
     current = start_date
-    while current.strftime("%A") in weekly_off_days:
+    while current <= end_date:
+        if current.strftime("%A") not in weekly_off_days:
+            days.append(current)
         current += timedelta(days=1)
-    print(f"\n\n current {current} \n\n")
-    return current
-def create_leave_application(emp_id, leave_date, attendance_id):
+    return days
+
+def get_total_working_hours(employee, dates):
+    hours = 0
+    for day in dates:
+        attendance = frappe.get_all("Attendance", filters={
+            "employee": employee,
+            "attendance_date": day,
+            "status": ["in", ["Present", "Work From Home", "Half Day"]]
+        }, fields=["working_hours"])
+        hours += sum([i.working_hours for i in attendance])
+    return hours
+
+# def calculate_daily_hours(checkins):
+#     times = sorted([c.time for c in checkins])
+#     if len(times) < 2:
+#         return 0
+#     total = 0
+#     for i in range(0, len(times)-1, 2):
+#         diff = (times[i+1] - times[i]).total_seconds() / 3600
+#         total += diff
+#     return total
+
+
+def create_leave_application(emp_id, leave_date, attendance_id, for_time_penalization=False):
     """Method to create leave application
     """
     try:
