@@ -27,7 +27,7 @@ def before_save(doc, method):
                     break
         if compensatory_apply == 0:
             frappe.throw(
-                _("You are not eligible for Compensatory Leave for {0}")
+                _("You are not eligible for Compensatory Leave")
             )
 
 
