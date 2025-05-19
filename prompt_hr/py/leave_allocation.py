@@ -68,7 +68,7 @@ def custom_set_total_leaves_allocated(doc, method=None):
             doc.unused_leaves =  check_carry_forward_criteria(employee_doc, leave_type)
         elif leave_type.custom_maximum_ctc_limit_for_carry_forward:
             if employee_doc.ctc > leave_type.custom_maximum_ctc_limit_for_carry_forward:
-                doc.unused_leaves =  leave_type.maximum_carry_forwarded_leaves
+                doc.unused_leaves =  min(doc.unused_leaves,leave_type.maximum_carry_forwarded_leaves)
 
     doc.total_leaves_allocated = flt(
         flt(doc.unused_leaves) + flt(doc.new_leaves_allocated),
