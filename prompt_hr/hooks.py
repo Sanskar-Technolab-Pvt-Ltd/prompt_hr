@@ -63,7 +63,8 @@ doctype_js = {
     "Payroll Entry": "public/js/payroll_entry.js",
     "Leave Application": "public/js/leave_application.js",
     "Employee Checkin": "public/js/employee_checkin.js",
-    "HR Settings": "public/js/hr_settings.js"
+    "HR Settings": "public/js/hr_settings.js",
+    "Expense Claim": "public/js/expense_claim.js"
 
 }
 
@@ -249,6 +250,10 @@ doc_events = {
         "on_update": "prompt_hr.py.leave_application.on_update",
         "on_cancel": "prompt_hr.py.leave_application.on_cancel",
         "before_save": "prompt_hr.py.leave_application.before_save",
+    },
+    "Expense Claim":{ 
+        "before_submit": "prompt_hr.py.expense_claim.update_amount_in_marketing_planning",
+        "on_cancel": "prompt_hr.py.expense_claim.update_amount_in_marketing_planning"
     }
 }
 
