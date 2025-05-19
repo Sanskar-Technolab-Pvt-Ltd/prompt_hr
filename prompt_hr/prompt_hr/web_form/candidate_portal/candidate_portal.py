@@ -73,13 +73,16 @@ def update_candidate_portal(doc):
         # ? GET DOCUMENT NAME
         doc_name = doc.get("name")
         if not doc_name:
+            print("doc_name\n\n", doc_name)
             return {"success": False, "message": "Document name is required"}
 
         # ? FETCH DOCUMENT OR THROW IF NOT FOUND
         portal_doc = frappe.get_doc("Candidate Portal", doc_name)
 
+        job_offer = frappe.db.get_value("Candidate Portal", doc_name, "job_offer")
+
         update_job_offer(
-            doc.job_offer,
+            job_offer,
             doc.expected_date_of_joining,
             doc.offer_acceptance,
             doc.condition_for_offer_acceptance,
