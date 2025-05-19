@@ -43,7 +43,7 @@ def execute(filters=None):
         )
 
         p = project[0] if project else {}
-
+        employee = frappe.get_doc("Employee", ts.employee)
         data.append({
             "client_name": "HR",  # Default value
             "client_code": "PSC10",  # Default value
@@ -53,15 +53,15 @@ def execute(filters=None):
             "project_state": p.get("project_state", "Unknown"),
             "employee": ts.employee,
             "employee_name": ts.employee_name,
-            "department": ts.department or "Software",  # Default
-            "sub_department": "Embedded",  # Default
-            "business_unit": "HO + PS",  # Default
-            "job_title": "Sr. Project Manager",  # Default
-            "location": "HO",  # Default
-            "employment_status": "Working",  # Default
-            "reporting_to": "Ritesh Ashokbhai Sutaria",  # Default
-            "start_date": ts.start_date,
-            "end_date": ts.end_date,
+            "department": ts.department,
+            "sub_department": employee.custom_subdepartment,
+            "business_unit": employee.custom_business_unit,
+            "job_title": employee.designation,
+            "location": frappe.get_value("Address",employee.custom_work_location,"city"),
+            "employment_status": "Working",
+            "reporting_to": frappe.get_value("Employee", employee.reports_to, "employee_name"),
+            "start_date": p.get("expected_start_date"),
+            "end_date": p.get("expected_end_date"),
             "allocation_percentage": 100,  # Default
             "project_start_date": p.get("expected_start_date"),
             "project_end_date": p.get("expected_end_date"),
