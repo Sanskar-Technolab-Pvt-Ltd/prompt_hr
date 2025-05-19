@@ -1,4 +1,5 @@
 import frappe
+from dateutil import relativedelta
 from hrms.hr.doctype.leave_policy_assignment.leave_policy_assignment import get_leave_type_details
 from frappe import _
 from frappe.utils import (
@@ -10,7 +11,7 @@ from frappe.utils import (
     formatdate,
     getdate,
     date_diff,
-    cint
+    cint,
 )
 from dateutil import relativedelta
 from hrms.hr.utils import create_additional_leave_ledger_entry, get_monthly_earned_leave
@@ -26,6 +27,16 @@ from hrms.hr.doctype.leave_application.leave_application import (
     get_leaves_for_period,
     get_leaves_pending_approval_for_period,
 )
+
+def on_cancel(doc, method):
+    if doc.get("workflow_state"):
+        doc.db_set("workflow_state", "Cancelled")
+
+def before_save(doc, method):
+    employee_doc = frappe.get_doc("Employee", doc.employee)
+    reporting_manager = frappe.get_doc("Employee", employee_doc.reports_to)
+    if reporting_manager.user_id:
+        doc.db_set("leave_approver", reporting_manager.user_id)
 
 def on_update(doc, method):
     if doc.has_value_changed("workflow_state"):
@@ -72,6 +83,7 @@ def on_update(doc, method):
                 )
 
         elif doc.workflow_state == "Approved":
+            doc.db_set("status", "Approved")
             employee_notification = frappe.get_doc("Notification", "Leave Request Response By Reporting Manager")
             hr_notification = frappe.get_doc("Notification", "Leave Request Status Update to HR Manager")
             if employee_notification:
@@ -99,6 +111,7 @@ def on_update(doc, method):
                     frappe.throw("HR Manager email not found.")
 
         elif doc.workflow_state == "Rejected":
+            doc.db_set("status", "Rejected")
             employee_notification = frappe.get_doc("Notification", "Leave Request Response By Reporting Manager")
             if employee_notification:
                 # Notify the employee regarding the rejection of their leave.
@@ -152,19 +165,17 @@ def custom_check_effective_date(from_date, today=None, frequency=None, allocate_
 
     return False
 
-@frappe.whitelist()
+
+def get_quarter(date, start_date):
+    rd = relativedelta.relativedelta(date, start_date)
+    return (rd.months // 3) + 1  # Q1 = 1, Q2 = 2, etc.
+
 def custom_update_previous_leave_allocation(allocation, annual_allocation, e_leave_type, date_of_joining):
     allocation = frappe.get_doc("Leave Allocation", allocation.name)
     annual_allocation = flt(annual_allocation, allocation.precision("total_leaves_allocated"))
+
     from_date = get_datetime(allocation.from_date)
     today = get_datetime()
-    rd = relativedelta.relativedelta(today, from_date)
-
-    expected_date = {
-        "First Day": get_first_day(today),
-        "Last Day": get_last_day(today),
-        "Date of Joining": from_date,
-    }[e_leave_type.allocate_on_day]
 
     earned_leaves = get_monthly_earned_leave(
         date_of_joining,
@@ -173,35 +184,61 @@ def custom_update_previous_leave_allocation(allocation, annual_allocation, e_lea
         e_leave_type.rounding,
     )
 
+    expected_date = {
+        "First Day": get_first_day(today),
+        "Last Day": get_last_day(today),
+        "Date of Joining": from_date,
+    }[e_leave_type.allocate_on_day]
+
     expired_leaves = 0
+    e_leave_type = frappe.get_doc("Leave Type", allocation.leave_type)
+    is_quarterly_carryforward_rule_applied = e_leave_type.custom_is_quarterly_carryforward_rule_applied
 
-    if expected_date.day == today.day and (rd.months % 6 == 0 or rd.months % 9 == 0):
-        expired_leave_window_start = today - relativedelta.relativedelta(months=3)
+    if is_quarterly_carryforward_rule_applied:
+        current_quarter = "Q" + str(get_quarter(today, from_date))
+        # Match rule where current quarter is the "Expired by Quarter Start"
+        mapped_accrual_quarter = None
+        for row in e_leave_type.custom_quaterly_expire_rule:
+            if row.expired_by_quater_start == current_quarter:
+                mapped_accrual_quarter = row.accrued_on_quater
+                break
 
-        allocated_in_quarter = flt(annual_allocation) / 4
+        if (
+            mapped_accrual_quarter
+            and expected_date.day == today.day
+            and (
+                (e_leave_type.custom_apply_quarterly_rule_based_on_salary_criteria
+                and e_leave_type.custom_minimum_ctc_for_quarterly_lapse_rule
+                    < frappe.db.get_value("Employee", allocation.employee, "ctc"))
+                or not e_leave_type.custom_apply_quarterly_rule_based_on_salary_criteria
+            )
+        ):
 
-        used_leave_entries = frappe.db.sql(
-            """
-            SELECT leaves FROM `tabLeave Ledger Entry`
-            WHERE
-                employee = %(employee)s
-                AND leave_type = %(leave_type)s
-                AND docstatus = 1
-                AND leaves < 0
-                AND from_date BETWEEN %(start_date)s AND %(end_date)s
-            """,
-            {
-                "employee": allocation.employee,
-                "leave_type": allocation.leave_type,
-                "start_date": add_days(expired_leave_window_start,1),
-                "end_date": today
-            },
-            as_dict=True,
-        )
-        total_used_in_period = abs(sum(flt(entry.leaves) for entry in used_leave_entries))
-        unused_leaves_in_period = allocated_in_quarter - total_used_in_period if total_used_in_period < allocated_in_quarter else 0
-        # Make leaves negative to expire them
-        expired_leaves = -1 * max(unused_leaves_in_period, 0)
+            expired_leave_window_start = today - relativedelta.relativedelta(months=3)
+            allocated_in_quarter = flt(annual_allocation) / 4
+            used_leave_entries = frappe.db.sql(
+                """
+                SELECT leaves FROM `tabLeave Ledger Entry`
+                WHERE
+                    employee = %(employee)s
+                    AND leave_type = %(leave_type)s
+                    AND docstatus = 1
+                    AND leaves < 0
+                    AND from_date BETWEEN %(start_date)s AND %(end_date)s
+                """,
+                {
+                    "employee": allocation.employee,
+                    "leave_type": allocation.leave_type,
+                    "start_date": add_days(expired_leave_window_start,1),
+                    "end_date": today
+                },
+                as_dict=True,
+            )
+
+            total_used = abs(sum(flt(entry.leaves) for entry in used_leave_entries))
+            unused = allocated_in_quarter - total_used if total_used < allocated_in_quarter else 0
+            expired_leaves = -1 * max(unused, 0)
+
     new_allocation = flt(allocation.total_leaves_allocated) + flt(earned_leaves)
     new_allocation_without_cf = flt(
         flt(allocation.get_existing_leave_count()) + flt(earned_leaves),
@@ -211,14 +248,12 @@ def custom_update_previous_leave_allocation(allocation, annual_allocation, e_lea
     if new_allocation > e_leave_type.max_leaves_allowed and e_leave_type.max_leaves_allowed > 0:
         new_allocation = e_leave_type.max_leaves_allowed
 
-    if (
-        new_allocation != allocation.total_leaves_allocated
-        and new_allocation_without_cf <= annual_allocation
-    ):
+    if new_allocation != allocation.total_leaves_allocated and new_allocation_without_cf <= annual_allocation:
         today_date = frappe.flags.current_date or getdate()
 
         allocation.db_set("total_leaves_allocated", new_allocation, update_modified=False)
         create_additional_leave_ledger_entry(allocation, earned_leaves, today_date)
+
         if expired_leaves:
             ledger_entry = frappe.get_doc({
                 "doctype": "Leave Ledger Entry",
@@ -233,14 +268,16 @@ def custom_update_previous_leave_allocation(allocation, annual_allocation, e_lea
             })
             ledger_entry.insert(ignore_permissions=True)
             ledger_entry.submit()
-            
+
         if e_leave_type.allocate_on_day:
-            text = _(
-                "Allocated {0} leave(s) via scheduler on {1} based on the 'Allocate on Day' option set to {2}"
-            ).format(
-                frappe.bold(earned_leaves), frappe.bold(formatdate(today_date)), e_leave_type.allocate_on_day
+            allocation.add_comment(
+                comment_type="Info",
+                text=_(
+                    "Allocated {0} leave(s) via scheduler on {1} based on the 'Allocate on Day' option set to {2}"
+                ).format(
+                    frappe.bold(earned_leaves), frappe.bold(formatdate(today_date)), e_leave_type.allocate_on_day
+                )
             )
-            allocation.add_comment(comment_type="Info", text=text)
 
 @frappe.whitelist()
 def custom_get_number_of_leave_days(
@@ -310,13 +347,13 @@ def custom_get_number_of_leave_days(
                     if leave_field == "custom_sw_applicable_to_product_line":
                         leave_ids.append(frappe.get_doc("Product Line Multiselect", d.name).indifoss_product)
                     elif leave_field == "custom_sw_applicable_to_business_unit":
-                        leave_ids.append(frappe.get_doc("Business Unit Multiselect", d.name).bussiness_unit)
+                        leave_ids.append(frappe.get_doc("Business Unit Multiselect", d.name).business_unit)
                     elif leave_field == "custom_sw_applicable_to_department":
                         leave_ids.append(frappe.get_doc("Department Multiselect", d.name).department)
                     elif leave_field == "custom_sw_applicable_to_location":
                         leave_ids.append(frappe.get_doc("Work Location Multiselect", d.name).work_location)
                     elif leave_field == "custom_sw_applicable_to_employment_type":
-                        leave_ids.append(frappe.get_doc("Employment Type Multiselect", d.name).employement_type)
+                        leave_ids.append(frappe.get_doc("Employment Type Multiselect", d.name).employment_type)
                     elif leave_field == "custom_sw_applicable_to_grade":
                         leave_ids.append(frappe.get_doc("Grade Multiselect", d.name).grade)
 
@@ -382,8 +419,9 @@ def get_additional_days(leave_type_doc, employee, from_date, to_date, number_of_
         if leave_type_doc.custom_ignore_if_half_day_leave_for_day_before_or_day_after and cint(half_day):
             if half_day_date:
                 if half_day_date != from_date and half_day_date != to_date:
-                    # Exclude adjacent days if half-day is not on boundary
-                    additional_days += len(get_all_weekoff_days(from_date, to_date, holiday_list, half_day_date))
+                    if str(half_day_date) not in all_holidays:
+                        # Exclude adjacent days if half-day is not on boundary
+                        additional_days += len(get_all_weekoff_days(from_date, to_date, holiday_list, half_day_date))
         else:
             # Always include full weekoffs in range
             additional_days += len(get_all_weekoff_days(from_date, to_date, holiday_list))
@@ -393,7 +431,7 @@ def get_additional_days(leave_type_doc, employee, from_date, to_date, number_of_
     if leave_type_doc.custom_adjoins_holiday:
         if leave_type_doc.custom_ignore_if_half_day_leave_for_day_before_or_day_after and cint(half_day):
             if half_day_date:
-                if half_day_date == from_date or half_day_date == to_date:
+                if half_day_date == from_date or half_day_date == to_date or str(half_day_date) in all_holidays:
                     additional_days += 0
                 else:
                     # Get holidays between leave dates, excluding days adjacent to half-day
@@ -405,7 +443,7 @@ def get_additional_days(leave_type_doc, employee, from_date, to_date, number_of_
     if (leave_type_doc.custom_half_day_leave_taken_in_second_half_on_day_before or leave_type_doc.custom_half_day_leave_taken_in_first_half_on_day_after) and not leave_type_doc.custom_ignore_if_half_day_leave_for_day_before_or_day_after:
         
         # Handle half-day in second half on day before
-        if leave_type_doc.custom_half_day_leave_taken_in_second_half_on_day_before and not leave_type_doc.custom_ignore_if_half_day_leave_for_day_before_or_day_after:
+        if leave_type_doc.custom_half_day_leave_taken_in_second_half_on_day_before and str(half_day_date) not in all_holidays:
             if half_day and half_day_date:
                 if custom_half_day_time == "First":
                     next_day = add_days(half_day_date, 1)
@@ -423,7 +461,7 @@ def get_additional_days(leave_type_doc, employee, from_date, to_date, number_of_
                             next_day = add_days(next_day, 1)
 
         # Handle half-day in first half on day after
-        if leave_type_doc.custom_half_day_leave_taken_in_first_half_on_day_after and not leave_type_doc.custom_ignore_if_half_day_leave_for_day_before_or_day_after:
+        if leave_type_doc.custom_half_day_leave_taken_in_first_half_on_day_after and str(half_day_date) not in all_holidays:
             if half_day and half_day_date:
                 if custom_half_day_time == "Second":
                     prev_day = add_days(half_day_date, -1)
