@@ -58,8 +58,8 @@ def export_all_customizations(site_doctypes=None):
         frappe.throw("Only Administrator can run this.")
     # Default doctypes if not passed in
     doctypes = site_doctypes or [
-    # "Department",
-    # "Designation",
+    #* "Department",
+    #* "Designation",
     # "Employee",
     # "Employee Boarding Activity",
     # "Employee External Work History",
@@ -75,7 +75,7 @@ def export_all_customizations(site_doctypes=None):
     # "Job Opening",
     # "Job Requisition"
     ]
-    module = "Prompt HR"
+    module = "Prompt Fixtures"
     results = []
     for dt in doctypes:
         try:
