@@ -6,7 +6,7 @@ A compensatory leave request has been submitted and requires your attention. Ple
 A leave application has been submitted and requires your attention. Please find the details below:<br><br>
 {% endif %}
 - <b>Employee Name:</b> {{ doc.employee_name }}<br>
-- <b>Employee ID:</b> {{ doc.employee }}<br>
+- <b>Employee ID:</b> {{ doc.employee_number }}<br>
 - <b>Leave Type:</b> {{ doc.leave_type }}<br>
 {% if doc.doctype == "Compensatory Leave Request" %}
 - <b>Compensatory Work Period:</b> {{ doc.work_from_date }} to {{ doc.work_end_date }}<br>
