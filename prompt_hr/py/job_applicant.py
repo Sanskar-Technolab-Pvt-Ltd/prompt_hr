@@ -116,7 +116,7 @@ def add_to_interview_availability(job_opening, job_applicants, employees):
                         name=interview_doc.name,
                         user=user,
                         read=1,
-                        write=0,
+                        write=1,
                         share=0,
                     )
                     shared_users.append(user)
