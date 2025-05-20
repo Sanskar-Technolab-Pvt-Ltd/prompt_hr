@@ -200,7 +200,7 @@ doc_events = {
         "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
     },
     "Employee": {
-#         "on_update": "prompt_hr.py.employee.on_update",
+        "on_update": "prompt_hr.py.employee.on_update",
         "validate": "prompt_hr.py.employee.validate",
     },
     # "Probation Feedback Form": {
@@ -254,6 +254,9 @@ doc_events = {
     "Expense Claim":{ 
         "before_submit": "prompt_hr.py.expense_claim.update_amount_in_marketing_planning",
         "on_cancel": "prompt_hr.py.expense_claim.update_amount_in_marketing_planning"
+    },
+    "Employee Tax Exemption Declaration": {
+        "before_save": "prompt_hr.py.income_tax_computation.before_save"
     }
 }
 
