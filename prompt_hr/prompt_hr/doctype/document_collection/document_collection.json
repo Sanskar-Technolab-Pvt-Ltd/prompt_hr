@@ -21,7 +21,8 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Required Document",
-   "options": "Required Document Applicant"
+   "options": "Required Document Applicant",
+   "read_only": 1
   },
   {
    "fieldname": "attachment",
@@ -43,32 +44,34 @@
   {
    "fieldname": "upload_date",
    "fieldtype": "Date",
-   "in_list_view": 1,
-   "label": "Upload Date"
+   "label": "Upload Date",
+   "read_only": 1
   },
   {
    "fieldname": "upload_time",
    "fieldtype": "Time",
-   "label": "Upload Time"
+   "label": "Upload Time",
+   "read_only": 1
   },
   {
    "fieldname": "ip_address_on_document_upload",
    "fieldtype": "Data",
-   "label": "IP Address on Document Upload"
+   "label": "IP Address on Document Upload",
+   "read_only": 1
   },
   {
    "fetch_from": "required_document.document_collection_stage",
    "fieldname": "collection_stage",
    "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Collection Stage"
+   "label": "Collection Stage",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-04-17 15:22:22.594118",
+ "modified": "2025-05-20 11:43:19.817549",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Document Collection",

@@ -1,12 +1,9 @@
-
-frappe.ready(function () {    
-    
+frappe.ready(function () {
     // ? FORCE DISABLE THE DEFAULT WEB FORM FUNCTIONALITY
-    setTimeout(function() {
-
+    setTimeout(function () {
         // ? REMOVE THE STANDARD SUBMIT BUTTON ENTIRELY
         $('.web-form-actions .btn-primary').remove();
-        
+
         // ? DISABLE THE FORM SUBMISSION
         $('.web-form-container form').attr('onsubmit', 'return false;');
         $('.web-form-container form').off('submit');
@@ -26,7 +23,7 @@ frappe.ready(function () {
             $('.web-form-actions').append(customBtn);
         }
     }, 100);
-    
+
     // ? CREATE AND SHOW DIALOG BOX ONLOAD
     const dialog = new frappe.ui.Dialog({
         title: 'Verify Your Identity',
@@ -73,13 +70,14 @@ frappe.ready(function () {
                     ]
                 },
                 callback: async function (r) {
-                    form_data = r.message.form_data;
-                    child_table_data = r.message.child_table_data;
+                    const form_data = r.message.form_data;
+                    const child_table_data = r.message.child_table_data;
                     console.log("Form Data: ", form_data);
+
                     if (Array.isArray(form_data) && form_data.length > 0) {
                         const data = form_data[0];
                         const docName = data.name;
-                        
+
                         // ? STORE THE DOCNAME IN A GLOBAL VARIABLE
                         window.verifiedDocName = docName;
 
@@ -93,23 +91,43 @@ frappe.ready(function () {
                             }
                         });
 
-                        let idx = frappe.web_form.fields_dict.documents.df.idx;
+                        // ? CONDITIONAL FIELD HIDING BASED ON job_offer
+                        if (!data.job_offer) {
+                            const fieldsToHide = [
+                                "offer_date",
+                                "offer_letter",
+                                "job_offer",
+                                "offer_acceptance",
+                                "expected_date_of_joining"
+                            ];
+                            fieldsToHide.forEach(field => {
+                                if (frappe.web_form.fields_dict[field]) {
+                                    frappe.web_form.set_df_property(field, "hidden", 1);
+                                }
+                            });
+                        }
 
+                        // ? FILL CHILD TABLE WITHOUT DISABLING EXPANSION
+                        const idx = frappe.web_form.fields_dict.documents.df.idx;
                         frappe.web_form.fields[idx].data = child_table_data;
-                        
-                        await frappe.web_form.fields_dict.documents.grid.refresh();
+
+                        const grid = frappe.web_form.fields_dict.documents.grid;
+
+                        // ? HIDE THE "name" FIELD FROM CHILD TABLE LIST VIEW
+                        grid.df.fields = grid.df.fields.filter(f => f.fieldname !== "name");
+
+                        await grid.refresh();
 
                         $(".row-check").hide();
-                        
-                        // ? SHOW OUR CUSTOM UPDATE BUTTON
-                        $('#custom-update-btn').show().off('click').on('click', function() {
 
+                        // ? SHOW OUR CUSTOM UPDATE BUTTON
+                        $('#custom-update-btn').show().off('click').on('click', function () {
                             // ? GET CURRENT FORM VALUES
                             const formData = frappe.web_form.get_values();
-                            
+
                             // ? INCLUDE THE RECORD NAME
                             formData.name = window.verifiedDocName;
-                            
+
                             // ? MAKE SERVER CALL TO UPDATE RECORD
                             frappe.call({
                                 method: 'prompt_hr.prompt_hr.web_form.candidate_portal.candidate_portal.update_candidate_portal',
@@ -118,9 +136,8 @@ frappe.ready(function () {
                                 },
                                 freeze: true,
                                 freeze_message: 'Updating your information...',
-                                callback: function(response) {
+                                callback: function (response) {
                                     if (response.message && response.message.success) {
-                                        
                                         // ? HIDE THE FORM AND SHOW THANK YOU MESSAGE
                                         $('.web-form-container').html(`
                                             <div class="text-center py-5">
@@ -132,8 +149,8 @@ frappe.ready(function () {
                                         `);
                                     } else {
                                         frappe.show_alert({
-                                            message: 'Error updating information: ' + 
-                                              (response.message ? response.message.message : 'Unknown error'),
+                                            message: 'Error updating information: ' +
+                                                (response.message ? response.message.message : 'Unknown error'),
                                             indicator: 'red'
                                         }, 5);
                                     }
@@ -151,4 +168,3 @@ frappe.ready(function () {
     // ? SHOW DIALOG ON WEB FORM LOAD
     dialog.show();
 });
-
