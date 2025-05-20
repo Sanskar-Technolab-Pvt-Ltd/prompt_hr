@@ -19,6 +19,17 @@ class EmployeeGratuity(Document):
             limit=1
         )
 
+        already_exists = frappe.get_all(
+            "Employee Gratuity",
+            filters={"employee": self.employee, "docstatus":["<", 2], "name": ["!=", self.name]},
+            fields=["name"],
+            order_by="creation desc",
+            limit=1
+        )
+
+        if already_exists:
+            frappe.throw("Employee Gratuity already exists for this employee.", title="Employee Gratuity Exists")
+
         if not last_salary_slip:
             frappe.throw("No submitted Salary Slip found for this employee.")
 
@@ -34,7 +45,7 @@ class EmployeeGratuity(Document):
         indifoss_abbr = frappe.db.get_single_value("HR Settings", "custom_indifoss_abbr")
 
         total_earning = 0
-
+    
         # For Prompt companies: Sum Basic Salary and Dearness Allowance from Salary Detail
         if company_abbr and company_abbr == prompt_abbr:
             salary_components = frappe.get_all(
@@ -61,7 +72,7 @@ class EmployeeGratuity(Document):
 
         # Calculate gratuity amount if total_earning and total_working_year are set
         if total_earning > 0 and self.total_working_year:
-            self.gratuity_amount = total_earning * (15 / 26) * self.total_working_year
+            self.gratuity_amount = self.last_drawn_salary * (15 / 26) * self.total_working_year
         else:
             self.gratuity_amount = 0  # or leave blank if field is Data type
 

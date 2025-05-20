@@ -64,7 +64,8 @@ doctype_js = {
     "Leave Application": "public/js/leave_application.js",
     "Employee Checkin": "public/js/employee_checkin.js",
     "HR Settings": "public/js/hr_settings.js",
-    "Expense Claim": "public/js/expense_claim.js"
+    "Expense Claim": "public/js/expense_claim.js",
+    "Full and Final Statement": "public/js/full_and_final_statement.js",
 
 }
 
@@ -254,6 +255,9 @@ doc_events = {
     "Expense Claim":{ 
         "before_submit": "prompt_hr.py.expense_claim.update_amount_in_marketing_planning",
         "on_cancel": "prompt_hr.py.expense_claim.update_amount_in_marketing_planning"
+    },
+    "Full and Final Statement": {
+        "on_update": "prompt_hr.py.full_and_final_statetment.on_update",
     }
 }
 
