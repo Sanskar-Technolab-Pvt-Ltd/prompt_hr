@@ -767,6 +767,13 @@ def penalize_incomplete_week_for_indifoss():
                                 else:
                                     leave_hours += full_day_leave_hours
                         
+                        print(f"\n\n Before Adding Holiday Hours {leave_hours} \n\n")
+                        emp_holiday_list = frappe.db.get_value("Employee", emp.get("name"), "holiday_list")
+                        if emp_holiday_list:
+                            holiday_count = frappe.db.count("Holiday", {"parenttype": "Holiday List", "parent": emp_holiday_list, "holiday_date": ["between", [eval_start, eval_end]]})
+                            leave_hours += holiday_count * 9
+                        print(f"\n\n After Adding Holiday Hours {leave_hours} \n\n")
+                        
                         
                         working_days = get_working_days(eval_start, eval_end, weekly_off_days)
                         total_hours = get_total_working_hours(emp.name, working_days)
@@ -776,15 +783,26 @@ def penalize_incomplete_week_for_indifoss():
                         
                         print(f"\n\n expected work hours {expected_work_hours} \n\n")
                         
+                        
                         if leave_hours:
                             expected_work_hours -= leave_hours
                         
+                        
                         if total_hours < expected_work_hours:
+                            attendance_id = frappe.db.get_all("Attendance", {"employee": emp.get("name"), "attendance_date": ["between", [eval_start, eval_end]], "status": ["in", ["Present", "Work From Home", "Half Day"]]}, "name", order_by="attendance_date desc", limit=1, pluck="name")
                             
-                            print(f"\n\n Create Leave Application {expected_work_hours} \n\n")
+                            print(f"\n\n Create Leave Application {eval_end} {attendance_id}\n\n")
+                            
+                            if attendance_id:
+                                print(f"\n\n Create Leave Application {eval_end}  {attendance_id[0]}")
+                                if not frappe.db.exists("Leave Application", {"employee": emp.get("name"), "from_date": attendance_id[0]}):
+                                
+                                    create_leave_application(emp.get("name"), eval_end, attendance_id[0], for_time_penalization=True) 
                         last_update_date = get_next_working_day_after_weekoffs(eval_end + timedelta(days=1), weekly_off_days)
                         next_update_date = get_next_working_day_after_weekoffs(last_update_date + timedelta(days=7), weekly_off_days)
-                        print(f"\n\n last update date {last_update_date} next update date {next_update_date} \n\n")
+                        
+                        frappe.db.set_value("Employee", emp.get("name"), "custom_last_weekly_hours_evaluation", last_update_date)
+                        frappe.db.set_value("Employee", emp.get("name"), "custom_next_weekly_hours_evaluation", next_update_date)
                         
                         
                         
@@ -874,7 +892,6 @@ def get_total_working_hours(employee, dates):
         }, fields=["working_hours"])
         hours += sum([i.working_hours for i in attendance])
     return hours
-
 # def calculate_daily_hours(checkins):
 #     times = sorted([c.time for c in checkins])
 #     if len(times) < 2:
@@ -890,10 +907,22 @@ def create_leave_application(emp_id, leave_date, attendance_id, for_time_penaliz
     """Method to create leave application
     """
     try:
-        leave_type = frappe.db.get_single_value("HR Settings", "custom_leave_type_for_indifoss")
-        deduction_of_leave = frappe.db.get_single_value("HR Settings", "custom_deduction_of_leave_for_indifoss")
         
-        rh_employee = frappe.db.get_value("Employee", emp_id, "reports_to")
+        if for_time_penalization:
+            leave_type = frappe.db.get_single_value("HR Settings", "custom_leave_type_weekly_for_indifoss")
+            deduction_of_leave = frappe.db.get_single_value("HR Settings", "custom_deduction_of_leave_weekly_for_indifoss")
+            
+        else:
+            leave_type = frappe.db.get_single_value("HR Settings", "custom_leave_type_for_indifoss")
+            deduction_of_leave = frappe.db.get_single_value("HR Settings", "custom_deduction_of_leave_for_indifoss")
+        
+        
+        attendance_date = frappe.db.get_value("Attendance", attendance_id, "attendance_date")
+        
+        if leave_date != attendance_date:
+            print(f"\n\n Leave date {leave_date} Attendance date {attendance_date} \n\n")
+            leave_date = attendance_date
+        # rh_employee = frappe.db.get_value("Employee", emp_id, "reports_to")
 
         leave_application_doc = frappe.new_doc("Leave Application") 
         
@@ -911,11 +940,19 @@ def create_leave_application(emp_id, leave_date, attendance_id, for_time_penaliz
         if deduction_of_leave == "Half day":
             leave_application_doc.half_day = 1
         
-        leave_application_doc.description = f"Late Entry Penalization for Attendance - {attendance_id}"
+        leave_application_doc.description = f"Weekly Hours Penalization for Attendance - {attendance_id}"
         leave_application_doc.status = "Approved"
+        # leave_application_doc.workflow_state = "Approved"
+
         leave_application_doc.insert(ignore_permissions=True)
-        leave_application_doc.submit()
+        
+        leave_application_doc.workflow_state = "Confirmed"
+        leave_application_doc.docstatus = 1
+        leave_application_doc.save(ignore_permissions=True)
+        
+        # leave_application_doc.submit()
         frappe.db.commit()
+        
     except Exception as e:
         frappe.log_error("Error while creating leave application", frappe.get_traceback())
 
