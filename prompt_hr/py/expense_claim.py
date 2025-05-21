@@ -1,6 +1,24 @@
 import frappe
 from frappe.utils import getdate
+import frappe.workflow
+from prompt_hr.py.utils import send_notification_email, expense_claim_workflow_email
 
+# ! prompt_hr.py.expense_clain.before_submit
+# ? BEFORE SUBMIT EVENT
+def before_submit(doc, method):
+
+    # ? UPDATE THE ACTUAL EXPENSE AMOUNT IN CAMPAIGN AND MARKETING PLANNING
+    update_amount_in_marketing_planning(doc, method)
+
+def on_update(doc, method):
+    
+    # ? CHECK IF EXPENSE CLAIM IS EXCEEDING THE ALLOWED BUDGET
+    if doc.expenses:
+        get_expense_claim_exception(doc)
+
+    # ? SHARE DOCUMENT AND SEND NOTIFICATION EMAIL
+    expense_claim_workflow_email(doc)
+    
 #  !prompt_marketing.api.hook.doctype.purchase_invoice.update_amount_in_marketing_planning
 # ? UPDATE THE ACTUAL EXPENSE AMOUNT IN CAMPAIGN AND MARKETING PLANNING
 def update_amount_in_marketing_planning(doc,method):
@@ -170,6 +188,7 @@ def quarter_map(date):
 
 # ? METHOD TO ADD EXPENCE LOGS IN CHILD TABLE OF CAMPAIGN
 def record_expense_log_in_campaign(doc, campaign_doc, method):
+
     # ? GET THE TYPE OF ENTRY (PURCHASE INVOICE OR EXPENSE CLAIM)
     entry_type = "Purchase Invoice" if doc.doctype == "Purchase Invoice" else "Expense Claim"
 
@@ -188,3 +207,39 @@ def record_expense_log_in_campaign(doc, campaign_doc, method):
         for row in logs_to_remove:
             campaign_doc.remove(row)
         campaign_doc.save()
+
+def get_expense_claim_exception(doc):
+    
+    travel_budget = frappe.db.get_value("Travel Budget", {"company":doc.company}, "name")
+    if not travel_budget:
+        frappe.throw("Travel Budget is not set for this company. Please create a Travel Budget first.")
+    
+    employee_grade = frappe.db.get_value("Employee", doc.employee, "grade")
+    if not employee_grade:
+        frappe.throw("Employee grade is not set. Please set the employee grade first.")
+    20
+    budget_row = frappe.db.get_value("Budget Allocation", {
+        "parent": travel_budget,
+        "grade": employee_grade
+    }, ["lodging_allowance_metro", "lodging_allowance_non_metro", "meal_allowance_metro", "meal_allowance_non_metro", "local_commute_limit"], as_dict=True)
+
+    
+    for expense in doc.expenses:
+
+        if expense.expense_type == "Food":
+            allowed_amount = budget_row.meal_allowance_non_metro
+            if expense.custom_is_metro:
+                allowed_amount = budget_row.meal_allowance_metro
+            if expense.amount > allowed_amount:
+                expense.custom_is_exception = 1
+        elif expense.expense_type == "Lodging":
+            allowed_amount = budget_row.lodging_allowance_non_metro
+            if expense.custom_is_metro:
+                allowed_amount = budget_row.lodging_allowance_metro
+            if expense.amount > allowed_amount:
+                expense.custom_is_exception = 1
+        elif expense.expense_type == "Local Commute":
+            allowed_amount = budget_row.local_commute_limit
+            if expense.amount > allowed_amount:
+                expense.custom_is_exception = 1
+

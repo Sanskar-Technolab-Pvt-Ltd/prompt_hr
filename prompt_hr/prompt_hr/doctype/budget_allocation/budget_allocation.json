@@ -7,7 +7,6 @@
  "engine": "InnoDB",
  "field_order": [
   "grade",
-  "designation",
   "travel_mode",
   "lodging_allowance_metro",
   "lodging_allowance_non_metro",
@@ -24,12 +23,6 @@
    "in_list_view": 1,
    "label": "Grade",
    "options": "Employee Grade"
-  },
-  {
-   "fieldname": "designation",
-   "fieldtype": "Table MultiSelect",
-   "label": "Designation",
-   "options": "Designation Multiselect"
   },
   {
    "fieldname": "travel_mode",
@@ -83,7 +76,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-04-11 05:30:15.317889",
+ "modified": "2025-05-21 18:09:11.826902",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Budget Allocation",

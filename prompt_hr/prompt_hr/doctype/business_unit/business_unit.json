@@ -36,10 +36,12 @@
   },
   {
    "fieldname": "business_unit_head",
-   "fieldtype": "Data",
-   "label": "Business Unit Head"
+   "fieldtype": "Link",
+   "label": "Business Unit Head",
+   "options": "Employee"
   },
   {
+   "fetch_from": "business_unit_head.employee_name",
    "fieldname": "business_unit_head_name",
    "fieldtype": "Data",
    "label": "Business Unit Head Name"
@@ -48,7 +50,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-15 13:33:32.348382",
+ "modified": "2025-05-20 19:01:18.729454",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Business Unit",
