@@ -316,7 +316,7 @@ def fetch_company_name(indifoss=0, prompt=0):
             
         
         if prompt:
-            prompt_abbr = frappe.db.get_single_value("HR Settings", "custom_indifoss_abbr")
+            prompt_abbr = frappe.db.get_single_value("HR Settings", "custom_prompt_abbr")
             
             if not prompt_abbr:
                 return {"error": 1, "message": "No Abbreviation found in HR Settings, Please set abbreviation first"}
