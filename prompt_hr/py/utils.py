@@ -337,3 +337,130 @@ def fetch_leave_type_for_indifoss(doctype, txt, searchfield, start, page_len, fi
         WHERE custom_company = %s
         AND (is_earned_leave = 1 OR custom_is_quarterly_carryforward_rule_applied = 1)
     """, (company_id))
+
+# ? FUNCTION TO SHARE DOCUMENT AND SEND NOTIFICATION EMAIL
+def expense_claim_workflow_email(doc):
+    old_doc = doc.get_doc_before_save()
+    print(f"[DEBUG] Old Document\n\n\n: {old_doc}")
+
+    # ? CHECK IF WORKFLOW STATE CHANGED
+    if old_doc and doc.workflow_state != old_doc.workflow_state:
+        print(f"[DEBUG] Workflow changed from {old_doc.workflow_state} to {doc.workflow_state}")
+
+        if doc.workflow_state == "Escalated":
+            print(f"[DEBUG] BU Head Email\n\n\n:")
+            bu_head_email = get_bu_head_email(doc.employee, doc)
+            print(f"[DEBUG] BU Head Email: {bu_head_email}")
+            if bu_head_email:
+                share_and_notify(doc, bu_head_email, "Expense Claim - BU Head")
+
+        elif doc.workflow_state == "Approved by BU Head":
+            travel_desk_emails = get_travel_desk_user_emails(doc.company)
+            print(f"[DEBUG] Travel Desk Emails: {travel_desk_emails}")
+            send_email_to_users(doc, travel_desk_emails, "Expense Claim - Travel Desk User")
+
+        elif doc.workflow_state == "Approved by Reporting Manager":
+            travel_desk_emails = get_travel_desk_user_emails(doc.company)
+            print(f"[DEBUG] Travel Desk Emails: {travel_desk_emails}")
+            send_email_to_users(doc, travel_desk_emails, "Expense Claim - Travel Desk User")
+
+        elif doc.workflow_state == "Sent to Accounting Team":
+            accounting_emails = get_accounting_team_emails(doc.company)
+            print(f"[DEBUG] Accounting Team Emails: {accounting_emails}")
+            send_email_to_users(doc, accounting_emails, "Expense Claim - Accounting Team")
+
+    elif not old_doc and doc.workflow_state == "Pending":
+        reporting_manager_email = get_reporting_manager_email(doc.employee)
+        print(f"[DEBUG] Reporting Manager Email: {reporting_manager_email}")
+        if reporting_manager_email:
+            share_and_notify(doc, reporting_manager_email, "Expense Claim - Reporting Manager")
+    else:
+        print(f"[DEBUG] No workflow state change detected or no action required for state: {doc.workflow_state}")
+        print(doc, doc.is_new())
+
+
+# ? FUNCTION TO GET REPORTING MANAGER EMAIL FROM EMPLOYEE
+def get_reporting_manager_email(employee_id):
+    reporting_manager = frappe.get_value("Employee", employee_id, "reports_to")
+    reporting_manager_email = frappe.get_value("Employee", reporting_manager, "user_id")
+    if not reporting_manager_email: 
+        return None
+    print(f"[DEBUG] get_reporting_manager_email({employee_id}) = {reporting_manager_email}")
+    return reporting_manager_email
+
+
+# ? FUNCTION TO GET BUSINESS UNIT HEAD EMAIL FROM EMPLOYEE'S BUSINESS UNIT
+def get_bu_head_email(employee_id, doc):
+    business_unit = frappe.get_value("Employee", employee_id, "custom_business_unit")
+    print(f"[DEBUG] Employee {employee_id} - Business Unit: {business_unit}")
+    if not business_unit:
+        return None
+    bu_head = frappe.get_value("Business Unit", business_unit, "business_unit_head")
+    doc.custom_escalated_to = bu_head
+    doc.custom_escalated_to_name = frappe.get_value("Employee", bu_head, "first_name")
+    print(f"[DEBUG] Business Unit Head: {bu_head}")
+    if not bu_head:
+        return None
+    user_id = frappe.get_value("Employee", bu_head, "user_id")
+    print(f"[DEBUG] BU Head User ID: {user_id}")
+    return user_id
+
+
+# ? FUNCTION TO GET ALL EMPLOYEE EMAILS WITH TRAVEL DESK USER ROLE IN A COMPANY
+def get_travel_desk_user_emails(company):
+    employees = frappe.get_all(
+        "Employee",
+        filters={"company": company},
+        fields=["user_id"]
+    )
+    valid_emails = [e.user_id for e in employees if e.user_id and has_role(e.user_id, "Travel Desk User")]
+    print(f"[DEBUG] Travel Desk Users: {valid_emails}")
+    return valid_emails
+
+
+# ? FUNCTION TO GET ALL EMPLOYEE EMAILS WITH ACCOUNTS USER ROLE IN A COMPANY
+def get_accounting_team_emails(company):
+    employees = frappe.get_all(
+        "Employee",
+        filters={"company": company},
+        fields=["user_id"]
+    )
+    print(f"[DEBUG] Employees in company '{company}': {[e.user_id for e in employees]}")
+    valid_emails = [e.user_id for e in employees if e.user_id and has_role(e.user_id, "Accounts User")]
+    print(f"[DEBUG] Accounts Users: {valid_emails}")
+    return valid_emails
+
+
+# ? FUNCTION TO CHECK IF USER HAS A SPECIFIC ROLE
+def has_role(user, role_name):
+    has = frappe.db.exists("Has Role", {"parent": user, "role": role_name})
+    print(f"[DEBUG] has_role({user}, {role_name}) = {has}")
+    return has
+
+
+# ? FUNCTION TO SHARE DOCUMENT AND SEND NOTIFICATION EMAIL TO A SINGLE USER
+def share_and_notify(doc, user_id, notification_name):
+    print(f"[DEBUG] Sharing {doc.doctype} {doc.name} with {user_id}")
+    frappe.share.add(doc.doctype, doc.name, user_id)
+
+    print(f"[DEBUG] Sending notification '{notification_name}' to {user_id}")
+    send_notification_email(
+        doctype=doc.doctype,
+        docname=doc.name,
+        recipients=[user_id],
+        notification_name=notification_name
+    )
+
+# ? FUNCTION TO SEND EMAIL NOTIFICATIONS TO MULTIPLE USERS
+def send_email_to_users(doc, user_ids, notification_name):
+    if not user_ids:
+        print(f"[DEBUG] No users found for notification: {notification_name}")
+        return
+
+    print(f"[DEBUG] Sending notification '{notification_name}' to: {user_ids}")
+    send_notification_email(
+        doctype=doc.doctype,
+        docname=doc.name,
+        recipients=user_ids,
+        notification_name=notification_name
+    )
