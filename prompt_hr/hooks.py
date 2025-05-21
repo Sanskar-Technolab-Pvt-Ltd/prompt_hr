@@ -200,7 +200,7 @@ doc_events = {
         "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
     },
     "Employee": {
-#         "on_update": "prompt_hr.py.employee.on_update",
+        "on_update": "prompt_hr.py.employee.on_update",
         "validate": "prompt_hr.py.employee.validate",
     },
     # "Probation Feedback Form": {
@@ -252,9 +252,13 @@ doc_events = {
         "before_save": "prompt_hr.py.leave_application.before_save",
     },
     "Expense Claim":{ 
-        "before_submit": "prompt_hr.py.expense_claim.update_amount_in_marketing_planning",
+        "on_update": "prompt_hr.py.expense_claim.on_update",
+        "before_submit": "prompt_hr.py.expense_claim.before_submit",
         "on_cancel": "prompt_hr.py.expense_claim.update_amount_in_marketing_planning"
-    }
+    },
+    "Travel Request": {
+        "on_update": "prompt_hr.py.travel_request.on_update",
+    },
 }
 
 
