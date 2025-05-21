@@ -201,7 +201,7 @@ doc_events = {
         "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
     },
     "Employee": {
-#         "on_update": "prompt_hr.py.employee.on_update",
+        "on_update": "prompt_hr.py.employee.on_update",
         "validate": "prompt_hr.py.employee.validate",
     },
     # "Probation Feedback Form": {
@@ -253,12 +253,19 @@ doc_events = {
         "before_save": "prompt_hr.py.leave_application.before_save",
     },
     "Expense Claim":{ 
-        "before_submit": "prompt_hr.py.expense_claim.update_amount_in_marketing_planning",
+        "on_update": "prompt_hr.py.expense_claim.on_update",
+        "before_submit": "prompt_hr.py.expense_claim.before_submit",
         "on_cancel": "prompt_hr.py.expense_claim.update_amount_in_marketing_planning"
     },
+
     "Full and Final Statement": {
         "on_update": "prompt_hr.py.full_and_final_statetment.on_update",
-    }
+    },
+
+    "Travel Request": {
+        "on_update": "prompt_hr.py.travel_request.on_update",
+    },
+
 }
 
 
@@ -271,6 +278,10 @@ scheduler_events = {
         "prompt_hr.py.compensatory_leave_request.expire_compensatory_leave_after_confirmation"
         # "prompt_hr.scheduler_methods.create_probation_feedback_form",
         # "prompt_hr.scheduler_methods.create_confirmation_evaluation_form_for_prompt",
+        # "prompt_hr.scheduler_methods.inform_employee_for_confirmation_process",
+        # "prompt_hr.scheduler_methods.validate_employee_holiday_list",
+        # "prompt_hr.scheduler_methods.assign_checkin_role",
+        # "prompt_hr.scheduler_methods.validate_employee_holiday_list",
         # "prompt_hr.scheduler_methods.validate_employee_holiday_list", 						        
     ],
 }
