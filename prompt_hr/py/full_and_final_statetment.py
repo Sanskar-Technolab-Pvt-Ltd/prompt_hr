@@ -13,6 +13,19 @@ def custom_get_payable_component(doc):
     ]
 
 @frappe.whitelist()
+def custom_get_receivable_component(doc):
+    """
+    Modify function to add Imprest Account to the receivables table
+    """
+    receivables = ["Employee Advance"]
+    if "lending" in frappe.get_installed_apps():
+        receivables.append("Loan")
+    company_abbr = frappe.get_doc("Company", doc.company).abbr
+    if company_abbr == frappe.db.get_single_value("HR Settings", "custom_indifoss_abbr"):
+        receivables.append("Imprest Amount")
+    return receivables
+
+@frappe.whitelist()
 def custom_create_component_row(doc, components, component_type):
     """
     Modified function to create component rows in the payables table
@@ -127,6 +140,39 @@ def custom_create_component_row(doc, components, component_type):
                             "amount": loan_doc.total_payment - loan_doc.total_amount_paid,
                         },
                     )
+
+        elif component == "Imprest Amount":
+            imprest_allocations = frappe.get_all(
+                "Imprest Allocation",
+                fields=["*"],
+                filters={"docstatus": 1, "company": doc.company},
+                order_by="creation desc",
+                limit = 1,
+            )
+            if imprest_allocations:
+                imprest_details = frappe.get_all(
+                    "Imprest Details",
+                    fields=["*"],
+                    filters={"parent": imprest_allocations[0].name},
+                )
+                if imprest_details:
+                    employee_grade = frappe.get_value(
+                        "Employee",
+                        doc.employee,
+                        "grade",
+                    )
+                    if employee_grade:
+                        for detail in imprest_details:
+                            if detail.grade == employee_grade:
+                                doc.append(
+                                    component_type,
+                                    {
+                                        "status": "Unsettled",
+                                        "component": component,
+                                        "amount": detail.imprest_amount,
+                                    },
+                                )
+
         else:
             doc.append(
                 component_type,
