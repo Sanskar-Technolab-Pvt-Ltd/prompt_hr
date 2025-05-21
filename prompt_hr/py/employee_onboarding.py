@@ -56,7 +56,6 @@ def set_required_documents_in_new_joinee_checklist(doc):
 # ? MAIN ON_UPDATE EVENT FUNCTION
 @frappe.whitelist()
 def validate(doc, method):
-    print("Employee Onboarding Document Updated\n", doc.name)
 
     auto_fill_first_activity(doc)
     fill_missing_checklist_records(doc)
@@ -64,11 +63,6 @@ def validate(doc, method):
     frappe.db.commit()
 
     notify_users_for_pending_actions(rows_to_notify)
-
-    print("Notified Rows:", [
-        {"user": row.user, "desc": row.custom_email_description}
-        for row in rows_to_notify
-    ])
 
     return "Emails enqueued successfully"
 
@@ -87,13 +81,11 @@ def auto_fill_first_activity(doc):
         if email:
             first.user = email
             first.custom_checklist_record = checklist_record
-            print("First row auto-filled from Job Applicant:", email)
 
             # ? ONLY SEND IF IS_RAISED IS ALREADY SET
             if first.custom_is_sent == 0:
                 send_pending_action_email(first, notification_name="Onboarding Activity Reminder")
                 first.custom_is_sent = 1
-                print("Email sent immediately for first auto-filled row.")
 
 
 # ? GET EMAIL FROM JOB APPLICANT
@@ -106,7 +98,6 @@ def get_checklist_record(doctype_name, job_applicant):
     try:
         checklist_record_name = frappe.get_value(doctype_name, {"job_applicant": job_applicant}, "name")
         if not checklist_record_name:
-            print(f"[DEBUG] Creating new checklist record for: {job_applicant}")
             checklist_record = frappe.new_doc(doctype_name)
             checklist_record.job_applicant = job_applicant
             checklist_record.insert(ignore_permissions=True)
@@ -116,7 +107,6 @@ def get_checklist_record(doctype_name, job_applicant):
         return checklist_record_name
     except Exception as e:
         frappe.log_error(f"Error fetching checklist from {doctype_name}: {e}", "Checklist Fetch Error")
-        print(f"[ERROR] Failed to get checklist record: {e}")
         return None
 
 # ? FILL MISSING CHECKLIST RECORDS IN ACTIVITIES
@@ -126,7 +116,6 @@ def fill_missing_checklist_records(doc):
             checklist_record = get_checklist_record(row.custom_checklist_name, doc.job_applicant)
             if checklist_record:
                 row.custom_checklist_record = checklist_record
-                print(f"Filled checklist record for {row.custom_checklist_name}: {checklist_record}")
 
 
 # ? GET FILTERED ROWS WHERE EMAIL SHOULD BE SENT
@@ -139,6 +128,8 @@ def get_pending_activity_rows(doc):
 
 # ? SEND EMAIL TO USERS FOR PENDING CHECKLIST ACTIONS
 def notify_users_for_pending_actions(rows):
+    if not rows:
+        return
     for row in rows:
         send_pending_action_email(row, notification_name="Reporting Manger Checklist")
         row.custom_is_sent = 1  
