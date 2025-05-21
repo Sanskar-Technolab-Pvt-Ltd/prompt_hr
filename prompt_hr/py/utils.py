@@ -316,7 +316,7 @@ def fetch_company_name(indifoss=0, prompt=0):
             
         
         if prompt:
-            prompt_abbr = frappe.db.get_single_value("HR Settings", "custom_indifoss_abbr")
+            prompt_abbr = frappe.db.get_single_value("HR Settings", "custom_prompt_abbr")
             
             if not prompt_abbr:
                 return {"error": 1, "message": "No Abbreviation found in HR Settings, Please set abbreviation first"}
@@ -337,3 +337,8 @@ def fetch_leave_type_for_indifoss(doctype, txt, searchfield, start, page_len, fi
         WHERE custom_company = %s
         AND (is_earned_leave = 1 OR custom_is_quarterly_carryforward_rule_applied = 1)
     """, (company_id))
+    
+    
+    
+    
+    
