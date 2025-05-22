@@ -4,7 +4,7 @@ frappe.ui.form.off("Interview", "submit_feedback")
 frappe.ui.form.on("Interview", {
     refresh: function (frm) {
 
-        if (!frm.is_new() && !frm.doc.custom_teams_calender_book) {
+        if (!frm.is_new()) {
             frm.add_custom_button(__('Schedule Meeting'), function() {
                 frappe.call({
                     method: 'prompt_hr.teams.calender_book.teams_calender_book',
