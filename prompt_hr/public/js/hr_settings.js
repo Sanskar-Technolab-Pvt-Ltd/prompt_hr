@@ -16,8 +16,8 @@ frappe.ui.form.on("HR Settings", {
             apply_filter_for_leave_type(frm, "custom_deduct_leave_penalty_for_prompt", "custom_leave_type_for_prompt", 1, 0)            
         }
 
-        if (frm.doc.custom_deduct_leave_penalty_weekly_for_prompt) {
-            apply_filter_for_leave_type(frm, "custom_deduct_leave_penalty_weekly_for_prompt", "custom_leave_type_weekly_for_prompt", 1, 0)            
+        if (frm.doc.custom_deduct_leave_penalty_daily_for_prompt) {
+            apply_filter_for_leave_type(frm, "custom_deduct_leave_penalty_daily_for_prompt", "custom_leave_type_daily_for_prompt", 1, 0)            
         }
     },
     custom_deduct_leave_penalty_for_indifoss: function (frm) {
@@ -32,8 +32,8 @@ frappe.ui.form.on("HR Settings", {
         apply_filter_for_leave_type(frm, "custom_deduct_leave_penalty_for_prompt", "custom_leave_type_for_prompt", 1, 0)
     },
 
-    custom_deduct_leave_penalty_weekly_for_prompt: function (frm) { 
-        apply_filter_for_leave_type(frm, "custom_deduct_leave_penalty_weekly_for_prompt", "custom_leave_type_weekly_for_prompt", 1, 0)
+    custom_deduct_leave_penalty_daily_for_prompt: function (frm) { 
+        apply_filter_for_leave_type(frm, "custom_deduct_leave_penalty_daily_for_prompt", "custom_leave_type_daily_for_prompt", 1, 0)
     }
 
 })
