@@ -1,6 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "format:EMP-GRA-{#####}",
  "creation": "2025-05-19 16:58:44.505772",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -22,7 +23,8 @@
   "column_break_sojq",
   "salary_component",
   "gratuity_amount",
-  "settled_with_fnf"
+  "settled_with_fnf",
+  "amended_from"
  ],
  "fields": [
   {
@@ -130,16 +132,27 @@
   {
    "fieldname": "column_break_sojq",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Employee Gratuity",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-05-19 17:44:02.466211",
+ "modified": "2025-05-20 19:02:11.448184",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Gratuity",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {
