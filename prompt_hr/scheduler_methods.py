@@ -665,68 +665,6 @@ def user_has_role(user, role):
     return frappe.db.exists("Has Role", {"parent": user, "role": role})
 
 
-
-
-@frappe.whitelist()
-def penalize_employee_for_late_entry_for_prompt():
-    """Method to check if the employee is late and the penalization criteria is satisfied and no regularization is created then give penalty to employee
-    """
-    # *  TO BE ADDED IN HOOKS
-    try:
-        allowed_late_entries = frappe.db.get_single_value("HR Settings", "custom_late_coming_allowed_per_month_for_prompt")
-        buffer_period_day = frappe.db.get_single_value("HR Settings", "custom_buffer_period_for_leave_penalty_for_prompt")
-        
-    
-        if buffer_period_day:    
-            check_attendance_date = getdate(add_to_date(today(), days=-(buffer_period_day + 1)))
-        else:
-            check_attendance_date = getdate(today())
-        
-        
-        
-        if allowed_late_entries:
-        
-            company_id = fetch_company_name(prompt=1)
-            
-            if company_id.get("error"):
-                frappe.log_error("Error in penalize_employee_for_late_entry", frappe.get_traceback())
-            
-            if not company_id.get("error") and company_id.get("company_id"):
-                prompt_employee_list = frappe.db.get_all("Employee", {"status":"Active", "company": company_id.get("company_id")}, "name")
-                
-                print(f"\n\n prompt_employee {prompt_employee_list}\n\n")
-                if prompt_employee_list:
-                    
-                    # today_date = getdate(today())
-                                    
-                    month_first_date = check_attendance_date.replace(day=1)
-        
-                    next_month = add_months(month_first_date, 1)
-        
-                    month_last_date = next_month - timedelta(days=1)
-    #                 # days_diff_from_month_first_date = date_diff(today_date, month_first_date)
-                    print(f"\n\n month first date {month_first_date} month last date {month_last_date} \n\n")
-                    for emp_id in prompt_employee_list:
-                        
-                        late_attendance_list = frappe.db.get_all("Attendance", {"docstatus": 1, "employee": emp_id.get("name"), "attendance_date": ["between", [month_first_date, month_last_date]], "late_entry": 1, "custom_apply_penalty": 1}, ["name", "attendance_date"], order_by="attendance_date asc")
-                    
-                        print(f"\n\n late attendance list {late_attendance_list} \n\n")
-                        
-                        # if late_attendance_list[allowed_late_entries:]:
-                            # print(f"\n\n late attendance list {late_attendance_list[allowed_late_entries:]} \n\n")
-                        if late_attendance_list:
-                            for attendance_id in late_attendance_list[allowed_late_entries:]:
-                                if (not frappe.db.exists("Leave Application", {"employee": emp_id.get("name"), "from_date": attendance_id.get("attendance_date")}) and not frappe.db.get_all("Attendance Regularization", {"employee": emp_id.get("name"), "regularization_date": attendance_id.get("attendance_date")}, "name")) and getdate(attendance_id.get("attendance_date")) <= check_attendance_date:
-                                        # print(f"\n\n create leave application {attendance_id}\n\n")
-                                        create_leave_application(emp_id.get("name"), attendance_id.get("attendance_date"), attendance_id.get("name"), indifoss=1)
-            else:
-                if not company_id.get("company_id"):
-                    frappe.log_error("Error in penalize_employee_for_later_entry", "Company ID not found")
-    except Exception as e:
-        frappe.log_error("Error in penalize_employee_for_late_entry", frappe.get_traceback())
-
-
-
 @frappe.whitelist()
 def penalize_employee_for_late_entry_for_indifoss():
     """Method to check if the employee is late and the penalization criteria is satisfied then give penalty to employee
@@ -818,7 +756,7 @@ def penalize_incomplete_week_for_indifoss():
                         leave_application_list = frappe.db.get_all("Leave Application", {"employee": emp.get("name"), "status": "Approved", "from_date":["between", [eval_start, eval_end]]}, ["name", "half_day"])
                         
                         print(f"\n\n leave application {leave_application_list} \n\n")
-                        leave_hours = 0
+                        leave_hours = 0.0
                         if leave_application_list:
                             
                             full_day_leave_hours = 9
@@ -871,105 +809,209 @@ def penalize_incomplete_week_for_indifoss():
     except Exception as e:
         frappe.log_error("Error in penalize_incomplete_week scheduler", frappe.get_traceback())
 
+
+
+
+@frappe.whitelist()
+def penalize_prompt_employee():
+    """Method to to check for late coming or daily hours criteria and apply penalty
+    """
+    # * TO BE ADDED IN HOOKS
+    hr_settings_doc = frappe.get_doc("HR Settings")
+    allowed_late_entries = hr_settings_doc.custom_late_coming_allowed_per_month_for_prompt
+    
+    #* FOR LATE COMING
+    late_entry_leave_type = hr_settings_doc.custom_leave_type_for_prompt
+    late_entry_leave_deduction = hr_settings_doc.custom_deduction_of_leave_for_prompt
+    leave_penalty_buffer_days = hr_settings_doc.custom_buffer_period_for_leave_penalty_for_prompt
+    
+    if leave_penalty_buffer_days:    
+            leave_penalty_check_attendance_date = getdate(add_to_date(today(), days=-(leave_penalty_buffer_days + 1)))
+    else:
+            leave_penalty_check_attendance_date = getdate(today())
+    
+    
+    
+    #* FOR DAILY HOURS
+    daily_hours_leave_type = hr_settings_doc.custom_leave_type_daily_for_prompt
+    daily_hours_leave_deduction = hr_settings_doc.custom_deduction_of_leave_daily_for_prompt
+    working_hours_buffer_days = hr_settings_doc.custom_buffer_period_for_daily_hours_penalty_for_prompt
+    
+    if working_hours_buffer_days:    
+            daily_hours_attendance_date = getdate(add_to_date(today(), days=-(working_hours_buffer_days + 1)))
+    else:
+            daily_hours_attendance_date = getdate(add_to_date(today(), days=-1))
+    
+    if not allowed_late_entries:
+            allowed_late_entries = 0
+    
+    company_id = fetch_company_name(prompt=1)
+    if company_id.get("error"):
+            frappe.log_error("Error in penalize_employee_for_late_entry", frappe.get_traceback())
+    
+    if not company_id.get("error") and company_id.get("company_id"):
+        prompt_employee_list = frappe.db.get_all("Employee", {"status":"Active", "company": company_id.get("company_id")}, ["name", 'holiday_list'])
+        
+        if prompt_employee_list:
+                                
+            month_first_date = leave_penalty_check_attendance_date.replace(day=1)
+            next_month = add_months(month_first_date, 1)
+            month_last_date = next_month - timedelta(days=1)
+            
+            for emp_id in prompt_employee_list:
+                late_entry_leave_date = penalize_employee_for_late_entry_for_prompt(emp_id, month_first_date, month_last_date, allowed_late_entries, leave_penalty_check_attendance_date)
+                
+                print(f"\n\n late entry leave dates {late_entry_leave_date}\n\n")
+                
+                holiday_list = emp_id.get("holiday_list")    
+
+                if holiday_list:
+                    if frappe.db.get_all("Holiday", {"parenttype": "Holiday List", "parent": holiday_list, "holiday_date": daily_hours_attendance_date}, "name"):
+                        continue
+                    
+                    
+@frappe.whitelist()
+def penalize_employee_for_late_entry_for_prompt(emp_id, month_first_date, month_last_date, allowed_late_entries, check_attendance_date):
+    """Method to check if the employee is late and the penalization criteria is satisfied and no regularization is created then give penalty to employee
+    """
+    # *  TO BE ADDED IN HOOKS
+    try:
+                    
+        late_attendance_list = frappe.db.get_all("Attendance", {"docstatus": 1, "employee": emp_id.get("name"), "attendance_date": ["between", [month_first_date, month_last_date]], "late_entry": 1, "custom_apply_penalty": 1}, ["name", "attendance_date"], order_by="attendance_date asc")
+
+        leave_application_dates = []
+        if late_attendance_list:
+            for attendance_id in late_attendance_list[allowed_late_entries:]:
+                if (not frappe.db.exists("Leave Application", {"employee": emp_id.get("name"), "from_date": attendance_id.get("attendance_date"), "custom_is_penalty_leave":0 }) and not frappe.db.get_all("Attendance Regularization", {"employee": emp_id.get("name"), "regularization_date": attendance_id.get("attendance_date")}, "name")) and getdate(attendance_id.get("attendance_date")) <= check_attendance_date:
+                        # print(f"\n\n create leave application {attendance_id}\n\n")
+                        leave_application_dates.append({
+                            "date": attendance_id.get("attendance_date"),
+                            "attendance_id": attendance_id.get("name"),
+                            "for_late_coming":1
+                        })
+        
+        # create_leave_application(emp_id.get("name"), attendance_id.get("attendance_date"), attendance_id.get("name"), indifoss=1)
+        return leave_application_dates or []
+    except Exception as e:
+        frappe.log_error("Error in penalize_employee_for_late_entry", frappe.get_traceback())
+
+
 @frappe.whitelist() 
-def penalize_incomplete_week_for_prompt():
+def penalize_incomplete_day_for_prompt(emp, check_attendance_date, expected_work_hours):
     """Method to apply penalty if the employee has not completed the weekly hours
     """
     #* TO BE ADDED IN HOOKS
     try:
         
-        company_id = fetch_company_name(indifoss=1)
-        today_date = getdate(today())
-        
-        expected_work_hours = frappe.db.get_single_value("HR Settings", "custom_weekly_hours_criteria_for_penalty_for_indifoss")
+        # company_id = fetch_company_name(prompt=1)
+        # today_date = getdate(today())
         
         
-        if company_id.get("error"):
-            frappe.log_error("Error in penalize_incomplete_week scheduler", frappe.get_traceback())
         
-        employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": company_id.get("company_id")}, ["name","custom_last_weekly_hours_evaluation", "custom_next_weekly_hours_evaluation", "custom_weeklyoff"])
-
+        # expected_work_hours = frappe.db.get_single_value("HR Settings", "custom_daily_hours_criteria_for_penalty_for_prompt")
+        # buffer_days = frappe.db.get_single_value("HR Settings", "custom_buffer_period_for_daily_hours_penalty_for_prompt")
         
-        print(f"\n\n employee list {employee_list}\n\n")
-        if employee_list:
-            for emp in employee_list:
-                print(f"\n\n employee {emp} \n\n")
+        # check_attendance_date = getdate(add_to_date(today(), days=-(buffer_days + 1))) if buffer_days else getdate(add_to_date(today(), days=-1))
+        
                 
-                weekly_off_type = emp.get("custom_weeklyoff")
+        # if company_id.get("error"):
+        #     frappe.log_error("Error in penalize_incomplete_day scheduler", frappe.get_traceback())
+        
+        # employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": company_id.get("company_id")}, ["name", "holiday_list"])
                 
-                if weekly_off_type:
-                    print(f"\n\n weekly off type {weekly_off_type} \n\n")
-                    weekly_off_days = get_week_off_days(emp.get("custom_weeklyoff"))
-                    if weekly_off_days:
-                        print(f"\n\n weekly off days {weekly_off_days} \n\n")
-                        num_weekoffs = len(weekly_off_days)
-                        expected_work_days = 7 - num_weekoffs
-                        print(f"\n\n expected work days {expected_work_days} \n\n")
-                        if emp.get("custom_next_weekly_hours_evaluation") and getdate(emp.get("custom_next_weekly_hours_evaluation")) != today_date:
-                            print(f"\n\n this is getting  \n\n")
-                            continue
-                        
-                        if emp.get("custom_last_weekly_hours_evaluation"):
-                            eval_start, eval_end = get_next_work_week(emp.get("custom_last_weekly_hours_evaluation"), weekly_off_days, expected_work_days)
-                        else:
-                            eval_start, eval_end = get_last_full_work_week(today_date, weekly_off_days, expected_work_days)
-                        
-                        print(f"\n\n eval start {eval_start} {eval_end}\n\n")
-                        leave_application_list = frappe.db.get_all("Leave Application", {"employee": emp.get("name"), "status": "Approved", "from_date":["between", [eval_start, eval_end]]}, ["name", "half_day"])
-                        
-                        print(f"\n\n leave application {leave_application_list} \n\n")
-                        leave_hours = 0
-                        if leave_application_list:
-                            
-                            full_day_leave_hours = 9
-                            half_day_leave_hours = 4.5
+        # if employee_list:
+        #     for emp in employee_list:
+                
+        #         holiday_list = emp.get("holiday_list")
+                
+        #         if holiday_list:
+                    
+        
+        
+        
+        attendance_list = frappe.db.get_all("Attendance", {"docstatus": 1, "employee": emp.get("name"), "attendance_date": check_attendance_date, "working_hours": ["<",expected_work_hours]}, ["name", "attendance_date"], order_by="attendance_date asc")
+        
+        penalty_leave_dates = []
+        if attendance_list:
+            
+            for attendance in attendance_list:
+                if not frappe.db.exists("Attendance Regularization", {"employee": emp.get("name"), "regularization_date": attendance.get("attendance_date")}):
+                    penalty_leave_dates.append({
+                        "date": attendance.get("attendance_date"),
+                        "attendance_id": attendance.get("name"),
+                        "for_less_hours":0
+                    })
 
-                            for leave in leave_application_list:
-                                if leave.get("half_day") == 1:
-                                    leave_hours += half_day_leave_hours
-                                else:
-                                    leave_hours += full_day_leave_hours
+                    
+                    # weekly_off_days = get_week_off_days(emp.get("custom_weeklyoff"))
+                    # if weekly_off_days:
+                    #     num_weekoffs = len(weekly_off_days)
+                    #     expected_work_days = 7 - num_weekoffs
+                    #     if emp.get("custom_next_weekly_hours_evaluation") and getdate(emp.get("custom_next_weekly_hours_evaluation")) != today_date:
+                    #         print(f"\n\n this is getting  \n\n")
+                    #         continue
                         
-                        print(f"\n\n Before Adding Holiday Hours {leave_hours} \n\n")
-                        emp_holiday_list = frappe.db.get_value("Employee", emp.get("name"), "holiday_list")
-                        if emp_holiday_list:
-                            holiday_count = frappe.db.count("Holiday", {"parenttype": "Holiday List", "parent": emp_holiday_list, "holiday_date": ["between", [eval_start, eval_end]]})
-                            leave_hours += holiday_count * 9
-                        print(f"\n\n After Adding Holiday Hours {leave_hours} \n\n")
+                    #     if emp.get("custom_last_weekly_hours_evaluation"):
+                    #         eval_start, eval_end = get_next_work_week(emp.get("custom_last_weekly_hours_evaluation"), weekly_off_days, expected_work_days)
+                    #     else:
+                    #         eval_start, eval_end = get_last_full_work_week(today_date, weekly_off_days, expected_work_days)
                         
+                    #     print(f"\n\n eval start {eval_start} {eval_end}\n\n")
+                    #     leave_application_list = frappe.db.get_all("Leave Application", {"employee": emp.get("name"), "status": "Approved", "from_date":["between", [eval_start, eval_end]]}, ["name", "half_day"])
                         
-                        working_days = get_working_days(eval_start, eval_end, weekly_off_days)
-                        total_hours = get_total_working_hours(emp.name, working_days)
-                        print(f"\n\n working days {working_days}")
-                        print(f"\n\n total hours {total_hours}")
-                        print(f"\n\n Leave Hours {leave_hours}")
-                        
-                        print(f"\n\n expected work hours {expected_work_hours} \n\n")
-                        
-                        
-                        if leave_hours:
-                            expected_work_hours -= leave_hours
-                        
-                        
-                        if total_hours < expected_work_hours:
-                            attendance_id = frappe.db.get_all("Attendance", {"employee": emp.get("name"), "attendance_date": ["between", [eval_start, eval_end]], "status": ["in", ["Present", "Work From Home", "Half Day"]]}, "name", order_by="attendance_date desc", limit=1, pluck="name")
+                    #     print(f"\n\n leave application {leave_application_list} \n\n")
+                    #     leave_hours = 0.0
+                    #     if leave_application_list:
                             
-                            if attendance_id:
-                                print(f"\n\n Create Leave Application {eval_end}  {attendance_id[0]}")
-                                if not frappe.db.exists("Leave Application", {"employee": emp.get("name"), "from_date": attendance_id[0]}):
+                    #         full_day_leave_hours = 9
+                    #         half_day_leave_hours = 4.5
+
+                    #         for leave in leave_application_list:
+                    #             if leave.get("half_day") == 1:
+                    #                 leave_hours += half_day_leave_hours
+                    #             else:
+                    #                 leave_hours += full_day_leave_hours
+                        
+                    #     print(f"\n\n Before Adding Holiday Hours {leave_hours} \n\n")
+                    #     emp_holiday_list = frappe.db.get_value("Employee", emp.get("name"), "holiday_list")
+                    #     if emp_holiday_list:
+                    #         holiday_count = frappe.db.count("Holiday", {"parenttype": "Holiday List", "parent": emp_holiday_list, "holiday_date": ["between", [eval_start, eval_end]]})
+                    #         leave_hours += holiday_count * 9
+                    #     print(f"\n\n After Adding Holiday Hours {leave_hours} \n\n")
+                        
+                        
+                    #     working_days = get_working_days(eval_start, eval_end, weekly_off_days)
+                    #     total_hours = get_total_working_hours(emp.name, working_days)
+                    #     print(f"\n\n working days {working_days}")
+                    #     print(f"\n\n total hours {total_hours}")
+                    #     print(f"\n\n Leave Hours {leave_hours}")
+                        
+                    #     print(f"\n\n expected work hours {expected_work_hours} \n\n")
+                        
+                        
+                    #     if leave_hours:
+                    #         expected_work_hours -= leave_hours
+                        
+                        
+                    #     if total_hours < expected_work_hours:
+                    #         attendance_id = frappe.db.get_all("Attendance", {"employee": emp.get("name"), "attendance_date": ["between", [eval_start, eval_end]], "status": ["in", ["Present", "Work From Home", "Half Day"]]}, "name", order_by="attendance_date desc", limit=1, pluck="name")
+                            
+                    #         if attendance_id:
+                    #             print(f"\n\n Create Leave Application {eval_end}  {attendance_id[0]}")
+                    #             if not frappe.db.exists("Leave Application", {"employee": emp.get("name"), "from_date": attendance_id[0]}):
                                 
-                                    create_leave_application(emp.get("name"), eval_end, attendance_id[0], for_time_penalization=1, indifoss=1) 
-                        last_update_date = get_next_working_day_after_weekoffs(eval_end + timedelta(days=1), weekly_off_days)
-                        next_update_date = get_next_working_day_after_weekoffs(last_update_date + timedelta(days=7), weekly_off_days)
+                    #                 create_leave_application(emp.get("name"), eval_end, attendance_id[0], for_time_penalization=1, indifoss=1) 
+                    #     last_update_date = get_next_working_day_after_weekoffs(eval_end + timedelta(days=1), weekly_off_days)
+                    #     next_update_date = get_next_working_day_after_weekoffs(last_update_date + timedelta(days=7), weekly_off_days)
                         
-                        frappe.db.set_value("Employee", emp.get("name"), "custom_last_weekly_hours_evaluation", last_update_date)
-                        frappe.db.set_value("Employee", emp.get("name"), "custom_next_weekly_hours_evaluation", next_update_date)
+                    #     frappe.db.set_value("Employee", emp.get("name"), "custom_last_weekly_hours_evaluation", last_update_date)
+                    #     frappe.db.set_value("Employee", emp.get("name"), "custom_next_weekly_hours_evaluation", next_update_date)
                         
                         
                         
                             
     except Exception as e:
-        frappe.log_error("Error in penalize_incomplete_week scheduler", frappe.get_traceback())   
+        frappe.log_error("Error in penalize_incomplete_day scheduler", frappe.get_traceback())   
         
 def get_week_off_days(weekly_off_type):
     """Method to get the week off days based on the weekly off type
@@ -1075,8 +1117,8 @@ def create_leave_application(emp_id, leave_date, attendance_id, for_time_penaliz
                 deduction_of_leave = frappe.db.get_single_value("HR Settings", "custom_deduction_of_leave_weekly_for_indifoss")
             
             if prompt:
-                leave_type = frappe.db.get_single_value("HR Settings", "custom_leave_type_weekly_for_prompt")
-                deduction_of_leave = frappe.db.get_single_value("HR Settings", "custom_deduction_of_leave_weekly_for_prompt")
+                leave_type = frappe.db.get_single_value("HR Settings", "custom_leave_type_daily_for_prompt")
+                deduction_of_leave = frappe.db.get_single_value("HR Settings", "custom_deduction_of_leave_daily_for_prompt")
             
         else:
             if indifoss:
@@ -1103,17 +1145,13 @@ def create_leave_application(emp_id, leave_date, attendance_id, for_time_penaliz
         leave_application_doc.to_date = leave_date
         leave_application_doc.custom_is_penalty_leave = 1
 
-        # if rh_employee:   
-        #     if rh_employee:
-        #         rh_emp_id = frappe.db.get_value("Employee", rh_employee, "user_id")
-        #         leave_application_doc.leave_approver = rh_emp_id
 
         if deduction_of_leave == "Half day":
             leave_application_doc.half_day = 1
         
         leave_application_doc.description = f"Weekly Hours Penalization for Attendance - {attendance_id}"
         leave_application_doc.status = "Approved"
-        # leave_application_doc.workflow_state = "Approved"
+
 
         leave_application_doc.insert(ignore_permissions=True)
         
@@ -1121,7 +1159,6 @@ def create_leave_application(emp_id, leave_date, attendance_id, for_time_penaliz
         leave_application_doc.docstatus = 1
         leave_application_doc.save(ignore_permissions=True)
         
-        # leave_application_doc.submit()
         frappe.db.commit()
         
     except Exception as e:
