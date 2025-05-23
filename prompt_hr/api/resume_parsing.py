@@ -8,7 +8,7 @@ from frappe.utils.password import get_decrypted_password
 @frappe.whitelist()
 def parse_resume(file_url):
     """
-    Parse the resume file (public or private) using the Affinda API.
+    Parse the resume file (public or private) using the OpenAI API.
    
     """
     try:           
