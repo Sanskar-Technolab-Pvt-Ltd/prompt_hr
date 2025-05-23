@@ -12,6 +12,33 @@ frappe.ui.form.on("Employee", {
                 };
             });
         }
+        if (frm.doc.department){
+            frappe.db.get_value("Department", frm.doc.department || "", "is_group")
+                .then((r) => {
+                    if (r && r.message && r.message.is_group) {
+                        frm.set_query("custom_subdepartment", () => {
+                            return {
+                                filters: {
+                                    parent_department: frm.doc.department,
+                                    company: frm.doc.company,
+                                }
+                            };
+                        });
+                    }
+                    else{
+                        frm.set_query("custom_subdepartment", () => {
+                            return {
+                                filters: {
+                                    name: ["is", "not set"]
+                                }
+                            };
+                        });
+                    }
+                })
+                .catch((err) => {
+                    console.error("Error fetching Department Type:", err);
+                });
+        }
         frm.add_custom_button(__("Release Service Level Agreement"), function () {
             frappe.dom.freeze(__('Releasing Letter...'));
             frappe.call({
