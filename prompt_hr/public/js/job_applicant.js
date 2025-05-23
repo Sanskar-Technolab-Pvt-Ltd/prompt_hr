@@ -263,6 +263,7 @@ frappe.ui.form.on('Job Applicant', {
         if (frm.doc.resume_attachment) {
             if (!frm.doc.job_title || !frm.doc.designation){
                 frappe.msgprint(__('Please first select Job Opening and Designation before parsing the resume.'));
+                frm.set_value("resume_attachment", "");
                 return;
             }
             frappe.call({
@@ -298,15 +299,18 @@ frappe.ui.form.on('Job Applicant', {
                         frm.set_value("custom_gender", resume_data.gender || "");
                         if (!resume_data.gender) missing_fields.push("Gender");
                 
-                        frm.set_value("custom_experience", resume_data.total_years_experience || 0);
-                        if (resume_data.total_years_experience === null || resume_data.total_years_experience === undefined) {
-                            missing_fields.push("Total Experience");
-                        }
+                        // frm.set_value("custom_experience", resume_data.total_years_experience || 0);
+                        // if (resume_data.total_years_experience === null || resume_data.total_years_experience === undefined) {
+                        //     missing_fields.push("Total Experience");
+                        // }
                 
-                        frm.set_value("custom_key_skills", resume_data.skills || "");
+                        frm.set_value("custom_key_skills", resume_data.skills ? resume_data.skills.join(", ") : "");
                         if (!resume_data.skills) missing_fields.push("Key Skills");
-                
-                    
+
+                        frm.set_value("custom_address", resume_data.address || "");
+                        frm.set_value("lower_range", resume_data.current_salary || "");
+                        frm.set_value("upper_range", resume_data.expected_salary || "");
+
                         frm.clear_table("custom_education_details_table");
                         frm.clear_table("custom_experience_table");
                 
@@ -338,7 +342,7 @@ frappe.ui.form.on('Job Applicant', {
                                 var child = frm.add_child("custom_experience_table");
                                 child.company_name = exp.organization;
                                 child.designation = exp.job_title;
-                                child.address = exp.location_formatted;
+                                // child.address = exp.location_formatted;
                                 child.total_experience = exp.months_in_position;
                                 child.custom_working_duration = exp.dates_rawText;
                             });
@@ -348,7 +352,7 @@ frappe.ui.form.on('Job Applicant', {
                 
                         frm.refresh();
                 
-                        
+                        setTimeout(() => {
                         if (missing_fields.length > 0) {
                             frappe.msgprint({
                                 title: "Missing Data",
@@ -357,6 +361,7 @@ frappe.ui.form.on('Job Applicant', {
                                 indicator: "orange"
                             });
                         }
+                    }, 500); 
                     }
                 },
                 
@@ -366,3 +371,4 @@ frappe.ui.form.on('Job Applicant', {
         }
     }
 });
+
