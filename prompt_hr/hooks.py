@@ -270,6 +270,11 @@ doc_events = {
     "Loan Application": {
         "on_update": "prompt_hr.py.loan_application.on_update",
         "on_cancel": "prompt_hr.py.loan_application.on_cancel",
+    },
+
+    "Salary Slip": {
+        "on_submit": "prompt_hr.py.salary_slip.loan_repayment_amount",
+        "on_update": "prompt_hr.py.salary_slip.update_loan_principal_amount",
     }
 
 }
@@ -430,12 +435,12 @@ fixtures = [
 # {
 #     "dt":"Role", "filters": [["name", "in", ["Job Requisition", "Head of Department", "Managing Director"]]]
 # },
-{
-    "dt":"Workflow", "filters": [["name", "in", ["Job Requisition", "Compensatory Leave Request", "Leave Application", "Loan Application"]]]
-},
-{
-    "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled", "Confirmed", "Approved by HR", "Rejected by HR", "Approved by BU Head", "Rejected by BU Head"]]]
-},
+# {
+#     "dt":"Workflow", "filters": [["name", "in", ["Job Requisition", "Compensatory Leave Request", "Leave Application", "Loan Application"]]]
+# },
+# {
+#     "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled", "Confirmed", "Approved by HR", "Rejected by HR", "Approved by BU Head", "Rejected by BU Head"]]]
+# },
 # {
 #     "dt":"Workflow Action Master", "filters": [["name", "in", ["Confirm"]]]
 # }
