@@ -258,6 +258,8 @@ doc_events = {
         "before_submit": "prompt_hr.py.expense_claim.before_submit",
         "on_cancel": "prompt_hr.py.expense_claim.update_amount_in_marketing_planning"
     },
+    "Employee Tax Exemption Declaration": {
+        "before_save": "prompt_hr.py.income_tax_computation.before_save"
 
     "Full and Final Statement": {
         "on_update": "prompt_hr.py.full_and_final_statetment.on_update",
