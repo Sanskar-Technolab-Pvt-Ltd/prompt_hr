@@ -260,7 +260,7 @@ doc_events = {
     },
     "Employee Tax Exemption Declaration": {
         "before_save": "prompt_hr.py.income_tax_computation.before_save"
-
+    },
     "Full and Final Statement": {
         "on_update": "prompt_hr.py.full_and_final_statetment.on_update",
     },
