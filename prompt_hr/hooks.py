@@ -66,6 +66,7 @@ doctype_js = {
     "HR Settings": "public/js/hr_settings.js",
     "Expense Claim": "public/js/expense_claim.js",
     "Full and Final Statement": "public/js/full_and_final_statement.js",
+    "Loan Application": "public/js/loan_application.js",
 
 }
 
@@ -265,6 +266,11 @@ doc_events = {
     "Travel Request": {
         "on_update": "prompt_hr.py.travel_request.on_update",
     },
+
+    "Loan Application": {
+        "on_update": "prompt_hr.py.loan_application.on_update",
+        "on_cancel": "prompt_hr.py.loan_application.on_cancel",
+    }
 
 }
 
