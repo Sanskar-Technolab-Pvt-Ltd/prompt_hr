@@ -1,0 +1,98 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-05-16 14:44:06.785023",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "api_features_section",
+  "url",
+  "graph_url",
+  "client_id",
+  "client_secret",
+  "tenent_id",
+  "object_id",
+  "column_break_fste",
+  "enable",
+  "token"
+ ],
+ "fields": [
+  {
+   "fieldname": "api_features_section",
+   "fieldtype": "Section Break",
+   "label": "API Features"
+  },
+  {
+   "default": "https://login.microsoftonline.com",
+   "fieldname": "url",
+   "fieldtype": "Data",
+   "label": "URL"
+  },
+  {
+   "fieldname": "client_id",
+   "fieldtype": "Data",
+   "label": "Client ID"
+  },
+  {
+   "fieldname": "client_secret",
+   "fieldtype": "Password",
+   "label": "Client Secret"
+  },
+  {
+   "fieldname": "column_break_fste",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable",
+   "fieldtype": "Check",
+   "label": "Enable"
+  },
+  {
+   "fieldname": "token",
+   "fieldtype": "Password",
+   "label": "Token"
+  },
+  {
+   "fieldname": "tenent_id",
+   "fieldtype": "Data",
+   "label": "Tenent ID"
+  },
+  {
+   "default": "https://graph.microsoft.com",
+   "fieldname": "graph_url",
+   "fieldtype": "Data",
+   "label": "Graph URL"
+  },
+  {
+   "fieldname": "object_id",
+   "fieldtype": "Data",
+   "label": "Object ID"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2025-05-22 17:39:04.701851",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Teams Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
