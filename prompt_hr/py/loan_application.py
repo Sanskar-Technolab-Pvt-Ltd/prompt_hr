@@ -43,7 +43,8 @@ def on_update(doc, method):
                 filters={
                     "applicant": doc.applicant,
                     "loan_product": doc.loan_product,
-                    "docstatus": ["<", 2],
+                    "name": ["!=", doc.name],
+                    "workflow_state": ["not in", ["Cancelled", "Rejected", "Rejected By HR", "Rejected By BU Head"]],
                 },
                 fields=["name"],
             )
@@ -54,7 +55,7 @@ def on_update(doc, method):
                 "Loan Application",
                 filters={
                     "loan_product": doc.loan_product,
-                    "status": "Approved",
+                    "workflow_state": ["in", ["Approved", "Approved By HR", "Approved By BU Head"]],
                     "name": ["!=", doc.name],
                     "creation": [
                         "between",
@@ -66,7 +67,7 @@ def on_update(doc, method):
                 },
                 fields=["name"],
             )
-            if len(total_loan_applications) >= loan_product.custom_maximum_lioan_applications_approved_within_month:
+            if len(total_loan_applications) >= loan_product.custom_maximum_lioan_applications_approved_within_month and doc.workflow_state == "Approved":
                 frappe.throw(
                     "Maximum number of loan applications approved for this product within the month has been reached."
                 )
