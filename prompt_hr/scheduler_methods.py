@@ -882,19 +882,22 @@ def penalize_employee_for_late_entry_for_prompt(emp_id, month_first_date, month_
         leave_application_dates = []
         if late_attendance_list:
             for attendance_id in late_attendance_list[allowed_late_entries:]:
-                if (not frappe.db.exists("Leave Application", {"employee": emp_id.get("name"), "from_date": attendance_id.get("attendance_date"), "custom_is_penalty_leave":0 }) and not frappe.db.get_all("Attendance Regularization", {"employee": emp_id.get("name"), "regularization_date": attendance_id.get("attendance_date")}, "name")) and getdate(attendance_id.get("attendance_date")) <= check_attendance_date:
-                        # print(f"\n\n create leave application {attendance_id}\n\n")
-                        leave_application_dates.append({
-                            "date": attendance_id.get("attendance_date"),
-                            "attendance_id": attendance_id.get("name"),
-                            "for_late_coming":1
-                        })
-        
-        # create_leave_application(emp_id.get("name"), attendance_id.get("attendance_date"), attendance_id.get("name"), indifoss=1)
-        return leave_application_dates or []
+                
+                
+                leave_application_exists = frappe.db.exists("Leave Application", {"employee": emp_id.get("name"), "from_date": ["<=",attendance_id.get("attendance_date")], "to_date": [">=",attendance_id.get("attendance_date")], "custom_is_penalty_leave":0 })
+                
+                attendance_regularization_exists = frappe.db.get_all("Attendance Regularization", {"employee": emp_id.get("name"), "attendance": attendance_id.get("name"),"regularization_date": attendance_id.get("attendance_date")}, "name")
+                
+                employee_late_penalty_exists = frappe.db.exists("Employee Penalty", {"employee": emp_id.get("name"), "attendance": attendance_id.get("name"), "for_late_coming": 1})
+                
+                if (not leave_application_exists and not attendance_regularization_exists and not employee_late_penalty_exists) and getdate(attendance_id.get("attendance_date")) <= check_attendance_date :
+                        print(f"\n\n create leave application {attendance_id}\n\n")        
+
     except Exception as e:
         frappe.log_error("Error in penalize_employee_for_late_entry", frappe.get_traceback())
 
+
+    
 
 @frappe.whitelist() 
 def penalize_incomplete_day_for_prompt(emp, check_attendance_date, expected_work_hours):
@@ -1105,6 +1108,28 @@ def get_total_working_hours(employee, dates):
 #     return total
 
 
+def create_employee_penalty(employee, attendance_id, penalty_date, penalty_type, leave_type, deduct_leave, for_late_coming=0, for_insufficient_hours=0):
+    "Method to Create Employee penalty and add an entry to leave ledger entry"
+    
+    if for_late_coming:
+        pass
+
+
+
+def get_remaining_leave(leave_type, employee, company_id):
+    """Method to get the remaining leave balance for the employee
+    """
+    leave_ledger_entry_id = frappe.db.get_all("Leave Ledger Entry", {"employee": employee, "leave_type": leave_type, "company": company_id}, ["name", "leaves"])
+
+    if leave_ledger_entry_id:
+        leave_balance = sum(i.leaves for i in leave_ledger_entry_id)
+    else:
+        leave_balance = 0
+    
+    return leave_balance or 0    
+    
+    
+    
 def create_leave_application(emp_id, leave_date, attendance_id, for_time_penalization=0, indifoss=0, prompt=0):
     """Method to create leave application
     """
@@ -1191,3 +1216,28 @@ def create_leave_application(emp_id, leave_date, attendance_id, for_time_penaliz
 #         attendance_request = frappe.db.get_all("Attendance Request", {"docstatus": 1, "custom_status": "Approved"})
 #     except Exception as e:
 #         frappe.log_error("Error in allow_checkin_from_website_to_employee schedular method", frappe.get_traceback())
+
+
+@frappe.whitelist()
+def add_leave_ledger_entry():
+    
+    try:
+        
+        prompt_penalty_doc = frappe.get_doc("Prompt Penalty", "5de0ibi042")
+        # return prompt_penalty_doc
+        leave_ledger_entry_doc = frappe.new_doc("Leave Ledger Entry")
+        leave_ledger_entry_doc.employee = prompt_penalty_doc.employee
+        leave_ledger_entry_doc.leave_type = prompt_penalty_doc.leave_type
+        leave_ledger_entry_doc.transaction_type = "Prompt Penalty"
+        leave_ledger_entry_doc.transaction_name = prompt_penalty_doc.name
+        leave_ledger_entry_doc.from_date = prompt_penalty_doc.from_date
+        leave_ledger_entry_doc.to_date = prompt_penalty_doc.to_date
+        leave_ledger_entry_doc.holiday_list = prompt_penalty_doc.holiday_list
+        leave_ledger_entry_doc.leaves = prompt_penalty_doc.leave_penalty
+        
+        
+        leave_ledger_entry_doc.insert(ignore_permissions=True)
+        
+        frappe.db.commit()
+    except Exception as e:
+        frappe.log_error("Error in add_leave_ledger_entry scheduler method", frappe.get_traceback())
