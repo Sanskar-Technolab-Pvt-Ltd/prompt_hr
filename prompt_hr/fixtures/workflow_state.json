@@ -3,15 +3,6 @@
   "docstatus": 0,
   "doctype": "Workflow State",
   "icon": "",
-  "modified": "2025-04-02 13:13:07.443097",
-  "name": "Cancelled",
-  "style": "Danger",
-  "workflow_state_name": "Cancelled"
- },
- {
-  "docstatus": 0,
-  "doctype": "Workflow State",
-  "icon": "",
   "modified": "2025-04-02 13:13:46.339926",
   "name": "Filled",
   "style": "Info",
@@ -79,5 +70,50 @@
   "name": "Confirmed",
   "style": "Success",
   "workflow_state_name": "Confirmed"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-04-02 13:13:07.443097",
+  "name": "Cancelled",
+  "style": "Danger",
+  "workflow_state_name": "Cancelled"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-05-08 15:56:20.913535",
+  "name": "Rejected by HR",
+  "style": "Danger",
+  "workflow_state_name": "Rejected by HR"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-05-23 11:28:12.743231",
+  "name": "Rejected by BU Head",
+  "style": "Danger",
+  "workflow_state_name": "Rejected by BU Head"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-05-23 11:28:04.393575",
+  "name": "Approved by BU Head",
+  "style": "Success",
+  "workflow_state_name": "Approved by BU Head"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-05-23 11:28:50.709900",
+  "name": "Approved by HR",
+  "style": "Success",
+  "workflow_state_name": "Approved by HR"
  }
 ]

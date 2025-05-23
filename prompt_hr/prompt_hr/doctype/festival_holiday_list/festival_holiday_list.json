@@ -10,6 +10,7 @@
   "state",
   "from_date",
   "to_date",
+  "company",
   "festival_holidays_section",
   "holidays"
  ],
@@ -22,8 +23,9 @@
   },
   {
    "fieldname": "state",
-   "fieldtype": "Data",
-   "label": "State"
+   "fieldtype": "Link",
+   "label": "State",
+   "options": "State"
   },
   {
    "fieldname": "from_date",
@@ -45,12 +47,18 @@
    "fieldtype": "Table",
    "label": "Holidays",
    "options": "Holiday"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-29 11:26:50.260950",
+ "modified": "2025-05-20 12:53:38.715296",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Festival Holiday List",

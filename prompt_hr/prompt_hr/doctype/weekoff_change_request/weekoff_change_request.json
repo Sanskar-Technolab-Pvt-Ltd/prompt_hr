@@ -9,6 +9,7 @@
   "employee_name",
   "column_break_yxha",
   "status",
+  "company",
   "weekoff_details_section",
   "weekoff_details"
  ],
@@ -48,12 +49,18 @@
    "hidden": 1,
    "label": "Status",
    "options": "Pending\nApproved\nRejected"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-30 19:17:44.192143",
+ "modified": "2025-05-20 15:57:41.741985",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "WeekOff Change Request",

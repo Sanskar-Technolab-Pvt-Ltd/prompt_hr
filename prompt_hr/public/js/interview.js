@@ -3,6 +3,40 @@ const original_submit_feedback = frappe.ui.form.handlers.Interview?.submit_feedb
 frappe.ui.form.off("Interview", "submit_feedback")
 frappe.ui.form.on("Interview", {
     refresh: function (frm) {
+        if (!frm.is_new()) {
+            let button_label = frm.doc.custom_teams_calender_book 
+            ? "Revise Teams Calendar" 
+            : "Book Teams Calendar";
+            frm.add_custom_button(__(button_label), function() {
+
+                frappe.call({
+                    method: 'prompt_hr.teams.calender_book.teams_calender_book',
+                    args: {
+                        docname: frm.doc.name
+                    },
+                    
+                    callback: function(r) {
+                        if (r.message) {
+                            frappe.msgprint({
+                                title: __("Meeting Scheduled"),
+                                message: r.message,
+                                indicator: "green"
+                            });
+                        } else {
+                            frappe.msgprint({
+                                title: __("Error"),
+                                message: "Meeting could not be scheduled.",
+                                indicator: "red"
+                            });
+                        }
+                        frm.reload_doc()
+                        frm.refresh_field("custom_teams_calender_book");
+                    },
+                    freeze: true,  
+                    freeze_message: "Please Wait, We are Scheduling Microsoft Teams meeting...",
+                });
+            }); 
+        }
 
         // ?  FETCH AVAILABLE INTERVIEWERS ON REFRESH
         fetchAvailableInterviewers(frm);

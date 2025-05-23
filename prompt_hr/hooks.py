@@ -64,7 +64,9 @@ doctype_js = {
     "Leave Application": "public/js/leave_application.js",
     "Employee Checkin": "public/js/employee_checkin.js",
     "HR Settings": "public/js/hr_settings.js",
-    "Expense Claim": "public/js/expense_claim.js"
+    "Expense Claim": "public/js/expense_claim.js",
+    "Full and Final Statement": "public/js/full_and_final_statement.js",
+    "Loan Application": "public/js/loan_application.js",
 
 }
 
@@ -252,12 +254,26 @@ doc_events = {
         "before_save": "prompt_hr.py.leave_application.before_save",
     },
     "Expense Claim":{ 
-        "before_submit": "prompt_hr.py.expense_claim.update_amount_in_marketing_planning",
+        "on_update": "prompt_hr.py.expense_claim.on_update",
+        "before_submit": "prompt_hr.py.expense_claim.before_submit",
         "on_cancel": "prompt_hr.py.expense_claim.update_amount_in_marketing_planning"
     },
     "Employee Tax Exemption Declaration": {
         "before_save": "prompt_hr.py.income_tax_computation.before_save"
+
+    "Full and Final Statement": {
+        "on_update": "prompt_hr.py.full_and_final_statetment.on_update",
+    },
+
+    "Travel Request": {
+        "on_update": "prompt_hr.py.travel_request.on_update",
+    },
+
+    "Loan Application": {
+        "on_update": "prompt_hr.py.loan_application.on_update",
+        "on_cancel": "prompt_hr.py.loan_application.on_cancel",
     }
+
 }
 
 
@@ -270,6 +286,10 @@ scheduler_events = {
         "prompt_hr.py.compensatory_leave_request.expire_compensatory_leave_after_confirmation"
         # "prompt_hr.scheduler_methods.create_probation_feedback_form",
         # "prompt_hr.scheduler_methods.create_confirmation_evaluation_form_for_prompt",
+        # "prompt_hr.scheduler_methods.inform_employee_for_confirmation_process",
+        # "prompt_hr.scheduler_methods.validate_employee_holiday_list",
+        # "prompt_hr.scheduler_methods.assign_checkin_role",
+        # "prompt_hr.scheduler_methods.validate_employee_holiday_list",
         # "prompt_hr.scheduler_methods.validate_employee_holiday_list", 						        
     ],
 }
@@ -413,11 +433,11 @@ fixtures = [
 #     "dt":"Role", "filters": [["name", "in", ["Job Requisition", "Head of Department", "Managing Director"]]]
 # },
 {
-    "dt":"Workflow", "filters": [["name", "in", ["Job Requisition", "Compensatory Leave Request", "Leave Application"]]]
+    "dt":"Workflow", "filters": [["name", "in", ["Job Requisition", "Compensatory Leave Request", "Leave Application", "Loan Application"]]]
 },
-# {
-#     "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled", "Confirmed"]]]
-# },
+{
+    "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled", "Confirmed", "Approved by HR", "Rejected by HR", "Approved by BU Head", "Rejected by BU Head"]]]
+},
 # {
 #     "dt":"Workflow Action Master", "filters": [["name", "in", ["Confirm"]]]
 # }
