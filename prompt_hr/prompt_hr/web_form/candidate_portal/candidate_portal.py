@@ -64,6 +64,7 @@ def update_job_offer(
 # ? FUNCTION TO UPDATE ONLY 'documents' CHILD TABLE IN CANDIDATE PORTAL
 @frappe.whitelist()
 def update_candidate_portal(doc):
+    
     try:
 
         # ? PARSE JSON IF COMING AS STRING
@@ -111,6 +112,7 @@ def update_candidate_portal(doc):
             doctype="Candidate Portal",
             docname=portal_doc.name,
         )
+
         # ? SAVE DOCUMENT WITH IGNORED PERMISSIONS
         portal_doc.save(ignore_permissions=True)
 
