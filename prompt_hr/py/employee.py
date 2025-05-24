@@ -173,40 +173,65 @@ def create_welcome_status(user_id):
         )
 
 
+
+# ? HELPER FUNCTION TO LOG ERROR WITH 140-CHAR LIMIT
+def log(msg):
+    if len(msg) > 140:
+        msg = msg[:137] + "..."
+    frappe.log_error(title="Employee Profile Sync", message=msg)
+
 # ? FUNCTION TO CREATE/UPDATE EMPLOYEE PROFILE FROM EMPLOYEE DOC
 def create_or_update_employee_profile(doc):
     employee_id = doc.name
+    log(f"Syncing Employee Profile for Employee ID: {employee_id}")
 
     # ? FETCH OR CREATE EMPLOYEE PROFILE
     if frappe.db.exists("Employee Profile", {"employee": employee_id}):
+        log(f"Employee Profile exists for {employee_id}, fetching...")
         employee_profile = frappe.get_doc("Employee Profile", {"employee": employee_id})
     else:
+        log(f"No Employee Profile found for {employee_id}, creating new...")
         employee_profile = frappe.new_doc("Employee Profile")
         employee_profile.employee = employee_id
 
     # ? SYNC COMMON FIELDS
+    log("Syncing common fields...")
     for field in common_fields:
         value = doc.get(field)
         if value not in [None, "", [], {}]:
+            log(f"Setting common field '{field}' = {value}")
             employee_profile.set(field, value)
 
     # ? SYNC CUSTOM FIELDS
+    log("Syncing custom mapped fields...")
     for source_field, target_field in field_mapping.items():
         value = doc.get(source_field)
         if value not in [None, "", [], {}]:
+            log(f"Mapping field '{source_field}' -> '{target_field}' = {value}")
             employee_profile.set(target_field, value)
 
+    log(f"Saving Employee Profile for {employee_id}")
     employee_profile.save()
+    log(f"Employee Profile synced successfully for {employee_id}")
 
 
 # ? CALLED ON EMPLOYEE UPDATE
 def on_update(doc, method):
+    log(f"on_update triggered for Employee: {doc.name}")
+
     # ? SYNC EMPLOYEE PROFILE
     create_or_update_employee_profile(doc)
 
-    # ? CREATE WELCOME PAGE IF IT DOESN’T EXIST AND USER ID IS SET
-    if doc.user_id and not frappe.db.exists("Welcome Page", {"user": doc.user_id}):
-        create_welcome_status(doc.user_id)
+    # ? CREATE WELCOME PAGE IF NOT EXISTS
+    if doc.user_id:
+        log(f"Employee has user_id: {doc.user_id}")
+        if not frappe.db.exists("Welcome Page", {"user": doc.user_id}):
+            log(f"Welcome Page does not exist for {doc.user_id}, creating...")
+            create_welcome_status(doc.user_id)
+        else:
+            log(f"Welcome Page already exists for {doc.user_id}")
+    else:
+        log("No user_id set on Employee, skipping Welcome Page creation")
 
 
 def validate(doc, method):
