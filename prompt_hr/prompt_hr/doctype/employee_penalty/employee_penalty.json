@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "format:EP-PEN-.####",
+ "autoname": "format:EP-PEN-{####}",
  "creation": "2025-05-23 10:57:01.339950",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -9,10 +9,12 @@
   "employee",
   "leave_type",
   "company",
+  "deduct_earned_leave",
+  "deduct_leave_without_pay",
   "column_break_yxdx",
   "penalty_date",
   "attendance",
-  "leave_penalty",
+  "total_leave_penalty",
   "leave_balance_before_application",
   "for_late_coming",
   "for_insufficient_hours",
@@ -41,12 +43,6 @@
    "fieldtype": "Link",
    "label": "Attendance",
    "options": "Attendance"
-  },
-  {
-   "fieldname": "leave_penalty",
-   "fieldtype": "Float",
-   "label": "Leave Penalty",
-   "precision": "1"
   },
   {
    "fieldname": "section_break_ixto",
@@ -86,12 +82,31 @@
    "fieldname": "penalty_date",
    "fieldtype": "Date",
    "label": "Penalty date"
+  },
+  {
+   "fieldname": "deduct_earned_leave",
+   "fieldtype": "Float",
+   "label": "Deduct Earned Leave",
+   "precision": "1"
+  },
+  {
+   "description": "These unpaid leaves will be deducted from salary slip",
+   "fieldname": "deduct_leave_without_pay",
+   "fieldtype": "Float",
+   "label": "Deduct Leave without pay",
+   "precision": "1"
+  },
+  {
+   "fieldname": "total_leave_penalty",
+   "fieldtype": "Float",
+   "label": "Total Leave Penalty",
+   "precision": "1"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-23 17:00:14.169260",
+ "modified": "2025-05-24 19:00:41.641396",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Penalty",
