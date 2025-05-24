@@ -277,6 +277,14 @@ doc_events = {
     "Salary Slip": {
         "on_submit": "prompt_hr.py.salary_slip.loan_repayment_amount",
         "on_update": "prompt_hr.py.salary_slip.update_loan_principal_amount",
+    },
+
+    "Salary Structure Assignment": {
+        "on_submit": "prompt_hr.py.salary_structure_assignment.update_employee_ctc",
+    },
+
+    "Appointment Letter": {
+        "before_save": "prompt_hr.py.appointment_letter.set_annexure_details",
     }
 
 }
