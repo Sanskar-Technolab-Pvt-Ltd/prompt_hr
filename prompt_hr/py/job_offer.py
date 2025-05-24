@@ -186,7 +186,7 @@ def send_mail_to_job_applicant(doc, is_resend=False, notification_name=None):
             recipients=[candidate.applicant_email],
             notification_name=notification_name,
             doctype="Candidate Portal",
-            docname=doc.name,
+            docname=candidate.name,
             button_label="View Details",
             button_link="/candidate-portal/",
             hash_input_text=candidate.name,
