@@ -1,4 +1,5 @@
 frappe.ready(function () {
+
     // ? FORCE DISABLE THE DEFAULT WEB FORM FUNCTIONALITY
     setTimeout(function () {
         // ? REMOVE THE STANDARD SUBMIT BUTTON ENTIRELY
@@ -53,7 +54,11 @@ frappe.ready(function () {
                 args: {
                     hash: values.password,
                     doctype: "Candidate Portal",
-                    child_doctype: "Document Collection",
+                    child_doctypes_config: [
+                        { "child_doctype": "Document Collection", "child_table_fieldname": "documents" },
+                        { "child_doctype": "Document Collection", "child_table_fieldname": "new_joinee_documents" }
+                    ]
+                    ,
                     filters: filters,
                     fields: [
                         "phone_number",
@@ -71,8 +76,8 @@ frappe.ready(function () {
                 },
                 callback: async function (r) {
                     const form_data = r.message.form_data;
-                    const child_table_data = r.message.child_table_data;
-                    console.log("Form Data: ", form_data);
+                    const child_tables_data = r.message.child_tables_data;
+                    console.log("Form Data: ", r);
 
                     if (Array.isArray(form_data) && form_data.length > 0) {
                         const data = form_data[0];
@@ -92,7 +97,7 @@ frappe.ready(function () {
                         });
 
                         // ? CONDITIONAL FIELD HIDING BASED ON job_offer
-                        if (!data.job_offer) {
+                        if (!data.job_offer || child_tables_data[1].child_table_data.length > 0) {
                             const fieldsToHide = [
                                 "offer_date",
                                 "offer_letter",
@@ -100,25 +105,35 @@ frappe.ready(function () {
                                 "offer_acceptance",
                                 "expected_date_of_joining"
                             ];
+                            if (child_tables_data[1].child_table_data.length > 0) {
+                                fieldsToHide.push("documents");
+                            }
                             fieldsToHide.forEach(field => {
                                 if (frappe.web_form.fields_dict[field]) {
                                     frappe.web_form.set_df_property(field, "hidden", 1);
                                 }
                             });
                         }
+                        
+                        let idx = 0;
+                        // ? SET THE CHILD TABLE DATA
+                        child_tables_data.forEach( async child_table_data => {
+                            console.log("Child Table Data: ", child_table_data);
+                            child_table_fieldname = child_table_data.child_table_fieldname;
+                            idx = frappe.web_form.fields_dict[child_table_fieldname].df.idx;
+                            frappe.web_form.fields[idx].data = child_table_data.child_table_data;
+                            // ? SET THE DOCUMENTS TABLE DATA
+                            const grid = frappe.web_form.fields_dict[child_table_fieldname].grid;
 
-                        // ? FILL CHILD TABLE WITHOUT DISABLING EXPANSION
-                        const idx = frappe.web_form.fields_dict.documents.df.idx;
-                        frappe.web_form.fields[idx].data = child_table_data;
+                            // ? HIDE THE "name" FIELD FROM CHILD TABLE LIST VIEW
+                            grid.df.fields = grid.df.fields.filter(f => f.fieldname !== "name");
 
-                        const grid = frappe.web_form.fields_dict.documents.grid;
+                            await grid.refresh();
 
-                        // ? HIDE THE "name" FIELD FROM CHILD TABLE LIST VIEW
-                        grid.df.fields = grid.df.fields.filter(f => f.fieldname !== "name");
+                            $(".row-check").hide();
+                        });
 
-                        await grid.refresh();
-
-                        $(".row-check").hide();
+                        
 
                         // ? SHOW OUR CUSTOM UPDATE BUTTON
                         $('#custom-update-btn').show().off('click').on('click', function () {

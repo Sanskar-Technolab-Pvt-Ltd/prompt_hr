@@ -20,7 +20,9 @@
   "offer_letter",
   "column_break_qblg",
   "expected_date_of_joining",
-  "condition_for_offer_acceptance"
+  "condition_for_offer_acceptance",
+  "new_joinee_checklist_tab",
+  "new_joinee_documents"
  ],
  "fields": [
   {
@@ -104,12 +106,23 @@
    "fieldname": "offer_letter",
    "fieldtype": "Data",
    "label": "Offer Letter"
+  },
+  {
+   "fieldname": "new_joinee_checklist_tab",
+   "fieldtype": "Tab Break",
+   "label": "New Joinee Checklist"
+  },
+  {
+   "fieldname": "new_joinee_documents",
+   "fieldtype": "Table",
+   "label": "New Joinee Documents",
+   "options": "Document Collection"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-24 13:14:51.602431",
+ "modified": "2025-05-24 16:17:29.958660",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Candidate Portal",

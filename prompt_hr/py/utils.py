@@ -167,7 +167,7 @@ def get_checklist_documents(checklist):
 
 # ? FUNCTION TO INVITE CANDIDATE FOR DOCUMENT COLLECTION
 @frappe.whitelist()
-def invite_for_document_collection(args, joining_document_checklist, document_collection_stage=None, documents=None):
+def invite_for_document_collection(args, joining_document_checklist, child_table_fieldname,document_collection_stage=None, documents=None):
     try:
         if isinstance(args, str):
             args = frappe.parse_json(args)
@@ -205,7 +205,7 @@ def invite_for_document_collection(args, joining_document_checklist, document_co
                 for doc in documents:
                     req_doc = doc.get("required_document")
                     if req_doc and req_doc not in existing_required_docs and req_doc not in new_docs_seen:
-                        invitation.append("documents", {
+                        invitation.append(child_table_fieldname, {
                             "required_document": req_doc,
                             "document_collection_stage": doc.get("document_collection_stage")
                         })

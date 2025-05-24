@@ -1,5 +1,5 @@
 import frappe
-from prompt_hr.py.utils import validate_hash,send_notification_email
+from prompt_hr.py.utils import validate_hash, send_notification_email
 import json
 from frappe import _
 
@@ -12,9 +12,12 @@ def get_context(context):
 # ! prompt_hr.prompt_hr.web_form.candidate_portal.candidate_portal.validate_candidate_portal_hash
 # ? FUNCTION TO VALIDATE CANDIDATE PORTAL HASH
 @frappe.whitelist(allow_guest=True)
-def validate_candidate_portal_hash(hash, doctype, child_doctype, filters, fields):
+def validate_candidate_portal_hash(
+    hash, doctype, child_doctypes_config, filters, fields
+):
     # ? LOAD THE FIELDS IF THEY ARE IN JSON FORMAT
     fields = json.loads(fields) if isinstance(fields, str) else fields
+    child_doctypes_config = json.loads(child_doctypes_config) if isinstance(child_doctypes_config, str) else child_doctypes_config
 
     # ? VALIDATE THE HASH FOR A SPECIFIC DOCTYPE AND PRIMARY KEY
     if validate_hash(hash, doctype, filters):
@@ -23,13 +26,28 @@ def validate_candidate_portal_hash(hash, doctype, child_doctype, filters, fields
         if not form_data:
             frappe.throw("Document not found")
 
-        # ? GET THE CHILD DATA BASED ON THE FORM DATA
-        child_table_data = frappe.db.get_all(
-            child_doctype, filters={"parent": form_data[0].get("name")}, fields=["*"]
-        )
+        child_tables_data = []
+
+        for child_doctype_config in child_doctypes_config:
+            # ? GET THE CHILD DATA BASED ON THE FORM DATA
+            child_table_data = frappe.db.get_all(
+                child_doctype_config["child_doctype"],
+                filters={
+                    "parent": form_data[0].get("name"),
+                    "parentfield": child_doctype_config["child_table_fieldname"],
+                },
+                fields=["*"],
+            )
+            child_tables_data.append(
+                {
+                    "child_doctype": child_doctype_config["child_doctype"],
+                    "child_table_data": child_table_data,
+                    "child_table_fieldname": child_doctype_config["child_table_fieldname"],
+                }
+            )
 
         # ? COMBINE THE FORM AND CHILD DATA IN A SINGLE DICT
-        data = {"form_data": form_data, "child_table_data": child_table_data}
+        data = {"form_data": form_data, "child_tables_data": child_tables_data}
         # ? RETURN THE COMBINED DATA
         return data
     else:
@@ -62,9 +80,9 @@ def update_job_offer(
 
 # ! prompt_hr.py.candidate_portal.update_candidate_portal
 # ? FUNCTION TO UPDATE ONLY 'documents' CHILD TABLE IN CANDIDATE PORTAL
-@frappe.whitelist()
+@frappe.whitelist(allow_guest=True)
 def update_candidate_portal(doc):
-    
+
     try:
 
         # ? PARSE JSON IF COMING AS STRING
