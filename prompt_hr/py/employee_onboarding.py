@@ -57,7 +57,7 @@ def set_required_documents_in_new_joinee_checklist(doc):
 @frappe.whitelist()
 def validate(doc, method):
 
-    auto_fill_first_activity(doc)
+    # auto_fill_first_activity(doc)
     fill_missing_checklist_records(doc)
     rows_to_notify = get_pending_activity_rows(doc)
     frappe.db.commit()

@@ -531,7 +531,8 @@ function createInviteButton(frm) {
                             name: frm.doc.job_applicant,
                             joining_document_checklist: values.joining_document_checklist,
                             document_collection_stage: values.document_collection_stage,
-                            documents: selected_documents
+                            documents: selected_documents,
+                            child_table_fieldname: "documents"
                         },
                         joining_document_checklist: values.joining_document_checklist,
                         document_collection_stage: values.document_collection_stage,
