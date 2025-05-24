@@ -1,5 +1,28 @@
+function set_text_field_height() {
+    const fields = [
+        'first_name', 'middle_name', 'last_name', 'employee_name', 'salutation',
+        'custom_reason_for_suspension', 'custom_agency_name', 'custom_agency_email', 
+        'custom_verification_remarks', 'cell_number', 'personal_email', 
+        'prefered_contact_email', 'custom_work_mobile_no', 'custom_preferred_mobile_no', 
+        'company_email', 'prefered_email', 'custom_current_address_line_1', 
+        'custom_current_address_line_2', 'custom_current_address_line_3', 
+        'custom_permanent_address_line_1', 'custom_permanent_address_line_2', 
+        'custom_permanent_address_line_3', 'person_to_be_contacted', 
+        'emergency_phone_number', 'relation', 'bank_name', 'bank_ac_no', 
+        'bank_cb', 'ifsc_code', 'micr_code', 'iban', 'passport_number', 
+        'valid_upto', 'place_of_issue', 'health_insurance_no', 'new_workplace', 
+        'old_parent'
+    ];
+    
+    fields.forEach(field => {
+        $(`textarea[data-fieldname='${field}']`).css('height', '40');
+    });
+    
+}
 frappe.ui.form.on("Employee", {
     refresh: function(frm) {
+        set_text_field_height();
+
 
         // ? EMPLOYEE RESIGNATION BUTTON AND FUNCTIONALITY
         createEmployeeResignationButton(frm);
