@@ -3,7 +3,7 @@
  "allow_events_in_timeline": 1,
  "allow_import": 1,
  "allow_rename": 1,
- "autoname": "naming_series:[employee]",
+ "autoname": "format:EMP-PRF-{employee}",
  "creation": "2025-03-28 07:00:09.328710",
  "doctype": "DocType",
  "document_type": "Setup",
@@ -23,7 +23,6 @@
   "date_of_birth",
   "salutation",
   "column_break1",
-  "date_of_joining",
   "image",
   "status",
   "erpnext_user",
@@ -251,15 +250,6 @@
    "fieldname": "column_break1",
    "fieldtype": "Column Break",
    "width": "50%"
-  },
-  {
-   "fieldname": "date_of_joining",
-   "fieldtype": "Date",
-   "label": "Date of Joining",
-   "oldfieldname": "date_of_joining",
-   "oldfieldtype": "Date",
-   "permlevel": 1,
-   "reqd": 1
   },
   {
    "fieldname": "image",
@@ -1109,11 +1099,11 @@
  "icon": "fa fa-user",
  "image_field": "image",
  "links": [],
- "modified": "2025-04-16 12:06:15.372178",
- "modified_by": "Administrator",
+ "modified": "2025-05-22 14:29:41.535413",
+ "modified_by": "das@gmail.com",
  "module": "Prompt HR",
  "name": "Employee Profile",
- "naming_rule": "By \"Naming Series\" field",
+ "naming_rule": "Expression",
  "nsm_parent_field": "reports_to",
  "owner": "Administrator",
  "permissions": [
