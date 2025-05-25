@@ -267,7 +267,6 @@
    "oldfieldtype": "Select",
    "options": "Active\nInactive\nSuspended\nLeft",
    "permlevel": 1,
-   "reqd": 1,
    "search_index": 1
   },
   {
@@ -297,8 +296,7 @@
    "options": "Company",
    "permlevel": 1,
    "print_hide": 1,
-   "remember_last_selected_value": 1,
-   "reqd": 1
+   "remember_last_selected_value": 1
   },
   {
    "fieldname": "department",
@@ -1099,8 +1097,8 @@
  "icon": "fa fa-user",
  "image_field": "image",
  "links": [],
- "modified": "2025-05-22 14:29:41.535413",
- "modified_by": "das@gmail.com",
+ "modified": "2025-05-25 15:20:57.312302",
+ "modified_by": "malav@sanskartechnolab.com",
  "module": "Prompt HR",
  "name": "Employee Profile",
  "naming_rule": "Expression",
