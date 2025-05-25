@@ -27,7 +27,7 @@ app_license = "mit"
 # include js, css files in header of desk.html
 # app_include_css = "/assets/prompt_hr/css/prompt_hr.css"
 app_include_js = [
-                    # "assets/prompt_hr/js/welcome_page_check.js",
+                    "assets/prompt_hr/js/welcome_page_check.js",
                     "assets/prompt_hr/js/frappe/form/workflow.js",
                 ]
 
@@ -217,9 +217,9 @@ doc_events = {
     },
     
     
-    # "User": {
-    #     "after_insert": "prompt_hr.py.welcome_status.after_insert"
-    # },
+    "User": {
+        "after_insert": "prompt_hr.py.welcome_status.after_insert"
+    },
     "Attendance Request": {
         "after_insert": "prompt_hr.py.attendance_request.notify_reporting_manager",
         "validate": "prompt_hr.py.attendance_request.notify_reporting_manager",

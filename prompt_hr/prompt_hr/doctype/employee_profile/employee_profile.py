@@ -67,7 +67,7 @@ class EmployeeProfile(Document):
             old_value = self.format_value(employee_data.get(employee_field)) or ""
             new_value = self.format_value(self.get(field)) or ""
 
-            if old_value != new_value:
+            if (old_value or new_value) and old_value != new_value:
                 changes.append({
                     "field_name": field,
                     "old_value": old_value,

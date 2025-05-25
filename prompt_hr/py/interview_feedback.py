@@ -1,34 +1,17 @@
 import frappe
+from prompt_hr.py.utils import send_notification_email, get_hr_managers_by_company
 
 def on_submit(doc,method):
-    notification = frappe.get_doc("Notification", "Interview Feedback Submit Notification")
-    subject = frappe.render_template(notification.subject, {"doc": doc})
-    message = frappe.render_template(notification.message, {"doc": doc})
-    hr_manager_email = None
-    hr_manager_users = frappe.get_all(
-        "Employee",
-        filters={"company": doc.custom_company},
-        fields=["user_id"]
-    )
-
-    for hr_manager in hr_manager_users:
-        hr_manager_user = hr_manager.get("user_id")
-        if hr_manager_user:
-            # Check if this user has the HR Manager role
-            if "HR Manager" in frappe.get_roles(hr_manager_user):
-                hr_manager_email = frappe.db.get_value("User", hr_manager_user, "email")
-                break
-
-    if not hr_manager_email:
-        frappe.throw("HR Manager email not found.")
-    
-    frappe.sendmail(
-        recipients=hr_manager_email,
-        subject=subject,
-        message=message,
-        reference_doctype=doc.doctype,
-        reference_name=doc.name,
-    )
+    hr_managers = get_hr_managers_by_company(company=doc.custom_company)
+    if send_notification_email(
+        recipients=hr_managers,
+        doctype=doc.doctype,
+        docname=doc.name,
+        notification_name= "Interview Feedback Submit Notification"
+    ):
+        frappe.msgprint(("Notification email sent to HR Managers."), alert=True)
+    else:
+        frappe.msgprint(("Failed to send notification email to HR Managers."), alert=True)
 
 
 def on_update(doc, method):
