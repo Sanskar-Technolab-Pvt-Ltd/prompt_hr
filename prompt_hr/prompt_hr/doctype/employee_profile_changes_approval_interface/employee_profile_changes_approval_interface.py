@@ -19,20 +19,23 @@ class EmployeeProfileChangesApprovalInterface(Document):
 
             self.apply_changes_to_employee()
 
-        # ? HANDLE REJECTION LOGIC
-        elif self.approval_status == "Rejected":
-            self.sync_data_from_employee()
+        # # ? HANDLE REJECTION LOGIC
+        # elif self.approval_status == "Rejected":
+        #     self.sync_data_from_employee()
 
     # ? UPDATE EMPLOYEE MASTER WITH APPROVED CHANGES
     def apply_changes_to_employee(self):
-        if not self.employee or not self.employee_profile_id:
+        # if not self.employee or not self.employee_profile_id:
+        #     return
+
+        if not self.employee:
             return
 
         employee = frappe.get_doc("Employee", self.employee)
         employee.set(self.field_name, self.new_value)
         employee.save(ignore_permissions=True)
 
-        self.sync_employee_to_profile(employee)
+        # self.sync_employee_to_profile(employee)
 
         frappe.msgprint(f"Approved changes applied to Employee {self.employee}")
 
