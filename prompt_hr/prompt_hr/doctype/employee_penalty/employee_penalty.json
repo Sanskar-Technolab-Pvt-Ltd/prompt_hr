@@ -18,6 +18,7 @@
   "leave_balance_before_application",
   "for_late_coming",
   "for_insufficient_hours",
+  "for_no_attendance",
   "section_break_ixto",
   "remarks"
  ],
@@ -101,12 +102,18 @@
    "fieldtype": "Float",
    "label": "Total Leave Penalty",
    "precision": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "for_no_attendance",
+   "fieldtype": "Check",
+   "label": "For no attendance"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-24 19:00:41.641396",
+ "modified": "2025-05-26 19:11:15.409202",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Penalty",
