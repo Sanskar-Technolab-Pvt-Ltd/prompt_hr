@@ -217,9 +217,9 @@ doc_events = {
     },
     
     
-    "User": {
-        "after_insert": "prompt_hr.py.welcome_status.after_insert"
-    },
+    # "User": {
+    #     "after_insert": "prompt_hr.py.welcome_status.after_insert"
+    # },
     "Attendance Request": {
         "after_insert": "prompt_hr.py.attendance_request.notify_reporting_manager",
         "validate": "prompt_hr.py.attendance_request.notify_reporting_manager",

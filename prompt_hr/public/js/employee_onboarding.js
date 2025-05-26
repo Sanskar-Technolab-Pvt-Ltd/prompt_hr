@@ -2,7 +2,7 @@ frappe.ui.form.on("Employee Onboarding", {
     
     // ? RUN ON FORM REFRESH
     refresh: async function (frm) {
-        update_first_activity_if_needed(frm);
+        // update_first_activity_if_needed(frm);
         let applicants = await frappe.db.get_list("Job Applicant", {
             fields: ["name"],
             or_filters: [

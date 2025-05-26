@@ -15,7 +15,8 @@ def get_onboarding_details(parent, parenttype):
 # ? AFTER INSERT EVENT
 def after_insert(doc, method):
     # ? SET REQUIRED DOCUMENTS IN THE NEW JOINEE CHECKLIST
-    set_required_documents_in_new_joinee_checklist(doc)
+    # set_required_documents_in_new_joinee_checklist(doc)
+    pass
 
 # ? FUNCTION TO SET REQUIRED DOCUMENTS IN THE NEW JOINEE CHECKLIST
 def set_required_documents_in_new_joinee_checklist(doc):
