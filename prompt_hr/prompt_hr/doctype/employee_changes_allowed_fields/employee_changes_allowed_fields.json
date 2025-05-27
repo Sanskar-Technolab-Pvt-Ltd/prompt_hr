@@ -1,0 +1,45 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-05-27 11:07:05.634593",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "column_break_kzib",
+  "field_label",
+  "permission_required"
+ ],
+ "fields": [
+  {
+   "fieldname": "column_break_kzib",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "field_label",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Field Label"
+  },
+  {
+   "default": "0",
+   "fieldname": "permission_required",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Permission Required"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-05-27 11:09:41.424107",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Employee Changes Allowed Fields",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
