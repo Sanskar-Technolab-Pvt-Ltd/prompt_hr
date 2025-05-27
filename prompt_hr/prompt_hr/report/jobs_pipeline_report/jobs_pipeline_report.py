@@ -57,7 +57,8 @@ def get_columns(interview_rounds):
         {
             "fieldname": "location",
             "label": _("Location"),
-            "fieldtype": "Data",
+            "fieldtype": "Link",
+            "options":"Address",
             "width": 200,
         },
         {
@@ -226,7 +227,7 @@ def get_data(employee_company, interview_rounds, filters=None):
             counts["designation"] = frappe.db.get_value("Job Opening", job_title, "designation")
             location = frappe.db.get_value("Job Opening", job_title, "location")
             city_name = frappe.db.get_value("Address", location, "city")
-            counts["location"] = city_name
+            counts["location"] = location
             counts["department"] = frappe.db.get_value("Job Opening", job_title, "department")
             counts["recruiters"] = get_recruiters(job_title)
             counts["no_of_positions"] = frappe.db.get_value("Job Opening", job_title, "custom_no_of_position")

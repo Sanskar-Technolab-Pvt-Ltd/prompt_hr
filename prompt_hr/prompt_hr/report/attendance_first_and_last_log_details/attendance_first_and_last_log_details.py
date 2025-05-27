@@ -9,7 +9,7 @@ def execute(filters=None):
     from_date = filters.get("from_date") or getdate()
     to_date = filters.get("to_date") or getdate()
     columns = [
-        {"label": "Employee Number", "fieldname": "employee", "fieldtype": "Link", "options": "Employee", "width": 120},
+        {"label": "Employee Number", "fieldname": "employee", "fieldtype": "Data", "width": 120},
         {"label": "Employee Name", "fieldname": "employee_name", "fieldtype": "Data", "width": 150},
         {"label": "Job Title", "fieldname": "job_title", "fieldtype": "Data", "width": 120},
         {"label": "Business Unit", "fieldname": "business_unit", "fieldtype": "Data", "width": 100},
@@ -52,6 +52,7 @@ def execute(filters=None):
                 "department": employee_data.department,
                 "custom_subdepartment": employee_data.custom_subdepartment,
                 "payroll_cost_center": employee_data.payroll_cost_center,
+                "employee_number": employee_data.employee_number,
             })
     for row in attendance_records:
         data.append({
