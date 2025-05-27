@@ -1,6 +1,6 @@
 import frappe
 from frappe import throw
-from frappe.utils import getdate
+from frappe.utils import getdate, nowdate
 from frappe.utils.pdf import get_pdf
 from frappe.www.printview import get_print_format
 from prompt_hr.api.main import notify_signatory_on_email
@@ -219,8 +219,8 @@ def create_or_update_employee_profile(doc):
 def on_update(doc, method):
     log(f"on_update triggered for Employee: {doc.name}")
 
-    # ? SYNC EMPLOYEE PROFILE
-    create_or_update_employee_profile(doc)
+    # # ? SYNC EMPLOYEE PROFILE
+    # create_or_update_employee_profile(doc)
 
     # ? CREATE WELCOME PAGE IF NOT EXISTS
     if doc.user_id:
@@ -586,3 +586,87 @@ def create_exit_approval_process(user_response, employee, notice_number_of_days=
             message=f"Error creating Exit Approval Process: {str(e)}\n{traceback.format_exc()}",
         )
         return None
+
+
+def create_employee_changes_approval(changes):
+    change_doc = frappe.get_doc({
+        "doctype": "Employee Profile Changes Approval Interface",
+        **changes
+    })
+    change_doc.insert(ignore_permissions=True)
+    return change_doc.name
+
+@frappe.whitelist()
+def create_employee_details_change_request(employee_id,field_name,old_value,new_value):
+
+    try:
+
+        existing_value = frappe.db.get_value("Employee", {"name": employee_id, "status": "Active"},field_name)
+        if existing_value is None:
+            return {
+                "status": 0,
+                "message":"Field not found or employee is not active.",
+                "data": None
+            }
+        elif existing_value == new_value:
+            return {
+                "status": 0,
+                "message": "No changes detected.",
+                "data": None
+            }
+        elif str(existing_value).strip() != str(old_value).strip():
+            return {
+                "status": 0,
+                "message": f"Mismatch in your old value and existing value. Kindly try again and if issue persists contact System Manager.{existing_value} {old_value}",
+                "data": None
+            }
+        else:
+            if frappe.db.exists("Employee Profile Changes Approval Interface", {
+                "employee": employee_id,
+                "field_name": field_name,
+                "approval_status": "Pending"
+            }):
+                return {
+                    "status": 0,
+                    "message": "A change request for this field is already pending.",
+                    "data": None
+                }
+            else:
+                changes = {
+                    "field_name": field_name,
+                    "old_value": old_value,
+                    "new_value": new_value,
+                    "employee": employee_id,
+                    "approval_status": "Pending",
+                    "date_of_changes_made": nowdate()
+                }
+
+                changes_approval = create_employee_changes_approval(changes)
+
+                user = frappe.db.get_value("Employee", employee_id, "user_id")
+                if not user:
+                    return {
+                        "status": 0,
+                        "message": "No user associated with this employee.",
+                        "data": None
+                    }
+                return {
+                    "status": 1,
+                    "message": "Change request created successfully.",
+                    "data": changes
+                }
+
+
+    except Exception as e:
+        frappe.log_error(
+            title="Employee Details Change Request Error",
+            message=f"Error creating change request for Employee {employee_id}: {str(e)}\n{traceback.format_exc()}"
+        )
+        return {
+            "status": 0,
+            "message": f"An error occurred while processing your request: {str(e)}",
+            "data": None
+        }
+
+            
+            
