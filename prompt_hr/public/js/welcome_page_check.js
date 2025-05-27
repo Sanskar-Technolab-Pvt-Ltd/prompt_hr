@@ -11,26 +11,28 @@ $(document).ready(function () {
     }
 });
 
+// ? FUNCTION To redirect user to Welcome Page if validation passes
 function redirect_to_welcome_if_needed() {
     if (frappe.session.user === 'Guest') return;
 
-    // ? SKIP IF ALREADY ON WELCOME PAGE
+    // ? SKIP REDIRECT IF ALREADY ON WELCOME PAGE
     if (window.location.pathname.includes('/app/welcome-page/')) return;
 
     frappe.call({
-        method: "frappe.client.get_value",
+        method: "prompt_hr.prompt_hr.doctype.welcome_page.welcome_page.check_welcome_page_validation",
         args: {
-            doctype: "Welcome Page",
-            filters: { user: frappe.session.user },
-            fieldname: ["name", "is_completed"]
+            user_id: frappe.session.user,
         },
         callback: function (r) {
-            if (r.message && r.message.name && !r.message.is_completed) {
-                const name = encodeURIComponent(r.message.name);
-                const route = `/app/welcome-page/${name}`;
-                console.log("Redirecting to Welcome Page:", route);
-                window.location.href = route;
-            }
+            console.log(r)
+            if (r.message && r.message.success === 1 && r.message.data) {
+                const { name, is_completed } = r.message.data;
+                if (!is_completed) {
+                    const route = `/app/welcome-page/${encodeURIComponent(name)}`;
+                    console.log("Redirecting to Welcome Page:", route);
+                    window.location.href = route;
+                }
+            } 
         }
     });
 }

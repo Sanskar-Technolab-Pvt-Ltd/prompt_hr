@@ -168,10 +168,10 @@ frappe.ui.form.on("Employee", {
             frm.set_value("custom_permanent_city", frm.doc.custom_current_city);
             frm.set_value("custom_permanent_state", frm.doc.custom_current_state);
 
-            frm.set_value("custom_permanent_zip_code",frm.doc.custom_current_zip_code)
-            frm.set_value("custom_permanent_district",frm.doc.custom_current_district)
-            frm.set_value("custom_permanent_sub_district",frm.doc.custom_current_sub_district)
-            frm.set_value("custom_permanent_country",frm.doc.custom_current_country)
+            frm.set_value("custom_permanent_zip_code", frm.doc.custom_current_zip_code)
+            frm.set_value("custom_permanent_district", frm.doc.custom_current_district)
+            frm.set_value("custom_permanent_sub_district", frm.doc.custom_current_sub_district)
+            frm.set_value("custom_permanent_country", frm.doc.custom_current_country)
 
         }
         else {
@@ -268,24 +268,60 @@ function createEmployeeResignationButton(frm) {
     });
 }
 
-// ? FUNCTION TO ADD BUTTON FOR EMPLOYEE INFORMATION CHANGE REQUEST
+// ? FUNCTION TO ADD A CUSTOM BUTTON ON THE EMPLOYEE FORM
 function addEmployeeDetailsChangesButton(frm) {
+    // ? ADD BUTTON TO FORM HEADER
     frm.add_custom_button("Apply for Changes", () => {
         loadDialogBox(frm);
     });
 }
 
-// ? FUNCTION TO RETURN A LIST OF EMPLOYEE FIELDS THAT CAN BE CHANGED
-function getEmployeeChangableFields(frm) {
-    return ["first_name", "middle_name", "last_name", "date_of_birth", "department"];
+// ? FUNCTION TO FETCH LIST OF CHANGEABLE EMPLOYEE FIELDS FROM BACKEND
+async function getEmployeeChangableFields(frm) {
+    try {
+        // ? CALL BACKEND METHOD TO GET FIELD METADATA
+        const response = await frappe.call({
+            method: "prompt_hr.py.employee.get_employee_changable_fields",
+            args: { emp_id: frm.doc.name }
+        });
+
+        // ? RETURN FIELD LIST OR EMPTY ARRAY
+        return response.message || [];
+    } catch (err) {
+        // ? LOG ERROR AND RETURN EMPTY LIST
+        console.error("ERROR FETCHING EMPLOYEE CHANGEABLE FIELDS:", err);
+        return [];
+    }
 }
 
-// ? FUNCTION TO LOAD DIALOG BOX FOR FIELD CHANGE REQUEST
-function loadDialogBox(frm) {
-    const employee_fields = getEmployeeChangableFields(frm);
+// ? FUNCTION TO LOAD DIALOG BOX FOR EMPLOYEE CHANGE REQUEST
+async function loadDialogBox(frm) {
+    let employee_fields = [];
+    let field_meta = [];
 
-    // ? INITIALIZE DIALOG WITH STATIC FIELDS
-    let dialog = new frappe.ui.Dialog({
+    try {
+        // ? FETCH FIELD METADATA FROM BACKEND
+        field_meta = await getEmployeeChangableFields(frm);
+
+        // ? IF NO FIELDS FOUND, SHOW ERROR AND EXIT
+        if (!field_meta.length) {
+            frappe.msgprint(__("There are currently no personal details you're allowed to update. Please contact HR if you believe this is an error."));
+            return;
+        }
+
+        // ? PREPARE AUTOCOMPLETE OPTIONS FROM LABELS
+        employee_fields = field_meta.map(f => ({
+            label: f.label,
+            value: f.label 
+        }));
+
+    } catch (error) {
+        frappe.msgprint(__('Could not load changeable fields.'));
+        return;
+    }
+
+    // ? INITIALIZE DIALOG WITH STATIC FIELD SETUP
+    const dialog = new frappe.ui.Dialog({
         title: 'Select Employee Field',
         fields: [
             {
@@ -304,97 +340,95 @@ function loadDialogBox(frm) {
             {
                 label: 'New Value',
                 fieldname: 'new_value',
-                fieldtype: 'Data' // ? THIS WILL BE DYNAMICALLY REPLACED
-            },
+                fieldtype: 'Data' // ? DYNAMICALLY REPLACED BASED ON FIELD TYPE
+            }
         ],
         primary_action_label: 'Submit',
 
-        // ? ON SUBMIT, SHOW SELECTED FIELD AND NEW VALUE
+        // ? ON SUBMIT, CONVERT LABEL TO FIELDNAME AND SEND REQUEST
         primary_action(values) {
+            const selected_field = field_meta.find(f => f.label === values.employee_field);
+            if (!selected_field) {
+                frappe.msgprint(__('Selected field metadata not found.'));
+                return;
+            }
 
-            // ? HANDLE FIELD CHANGE REQUEST
-            handleFieldChangeRequest(frm, values);
+            handleFieldChangeRequest(frm, {
+                employee_field: selected_field.fieldname,
+                field_label: selected_field.label, // ? ADD FIELD LABEL
+                old_value: values.old_value,
+                new_value: values.new_value
+            }, dialog);
         }
     });
 
     // ? DISPLAY THE DIALOG
     dialog.show();
 
-    // ? ON FIELD SELECTION CHANGE, UPDATE OLD VALUE AND NEW VALUE FIELD TYPE
+    // ? HANDLE FIELD CHANGE (ON SELECT FROM AUTOCOMPLETE)
     dialog.fields_dict.employee_field.df.onchange = () => {
-        const selected_field = dialog.get_value('employee_field');
+        const selected_label = dialog.get_value('employee_field');
 
-        // ? GET EMPLOYEE FIELD METADATA
-        const meta = frappe.get_meta('Employee');
-        const field = meta.fields.find(f => f.fieldname === selected_field);
+        // ? FIND METADATA USING SELECTED LABEL
+        const selected_meta = field_meta.find(f => f.label === selected_label);
+        if (!selected_meta) return;
 
-        // ? SET OLD VALUE FROM CURRENT FORM DATA
-        const old_val = cur_frm.doc[selected_field] || '';
+        // ? SET OLD VALUE FROM CURRENT EMPLOYEE DOC
+        const old_val = frm.doc[selected_meta.fieldname] || '';
         dialog.set_value('old_value', old_val);
 
-        // ? IF FIELD NOT FOUND, EXIT
-        if (!field) return;
-
-        // ? REPLACE NEW VALUE FIELD WITH CORRECT FIELD TYPE AND OPTIONS
+        // ? PREPARE CONFIG FOR NEW VALUE FIELD BASED ON FIELD TYPE
         const new_field_config = {
             label: 'New Value',
             fieldname: 'new_value',
-            fieldtype: field.fieldtype || 'Data',
-            options: field.options || undefined
+            fieldtype: selected_meta.fieldtype || 'Data',
+            options: selected_meta.options || undefined
         };
 
+        // ? REPLACE EXISTING FIELD WITH CORRECT TYPE
         dialog.replace_field('new_value', new_field_config);
     };
 }
 
-// ? FUNCTION TO HANDLE EMPLOYEE FIELD CHANGE REQUEST
+// ? FUNCTION TO HANDLE FIELD CHANGE REQUEST SUBMISSION
 function handleFieldChangeRequest(frm, values, dialog) {
-
-    // ? SHOW LOADING INDICATOR WHILE PROCESSING
+    // ? SHOW LOADING INDICATOR
     frappe.dom.freeze(__('Submitting change request...'));
 
-    // ? CALL BACKEND METHOD TO CREATE CHANGE REQUEST
+    // ? MAKE BACKEND CALL TO CREATE CHANGE REQUEST
     frappe.call({
         method: "prompt_hr.py.employee.create_employee_details_change_request",
         args: {
             employee_id: frm.doc.name,
             field_name: values.employee_field,
+            field_label: values.field_label, // ? ADD FIELD LABEL TO API CALL
             old_value: values.old_value,
             new_value: values.new_value
         },
-        callback: function (r) {
 
-            // ? UNFREEZE SCREEN AFTER RESPONSE
+        // ? HANDLE RESPONSE FROM SERVER
+        callback: function (r) {
             frappe.dom.unfreeze();
 
-            let message = '';
-            let indicator = 'red';
-            let title = __('Request Failed');
+            const status = r.message?.status;
+            const msg = r.message?.message || __('Failed to create change request.');
 
-            // ? CHECK RESPONSE STATUS
-            if (r.message && r.message.status === 1) {
-                title = __('Request Submitted');
-                indicator = 'green';
-                message = r.message.message;
-            } else {
-                message = r.message ? r.message.message : __('Failed to create change request.');
-            }
-
-            // ? SHOW MESSAGE AND REFRESH IN 3 SECONDS
+            // ? DISPLAY APPROPRIATE SUCCESS/ERROR MESSAGE
             frappe.msgprint({
-                title: title,
-                message: message + '<br><i>Refreshing in 3 seconds...</i>',
-                indicator: indicator
+                title: status === 1 ? __('Request Submitted') : __('Request Failed'),
+                message: msg + '<br><i>Refreshing in 3 seconds...</i>',
+                indicator: status === 1 ? 'green' : 'red'
             });
 
-            // ? CLOSE DIALOG AND FORCE FULL PAGE RELOAD
+            // ? REFRESH PAGE AFTER SHORT DELAY
             setTimeout(() => {
                 if (dialog) dialog.hide();
+
                 window.location.reload();
             }, 3000);
         },
 
-        // ? HANDLE ERRORS
+        // ? HANDLE SERVER-SIDE ERRORS
         error: function (err) {
             frappe.dom.unfreeze();
             frappe.msgprint({
@@ -403,9 +437,8 @@ function handleFieldChangeRequest(frm, values, dialog) {
                 indicator: 'red'
             });
 
-            console.error(err);
+            console.error("CHANGE REQUEST ERROR:", err);
 
-            // ? REFRESH AFTER ERROR
             setTimeout(() => {
                 if (dialog) dialog.hide();
                 window.location.reload();
