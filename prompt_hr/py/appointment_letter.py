@@ -1,9 +1,13 @@
 import frappe
 
-def set_annexure_details(doc, method=None):
+def before_save(doc, method=None):
+    set_annexure_details(doc)
+
+def set_annexure_details(doc):
     """
     Set the annexure details in the appointment letter.
     """
+    print(doc.custom_employee, doc.custom_monthly_salary, doc.custom_employee_standard_salary, doc.custom_salary_structure)
     if not doc.custom_employee:
         return
 
