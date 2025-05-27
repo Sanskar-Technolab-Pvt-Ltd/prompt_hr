@@ -597,15 +597,13 @@ def create_employee_changes_approval(changes):
     return change_doc.name
 
 @frappe.whitelist()
-def create_employee_details_change_request(employee_id,field_name,old_value,new_value):
-
+def create_employee_details_change_request(employee_id, field_name, field_label, old_value, new_value):
     try:
-
-        existing_value = frappe.db.get_value("Employee", {"name": employee_id, "status": "Active"},field_name)
+        existing_value = frappe.db.get_value("Employee", {"name": employee_id, "status": "Active"}, field_name)
         if existing_value is None:
             return {
                 "status": 0,
-                "message":"Field not found or employee is not active.",
+                "message": "Field not found or employee is not active.",
                 "data": None
             }
         elif existing_value == new_value:
@@ -617,56 +615,198 @@ def create_employee_details_change_request(employee_id,field_name,old_value,new_
         elif str(existing_value).strip() != str(old_value).strip():
             return {
                 "status": 0,
-                "message": f"Mismatch in your old value and existing value. Kindly try again and if issue persists contact System Manager.{existing_value} {old_value}",
+                "message": f"Mismatch in your old value and existing value. Kindly try again and if issue persists contact System Manager. Current: {existing_value}, Provided: {old_value}",
                 "data": None
             }
-        else:
-            if frappe.db.exists("Employee Profile Changes Approval Interface", {
-                "employee": employee_id,
+
+        # Check for existing pending requests
+        if frappe.db.exists("Employee Profile Changes Approval Interface", {
+            "employee": employee_id,
+            "field_name": field_name,
+            "approval_status": "Pending"
+        }):
+            return {
+                "status": 0,
+                "message": "A change request for this field is already pending.",
+                "data": None
+            }
+
+        # Get company information
+        company = frappe.db.get_value("Employee", employee_id, "company")
+        if not company:
+            return {
+                "status": 0,
+                "message": "No company associated with this employee.",
+                "data": None
+            }
+        
+        company_abbr = frappe.db.get_value("Company", company, "abbr")
+
+        prompt_abbr, indifoss_abbr = frappe.db.get_value(
+            "HR Settings", None, ["custom_prompt_abbr", "custom_indifoss_abbr"]
+        )
+
+        if company_abbr not in [prompt_abbr, indifoss_abbr]:
+            return {
+                "status": 0,
+                "message": "This feature is not available for the current company.",
+                "data": None
+            }
+        
+        # ? DETERMINE PARENTFIELD BASED ON COMPANY
+        parentfield = "custom_employee_changes_allowed_fields_for_prompt"
+        if company_abbr == indifoss_abbr:
+            parentfield = "custom_employee_changes_allowed_fields_for_indifoss"
+        
+        # ? CHECK IF FIELD IS ALLOWED TO BE CHANGED
+        allowed_fields = frappe.db.get_value(
+            "Employee Changes Allowed Fields",
+            filters={"parentfield": parentfield, "field_label": field_label},
+            fieldname=["field_label", "permission_required"]
+        )
+        
+        if not allowed_fields:
+            return {
+                "status": 0,
+                "message": f"The field '{field_label}' is not allowed to be changed.",
+                "data": None
+            }
+
+        # ?GET USER ASSOCIATED WITH EMPLOYEE
+        user = frappe.db.get_value("Employee", employee_id, "user_id")
+        if not user:
+            return {
+                "status": 0,
+                "message": "No user associated with this employee.",
+                "data": None
+            }
+
+        # ? HANDLE BASED ON PERMISSION REQUIREMENT
+        if allowed_fields[1] == 1:  # ? PERMISSION_REQUIRED = 1
+            # ? CREATE APPROVAL REQUEST
+            changes = {
                 "field_name": field_name,
-                "approval_status": "Pending"
-            }):
+                "old_value": old_value,
+                "new_value": new_value,
+                "employee": employee_id,
+                "approval_status": "Pending",
+                "date_of_changes_made": frappe.utils.nowdate()
+            }
+            
+            changes_approval = create_employee_changes_approval(changes)
+            
+            if not changes_approval:
                 return {
                     "status": 0,
-                    "message": "A change request for this field is already pending.",
+                    "message": "Failed to create approval request.",
                     "data": None
                 }
-            else:
-                changes = {
+                
+            return {
+                "status": 1,
+                "message": "Change request submitted for approval successfully.",
+                "data": changes_approval
+            }
+            
+        elif allowed_fields[1] == 0:  # ? PERMISSION_REQUIRED = 0
+            # ? APPLY CHANGE DIRECTLY
+            frappe.db.set_value("Employee", employee_id, field_name, new_value)
+            frappe.db.commit()
+            
+            return {
+                "status": 1,
+                "message": "Employee details updated successfully.",
+                "data": {
                     "field_name": field_name,
+                    "field_label": field_label,
                     "old_value": old_value,
                     "new_value": new_value,
                     "employee": employee_id,
-                    "approval_status": "Pending",
-                    "date_of_changes_made": nowdate()
+                    "applied_directly": True
                 }
-
-                changes_approval = create_employee_changes_approval(changes)
-
-                user = frappe.db.get_value("Employee", employee_id, "user_id")
-                if not user:
-                    return {
-                        "status": 0,
-                        "message": "No user associated with this employee.",
-                        "data": None
-                    }
-                return {
-                    "status": 1,
-                    "message": "Change request created successfully.",
-                    "data": changes
-                }
-
+            }
+        else:
+            return {
+                "status": 0,
+                "message": "Invalid permission configuration for this field.",
+                "data": None
+            }
 
     except Exception as e:
         frappe.log_error(
             title="Employee Details Change Request Error",
-            message=f"Error creating change request for Employee {employee_id}: {str(e)}\n{traceback.format_exc()}"
+            message=f"Error creating change request for Employee {employee_id}: {str(e)}\n{frappe.get_traceback()}"
         )
         return {
             "status": 0,
             "message": f"An error occurred while processing your request: {str(e)}",
             "data": None
-        }
+        }  
 
-            
-            
+
+# ? FUNCTION TO FETCH EDITABLE FIELDS FOR AN EMPLOYEE BASED ON THEIR COMPANY
+@frappe.whitelist()
+def get_employee_changable_fields(emp_id):
+    print(f"\n[DEBUG] Fetching editable fields for employee: {emp_id}")
+
+    # ? Fetch the company of the given employee
+    company = frappe.db.get_value("Employee", emp_id, "company")
+    print(f"[DEBUG] Employee's company: {company}")
+    if not company:
+        print("[ERROR] No company found for the employee.")
+        return []
+
+    # ? FETCH CUSTOM ABBREVIATIONS FOR BOTH COMPANIES FROM HR SETTINGS
+    prompt_abbr, indifoss_abbr = frappe.db.get_value(
+        "HR Settings", None, ["custom_prompt_abbr", "custom_indifoss_abbr"]
+    )
+    print(f"[DEBUG] HR Settings - Prompt Abbr: {prompt_abbr}, Indifoss Abbr: {indifoss_abbr}")
+    
+
+    # ? GET THE FULL COMPANY NAMES BASED ON ABBREVIATIONS
+    abbr_to_name = {
+        "prompt": frappe.db.get_value("Company", {"abbr": prompt_abbr}, "name"),
+        "indifoss": frappe.db.get_value("Company", {"abbr": indifoss_abbr}, "name"),
+    }
+    print(f"[DEBUG] Company names resolved from abbreviations: {abbr_to_name}")
+
+    # ? MAP COMPANY NAME TO CORRESPONDING CHILD TABLE FIELD
+    company_map = {
+        abbr_to_name["prompt"]: "custom_employee_changes_allowed_fields_for_prompt",
+        abbr_to_name["indifoss"]: "custom_employee_changes_allowed_fields_for_indifoss",
+    }
+    print(f"[DEBUG] Company to child table map: {company_map}")
+
+    # ? IF THE EMPLOYEE'S COMPANY IS NOT AMONG THE EXPECTED, RETURN EMPTY LIST
+    parentfield = company_map.get(company)
+    print(f"[DEBUG] Parentfield resolved for company: {parentfield}")
+    if not parentfield:
+        print("[ERROR] Parentfield not found for company.")
+        return []
+
+    # ? GET ALLOWED FIELD LABELS FOR THE COMPANY
+    allowed_fields = frappe.get_all(
+        "Employee Changes Allowed Fields",
+        filters={"parentfield": parentfield},
+        fields=["field_label"]
+    )
+    print(f"[DEBUG] Allowed field labels from child table: {allowed_fields}")
+
+    field_labels = [f.field_label for f in allowed_fields]
+    print(f"[DEBUG] Extracted field labels: {field_labels}")
+    if not field_labels:
+        print("[ERROR] No fields found in allowed field list.")
+        return []
+
+    # ? FETCH ACTUAL DOCFIELD METADATA USING FIELD LABELS AS FIELDNAME
+    fields = frappe.get_all(
+        "DocField",
+        filters={
+            "parent": "Employee",
+            "label": ["in", field_labels]
+        },
+        fields=["fieldname", "label", "fieldtype"]
+    )
+    print(f"[DEBUG] Final changable fields metadata: {fields}")
+
+    return fields
