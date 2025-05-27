@@ -289,7 +289,15 @@ doc_events = {
 
     "Appraisal": {
         "before_save": "prompt_hr.py.appraisal_letter.before_save",
-    }
+    },
+
+    "Leave Policy Assignment": {
+        "on_submit": "prompt_hr.py.leave_policy_assignment.on_submit",
+    },
+
+    "Leave Type": {
+        "on_update": "prompt_hr.py.leave_type.on_update",
+    },
 
 }
 
