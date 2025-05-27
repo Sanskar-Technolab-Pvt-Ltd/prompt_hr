@@ -17,7 +17,8 @@ def get_columns():
         {
             "fieldname": "job_title",
             "label": _("Job Title"),
-            "fieldtype": "Data",
+            "fieldtype": "Link",
+            "options": "Designation",
             "width": 150,
         },
         {
@@ -175,7 +176,7 @@ def get_data(filters):
         SELECT
             name,
             custom_job_requisition_record,
-            job_title,
+            designation as job_title,
             department,
             status,
             creation,
@@ -196,10 +197,6 @@ def get_data(filters):
         job["hiring_managers"] = None
         job["target_hire_date"] = get_target_hire_date(job)
         job["recruiters"] = get_recruiters(job.name)
-        if job.location:
-            job["location"] = frappe.get_doc(	
-                "Address", job.location
-            ).city  # Set location city from Address DocType
         candidates_stats = get_candidate_stats(
             job.name
         )  # Fetch candidate statistics for the job opening
