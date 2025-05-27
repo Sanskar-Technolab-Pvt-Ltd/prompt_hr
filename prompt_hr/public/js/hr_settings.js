@@ -64,17 +64,26 @@ function apply_filter_for_leave_type(frm, fieldname, leave_type_fieldname, promp
                                 }
                             })
                         }
-                
                     if (frm.doc[fieldname] == "Deduct earned leave") {
                             frm.set_query(leave_type_fieldname, function () {
                                 return {
-                                    query: 'prompt_hr.py.utils.fetch_leave_type_for_indifoss',
                                     filters: {
-                                        company_id: res.message.company_id
+                                        "custom_company": res.message.company_id,
+                                        "custom_is_earned_leave_allocation": 1
                                     }
                                 };
                             });
                         }
+                    // if (frm.doc[fieldname] == "Deduct earned leave") {
+                    //         frm.set_query(leave_type_fieldname, function () {
+                    //             return {
+                    //                 query: 'prompt_hr.py.utils.fetch_leave_type_for_indifoss',
+                    //                 filters: {
+                    //                     company_id: res.message.company_id
+                    //                 }
+                    //             };
+                    //         });
+                    //     }
                 } else {
                     frappe.throw(res.message.message)
                 }
