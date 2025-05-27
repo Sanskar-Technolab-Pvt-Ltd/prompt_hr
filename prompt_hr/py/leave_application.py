@@ -65,13 +65,6 @@ def on_update(doc, method):
             notification = frappe.get_doc("Notification", "Leave Request Notification")
             if notification:
                 # Notify the Reporting Manager about the leave request.
-                frappe.sendmail(
-                    recipients=reporting_manager_id,
-                    message = frappe.render_template(notification.message, {"doc": doc}),
-                    subject = frappe.render_template(notification.subject, {"doc":doc, "request_type":"Leave Application"}),
-                    reference_doctype=doc.doctype,
-                    reference_name=doc.name,
-                )
                 subject = frappe.render_template(notification.subject, {"doc":doc,"request_type":"Leave Application"})
                 if reporting_manager_id:
                     frappe.sendmail(
@@ -183,7 +176,6 @@ def custom_update_previous_leave_allocation(allocation, annual_allocation, e_lea
         e_leave_type.earned_leave_frequency,
         e_leave_type.rounding,
     )
-
     expected_date = {
         "First Day": get_first_day(today),
         "Last Day": get_last_day(today),
