@@ -146,6 +146,8 @@ frappe.ready(function () {
                             // ? INCLUDE THE RECORD NAME
                             formData.name = window.verifiedDocName;
 
+                            console.log(formData)
+
                             // ? MAKE SERVER CALL TO UPDATE RECORD
                             frappe.call({
                                 method: 'prompt_hr.prompt_hr.web_form.candidate_portal.candidate_portal.update_candidate_portal',
