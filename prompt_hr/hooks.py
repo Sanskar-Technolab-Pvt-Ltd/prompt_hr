@@ -284,7 +284,11 @@ doc_events = {
     },
 
     "Appointment Letter": {
-        "before_save": "prompt_hr.py.appointment_letter.set_annexure_details",
+        "before_save": "prompt_hr.py.appointment_letter.before_save",
+    },
+
+    "Appraisal": {
+        "before_save": "prompt_hr.py.appraisal_letter.before_save",
     }
 
 }

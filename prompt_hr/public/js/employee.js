@@ -167,7 +167,12 @@ frappe.ui.form.on("Employee", {
             frm.set_value("custom_permanent_address_line_3", frm.doc.custom_current_address_line_3);
             frm.set_value("custom_permanent_city", frm.doc.custom_current_city);
             frm.set_value("custom_permanent_state", frm.doc.custom_current_state);
-            frm.set_value("custom_permanent_zip_code", frm.doc.custom_current_zip_code)
+
+            frm.set_value("custom_permanent_zip_code",frm.doc.custom_current_zip_code)
+            frm.set_value("custom_permanent_district",frm.doc.custom_current_district)
+            frm.set_value("custom_permanent_sub_district",frm.doc.custom_current_sub_district)
+            frm.set_value("custom_permanent_country",frm.doc.custom_current_country)
+
         }
         else {
             frm.set_value("custom_permanent_address_line_1", "");
@@ -176,6 +181,9 @@ frappe.ui.form.on("Employee", {
             frm.set_value("custom_permanent_city", "");
             frm.set_value("custom_permanent_state", "");
             frm.set_value("custom_permanent_zip_code", "")
+            frm.set_value("custom_permanent_district", "")
+            frm.set_value("custom_permanent_sub_district", "")
+            frm.set_value("custom_permanent_country", "")
         }
     },
 
