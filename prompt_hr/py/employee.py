@@ -810,3 +810,50 @@ def get_employee_changable_fields(emp_id):
     print(f"[DEBUG] Final changable fields metadata: {fields}")
 
     return fields
+
+
+import frappe
+from frappe import _
+
+@frappe.whitelist()
+def get_employee_doctype_fields():
+    """
+    Fetch all fields from Employee DocType for the allowed fields dialog
+    Returns list of field labels and fieldnames
+    """
+    try:
+        # Get all fields from Employee DocType
+        fields = frappe.get_list(
+            "DocField",
+            filters={
+                "parent": "Employee",
+                "hidden": 0  # Exclude hidden fields
+            },
+            fields=["label", "fieldname", "fieldtype"],
+            order_by="idx asc"
+        )
+        
+        # Filter out fields without labels and system fields
+        filtered_fields = []
+        excluded_fieldtypes = ["Section Break", "Column Break", "Tab Break", "HTML", "Heading"]
+        
+        for field in fields:
+            if (field.get("label") and 
+                field.get("label").strip() and 
+                field.get("fieldtype") not in excluded_fieldtypes and
+                not field.get("fieldname", "").startswith("__")):
+                
+                filtered_fields.append({
+                    "label": field.get("label"),
+                    "fieldname": field.get("fieldname"),
+                    "fieldtype": field.get("fieldtype")
+                })
+        
+        return filtered_fields
+        
+    except Exception as e:
+        frappe.log_error(
+            title="Get Employee Fields Error",
+            message=f"Error fetching Employee DocType fields: {str(e)}\n{frappe.get_traceback()}"
+        )
+        return []
