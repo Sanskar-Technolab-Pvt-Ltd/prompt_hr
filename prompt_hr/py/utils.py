@@ -61,8 +61,8 @@ def validate_hash(hash, doctype, filters):
         frappe.throw(_("Something went wrong during hash validation."))
 
 
-# ? FUNCTION TO SEND FULLY DYNAMIC NOTIFICATION EMAIL
-# ? FUNCTION TO SEND CUSTOM NOTIFICATION EMAIL WITH OPTIONAL BUTTON, TEMPLATE, AND HASH
+# ? FUNCTION TO SEND FULLY DYNAMIC NOTIFICATION EMAIL WITH PRINT FORMAT ATTACHMENT SUPPORT
+# ? FUNCTION TO SEND CUSTOM NOTIFICATION EMAIL WITH OPTIONAL BUTTON, TEMPLATE, HASH, AND PDF ATTACHMENT
 def send_notification_email(
     recipients,
     doctype,
@@ -74,10 +74,14 @@ def send_notification_email(
     fallback_subject="Notification",
     fallback_message="You have a new update. Please check your portal.",
     hash_input_text=None,
+    send_attach=False,
+    print_format=None,
+    letterhead=None,
 ):
     try:
         hash = None
         base_url = frappe.utils.get_url()
+        attachments = []
 
         # ? GENERATE DEFAULT BUTTON LINK IF NOT EXPLICITLY PROVIDED
         if send_link and button_link == "None" and doctype and docname:
@@ -99,15 +103,45 @@ def send_notification_email(
                 subject = frappe.render_template(notification_doc.subject, {"doc": doc})
             else:
                 message = fallback_message
-                subject = fallback_subject  
+                subject = fallback_subject
+        else:
+            message = fallback_message
+            subject = fallback_subject
+
+        # ? GENERATE PDF ATTACHMENT IF REQUIRED
+        if send_attach and print_format and doctype and docname:
+            try:
+                # Generate PDF using Frappe's built-in PDF generation
+                pdf_content = frappe.get_print(
+                    doctype=doctype,
+                    name=docname,
+                    print_format=print_format,
+                    letterhead=letterhead,
+                    as_pdf=True
+                )
+                
+                # Create attachment dictionary
+                attachment_name = f"{doctype}_{docname}_{print_format}.pdf"
+                attachments.append({
+                    "fname": attachment_name,
+                    "fcontent": pdf_content
+                })
+                
+            except Exception as pdf_error:
+                frappe.log_error(
+                    title="PDF Generation Error",
+                    message=f"Failed to generate PDF attachment: {str(pdf_error)}\n{traceback.format_exc()}"
+                )
+                # Continue without attachment rather than failing the entire email
+
         for email in recipients:
             user = frappe.db.get_value("User", {"email": email}, "name")
-
+            final_message = message
+            
             # ? ADD HASH AND ACTION BUTTON TO MESSAGE IF LINK SHOULD BE INCLUDED
             if send_link:
                 hash_message = f"<p>Password: <b>{hash}</b></p>" if hash else ""
                 if button_link:
-                    final_message = message
                     final_message += f"""
                         <hr>
                         {hash_message}
@@ -127,17 +161,19 @@ def send_notification_email(
                 })
                 system_notification.insert(ignore_permissions=True)
 
-            # ? SEND EMAIL
+            # ? SEND EMAIL WITH OPTIONAL ATTACHMENT
             frappe.sendmail(
                 recipients=[email],
                 subject=subject,
                 message=final_message,
+                attachments=attachments if attachments else None,
             )
 
         # ? LOG SUCCESS
+        attachment_info = f" with {len(attachments)} attachment(s)" if attachments else ""
         frappe.log_error(
             title="Notification Sent",
-            message=f"Sent dynamic notification to {len(recipients)} recipient(s)."
+            message=f"Sent dynamic notification to {len(recipients)} recipient(s){attachment_info}."
         )
 
     except Exception as e:

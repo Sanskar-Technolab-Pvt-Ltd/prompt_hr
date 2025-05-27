@@ -105,9 +105,12 @@ frappe.ready(function () {
                                 "offer_acceptance",
                                 "expected_date_of_joining"
                             ];
-                            if (child_tables_data[1].child_table_data.length > 0) {
-                                fieldsToHide.push("documents");
-                            }
+                            child_tables_data.forEach(child_table_data => {
+                                if (child_table_data.child_table_data.length<1) 
+                                fieldsToHide.push(child_table_data.child_table_fieldname); 
+                            });
+                               
+                            
                             fieldsToHide.forEach(field => {
                                 if (frappe.web_form.fields_dict[field]) {
                                     frappe.web_form.set_df_property(field, "hidden", 1);
