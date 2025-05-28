@@ -23,9 +23,9 @@
   },
   {
    "fieldname": "state",
-   "fieldtype": "Link",
+   "fieldtype": "Select",
    "label": "State",
-   "options": "State"
+   "options": "\nAndaman and Nicobar Islands\nAndhra Pradesh\nArunachal Pradesh\nAssam\nBihar\nChandigarh\nChhattisgarh\nDadra and Nagar Haveli and Daman and Diu\nDelhi\nGoa\nGujarat\nHaryana\nHimachal Pradesh\nJammu and Kashmir\nJharkhand\nKarnataka\nKerala\nLadakh\nLakshadweep Islands\nMadhya Pradesh\nMaharashtra\nManipur\nMeghalaya\nMizoram\nNagaland\nOdisha\nOther Countries\nOther Territory\nPuducherry\nPunjab\nRajasthan\nSikkim\nTamil Nadu\nTelangana\nTripura\nUttar Pradesh\nUttarakhand\nWest Bengal"
   },
   {
    "fieldname": "from_date",
@@ -58,7 +58,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-20 12:53:38.715296",
+ "modified": "2025-05-28 13:14:21.212371",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Festival Holiday List",
