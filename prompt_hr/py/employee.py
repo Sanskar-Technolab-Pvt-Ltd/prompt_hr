@@ -9,6 +9,8 @@ from prompt_hr.py.utils import send_notification_email, get_hr_managers_by_compa
 import calendar
 from datetime import timedelta
 from dateutil import relativedelta
+from frappe import _
+from prompt_hr.py.utils import get_prompt_company_name, get_indifoss_company_name
 
 # ? COMMON FIELDS THAT EXIST IN BOTH EMPLOYEE & EMPLOYEE PROFILE
 common_fields = [
@@ -133,15 +135,22 @@ field_mapping = {
 
 
 # ? FUNCTION TO CREATE WELCOME PAGE RECORD FOR GIVEN USER
-def create_welcome_status(user_id):
+def create_welcome_status(user_id, company):
     try:
         # ? CHECK IF WELCOME PAGE ALREADY EXISTS
         if frappe.db.exists("Welcome Page", {"user": user_id}):
-            frappe.log_error(
-                title="Welcome Page Already Exists",
-                message=f"Welcome Page for user {user_id} already exists. Skipping creation.",
-            )
             return
+
+        if company == get_prompt_company_name():
+                permission = frappe.db.get_value(
+                    "HR Settings", None, "custom_enable_welcome_page_for_prompt")
+                if permission != 1:    
+                    return
+        elif company == get_indifoss_company_name():
+                permission = frappe.db.get_value(
+                    "HR Settings", None, "custom_enable_welcome_page_for_indifoss")
+                if permission != 1:
+                    return
 
         # ? CREATE NEW WELCOME PAGE DOCUMENT
         welcome_status = frappe.new_doc("Welcome Page")
@@ -173,12 +182,12 @@ def create_welcome_status(user_id):
         )
 
 
-
 # ? HELPER FUNCTION TO LOG ERROR WITH 140-CHAR LIMIT
 def log(msg):
     if len(msg) > 140:
         msg = msg[:137] + "..."
     frappe.log_error(title="Employee Profile Sync", message=msg)
+
 
 # ? FUNCTION TO CREATE/UPDATE EMPLOYEE PROFILE FROM EMPLOYEE DOC
 def create_or_update_employee_profile(doc):
@@ -222,12 +231,14 @@ def on_update(doc, method):
     # # ? SYNC EMPLOYEE PROFILE
     # create_or_update_employee_profile(doc)
 
+    handle_sales_person_operations_on_update(doc, method)
+
     # ? CREATE WELCOME PAGE IF NOT EXISTS
     if doc.user_id:
         log(f"Employee has user_id: {doc.user_id}")
         if not frappe.db.exists("Welcome Page", {"user": doc.user_id}):
             log(f"Welcome Page does not exist for {doc.user_id}, creating...")
-            create_welcome_status(doc.user_id)
+            create_welcome_status(doc.user_id,company)
         else:
             log(f"Welcome Page already exists for {doc.user_id}")
     else:
@@ -589,46 +600,44 @@ def create_exit_approval_process(user_response, employee, notice_number_of_days=
 
 
 def create_employee_changes_approval(changes):
-    change_doc = frappe.get_doc({
-        "doctype": "Employee Profile Changes Approval Interface",
-        **changes
-    })
+    change_doc = frappe.get_doc(
+        {"doctype": "Employee Profile Changes Approval Interface", **changes}
+    )
     change_doc.insert(ignore_permissions=True)
     return change_doc.name
 
+
 @frappe.whitelist()
-def create_employee_details_change_request(employee_id, field_name, field_label, old_value, new_value):
+def create_employee_details_change_request(
+    employee_id, field_name, field_label, new_value, old_value = None
+):
     try:
-        existing_value = frappe.db.get_value("Employee", {"name": employee_id, "status": "Active"}, field_name)
-        if existing_value is None:
-            return {
-                "status": 0,
-                "message": "Field not found or employee is not active.",
-                "data": None
-            }
-        elif existing_value == new_value:
-            return {
-                "status": 0,
-                "message": "No changes detected.",
-                "data": None
-            }
+        existing_value = frappe.db.get_value(
+            "Employee", {"name": employee_id, "status": "Active"}, field_name
+        )
+        
+        if existing_value == new_value:
+            return {"status": 0, "message": "No changes detected.", "data": None}
         elif str(existing_value).strip() != str(old_value).strip():
             return {
                 "status": 0,
                 "message": f"Mismatch in your old value and existing value. Kindly try again and if issue persists contact System Manager. Current: {existing_value}, Provided: {old_value}",
-                "data": None
+                "data": None,
             }
 
         # Check for existing pending requests
-        if frappe.db.exists("Employee Profile Changes Approval Interface", {
-            "employee": employee_id,
-            "field_name": field_name,
-            "approval_status": "Pending"
-        }):
+        if frappe.db.exists(
+            "Employee Profile Changes Approval Interface",
+            {
+                "employee": employee_id,
+                "field_name": field_name,
+                "approval_status": "Pending",
+            },
+        ):
             return {
                 "status": 0,
                 "message": "A change request for this field is already pending.",
-                "data": None
+                "data": None,
             }
 
         # Get company information
@@ -637,9 +646,9 @@ def create_employee_details_change_request(employee_id, field_name, field_label,
             return {
                 "status": 0,
                 "message": "No company associated with this employee.",
-                "data": None
+                "data": None,
             }
-        
+
         company_abbr = frappe.db.get_value("Company", company, "abbr")
 
         prompt_abbr, indifoss_abbr = frappe.db.get_value(
@@ -650,26 +659,26 @@ def create_employee_details_change_request(employee_id, field_name, field_label,
             return {
                 "status": 0,
                 "message": "This feature is not available for the current company.",
-                "data": None
+                "data": None,
             }
-        
+
         # ? DETERMINE PARENTFIELD BASED ON COMPANY
         parentfield = "custom_employee_changes_allowed_fields_for_prompt"
         if company_abbr == indifoss_abbr:
             parentfield = "custom_employee_changes_allowed_fields_for_indifoss"
-        
+
         # ? CHECK IF FIELD IS ALLOWED TO BE CHANGED
         allowed_fields = frappe.db.get_value(
             "Employee Changes Allowed Fields",
             filters={"parentfield": parentfield, "field_label": field_label},
-            fieldname=["field_label", "permission_required"]
+            fieldname=["field_label", "permission_required"],
         )
-        
+
         if not allowed_fields:
             return {
                 "status": 0,
                 "message": f"The field '{field_label}' is not allowed to be changed.",
-                "data": None
+                "data": None,
             }
 
         # ?GET USER ASSOCIATED WITH EMPLOYEE
@@ -678,7 +687,7 @@ def create_employee_details_change_request(employee_id, field_name, field_label,
             return {
                 "status": 0,
                 "message": "No user associated with this employee.",
-                "data": None
+                "data": None,
             }
 
         # ? HANDLE BASED ON PERMISSION REQUIREMENT
@@ -690,29 +699,29 @@ def create_employee_details_change_request(employee_id, field_name, field_label,
                 "new_value": new_value,
                 "employee": employee_id,
                 "approval_status": "Pending",
-                "date_of_changes_made": frappe.utils.nowdate()
+                "date_of_changes_made": frappe.utils.nowdate(),
             }
-            
+
             changes_approval = create_employee_changes_approval(changes)
-            
+
             if not changes_approval:
                 return {
                     "status": 0,
                     "message": "Failed to create approval request.",
-                    "data": None
+                    "data": None,
                 }
-                
+
             return {
                 "status": 1,
                 "message": "Change request submitted for approval successfully.",
-                "data": changes_approval
+                "data": changes_approval,
             }
-            
+
         elif allowed_fields[1] == 0:  # ? PERMISSION_REQUIRED = 0
             # ? APPLY CHANGE DIRECTLY
             frappe.db.set_value("Employee", employee_id, field_name, new_value)
             frappe.db.commit()
-            
+
             return {
                 "status": 1,
                 "message": "Employee details updated successfully.",
@@ -722,26 +731,26 @@ def create_employee_details_change_request(employee_id, field_name, field_label,
                     "old_value": old_value,
                     "new_value": new_value,
                     "employee": employee_id,
-                    "applied_directly": True
-                }
+                    "applied_directly": True,
+                },
             }
         else:
             return {
                 "status": 0,
                 "message": "Invalid permission configuration for this field.",
-                "data": None
+                "data": None,
             }
 
     except Exception as e:
         frappe.log_error(
             title="Employee Details Change Request Error",
-            message=f"Error creating change request for Employee {employee_id}: {str(e)}\n{frappe.get_traceback()}"
+            message=f"Error creating change request for Employee {employee_id}: {str(e)}\n{frappe.get_traceback()}",
         )
         return {
             "status": 0,
             "message": f"An error occurred while processing your request: {str(e)}",
-            "data": None
-        }  
+            "data": None,
+        }
 
 
 # ? FUNCTION TO FETCH EDITABLE FIELDS FOR AN EMPLOYEE BASED ON THEIR COMPANY
@@ -760,8 +769,9 @@ def get_employee_changable_fields(emp_id):
     prompt_abbr, indifoss_abbr = frappe.db.get_value(
         "HR Settings", None, ["custom_prompt_abbr", "custom_indifoss_abbr"]
     )
-    print(f"[DEBUG] HR Settings - Prompt Abbr: {prompt_abbr}, Indifoss Abbr: {indifoss_abbr}")
-    
+    print(
+        f"[DEBUG] HR Settings - Prompt Abbr: {prompt_abbr}, Indifoss Abbr: {indifoss_abbr}"
+    )
 
     # ? GET THE FULL COMPANY NAMES BASED ON ABBREVIATIONS
     abbr_to_name = {
@@ -788,7 +798,7 @@ def get_employee_changable_fields(emp_id):
     allowed_fields = frappe.get_all(
         "Employee Changes Allowed Fields",
         filters={"parentfield": parentfield},
-        fields=["field_label"]
+        fields=["field_label"],
     )
     print(f"[DEBUG] Allowed field labels from child table: {allowed_fields}")
 
@@ -801,19 +811,12 @@ def get_employee_changable_fields(emp_id):
     # ? FETCH ACTUAL DOCFIELD METADATA USING FIELD LABELS AS FIELDNAME
     fields = frappe.get_all(
         "DocField",
-        filters={
-            "parent": "Employee",
-            "label": ["in", field_labels]
-        },
-        fields=["fieldname", "label", "fieldtype"]
+        filters={"parent": "Employee", "label": ["in", field_labels]},
+        fields=["fieldname", "label", "fieldtype"],
     )
     print(f"[DEBUG] Final changable fields metadata: {fields}")
 
     return fields
-
-
-import frappe
-from frappe import _
 
 @frappe.whitelist()
 def get_employee_doctype_fields():
@@ -825,35 +828,281 @@ def get_employee_doctype_fields():
         # Get all fields from Employee DocType
         fields = frappe.get_list(
             "DocField",
-            filters={
-                "parent": "Employee",
-                "hidden": 0  # Exclude hidden fields
-            },
+            filters={"parent": "Employee", "hidden": 0},  # Exclude hidden fields
             fields=["label", "fieldname", "fieldtype"],
-            order_by="idx asc"
+            order_by="idx asc",
         )
-        
+
         # Filter out fields without labels and system fields
         filtered_fields = []
-        excluded_fieldtypes = ["Section Break", "Column Break", "Tab Break", "HTML", "Heading"]
-        
+        excluded_fieldtypes = [
+            "Section Break",
+            "Column Break",
+            "Tab Break",
+            "HTML",
+            "Heading",
+        ]
+
         for field in fields:
-            if (field.get("label") and 
-                field.get("label").strip() and 
-                field.get("fieldtype") not in excluded_fieldtypes and
-                not field.get("fieldname", "").startswith("__")):
-                
-                filtered_fields.append({
-                    "label": field.get("label"),
-                    "fieldname": field.get("fieldname"),
-                    "fieldtype": field.get("fieldtype")
-                })
-        
+            if (
+                field.get("label")
+                and field.get("label").strip()
+                and field.get("fieldtype") not in excluded_fieldtypes
+                and not field.get("fieldname", "").startswith("__")
+            ):
+
+                filtered_fields.append(
+                    {
+                        "label": field.get("label"),
+                        "fieldname": field.get("fieldname"),
+                        "fieldtype": field.get("fieldtype"),
+                    }
+                )
+
         return filtered_fields
-        
+
     except Exception as e:
         frappe.log_error(
             title="Get Employee Fields Error",
-            message=f"Error fetching Employee DocType fields: {str(e)}\n{frappe.get_traceback()}"
+            message=f"Error fetching Employee DocType fields: {str(e)}\n{frappe.get_traceback()}",
         )
         return []
+
+# ? FUNCTION TO CREATE SALES PERSON IF IS_SALES_PERSON CHECKBOX IS TICKED AND SALES PERSON DOES NOT EXIST
+def create_sales_person_if_needed(doc):
+    try:
+        old_doc = doc.get_doc_before_save()
+        
+        # ? CHECK IF IS_SALES_PERSON CHANGED FROM 0 TO 1 OR NEW EMPLOYEE WITH IS_SALES_PERSON = 1
+        is_new_employee = not old_doc
+        is_sales_person_toggled = old_doc and str(old_doc.custom_is_sales_person) == "0" and str(doc.custom_is_sales_person) == "1"
+        is_new_sales_person = is_new_employee and str(doc.custom_is_sales_person) == "1"
+        
+        if is_sales_person_toggled or is_new_sales_person:
+            # ? CHECK IF SALES PERSON ALREADY EXISTS
+            if not frappe.db.exists("Sales Person", {"employee": doc.name}):
+                try:
+                    sales_person = frappe.new_doc("Sales Person")
+                    sales_person.employee = doc.name
+                    sales_person.sales_person_name = doc.employee_name
+                    doc.user_id = sales_person.custom_employee_user_id
+                    
+                    # ? SET PARENT SALES PERSON ONLY IF REPORTS_TO IS SALES PERSON AND HAS SALES PERSON RECORD
+                    if doc.get("reports_to"):
+                        # ? VALIDATE THAT THE PARENT EMPLOYEE EXISTS
+                        if frappe.db.exists("Employee", doc.reports_to):
+                            # ? CHECK IF PARENT IS ALSO A SALES PERSON
+                            parent_is_sales_person = frappe.db.get_value("Employee", doc.reports_to, "custom_is_sales_person")
+                            if parent_is_sales_person == 1:
+                                # ? GET PARENT'S SALES PERSON RECORD
+                                parent_sales_person = frappe.db.get_value("Sales Person", 
+                                                                        {"employee": doc.reports_to}, 
+                                                                        "name")
+                                if parent_sales_person:
+                                    sales_person.parent_sales_person = parent_sales_person
+                                    # ? SET PARENT AS GROUP SINCE IT HAS SUBORDINATES
+                                    frappe.db.set_value("Sales Person", parent_sales_person, "is_group", 1)
+                                # ? IF PARENT IS SALES PERSON BUT NO SALES PERSON RECORD, DON'T LINK
+                        else:
+                            frappe.throw(_("Invalid reports_to employee: {0}").format(doc.reports_to))
+                    
+                    # ? CHECK IF THIS EMPLOYEE HAS SUBORDINATES TO SET IS_GROUP
+                    subordinates_count = frappe.db.count("Employee", {"reports_to": doc.name})
+                    if subordinates_count > 0:
+                        sales_person.is_group = 1
+                    
+                    sales_person.enabled = 1
+                    sales_person.insert(ignore_permissions=True)
+                    
+                    # ? UPDATE DESCENDANT EMPLOYEES' SALES PERSONS
+                    update_descendant_sales_persons(doc.name, sales_person.name)
+                    
+                    frappe.db.commit()
+                    
+                    if is_new_employee:
+                        frappe.msgprint(_("Sales Person created successfully for new employee."))
+                    else:
+                        frappe.msgprint(_("Sales Person created successfully."))
+                    
+                except Exception as e:
+                    frappe.db.rollback()
+                    frappe.log_error(f"Error creating Sales Person for employee {doc.name}: {str(e)}")
+                    frappe.throw(_("Failed to create Sales Person. Error: {0}").format(str(e)))
+            else:
+                frappe.msgprint(_("Sales Person already exists for this employee."))
+                
+    except Exception as e:
+        frappe.log_error(f"Error in create_sales_person_if_needed for employee {doc.name}: {str(e)}")
+        frappe.throw(_("An error occurred while processing Sales Person creation: {0}").format(str(e)))
+
+
+# ? FUNCTION TO UPDATE DESCENDANT EMPLOYEES' SALES PERSONS WHEN NEW SALES PERSON IS CREATED
+def update_descendant_sales_persons(employee_name, new_sales_person_name):
+    """
+    UPDATES THE PARENT_SALES_PERSON FIELD FOR ALL DESCENDANT EMPLOYEES' SALES PERSONS
+    WHEN A NEW SALES PERSON IS CREATED IN THE HIERARCHY
+    """
+    try:
+        # ? GET ALL DIRECT SUBORDINATES OF THIS EMPLOYEE
+        direct_subordinates = frappe.get_all("Employee", 
+                                           filters={"reports_to": employee_name}, 
+                                           fields=["name", "custom_is_sales_person"])
+        
+        for subordinate in direct_subordinates:
+            try:
+                # ? CHECK IF SUBORDINATE IS SALES PERSON AND HAS SALES PERSON RECORD
+                if subordinate.custom_is_sales_person == 1:
+                    subordinate_sales_person = frappe.db.get_value("Sales Person", 
+                                                                 {"employee": subordinate.name}, 
+                                                                 "name")
+                    
+                    if subordinate_sales_person:
+                        # ? UPDATE THE PARENT_SALES_PERSON FIELD
+                        frappe.db.set_value("Sales Person", 
+                                           subordinate_sales_person, 
+                                           "parent_sales_person", 
+                                           new_sales_person_name)
+                        
+                        frappe.msgprint(_("Updated Sales Person hierarchy for employee: {0}").format(subordinate.name))
+                
+                # ? RECURSIVELY UPDATE DESCENDANTS
+                update_descendant_sales_persons(subordinate.name, new_sales_person_name)
+                
+            except Exception as e:
+                frappe.log_error(f"Error updating sales person for subordinate {subordinate.name}: {str(e)}")
+                # ? CONTINUE WITH OTHER SUBORDINATES INSTEAD OF FAILING COMPLETELY
+                continue
+                
+    except Exception as e:
+        frappe.log_error(f"Error in update_descendant_sales_persons for employee {employee_name}: {str(e)}")
+        # ? DON'T THROW HERE AS THIS IS CALLED DURING SALES PERSON CREATION
+        frappe.msgprint(_("Warning: Some descendant Sales Person records may not have been updated"))
+
+
+# ? FUNCTION TO UPDATE PARENT SALES PERSON WHEN REPORTS_TO IS CHANGED
+def update_parent_sales_person_on_reports_to_change(doc):
+    try:
+        old_doc = doc.get_doc_before_save()
+        
+        # ? CHECK IF REPORTS_TO FIELD HAS BEEN UPDATED
+        if old_doc and old_doc.reports_to != doc.reports_to:
+            
+            # ? HANDLE OLD PARENT - REMOVE IS_GROUP IF NO MORE SUBORDINATES
+            if old_doc.reports_to:
+                try:
+                    old_parent_sales_person = frappe.db.get_value("Sales Person", 
+                                                                {"employee": old_doc.reports_to}, 
+                                                                "name")
+                    if old_parent_sales_person:
+                        # ? CHECK IF OLD PARENT STILL HAS OTHER SUBORDINATES
+                        remaining_subordinates = frappe.db.count("Employee", {
+                            "reports_to": old_doc.reports_to,
+                            "name": ["!=", doc.name]
+                        })
+                        
+                        if remaining_subordinates == 0:
+                            frappe.db.set_value("Sales Person", old_parent_sales_person, "is_group", 0)
+                            
+                        # ? REMOVE PARENT LINK FROM CURRENT EMPLOYEE'S SALES PERSON IF EXISTS
+                        if doc.custom_is_sales_person == 1:
+                            current_employee_sales_person = frappe.db.get_value("Sales Person", 
+                                                                              {"employee": doc.name}, 
+                                                                              "name")
+                            if current_employee_sales_person:
+                                frappe.db.set_value("Sales Person", 
+                                                   current_employee_sales_person, 
+                                                   "parent_sales_person", 
+                                                   "Sales Team")
+                            
+                except Exception as e:
+                    frappe.log_error(f"Error updating old parent sales person for employee {old_doc.reports_to}: {str(e)}")
+                    # ? DON'T THROW HERE, CONTINUE WITH NEW PARENT PROCESSING
+            
+            # ? HANDLE NEW PARENT - SET IS_GROUP = 1 AND UPDATE CURRENT EMPLOYEE'S SALES PERSON PARENT
+            if doc.reports_to:
+                try:
+                    # ? CHECK IF NEW PARENT EMPLOYEE EXISTS
+                    if frappe.db.exists("Employee", doc.reports_to):
+                        # ? CHECK IF NEW PARENT IS SALES PERSON
+                        parent_is_sales_person = frappe.db.get_value("Employee", doc.reports_to, "custom_is_sales_person")
+                        if parent_is_sales_person == 1:
+                            new_parent_sales_person = frappe.db.get_value("Sales Person", 
+                                                                        {"employee": doc.reports_to}, 
+                                                                        "name")
+                            if new_parent_sales_person:
+                                # ? SET IS_GROUP = 1 FOR NEW PARENT
+                                frappe.db.set_value("Sales Person", new_parent_sales_person, "is_group", 1)
+                                
+                                # ? UPDATE THIS EMPLOYEE'S SALES PERSON PARENT IF THEY ARE SALES PERSON
+                                if doc.custom_is_sales_person == 1:
+                                    current_employee_sales_person = frappe.db.get_value("Sales Person", 
+                                                                                      {"employee": doc.name}, 
+                                                                                      "name")
+                                    if current_employee_sales_person:
+                                        frappe.db.set_value("Sales Person", 
+                                                           current_employee_sales_person, 
+                                                           "parent_sales_person", 
+                                                           new_parent_sales_person)
+                                
+                                frappe.db.commit()
+                                frappe.msgprint(_("Updated Sales Person hierarchy due to Parent Employee change"))
+                    else:
+                        frappe.throw(_("Invalid new reports_to employee: {0}").format(doc.reports_to))
+                        
+                except Exception as e:
+                    frappe.db.rollback()
+                    frappe.log_error(f"Error updating new parent sales person for employee {doc.reports_to}: {str(e)}")
+                    frappe.throw(_("Failed to update parent Sales Person. Error: {0}").format(str(e)))
+        
+        # ? HANDLE CASE WHERE REPORTS_TO IS SET FOR NEW EMPLOYEE
+        elif not old_doc and doc.reports_to and doc.custom_is_sales_person == 1:
+            try:
+                # ? CHECK IF PARENT IS SALES PERSON AND HAS SALES PERSON RECORD
+                parent_is_sales_person = frappe.db.get_value("Employee", doc.reports_to, "custom_is_sales_person")
+                if parent_is_sales_person == 1:
+                    parent_sales_person = frappe.db.get_value("Sales Person", 
+                                                            {"employee": doc.reports_to}, 
+                                                            "name")
+                    if parent_sales_person:
+                        # ? SET PARENT AS GROUP
+                        frappe.db.set_value("Sales Person", parent_sales_person, "is_group", 1)
+                        frappe.db.commit()
+                        
+            except Exception as e:
+                frappe.log_error(f"Error setting parent as group for new employee {doc.name}: {str(e)}")
+                    
+    except Exception as e:
+        frappe.log_error(f"Error in update_parent_sales_person_on_reports_to_change for employee {doc.name}: {str(e)}")
+        frappe.throw(_("An error occurred while updating parent Sales Person: {0}").format(str(e)))
+
+
+# ? MAIN FUNCTION TO HANDLE ALL SALES PERSON OPERATIONS ON UPDATE
+def handle_sales_person_operations_on_update(doc, method):
+    """
+    MAIN FUNCTION TO HANDLE ALL SALES PERSON OPERATIONS DURING ON_UPDATE EVENT.
+    THIS HANDLES BOTH NEW EMPLOYEES AND EXISTING EMPLOYEE UPDATES.
+    """
+    try:
+        
+        # ? 1. CREATE SALES PERSON IF NEEDED (HANDLES BOTH NEW AND EXISTING EMPLOYEES)
+        create_sales_person_if_needed(doc)
+        
+        # ? 2. UPDATE PARENT SALES PERSON RELATIONSHIPS WHEN REPORTS_TO CHANGES
+        update_parent_sales_person_on_reports_to_change(doc)
+        
+        # ? 3. UPDATE GROUP FLAGS FOR EXISTING SALES PERSONS IF SUBORDINATES EXIST
+        if frappe.db.exists("Sales Person", {"employee": doc.name}):
+            subordinates_count = frappe.db.count("Employee", {"reports_to": doc.name})
+            sales_person_name = frappe.db.get_value("Sales Person", {"employee": doc.name}, "name")
+            
+            if subordinates_count > 0:
+                frappe.db.set_value("Sales Person", sales_person_name, "is_group", 1)
+            else:
+                frappe.db.set_value("Sales Person", sales_person_name, "is_group", 0)
+        
+    except Exception as e:
+        frappe.log_error(f"Error in handle_sales_person_operations_on_update for employee {doc.name}: {str(e)}")
+        # ? RE-RAISE THE EXCEPTION TO ENSURE THE TRANSACTION IS ROLLED BACK
+        raise
+
+

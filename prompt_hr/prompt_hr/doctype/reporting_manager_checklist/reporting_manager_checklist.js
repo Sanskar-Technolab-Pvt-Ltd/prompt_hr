@@ -3,18 +3,40 @@
 
 frappe.ui.form.on("Reporting Manager Checklist", {
     refresh(frm) {
+        // ? APPLY ROLE-BASED FIELD VISIBILITY
         set_field_config_based_on_user_role(frm);
+
+        // ? MAKE GENERAL FIELDS READ-ONLY IF USER HAS SPECIFIC ROLES
+        make_general_fields_read_only(frm);
     },
 });
 
-// Main function to determine user role and apply appropriate field configuration
-function set_field_config_based_on_user_role(frm) {
-    // Get current user
-    const current_user = frappe.session.user;
+// ? FUNCTION TO SET GENERAL FIELDS AS READ-ONLY IF USER HAS ANY SPECIFIC ROLE
+function make_general_fields_read_only(frm) {
+    const roles_to_check = ["Reporting Manager", "IT User", "Admin User"];
+    const general_fields = [
+        "applicant_name",
+        "employment_type",
+        "designation",
+        "work_location",
+        "department",
+        "company"
+    ];
 
-    
-    
-    // Check user roles and apply appropriate field configuration
+    const has_specific_role = roles_to_check.some(role => frappe.user.has_role(role));
+
+    if (has_specific_role) {
+        general_fields.forEach(field => {
+            if (frm.fields_dict[field]) {
+                frm.set_df_property(field, "read_only", 1);
+            }
+        });
+        console.log("Set general fields as read-only for role-based user");
+    }
+}
+
+// ? MAIN FUNCTION TO APPLY FIELD RULES BASED ON USER ROLE
+function set_field_config_based_on_user_role(frm) {
     if (frappe.user.has_role("Reporting Manager")) {
         set_reporting_manager_field_config(frm);
     } 
@@ -25,109 +47,83 @@ function set_field_config_based_on_user_role(frm) {
         set_admin_user_field_config(frm);
     }
     else {
-        // Default behavior - you can choose to show all fields or apply a default configuration
         console.log("User does not have any of the specified roles");
-        // Optionally apply a default configuration or show all fields
     }
 }
 
+// ? FUNCTION TO APPLY FIELD CONFIG FOR REPORTING MANAGER
 function set_reporting_manager_field_config(frm) {
-    const FIELDS_TO_HIDE = [
-        "system_allocation", "create_company_email_id", "system_configuration", "company_email", 
-        "chat_software_access", "sitting_arrangements", "bts_project_name", "buddy_name", 
-        "cug", "special_requirements", "visiting_cards"
+    const fields_to_hide = ["cug", "visiting_cards", "special_requirements"];
+    const fields_to_read_only = [
+        // "system_allocation", "create_company_email_id", "system_configuration", "company_email", 
+        // "chat_software_access", "sitting_arrangements", "bts_project_name", "buddy_name","company_mobile_no"
     ];
 
-    FIELDS_TO_HIDE.forEach(field => {
+    // Hide specific fields
+    fields_to_hide.forEach(field => {
         if (frm.fields_dict[field]) {
             frm.set_df_property(field, "hidden", 1);
         }
     });
-    
+
+    // Make remaining fields read-only
+    fields_to_read_only.forEach(field => {
+        if (frm.fields_dict[field]) {
+            frm.set_df_property(field, "hidden", 0);
+            frm.set_df_property(field, "read_only", 1);
+        }
+    });
+
     console.log("Applied Reporting Manager field configuration");
 }
 
+// ? FUNCTION TO APPLY FIELD CONFIG FOR IT USER
 function set_it_user_field_config(frm) {
-    const FIELDS_TO_HIDE = [
-        "crm_access_required", "stock_requirement", "company_mobile_no", "git_project_access_required", 
-        "engineer_dongle", "assign_erp_role", "erp_module_access", "cug", "special_requirements", 
-        "visiting_cards"
+    const fields_to_hide = [
+        "crm_access_required", "stock_requirement",
+        "cug", "special_requirements", "visiting_cards"
     ];
 
-    FIELDS_TO_HIDE.forEach(field => {
+    const read_only_fields = [
+        "git_project_access_required", "engineer_dongle", "git_project_name", 
+        "assign_erp_role", "erp_module_access", "crm_division", "crm_project","crm_module", "stock_requirement", "crm_access_required"
+    ];
+
+    fields_to_hide.forEach(field => {
         if (frm.fields_dict[field]) {
             frm.set_df_property(field, "hidden", 1);
         }
     });
-    
+
+    read_only_fields.forEach(field => {
+        if (frm.fields_dict[field]) {
+            frm.set_df_property(field, "hidden", 0);
+            frm.set_df_property(field, "read_only", 1);
+        }
+    });
+
+    if (frm.fields_dict["company_mobile_no"]) {
+        frm.set_df_property("company_mobile_no", "hidden", 0);
+        frm.set_df_property("company_mobile_no", "read_only", 0);
+    }
+
     console.log("Applied IT User field configuration");
 }
 
+// ? FUNCTION TO APPLY FIELD CONFIG FOR ADMIN USER
 function set_admin_user_field_config(frm) {
-    const FIELDS_TO_HIDE = [
-        "crm_access_required", "stock_requirement", "company_mobile_no", "git_project_access_required", 
+    const fields_to_hide = [
+        "crm_access_required","crm_division","crm_project","crm_module", "stock_requirement", "company_mobile_no", "git_project_access_required", 
         "engineer_dongle", "assign_erp_role", "erp_module_access", "system_allocation", 
         "create_company_email_id", "system_configuration", "company_email", "chat_software_access", 
         "sitting_arrangements", "bts_project_name", "buddy_name"
     ];
 
-    FIELDS_TO_HIDE.forEach(field => {
+    fields_to_hide.forEach(field => {
         if (frm.fields_dict[field]) {
             frm.set_df_property(field, "hidden", 1);
         }
     });
-    
+
     console.log("Applied Admin User field configuration");
-}
-
-// Alternative approach using role hierarchy (if you want to apply multiple configurations)
-function set_field_config_with_role_hierarchy(frm) {
-    // Apply configurations in order of precedence (most specific to least specific)
-    if (frappe.user.has_role("Admin User")) {
-        set_admin_user_field_config(frm);
-    }
-    else if (frappe.user.has_role("IT User")) {
-        set_it_user_field_config(frm);
-    }
-    else if (frappe.user.has_role("Reporting Manager")) {
-        set_reporting_manager_field_config(frm);
-    }
-}
-
-// Alternative approach for checking multiple roles and applying combined configurations
-function set_field_config_multiple_roles(frm) {
-    let fieldsToHide = [];
-    
-    if (frappe.user.has_role("Reporting Manager")) {
-        fieldsToHide = fieldsToHide.concat([
-            "system_allocation", "create_company_email_id", "system_configuration", "company_email", 
-            "chat_software_access", "sitting_arrangements", "bts_project_name", "buddy_name", 
-            "cug", "special_requirements", "visiting_cards"
-        ]);
-    }
-    
-    if (frappe.user.has_role("IT User")) {
-        fieldsToHide = fieldsToHide.concat([
-            "crm_access_required", "stock_requirement", "company_mobile_no", "git_project_access_required", 
-            "engineer_dongle", "assign_erp_role", "erp_module_access"
-        ]);
-    }
-    
-    if (frappe.user.has_role("Admin User")) {
-        fieldsToHide = fieldsToHide.concat([
-            "crm_access_required", "stock_requirement", "company_mobile_no", "git_project_access_required", 
-            "engineer_dongle", "assign_erp_role", "erp_module_access", "system_allocation", 
-            "create_company_email_id", "system_configuration", "company_email", "chat_software_access", 
-            "sitting_arrangements", "bts_project_name", "buddy_name"
-        ]);
-    }
-    
-    // Remove duplicates and apply
-    const uniqueFieldsToHide = [...new Set(fieldsToHide)];
-    
-    uniqueFieldsToHide.forEach(field => {
-        if (frm.fields_dict[field]) {
-            frm.set_df_property(field, "hidden", 1);
-        }
-    });
 }
