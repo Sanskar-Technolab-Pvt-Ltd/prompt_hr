@@ -35,7 +35,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-20 13:21:14.592048",
+ "modified": "2025-05-28 15:36:39.656055",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "WeeklyOff Type",
@@ -55,6 +55,7 @@
    "write": 1
   }
  ],
+ "search_fields": "name1",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []
