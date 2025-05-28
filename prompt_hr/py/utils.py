@@ -214,7 +214,7 @@ def invite_for_document_collection(args, joining_document_checklist, child_table
         job_applicant = frappe.db.get_value(
             "Job Applicant",
             args.get("name"),
-            ["email_id", "phone_number", "applicant_name", "designation"],
+            ["email_id", "phone_number", "applicant_name", "designation","custom_company"],
             as_dict=True
         )
 
@@ -233,6 +233,7 @@ def invite_for_document_collection(args, joining_document_checklist, child_table
                 "applied_for_designation": job_applicant.designation,
                 "joining_document_checklist": joining_document_checklist,
                 "document_collection_stage": document_collection_stage,
+                "company": job_applicant.custom_company,
             })
 
             existing_required_docs = {d.required_document for d in invitation.documents}
@@ -268,6 +269,7 @@ def invite_for_document_collection(args, joining_document_checklist, child_table
                 "applied_for_designation": job_applicant.designation,
                 "joining_document_checklist": joining_document_checklist,
                 "document_collection_stage": document_collection_stage,
+                "company": job_applicant.custom_company,
             })
 
             if documents:
@@ -526,3 +528,4 @@ def get_indifoss_company_name():
     
     except Exception as e:
         return {"error": 1, "message": str(e)}
+

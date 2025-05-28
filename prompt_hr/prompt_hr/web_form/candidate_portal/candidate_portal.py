@@ -1,5 +1,5 @@
 import frappe
-from prompt_hr.py.utils import validate_hash, send_notification_email
+from prompt_hr.py.utils import validate_hash, send_notification_email, get_hr_managers_by_company
 import json
 from frappe import _
 
@@ -157,7 +157,7 @@ def update_candidate_portal(doc):
         try:
             send_notification_email(
                 notification_name="HR Candidate Web Form Revert Mail",
-                recipients=[portal_doc.applicant_email],
+                recipients=get_hr_managers_by_company(portal_doc.company),
                 button_label="View Details",
                 doctype="Candidate Portal",
                 docname=portal_doc.name,

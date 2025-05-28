@@ -12,6 +12,7 @@
   "column_break_bicj",
   "phone_number",
   "applied_for_designation",
+  "company",
   "upload_docments_section",
   "documents",
   "offer_details_tab",
@@ -117,12 +118,19 @@
    "fieldtype": "Table",
    "label": "New Joinee Documents",
    "options": "Document Collection"
+  },
+  {
+   "fetch_from": "applicant_email.custom_company",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-24 16:17:29.958660",
+ "modified": "2025-05-28 20:05:55.296524",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Candidate Portal",
