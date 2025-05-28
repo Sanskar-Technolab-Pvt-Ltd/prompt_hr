@@ -98,31 +98,24 @@
   {
    "fieldname": "it_requirements_section",
    "fieldtype": "Section Break",
-   "label": "IT Requirements",
-   "read_only_depends_on": "eval:frappe.user_roles.includes(\"Reporting Manager\")\n"
+   "label": "IT Requirements"
   },
   {
-   "depends_on": "eval:!frappe.user_roles.includes(\"Admin Module User\")\n",
    "fieldname": "system_allocation",
    "fieldtype": "Select",
    "label": "System Allocation",
-   "options": "Desktop\nLaptop",
-   "read_only_depends_on": "eval:!frappe.user_roles.includes(\"Reporting Manager\")\n"
+   "options": "Desktop\nLaptop"
   },
   {
-   "depends_on": "eval:!frappe.user_roles.includes(\"Admin Module User\")\n",
    "fieldname": "system_configuration",
    "fieldtype": "Data",
-   "label": "System Configuration",
-   "read_only_depends_on": "eval:!frappe.user_roles.includes(\"Reporting Manager\")\n"
+   "label": "System Configuration"
   },
   {
-   "depends_on": "eval:frappe.user_roles.includes(\"Admin Module User\")\n",
    "description": "(Please Specify the Desk no.)",
    "fieldname": "sitting_arrangements",
    "fieldtype": "Data",
-   "label": "Sitting Arrangements",
-   "read_only_depends_on": "eval:!frappe.user_roles.includes(\"Reporting Manager\")\n"
+   "label": "Sitting Arrangements"
   },
   {
    "fieldname": "column_break_iblz",
@@ -130,11 +123,9 @@
   },
   {
    "default": "0",
-   "depends_on": "eval:!frappe.user_roles.includes(\"Admin Module User\")\n",
    "fieldname": "create_company_email_id",
    "fieldtype": "Check",
-   "label": "Create Company Email ID",
-   "read_only_depends_on": "eval:!frappe.user_roles.includes(\"Reporing Manager\")\n"
+   "label": "Create Company Email ID"
   },
   {
    "depends_on": "eval:doc.create_company_email_id==1",
@@ -145,25 +136,19 @@
   },
   {
    "default": "0",
-   "depends_on": "eval:!frappe.user_roles.includes(\"Admin Module User\")\n",
    "fieldname": "chat_software_access",
    "fieldtype": "Check",
-   "label": "Chat Software Access",
-   "read_only_depends_on": "eval:!frappe.user_roles.includes(\"Reporting Manager\")\n"
+   "label": "Chat Software Access"
   },
   {
-   "depends_on": "eval:!frappe.user_roles.includes(\"Admin Module User\")\n",
    "fieldname": "bts_project_name",
    "fieldtype": "Data",
-   "label": "BTS Project Name",
-   "read_only_depends_on": "eval:!frappe.user_roles.includes(\"Reporting Manager\")\n"
+   "label": "BTS Project Name"
   },
   {
-   "depends_on": "eval:!frappe.user_roles.includes(\"Admin Module User\")\n",
    "fieldname": "buddy_name",
    "fieldtype": "Data",
-   "label": "Buddy Name",
-   "read_only_depends_on": "eval:!frappe.user_roles.includes(\"Reporting Manager\")\n"
+   "label": "Buddy Name"
   },
   {
    "fieldname": "section_break_bclx",
@@ -172,19 +157,16 @@
   },
   {
    "default": "0",
-   "depends_on": "eval:!frappe.user_roles.includes(\"Admin Module User\")\n",
    "fieldname": "crm_access_required",
    "fieldtype": "Check",
-   "label": "CRM Access Required",
-   "read_only_depends_on": "eval:!frappe.user_roles.includes(\"Reporting Manager\")\n"
+   "label": "CRM Access Required"
   },
   {
    "depends_on": "eval:doc.crm_access_required==1",
    "fieldname": "crm_division",
    "fieldtype": "Link",
    "label": "CRM Division",
-   "options": "CRM Division",
-   "read_only_depends_on": "eval:!frappe.user_roles.includes(\"Reporting Manager\")\n"
+   "options": "CRM Division"
   },
   {
    "depends_on": "eval:doc.crm_access_required==1",
@@ -205,18 +187,14 @@
   },
   {
    "default": "0",
-   "depends_on": "eval:!frappe.user_roles.includes(\"Admin Module User\")\n",
    "fieldname": "stock_requirement",
    "fieldtype": "Check",
-   "label": "Stock Requirement",
-   "read_only_depends_on": "eval:!frappe.user_roles.includes(\"Reporting Manager\")\n"
+   "label": "Stock Requirement"
   },
   {
-   "depends_on": "eval:!frappe.user_roles.includes(\"Admin Module User\")\n",
    "fieldname": "company_mobile_no",
    "fieldtype": "Data",
-   "label": "Company Mobile No",
-   "read_only_depends_on": "eval:!frappe.user_roles.includes(\"Reporting Manager\")\n"
+   "label": "Company Mobile No"
   },
   {
    "fieldname": "git_project_requirements_section",
@@ -225,11 +203,9 @@
   },
   {
    "default": "0",
-   "depends_on": "eval:!frappe.user_roles.includes(\"Admin Module User\")\n",
    "fieldname": "git_project_access_required",
    "fieldtype": "Check",
-   "label": "Git Project Access Required",
-   "read_only_depends_on": "eval:!frappe.user_roles.includes(\"Reporting Manager\")\n"
+   "label": "Git Project Access Required"
   },
   {
    "depends_on": "eval:doc.git_project_access_required==1",
@@ -242,11 +218,9 @@
    "fieldtype": "Column Break"
   },
   {
-   "depends_on": "eval:!frappe.user_roles.includes(\"Admin Module User\")\n",
    "fieldname": "engineer_dongle",
    "fieldtype": "Data",
-   "label": "Engineer Dongle",
-   "read_only_depends_on": "eval:!frappe.user_roles.includes(\"Reporting Manager\")"
+   "label": "Engineer Dongle"
   },
   {
    "fieldname": "erp_requirements_section",
@@ -254,24 +228,20 @@
    "label": "ERP Requirements"
   },
   {
-   "depends_on": "eval:!frappe.user_roles.includes(\"Admin Module User\")\n",
    "fieldname": "assign_erp_role",
    "fieldtype": "Table MultiSelect",
    "label": "Assign ERP Role",
-   "options": "Role Multiselect",
-   "read_only_depends_on": "eval:!frappe.user_roles.includes(\"Reporting Manager\")\n"
+   "options": "Role Multiselect"
   },
   {
    "fieldname": "column_break_sjkz",
    "fieldtype": "Column Break"
   },
   {
-   "depends_on": "eval:!frappe.user_roles.includes(\"Admin Module User\")\n",
    "fieldname": "erp_module_access",
    "fieldtype": "Table MultiSelect",
    "label": "ERP Module Access",
-   "options": "Module Multiselect",
-   "read_only_depends_on": "eval:!frappe.user_roles.includes(\"Reporting Manager\")\n"
+   "options": "Module Multiselect"
   },
   {
    "fieldname": "admin_requirements_section",
@@ -280,14 +250,12 @@
   },
   {
    "default": "0",
-   "depends_on": "eval:frappe.user_roles.includes(\"Admin Module User\")\n",
    "fieldname": "cug",
    "fieldtype": "Check",
    "label": "CUG"
   },
   {
    "default": "0",
-   "depends_on": "eval:frappe.user_roles.includes(\"Admin Module User\")\n",
    "fieldname": "visiting_cards",
    "fieldtype": "Check",
    "label": "Visiting Cards"
@@ -297,17 +265,14 @@
    "fieldtype": "Column Break"
   },
   {
-   "depends_on": "eval:frappe.user_roles.includes(\"Admin Module User\")\n",
    "fieldname": "special_requirements",
    "fieldtype": "Data",
    "label": "Special Requirements"
   },
   {
-   "depends_on": "eval:!frappe.user_roles.includes(\"Admin Module User\")\n",
    "fieldname": "company_email",
    "fieldtype": "Data",
-   "label": "Company Email",
-   "read_only_depends_on": "eval:!frappe.user_roles.includes(\"IT User\")\n"
+   "label": "Company Email"
   }
  ],
  "grid_page_length": 50,

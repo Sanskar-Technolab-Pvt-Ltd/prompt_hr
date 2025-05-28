@@ -109,6 +109,9 @@ frappe.ready(function () {
                                 if (child_table_data.child_table_data.length<1) 
                                 fieldsToHide.push(child_table_data.child_table_fieldname); 
                             });
+
+                            if (child_tables_data[1].child_table_data.length > 0)
+                                fieldsToHide.push("documents");
                                
                             
                             fieldsToHide.forEach(field => {
