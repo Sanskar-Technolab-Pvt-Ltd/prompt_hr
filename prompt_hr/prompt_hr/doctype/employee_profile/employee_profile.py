@@ -95,3 +95,4 @@ class EmployeeProfile(Document):
         if isinstance(value, (datetime.date, datetime.datetime)):
             return value.strftime('%Y-%m-%d')
         return str(value) if value is not None else ""
+

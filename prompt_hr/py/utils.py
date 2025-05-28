@@ -500,3 +500,29 @@ def send_email_to_users(doc, user_ids, notification_name):
         recipients=user_ids,
         notification_name=notification_name
     )
+
+def get_prompt_company_name():
+    """Method to fetch the company name for Prompt HR"""
+    try:
+        prompt_abbr = frappe.db.get_single_value("HR Settings", "custom_prompt_abbr")
+        if not prompt_abbr:
+            return {"error": 1, "message": "No Abbreviation found in HR Settings, Please set abbreviation first"}
+        
+        company_name = frappe.db.get_value("Company", {"abbr": prompt_abbr}, "name")
+        return {"error": 0, "company_name": company_name or None}
+    
+    except Exception as e:
+        return {"error": 1, "message": str(e)}
+
+def get_indifoss_company_name():
+    """Method to fetch the company name for Indifoss HR"""
+    try:
+        indifoss_abbr = frappe.db.get_single_value("HR Settings", "custom_indifoss_abbr")
+        if not indifoss_abbr:
+            return {"error": 1, "message": "No Abbreviation found in HR Settings, Please set abbreviation first"}
+        
+        company_name = frappe.db.get_value("Company", {"abbr": indifoss_abbr}, "name")
+        return {"error": 0, "company_name": company_name or None}
+    
+    except Exception as e:
+        return {"error": 1, "message": str(e)}
