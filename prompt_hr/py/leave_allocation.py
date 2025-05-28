@@ -1,7 +1,6 @@
 import frappe
 from frappe.utils import flt
 from frappe import _
-from hrms.hr.doctype.leave_allocation.leave_allocation import get_carry_forwarded_leaves
 
 @frappe.whitelist()
 def before_validate(doc, method=None):
@@ -54,35 +53,3 @@ def get_matching_link_field(document_name):
             return df.fieldname
     
     return None  # Return None if no matching field is found
-
-@frappe.whitelist()
-def custom_set_total_leaves_allocated(doc, method=None):
-    doc.unused_leaves = flt(
-        get_carry_forwarded_leaves(doc.employee, doc.leave_type, doc.from_date, doc.carry_forward),
-        doc.precision("unused_leaves"),
-    )
-    if doc.carry_forward:
-        employee_doc = frappe.get_doc("Employee", doc.employee)
-        leave_type = frappe.get_doc("Leave Type", doc.leave_type)
-        if doc.unused_leaves > check_carry_forward_criteria(employee_doc, leave_type):
-            doc.unused_leaves =  check_carry_forward_criteria(employee_doc, leave_type)
-        elif leave_type.custom_maximum_ctc_limit_for_carry_forward:
-            if employee_doc.ctc > leave_type.custom_maximum_ctc_limit_for_carry_forward:
-                doc.unused_leaves =  min(doc.unused_leaves,leave_type.maximum_carry_forwarded_leaves)
-
-    doc.total_leaves_allocated = flt(
-        flt(doc.unused_leaves) + flt(doc.new_leaves_allocated),
-        doc.precision("total_leaves_allocated"),
-    )
-
-    doc.limit_carry_forward_based_on_max_allowed_leaves()
-
-    if doc.carry_forward:
-        doc.set_carry_forwarded_leaves_in_previous_allocation()
-
-    if (
-        not doc.total_leaves_allocated
-        and not frappe.db.get_value("Leave Type", doc.leave_type, "is_earned_leave")
-        and not frappe.db.get_value("Leave Type", doc.leave_type, "is_compensatory")
-    ):
-        frappe.throw(_("Total leaves allocated is mandatory for Leave Type {0}").format(doc.leave_type))
