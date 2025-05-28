@@ -105,9 +105,15 @@ frappe.ready(function () {
                                 "offer_acceptance",
                                 "expected_date_of_joining"
                             ];
-                            if (child_tables_data[1].child_table_data.length > 0) {
+                            child_tables_data.forEach(child_table_data => {
+                                if (child_table_data.child_table_data.length<1) 
+                                fieldsToHide.push(child_table_data.child_table_fieldname); 
+                            });
+
+                            if (child_tables_data[1].child_table_data.length > 0)
                                 fieldsToHide.push("documents");
-                            }
+                               
+                            
                             fieldsToHide.forEach(field => {
                                 if (frappe.web_form.fields_dict[field]) {
                                     frappe.web_form.set_df_property(field, "hidden", 1);
@@ -142,6 +148,8 @@ frappe.ready(function () {
 
                             // ? INCLUDE THE RECORD NAME
                             formData.name = window.verifiedDocName;
+
+                            console.log(formData)
 
                             // ? MAKE SERVER CALL TO UPDATE RECORD
                             frappe.call({

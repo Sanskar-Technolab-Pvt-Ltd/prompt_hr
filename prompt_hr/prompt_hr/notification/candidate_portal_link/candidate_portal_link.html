@@ -1,12 +1,12 @@
-<p>Dear {{ applicant_name }},</p>
+<p>Dear {{ doc.applicant_name }},</p>
 
-<p>Thank you for submitting your application for the <strong>{{ applied_for_designation }}</strong> position. We’ve received your details and our recruitment team will be reviewing them shortly.</p>
+<p>Thank you for submitting your application for the <strong>{{ doc.applied_for_designation }}</strong> position. We’ve received your details and our recruitment team will be reviewing them shortly.</p>
 
 <p><strong>Submitted Details:</strong></p>
 <ul>
-  <li><strong>Email:</strong> {{ applicant_email }}</li>
-  <li><strong>Phone Number:</strong> {{ phone_number }}</li>
-  <li><strong>Applied For:</strong> {{ applied_for_designation }}</li>
+  <li><strong>Email:</strong> {{ doc.applicant_email }}</li>
+  <li><strong>Phone Number:</strong> {{ doc.phone_number }}</li>
+  <li><strong>Applied For:</strong> {{ doc.applied_for_designation }}</li>
 </ul>
 
 <p>If any corrections are needed, feel free to reply to this email.</p>

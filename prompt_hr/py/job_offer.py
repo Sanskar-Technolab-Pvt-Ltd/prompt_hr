@@ -182,14 +182,20 @@ def send_mail_to_job_applicant(doc, is_resend=False, notification_name=None):
         #     fallback_subject="Update on Your Job Application",
         #     fallback_message=f"Hello, we've updated your job application. Please check your offer: {doc.name}",
         # )
+        letter_head = frappe.db.get_value("Letter Head",{"is_default": 1},"name")
+
+        print_format = frappe.db.get_value("Print Format", {"disabled": 0, "doc_type": doc.doctype}, "name")
+
         send_notification_email(
             recipients=[candidate.applicant_email],
             notification_name=notification_name,
-            doctype="Candidate Portal",
-            docname=candidate.name,
-            button_label="View Details",
-            button_link="/candidate-portal/",
+            doctype="Job Offer",
+            docname=doc.name,
             hash_input_text=candidate.name,
+            send_link=False,
+            send_attach=True,
+            letterhead=letter_head,
+            print_format=print_format
         )
 
         
