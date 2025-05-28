@@ -17,10 +17,9 @@
   },
   {
    "fieldname": "field_label",
-   "fieldtype": "Data",
+   "fieldtype": "Autocomplete",
    "in_list_view": 1,
-   "label": "Field Label",
-   "options": "custom_doctype"
+   "label": "Field Label"
   },
   {
    "default": "0",
@@ -34,7 +33,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-05-27 16:44:17.665393",
+ "modified": "2025-05-27 19:24:57.137893",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Changes Allowed Fields",

@@ -126,6 +126,8 @@ def get_pending_activity_rows(doc):
         if row.user and row.custom_is_raised == 1 and row.custom_is_sent == 0
     ]
 
+    return filtered
+
 
 # ? SEND EMAIL TO USERS FOR PENDING CHECKLIST ACTIONS
 def notify_users_for_pending_actions(rows):
