@@ -35,9 +35,22 @@ def on_cancel(doc, method):
 def before_save(doc, method):
     employee_doc = frappe.get_doc("Employee", doc.employee)
     reporting_manager = frappe.get_doc("Employee", employee_doc.reports_to)
+    leave_type_doc = frappe.get_doc("Leave Type", doc.leave_type)
     if reporting_manager.user_id:
         doc.db_set("leave_approver", reporting_manager.user_id)
-
+    if employee_doc.resignation_letter_date:
+        if not leave_type_doc.custom_allow_for_employees_who_are_on_notice_period:
+            if frappe.utils.getdate(doc.to_date) >= employee_doc.resignation_letter_date:
+                frappe.throw(_("{0} cannot be applied during notice period.").format(leave_type_doc.name))
+    if leave_type_doc.custom_prior_days_required_for_applying_leave:
+        if  doc.from_date:
+            if date_diff(doc.from_date, frappe.utils.getdate()) <= leave_type_doc.custom_prior_days_required_for_applying_leave:
+                frappe.throw(_("You must apply at least {0} days before the leave date").format(leave_type_doc.custom_prior_days_required_for_applying_leave))
+    
+    if leave_type_doc.custom_require_attachment:
+        if not doc.custom_attachment:
+            frappe.throw(_("Please attach a file for {0}").format(leave_type_doc.name))
+    
 def on_update(doc, method):
     if doc.has_value_changed("workflow_state"):
         employee = frappe.get_doc("Employee", doc.employee)
@@ -51,7 +64,16 @@ def on_update(doc, method):
             filters={"company": employee.company},
             fields=["user_id"]
         )
-
+        other_recipents = []
+        if doc.custom_email_cc:
+            user_emails = frappe.get_all(
+                "User Email CC",
+                filters={"parent": doc.name},
+                fields=["user"]
+            )
+            for user_email in user_emails:
+                other_recipents.append(user_email.get("user"))
+                
         for hr_manager in hr_manager_users:
             hr_manager_user = hr_manager.get("user_id")
             if hr_manager_user:
@@ -69,10 +91,12 @@ def on_update(doc, method):
                 if reporting_manager_id:
                     frappe.sendmail(
                     recipients=reporting_manager_id,
+                    cc = other_recipents,
                     message = frappe.render_template(notification.message, {"doc": doc,"role":"Reporting Manager"}),
                     subject = subject,
                     reference_doctype=doc.doctype,
                     reference_name=doc.name,
+                    expose_recipients="header"
                 )
 
         elif doc.workflow_state == "Approved":
@@ -85,10 +109,12 @@ def on_update(doc, method):
                 if employee_id:
                     frappe.sendmail(
                     recipients=employee_id,
+                    cc = other_recipents,
                     message = frappe.render_template(employee_notification.message, {"doc": doc}),
                     subject = subject,
                     reference_doctype=doc.doctype,
                     reference_name=doc.name,
+                    expose_recipients="header"
                 )
             if hr_notification:
                 # Notify HR Manager regarding the approval of the leave by Reporting Manager.
@@ -112,10 +138,12 @@ def on_update(doc, method):
                 if employee_id:
                     frappe.sendmail(
                     recipients=employee_id,
+                    cc = other_recipents,
                     message = frappe.render_template(employee_notification.message, {"doc": doc}),
                     subject = subject,
                     reference_doctype=doc.doctype,
                     reference_name=doc.name,
+                    expose_recipients="header"
                 )
 
         elif doc.workflow_state == "Confirmed":
@@ -132,6 +160,10 @@ def on_update(doc, method):
                     reference_name=doc.name,
                 )
 
+@frappe.whitelist()
+def extend_leave_application(leave_application, extend_to):
+    leave_application = frappe.get_doc("Leave Application", leave_application)
+    leave_application.db_set("to_date", extend_to)
 
 def custom_check_effective_date(from_date, today=None, frequency=None, allocate_on_day=None):
     from_date = get_datetime(from_date)
