@@ -107,7 +107,10 @@ function show_checkin_dialog(frm) {
                     }
                 }
             }
-
+            if (last_in) {
+                table_data.push(last_in);
+            }
+            
             console.log(table_data)
             const d = new frappe.ui.Dialog({
                 title: 'Edit Check-in/Out Records',
