@@ -22,6 +22,7 @@ from hrms.hr.doctype.job_requisition import job_requisition
 from prompt_hr.py import job_requisition_overriden_class 
 from hrms.hr.doctype.full_and_final_statement.full_and_final_statement import FullandFinalStatement
 from prompt_hr.py import full_and_final_statetment
+from prompt_hr.py.leave_type import custom_get_earned_leaves
 
 @frappe.whitelist()
 def custom_get_applicable_interviewers(interview: str) -> List[str]:
@@ -81,3 +82,4 @@ job_requisition.JobRequisition = job_requisition_overriden_class.JobRequisition
 FullandFinalStatement.get_payable_component = full_and_final_statetment.custom_get_payable_component
 FullandFinalStatement.create_component_row = full_and_final_statetment.custom_create_component_row
 FullandFinalStatement.get_receivable_component = full_and_final_statetment.custom_get_receivable_component
+hrms.hr.utils.get_earned_leaves = custom_get_earned_leaves
