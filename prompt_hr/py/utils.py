@@ -529,3 +529,20 @@ def get_indifoss_company_name():
     except Exception as e:
         return {"error": 1, "message": str(e)}
 
+# ? FUNCTION TO GET THE APPLICABLE PRINT FORMAT BASED ON IS_PROMPT AND DOCTYPE
+def get_applicable_print_format(is_prompt, doctype):
+    try:
+        if is_prompt:
+            print_format = frappe.db.get_value("Print Format Selection", {"parentfield": "custom_print_format_table_indifoss", "document": doctype}, "print_format_document")
+            if not print_format:
+                return {"error": 1, "message": "No Print Format found for Prompt HR"}
+            return {"error": 0, "print_format": print_format}
+        
+        else:
+            print_format = frappe.db.get_value("Print Format", {"doc_type": doctype, "disabled": 0}, "name")
+            if not print_format:
+                return {"error": 1, "message": "No Print Format found for Indifoss HR"}
+            return {"error": 0, "print_format": print_format}
+    
+    except Exception as e:
+        return {"error": 1, "message": str(e)}

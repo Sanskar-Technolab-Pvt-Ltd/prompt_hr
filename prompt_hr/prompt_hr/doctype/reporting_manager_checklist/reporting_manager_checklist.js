@@ -43,7 +43,7 @@ function set_field_config_based_on_user_role(frm) {
     else if (frappe.user.has_role("IT User")) {
         set_it_user_field_config(frm);
     }
-    else if (frappe.user.has_role("Admin User")) {
+    else if (frappe.user.has_role("Admin Module User")) {
         set_admin_user_field_config(frm);
     }
     else {
