@@ -163,7 +163,15 @@ def on_update(doc, method):
 @frappe.whitelist()
 def extend_leave_application(leave_application, extend_to):
     leave_application = frappe.get_doc("Leave Application", leave_application)
-    leave_application.db_set("to_date", extend_to)
+
+    # Check if the extended date is after the previous to date
+    if getdate(extend_to) <= getdate(leave_application.to_date):
+        frappe.throw(_("Extended Date must be after previous To Date"))
+        
+    leave_application.to_date = extend_to
+    leave_application.save()
+    leave_application.db_set("workflow_state", "Extension Requested")
+    leave_application.db_set("docstatus", 0)
 
 def custom_check_effective_date(from_date, today=None, frequency=None, allocate_on_day=None):
     from_date = get_datetime(from_date)
