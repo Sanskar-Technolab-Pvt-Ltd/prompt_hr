@@ -36,7 +36,7 @@ def execute(filters=None):
     # Fetch Salary Slips
     salary_slips = frappe.get_all(
         "Salary Slip",
-        fields=["employee", "employee_name", "gross_pay"],
+        fields=["employee", "employee_name", "gross_pay", "total_income_tax"],
         filters=salary_slip_filters
     )
 
@@ -49,7 +49,7 @@ def execute(filters=None):
             "state": employee.get("custom_permanent_state"),
             "registered_location": employee.get("custom_work_location"),
             "gross_amount": slip.gross_pay or 0.0,
-            "tax_amount": 0.0
+            "tax_amount": slip.total_income_tax
         }
         data.append(row)
 
