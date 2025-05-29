@@ -1,0 +1,55 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-05-29 18:46:08.557710",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "grade",
+  "mode_of_travel",
+  "column_break_bfee",
+  "local_commute"
+ ],
+ "fields": [
+  {
+   "fieldname": "grade",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Grade",
+   "options": "Employee Grade"
+  },
+  {
+   "fieldname": "mode_of_travel",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Mode of Travel",
+   "options": "Travel Mode"
+  },
+  {
+   "fieldname": "column_break_bfee",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "local_commute",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Local Commute",
+   "options": "Taxi\nAuto\nBus"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-05-29 18:50:43.018657",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Travel Mode Table",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
