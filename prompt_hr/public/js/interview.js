@@ -8,6 +8,14 @@ frappe.ui.form.on("Interview", {
             ? "Revise Teams Calendar" 
             : "Book Teams Calendar";
             frm.add_custom_button(__(button_label), function() {
+                if (frm.is_dirty()) {
+                    frappe.msgprint({
+                        title: __("Unsaved Changes"),
+                        message: __("Please save the document before doing any actions."),
+                        indicator: "orange"
+                    });
+                    return;
+                }
 
                 frappe.call({
                     method: 'prompt_hr.teams.calender_book.teams_calender_book',
