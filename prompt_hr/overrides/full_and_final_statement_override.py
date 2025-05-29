@@ -12,7 +12,7 @@ class CustomFullAndFinalStatement(FullandFinalStatement):
 
         if "Bonus" in components:
             components.remove("Bonus")
-        
+        components.append("Leave Application")
         return components
     
     @frappe.whitelist()
@@ -164,14 +164,7 @@ class CustomFullAndFinalStatement(FullandFinalStatement):
                                     )
 
             else:
-                doc.append(
-                    component_type,
-                    {
-                        "status": "Unsettled",
-                        "reference_document_type": component if component != "Bonus" else "Additional Salary",
-                        "component": component,
-                    },
-                )
+                super().create_component_row([component], component_type)
 
 
     @frappe.whitelist()
