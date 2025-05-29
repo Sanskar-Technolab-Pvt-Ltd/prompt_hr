@@ -1,8 +1,24 @@
 frappe.ui.form.off("Leave Application", "calculate_total_days")
 frappe.ui.form.on("Leave Application", {
 	refresh: function(frm) {
+		if (frm.is_new()){
+			frm.doc.custom_extension_status = null
+		}
+		if (frm.doc.workflow_state !== "Pending")
+        {
+			let current_user = frappe.session.user;
+			frappe.db.get_value("Employee", frm.doc.employee, "user_id").then(r => {
+				if (r.message.user_id == current_user) {
+					frappe.after_ajax(() => {
+						console.log("HIiiiiiii")
+						frm.disable_form()
+
+					})
+				}
+			});
+        }
 		frappe.db.get_value("Leave Type", frm.doc.leave_type, "custom_allow_leave_extension").then(r => {
-			if (r.message.custom_allow_leave_extension && (frm.doc.workflow_state == 'Approved' || frm.doc.workflow_state == 'Confirmed')) {
+			if (r.message.custom_allow_leave_extension && (frm.doc.workflow_state == 'Approved' || frm.doc.workflow_state == 'Confirmed') && (!frm.doc.custom_extension_status || frm.doc.custom_extension_status == "")) {
 				frm.add_custom_button(__('Extend Leave'), function() {
 					let d = new frappe.ui.Dialog({
 						title: 'Extend Leave',
@@ -32,7 +48,35 @@ frappe.ui.form.on("Leave Application", {
 								label: 'Extend To',
 								fieldname: 'extend_to',
 								fieldtype: 'Date',
-								reqd: 1
+								reqd: 1,
+								onchange: function() {
+									if (this.value) {
+										frappe.call({
+											method: "prompt_hr.py.leave_application.custom_get_number_of_leave_days",
+											args: {
+												employee: frm.doc.employee,
+												leave_type: frm.doc.leave_type,
+												from_date: frm.doc.from_date,
+												to_date: d.get_value("extend_to"),
+												half_day: frm.doc.half_day,
+												half_day_date: frm.doc.half_day_date,
+												custom_half_day_time: frm.doc.custom_half_day_time
+											},
+											callback: function(r) {
+												console.log(r)
+												if (r.message) {
+													d.set_value("new_total_leave_days", r.message);
+												}
+											}
+										})
+									}
+								}
+							},
+							{
+								label: "New Total Leave Days",
+								fieldname: "new_total_leave_days",
+								fieldtype: "Data",
+								read_only: 1
 							}
 						],
 
@@ -48,7 +92,8 @@ frappe.ui.form.on("Leave Application", {
 									if (r) {
 										frappe.run_serially([
 											() => frm.reload_doc(),
-											() => frappe.msgprint(__('Leave extended successfully!'))
+											() => frappe.msgprint(__('Leave extended successfully!')),
+											() => frm.set_df_property('custom_leave_status', 'hidden', 0)
 										]);
 									}
 								}
