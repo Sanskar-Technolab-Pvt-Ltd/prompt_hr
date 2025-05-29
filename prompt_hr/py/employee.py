@@ -756,42 +756,33 @@ def create_employee_details_change_request(
 # ? FUNCTION TO FETCH EDITABLE FIELDS FOR AN EMPLOYEE BASED ON THEIR COMPANY
 @frappe.whitelist()
 def get_employee_changable_fields(emp_id):
-    print(f"\n[DEBUG] Fetching editable fields for employee: {emp_id}")
 
-    # ? Fetch the company of the given employee
+    # ? FETCH THE COMPANY OF THE GIVEN EMPLOYEE
     company = frappe.db.get_value("Employee", emp_id, "company")
-    print(f"[DEBUG] Employee's company: {company}")
     if not company:
-        print("[ERROR] No company found for the employee.")
         return []
 
     # ? FETCH CUSTOM ABBREVIATIONS FOR BOTH COMPANIES FROM HR SETTINGS
     prompt_abbr, indifoss_abbr = frappe.db.get_value(
         "HR Settings", None, ["custom_prompt_abbr", "custom_indifoss_abbr"]
     )
-    print(
-        f"[DEBUG] HR Settings - Prompt Abbr: {prompt_abbr}, Indifoss Abbr: {indifoss_abbr}"
-    )
+
 
     # ? GET THE FULL COMPANY NAMES BASED ON ABBREVIATIONS
     abbr_to_name = {
         "prompt": frappe.db.get_value("Company", {"abbr": prompt_abbr}, "name"),
         "indifoss": frappe.db.get_value("Company", {"abbr": indifoss_abbr}, "name"),
     }
-    print(f"[DEBUG] Company names resolved from abbreviations: {abbr_to_name}")
 
     # ? MAP COMPANY NAME TO CORRESPONDING CHILD TABLE FIELD
     company_map = {
         abbr_to_name["prompt"]: "custom_employee_changes_allowed_fields_for_prompt",
         abbr_to_name["indifoss"]: "custom_employee_changes_allowed_fields_for_indifoss",
     }
-    print(f"[DEBUG] Company to child table map: {company_map}")
 
     # ? IF THE EMPLOYEE'S COMPANY IS NOT AMONG THE EXPECTED, RETURN EMPTY LIST
     parentfield = company_map.get(company)
-    print(f"[DEBUG] Parentfield resolved for company: {parentfield}")
     if not parentfield:
-        print("[ERROR] Parentfield not found for company.")
         return []
 
     # ? GET ALLOWED FIELD LABELS FOR THE COMPANY
@@ -800,12 +791,9 @@ def get_employee_changable_fields(emp_id):
         filters={"parentfield": parentfield},
         fields=["field_label"],
     )
-    print(f"[DEBUG] Allowed field labels from child table: {allowed_fields}")
 
     field_labels = [f.field_label for f in allowed_fields]
-    print(f"[DEBUG] Extracted field labels: {field_labels}")
     if not field_labels:
-        print("[ERROR] No fields found in allowed field list.")
         return []
 
     # ? FETCH ACTUAL DOCFIELD METADATA USING FIELD LABELS AS FIELDNAME
@@ -814,7 +802,6 @@ def get_employee_changable_fields(emp_id):
         filters={"parent": "Employee", "label": ["in", field_labels]},
         fields=["fieldname", "label", "fieldtype"],
     )
-    print(f"[DEBUG] Final changable fields metadata: {fields}")
 
     return fields
 
@@ -1116,3 +1103,49 @@ def handle_sales_person_operations_on_update(doc, method):
         raise
 
 
+
+
+import frappe
+from frappe.modules.utils import export_customizations
+
+# ! prompt_hr.py.employee_onboarding.export_customizations
+@frappe.whitelist()
+def export_all_customizations(site_doctypes=None):
+    """Export customizations for a list of doctypes. Can be called via API."""
+    
+    # Optional security check (e.g., restrict to System Manager)
+    if not frappe.session.user == "Administrator":
+        frappe.throw("Only Administrator can run this.")
+
+    # Default doctypes if not passed in
+    doctypes = site_doctypes or [
+        # "Department",
+        # "Designation",
+        # "Employee",
+        # "Employee Boarding Activity",
+        # "Employee External Work History",
+        # "Employee Grade",
+        # "Employee Onboarding",
+        # "Employee Skill Map",
+        "HR Settings",
+        # "Interview",
+        # "Interview Detail",
+        # "Interview Feedback",
+        # "Job Applicant",
+        # "Job Offer",
+        # "Job Opening",
+        # "Job Requisition"
+    ]
+
+    module = "Prompt Fixtures"
+
+    results = []
+
+    for dt in doctypes:
+        try:
+            export_customizations(doctype = dt, module=module, sync_on_migrate=True, with_permissions = 0)
+            results.append({"doctype": dt, "status": "success"})
+        except Exception as e:
+            results.append({"doctype": dt, "status": "error", "error": str(e)})
+
+    return results

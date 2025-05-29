@@ -1,49 +1,52 @@
 frappe.ui.form.on("HR Settings", {
-
     refresh: function (frm) {
-
         if (frm.doc.custom_deduct_leave_penalty_for_indifoss) {
-
             apply_filter_for_leave_type(frm, "custom_deduct_leave_penalty_for_indifoss", "custom_leave_type_for_indifoss", 0, 1);
         }
 
-        add_set_allowed_field_button_for_prompt(frm);
+        hide_add_row_buttom_of_field_table(frm);
 
         if (frm.doc.custom_deduct_leave_penalty_weekly_for_indifoss) {
             apply_filter_for_leave_type(frm, "custom_deduct_leave_penalty_weekly_for_indifoss", "custom_leave_type_weekly_for_indifoss", 0, 1);
-            
         }
 
         if (frm.doc.custom_deduct_leave_penalty_for_prompt) {
-            apply_filter_for_leave_type(frm, "custom_deduct_leave_penalty_for_prompt", "custom_leave_type_for_prompt", 1, 0)            
+            apply_filter_for_leave_type(frm, "custom_deduct_leave_penalty_for_prompt", "custom_leave_type_for_prompt", 1, 0);
         }
 
         if (frm.doc.custom_deduct_leave_penalty_daily_for_prompt) {
-            apply_filter_for_leave_type(frm, "custom_deduct_leave_penalty_daily_for_prompt", "custom_leave_type_daily_for_prompt", 1, 0)            
+            apply_filter_for_leave_type(frm, "custom_deduct_leave_penalty_daily_for_prompt", "custom_leave_type_daily_for_prompt", 1, 0);
         }
     },
+    
     custom_deduct_leave_penalty_for_indifoss: function (frm) {
         apply_filter_for_leave_type(frm, "custom_deduct_leave_penalty_for_indifoss", "custom_leave_type_for_indifoss", 0, 1);
     },
 
     custom_deduct_leave_penalty_weekly_for_indifoss: function (frm) {
-        apply_filter_for_leave_type(frm, "custom_deduct_leave_penalty_weekly_for_indifoss", "custom_leave_type_weekly_for_indifoss", 0, 1)
+        apply_filter_for_leave_type(frm, "custom_deduct_leave_penalty_weekly_for_indifoss", "custom_leave_type_weekly_for_indifoss", 0, 1);
     },
 
     custom_deduct_leave_penalty_for_prompt: function (frm) {
-        apply_filter_for_leave_type(frm, "custom_deduct_leave_penalty_for_prompt", "custom_leave_type_for_prompt", 1, 0)
+        apply_filter_for_leave_type(frm, "custom_deduct_leave_penalty_for_prompt", "custom_leave_type_for_prompt", 1, 0);
     },
 
     custom_deduct_leave_penalty_daily_for_prompt: function (frm) { 
-        apply_filter_for_leave_type(frm, "custom_deduct_leave_penalty_daily_for_prompt", "custom_leave_type_daily_for_prompt", 1, 0)
+        apply_filter_for_leave_type(frm, "custom_deduct_leave_penalty_daily_for_prompt", "custom_leave_type_daily_for_prompt", 1, 0);
+    },
+
+    // Button for Indifoss child table
+    custom_set_allowed_fields_for_indifoss: function(frm) {
+        openSetAllowedFieldsDialog(frm, 'custom_employee_changes_allowed_fields_for_indifoss', 'Indifoss');
+    },
+
+    // Button for Prompt child table  
+    custom_set_allowed_fields_for_prompt: function(frm) {
+        openSetAllowedFieldsDialog(frm, 'custom_employee_changes_allowed_fields_for_prompt', 'Prompt');
     }
-
-})
-
-
+});
 
 function apply_filter_for_leave_type(frm, fieldname, leave_type_fieldname, prompt_comp, indifoss) {
-
     let args = {};
     if (indifoss) args.indifoss = 1;
     if (prompt_comp) args.prompt = 1;
@@ -53,51 +56,32 @@ function apply_filter_for_leave_type(frm, fieldname, leave_type_fieldname, promp
         args: args,
         callback: function (res) {
             if (res.message) {
-                if (!res.message.add_set_allowed_field_button_for_prompterror && res.message.company_id) {
-                    
-                    if (frm.doc[fieldname] == "Deduct leave without pay")
-                        {
-                            frm.set_query(leave_type_fieldname, function () {
-                                return {
-                                    filters: {
-                                        "custom_company": res.message.company_id,
-                                        "is_lwp": 1
-                                    }
+                if (!res.message.error && res.message.company_id) {
+                    if (frm.doc[fieldname] == "Deduct leave without pay") {
+                        frm.set_query(leave_type_fieldname, function () {
+                            return {
+                                filters: {
+                                    "custom_company": res.message.company_id,
+                                    "is_lwp": 1
                                 }
-                            })
-                        }
+                            };
+                        });
+                    }
                     if (frm.doc[fieldname] == "Deduct earned leave") {
-                            frm.set_query(leave_type_fieldname, function () {
-                                return {
-                                    filters: {
-                                        "custom_company": res.message.company_id,
-                                        "custom_is_earned_leave_allocation": 1
-                                    }
-                                };
-                            });
-                        }
-                    // if (frm.doc[fieldname] == "Deduct earned leave") {
-                    //         frm.set_query(leave_type_fieldname, function () {
-                    //             return {
-                    //                 query: 'prompt_hr.py.utils.fetch_leave_type_for_indifoss',
-                    //                 filters: {
-                    //                     company_id: res.message.company_id
-                    //                 }
-                    //             };
-                    //         });
-                    //     }
+                        frm.set_query(leave_type_fieldname, function () {
+                            return {
+                                filters: {
+                                    "custom_company": res.message.company_id,
+                                    "custom_is_earned_leave_allocation": 1
+                                }
+                            };
+                        });
+                    }
                 } else {
-                    frappe.throw(res.message.message)
+                    frappe.throw(res.message.message);
                 }
             }
         }
-    })
-}
-
-function add_set_allowed_field_button_for_prompt(frm) {
-    frm.add_custom_button(__('Set Allowed Fields for Prompt'), () => {
-        console.log('perform_Action');
-        openSetAllowedFieldsDialog(frm);
     });
 }
 
@@ -108,7 +92,6 @@ async function getEmployeeFields() {
             method: "prompt_hr.py.employee.get_employee_doctype_fields"
         });
 
-        // Prepare options for autocomplete
         return response.message.map(field => ({
             label: field.label,
             value: field.label
@@ -121,8 +104,7 @@ async function getEmployeeFields() {
 }
 
 // Function to open the dialog for setting allowed fields
-async function openSetAllowedFieldsDialog(frm) {
-    // Fetch employee fields
+async function openSetAllowedFieldsDialog(frm, child_table_fieldname, company_type) {
     const employee_fields = await getEmployeeFields();
     
     if (!employee_fields.length) {
@@ -130,9 +112,8 @@ async function openSetAllowedFieldsDialog(frm) {
         return;
     }
 
-    // Create dialog
     const dialog = new frappe.ui.Dialog({
-        title: __('Set Allowed Fields for Prompt'),
+        title: __('Set Allowed Fields for {0}', [company_type]),
         fields: [
             {
                 label: __('Employee Field'),
@@ -153,48 +134,48 @@ async function openSetAllowedFieldsDialog(frm) {
         size: 'small',
         primary_action_label: __('Add Field'),
         primary_action(values) {
-            addFieldToChildTable(frm, values, dialog);
+            addFieldToChildTable(frm, child_table_fieldname, company_type, values, dialog);
         }
     });
 
     dialog.show();
 }
 
-// Function to add selected field to child table
-function addFieldToChildTable(frm, values, dialog) {
+// Function to add selected field to respective child table
+function addFieldToChildTable(frm, child_table_fieldname, company_type, values, dialog) {
     try {
         // Check if field already exists in child table
-        const existing_field = frm.doc.custom_employee_changes_allowed_fields_for_prompt?.find(
+        const existing_field = frm.doc[child_table_fieldname]?.find(
             row => row.field_label === values.field_label
         );
 
         if (existing_field) {
             frappe.msgprint({
                 title: __('Field Already Exists'),
-                message: __('This field is already added to the allowed fields list.'),
+                message: __('This field is already added to the {0} allowed fields list.', [company_type]),
                 indicator: 'orange'
             });
             return;
         }
 
-        // Add new row to child table
+        // Add new row to respective child table
         const child_row = frappe.model.add_child(
             frm.doc, 
             'Employee Changes Allowed Fields', 
-            'custom_employee_changes_allowed_fields_for_prompt'
+            child_table_fieldname
         );
 
         // Set values
         child_row.field_label = values.field_label;
         child_row.permission_required = values.permission_required ? 1 : 0;
 
-        // Refresh the child table
-        frm.refresh_field('custom_employee_changes_allowed_fields_for_prompt');
+        // Refresh the respective child table
+        frm.refresh_field(child_table_fieldname);
 
         // Show success message
         frappe.msgprint({
             title: __('Field Added'),
-            message: __('Field "{0}" has been added to allowed fields list.', [values.field_label]),
+            message: __('Field "{0}" has been added to {1} allowed fields list.', [values.field_label, company_type]),
             indicator: 'green'
         });
 
@@ -212,4 +193,9 @@ function addFieldToChildTable(frm, values, dialog) {
             indicator: 'red'
         });
     }
+}
+
+function hide_add_row_buttom_of_field_table(frm) {
+    frm.set_df_property("custom_employee_changes_allowed_fields_for_indifoss", "cannot_add_rows", 1);
+    frm.set_df_property("custom_employee_changes_allowed_fields_for_prompt", "cannot_add_rows", 1);
 }
