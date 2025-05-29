@@ -57,6 +57,7 @@ class CustomLeaveEncashment(LeaveEncashment):
             )
 
     def set_encashment_amount(self):
+        super().set_encashment_amount()
         employee = frappe.get_doc("Employee", self.employee)
         gross_salary = employee.get("custom_gross_salary")
         # Get the encashment salary days setting from HR Settings
