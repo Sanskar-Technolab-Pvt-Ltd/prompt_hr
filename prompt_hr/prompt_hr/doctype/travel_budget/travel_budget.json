@@ -7,7 +7,8 @@
  "field_order": [
   "section_break_fqct",
   "company",
-  "buget_allocation"
+  "buget_allocation",
+  "mode_of_travel"
  ],
  "fields": [
   {
@@ -25,13 +26,19 @@
    "fieldtype": "Table",
    "label": "Buget Allocation",
    "options": "Budget Allocation"
+  },
+  {
+   "fieldname": "mode_of_travel",
+   "fieldtype": "Table",
+   "label": "Mode of Travel",
+   "options": "Travel Mode Table"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-04-11 05:31:32.041492",
+ "modified": "2025-05-29 18:49:09.155284",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Travel Budget",
