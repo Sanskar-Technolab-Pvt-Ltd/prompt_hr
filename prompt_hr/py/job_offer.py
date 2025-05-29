@@ -275,3 +275,4 @@ def send_LOI_letter(name):
     else:
         frappe.throw("No Email found for Employee")
     return "LOI Letter sent Successfully"
+
