@@ -66,7 +66,6 @@ function show_checkin_dialog(frm) {
         },
         callback(r) {
             const checkins = r.message;
-
             // if (!checkins.length) {
             //     frappe.msgprint('No check-ins found for this date.');
             //     return;
@@ -78,7 +77,6 @@ function show_checkin_dialog(frm) {
 
             for (let i = 0; i < checkins.length; i++) {
                 const current = checkins[i];
-
                 if (current.log_type === 'IN') {
                     if (last_in && !last_in.out_time)
                     {
@@ -111,7 +109,6 @@ function show_checkin_dialog(frm) {
                 table_data.push(last_in);
             }
             
-            console.log(table_data)
             const d = new frappe.ui.Dialog({
                 title: 'Edit Check-in/Out Records',
                 fields: [
