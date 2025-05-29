@@ -7,12 +7,13 @@ class CustomFullAndFinalStatement(FullandFinalStatement):
         """
         Get the list of components to be added to the payables table
         """
-        return [
-            "Notice Period Recovery", 
-            "Expense Claim",
-            "Gratuity",
-            "Leave Encashment",
-        ]
+        components = super().get_payable_component()
+        components.insert(0, "Notice Period Recovery")
+
+        if "Bonus" in components:
+            components.remove("Bonus")
+        
+        return components
     
     @frappe.whitelist()
     def create_component_row(doc, components, component_type):
@@ -178,9 +179,7 @@ class CustomFullAndFinalStatement(FullandFinalStatement):
         """
         Modify function to add Imprest Account to the receivables table
         """
-        receivables = ["Employee Advance"]
-        if "lending" in frappe.get_installed_apps():
-            receivables.append("Loan")
+        receivables = super().get_receivable_component()
         company_abbr = frappe.get_doc("Company", doc.company).abbr
         if company_abbr == frappe.db.get_single_value("HR Settings", "custom_indifoss_abbr"):
             receivables.append("Imprest Amount")
