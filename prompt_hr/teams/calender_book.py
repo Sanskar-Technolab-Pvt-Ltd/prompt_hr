@@ -21,10 +21,16 @@ def teams_calender_book(docname):
         start_time = date_time.get('start_time')
         end_time = date_time.get('end_time')
         token = generate_teams_token()
-        join_url = create_meeting_link(docname)
         
-        if not join_url:
-            frappe.throw(("Error: While Post Teams onlineMeetings API"))
+        join_url = ""
+        is_face_to_face = interview_doc.custom_mode == "Face to Face Interview"
+
+        if not is_face_to_face:
+            join_url = create_meeting_link(docname)
+            
+            if not join_url:
+                frappe.throw(("Error: While Post Teams onlineMeetings API"))
+
         
         doc = frappe.get_doc("Teams Settings","Teams Settings")
             
@@ -42,28 +48,36 @@ def teams_calender_book(docname):
         html_content = f""" 
         <div style='font-family:Segoe UI, sans-serif; font-size:14px; color:#333;'>
             <p>Dear Participant,</p>
-            <p>You are invited to join a Microsoft Teams meeting. Please find the details below:</p>
+            <p>You are invited for an interview. Please find the details below:</p>
             <table style='margin-top:10px; margin-bottom:10px; padding:10px; background-color:#f3f6f9; border:1px solid #d1dce5; border-radius:5px;'>
                 <tr>
                     <td style='padding:8px 0;margin-right:0px'> <strong>Meeting</strong></td>
                     <td style='padding:8px 0;'>:  {subject}</td>
                 </tr>
                 <tr>
-                    <td style='padding:8px 0;'> <strong>Date&Time</strong></td>
+                    <td style='padding:8px 0;'> <strong>Date & Time</strong></td>
                     <td style='padding:8px 0;'>:  {readable_date_time}</td>
                 </tr>
             </table>
+        """
+
+        # Add the Join Link if not Face-to-Face
+        if not is_face_to_face:
+            html_content += f"""
             <p>
                 <a href='{join_url}' 
                     style='background-color:#464775; color:#ffffff; padding:10px 16px; text-decoration:none; border-radius:4px; display:inline-block;'>
                     Join Teams Meeting
                 </a>
             </p>
+            """
+
+        html_content += """
             <p>We look forward to your participation.</p>
             <p>Best regards,<br/>Prompt</p>
         </div>
         """
-        
+                
         attendees = []
 
         # 1. Add Applicant
@@ -133,7 +147,7 @@ def teams_calender_book(docname):
             post_data = create_teams_api_post_log(status,docname,payload,response_data,endpoint_type="events")
             interview_doc.db_set('custom_teams_calender_book',1)
             frappe.db.commit()
-            return f"Teams Calender has been booked for this candidate : {interview_doc.custom_applicant_name}"
+            return f"Teams Calender has been booked for this candidate : {interview_doc.custom_applicant_name or ''}"
             
         else:
             status = "Failed"
