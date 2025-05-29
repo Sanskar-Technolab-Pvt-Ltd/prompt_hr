@@ -12,7 +12,6 @@ class CustomFullAndFinalStatement(FullandFinalStatement):
 
         if "Bonus" in components:
             components.remove("Bonus")
-        components.append("Leave Application")
         return components
     
     @frappe.whitelist()
