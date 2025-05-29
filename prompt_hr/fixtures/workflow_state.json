@@ -56,20 +56,38 @@
  {
   "docstatus": 0,
   "doctype": "Workflow State",
-  "icon": "question-sign",
-  "modified": "2025-04-02 13:09:29.722407",
-  "name": "Pending",
-  "style": "Info",
-  "workflow_state_name": "Pending"
+  "icon": "",
+  "modified": "2025-05-08 15:56:20.913535",
+  "name": "Rejected by HR",
+  "style": "Danger",
+  "workflow_state_name": "Rejected by HR"
  },
  {
   "docstatus": 0,
   "doctype": "Workflow State",
   "icon": "",
-  "modified": "2025-05-15 10:42:52.572200",
-  "name": "Confirmed",
+  "modified": "2025-05-23 11:28:50.709900",
+  "name": "Approved by HR",
   "style": "Success",
-  "workflow_state_name": "Confirmed"
+  "workflow_state_name": "Approved by HR"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-05-21 12:09:27.948591",
+  "name": "Rejected by BU Head",
+  "style": "",
+  "workflow_state_name": "Rejected by BU Head"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-05-21 12:10:06.245889",
+  "name": "Approved by BU Head",
+  "style": "",
+  "workflow_state_name": "Approved by BU Head"
  },
  {
   "docstatus": 0,
@@ -84,36 +102,54 @@
   "docstatus": 0,
   "doctype": "Workflow State",
   "icon": "",
-  "modified": "2025-05-08 15:56:20.913535",
-  "name": "Rejected by HR",
-  "style": "Danger",
-  "workflow_state_name": "Rejected by HR"
- },
- {
-  "docstatus": 0,
-  "doctype": "Workflow State",
-  "icon": "",
-  "modified": "2025-05-23 11:28:12.743231",
-  "name": "Rejected by BU Head",
-  "style": "Danger",
-  "workflow_state_name": "Rejected by BU Head"
- },
- {
-  "docstatus": 0,
-  "doctype": "Workflow State",
-  "icon": "",
-  "modified": "2025-05-23 11:28:04.393575",
-  "name": "Approved by BU Head",
+  "modified": "2025-05-29 18:38:32.632751",
+  "name": "Extension Approved",
   "style": "Success",
-  "workflow_state_name": "Approved by BU Head"
+  "workflow_state_name": "Extension Approved"
  },
  {
   "docstatus": 0,
   "doctype": "Workflow State",
   "icon": "",
-  "modified": "2025-05-23 11:28:50.709900",
-  "name": "Approved by HR",
+  "modified": "2025-05-15 10:42:52.572200",
+  "name": "Confirmed",
   "style": "Success",
-  "workflow_state_name": "Approved by HR"
+  "workflow_state_name": "Confirmed"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "question-sign",
+  "modified": "2025-04-02 13:09:29.722407",
+  "name": "Pending",
+  "style": "Info",
+  "workflow_state_name": "Pending"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-05-29 10:21:36.369644",
+  "name": "Extension Confirmed",
+  "style": "Success",
+  "workflow_state_name": "Extension Confirmed"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-05-29 10:21:24.158646",
+  "name": "Extension Rejected",
+  "style": "Danger",
+  "workflow_state_name": "Extension Rejected"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-05-29 10:20:36.270966",
+  "name": "Extension Requested",
+  "style": "Primary",
+  "workflow_state_name": "Extension Requested"
  }
 ]
