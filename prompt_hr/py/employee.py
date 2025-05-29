@@ -818,22 +818,31 @@ def get_employee_changable_fields(emp_id):
 
     return fields
 
+# ? FUNCTION TO GET EMPLOYEE DOCTYPE FIELDS
 @frappe.whitelist()
 def get_employee_doctype_fields():
-    """
-    Fetch all fields from Employee DocType for the allowed fields dialog
-    Returns list of field labels and fieldnames
-    """
+
     try:
-        # Get all fields from Employee DocType
+        # ? GET ALL FIELDS FROM EMPLOYEE DOCTYPE
         fields = frappe.get_list(
             "DocField",
-            filters={"parent": "Employee", "hidden": 0},  # Exclude hidden fields
+            filters={"parent": "Employee", "hidden": 0}, 
             fields=["label", "fieldname", "fieldtype"],
             order_by="idx asc",
         )
 
-        # Filter out fields without labels and system fields
+        # ? ADD CUSTOM FIELDS FROM Employee DocType
+        custom_fields = frappe.get_all(
+            "Custom Field",
+            filters={"dt": "Employee", "hidden": 0},
+            fields=["label", "fieldname", "fieldtype"],
+            order_by="idx asc",
+        )
+
+        # ? APPEND CUSTOM FIELDS TO THE FIELDS LIST
+        fields.extend(custom_fields)
+
+        # ? FILTER OUT FIELDS WITHOUT LABELS AND SYSTEM FIELDS
         filtered_fields = []
         excluded_fieldtypes = [
             "Section Break",
@@ -843,6 +852,7 @@ def get_employee_doctype_fields():
             "Heading",
         ]
 
+        # ? EXCLUDE FIELDS THAT ARE NOT RELEVANT FOR EMPLOYEE
         for field in fields:
             if (
                 field.get("label")
