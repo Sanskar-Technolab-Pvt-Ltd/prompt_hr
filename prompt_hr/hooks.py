@@ -253,6 +253,7 @@ doc_events = {
         "on_update": "prompt_hr.py.leave_application.on_update",
         "on_cancel": "prompt_hr.py.leave_application.on_cancel",
         "before_save": "prompt_hr.py.leave_application.before_save",
+        "before_insert": "prompt_hr.py.leave_application.before_insert",
     },
     "Expense Claim":{ 
         "on_update": "prompt_hr.py.expense_claim.on_update",
@@ -462,7 +463,7 @@ fixtures = [
 #     "dt":"Workflow", "filters": [["name", "in", ["Job Requisition", "Compensatory Leave Request", "Leave Application", "Loan Application"]]]
 # },
 # {
-#     "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled", "Confirmed", "Approved by HR", "Rejected by HR", "Approved by BU Head", "Rejected by BU Head"]]]
+#     "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled", "Confirmed", "Approved by HR", "Rejected by HR", "Approved by BU Head", "Rejected by BU Head", "Extension Approved", "Extension Confirmed", "Extension Rejected", "Extension Requested"]]]
 # },
 # {
 #     "dt":"Workflow Action Master", "filters": [["name", "in", ["Confirm"]]]
