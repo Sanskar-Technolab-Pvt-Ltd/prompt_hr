@@ -63,7 +63,7 @@ def validate(doc, method):
     rows_to_notify = get_pending_activity_rows(doc)
     frappe.db.commit()
 
-    notify_users_for_pending_actions(rows_to_notify)
+    notify_users_for_pending_actions(rows_to_notify, company=doc.company)
 
     return "Emails enqueued successfully"
 
@@ -123,31 +123,99 @@ def fill_missing_checklist_records(doc):
 def get_pending_activity_rows(doc):
     filtered = [
         row for row in doc.activities
-        if row.user and row.custom_is_raised == 1 and row.custom_is_sent == 0
+        if (row.user or row.role) and row.custom_is_raised == 1 and row.custom_is_sent == 0
     ]
 
     return filtered
 
 
 # ? SEND EMAIL TO USERS FOR PENDING CHECKLIST ACTIONS
-def notify_users_for_pending_actions(rows):
+def notify_users_for_pending_actions(rows, company):
     if not rows:
         return
     for row in rows:
-        send_pending_action_email(row, notification_name="Reporting Manger Checklist")
+        send_pending_action_email(row, notification_name="Reporting Manger Checklist", company=company)
         row.custom_is_sent = 1  
 
-
-# ? COMPOSE + SEND EMAIL FOR A SINGLE ROW
-def send_pending_action_email(row, notification_name):
+# ? FUNCTION TO COMPOSE + SEND EMAIL FOR A SINGLE ROW
+def send_pending_action_email(row, notification_name, company):
+    # ? FETCH DOCTYPE AND DOCNAME
     doc_type = row.custom_checklist_name
     doc_name = row.custom_checklist_record
     recipient = row.user
 
+    # ? VALIDATE IF BOTH USER AND ROLE ARE SET
+    if row.user and row.role:
+        frappe.throw("Kindly Either Select User or Role, Not Both", title="Invalid Selection")
+
+    # ? IF ROLE IS SELECTED
+    if row.role:
+        # ? GET USERS WITH THE SPECIFIED ROLE
+        users = frappe.get_all(
+            "Has Role",
+            filters={"role": row.role},
+            fields=["parent as user"],
+            pluck="user"
+        )
+
+        if not users:
+            frappe.throw(f"No users found with role {row.role}", title="No Users Found")
+
+        # ? FILTER ACTIVE EMPLOYEES FROM THE USERS
+        emp_wise_recipient = frappe.get_all(
+            "Employee",
+            filters={
+                "user_id": ["in", users],
+                "company": company,
+                "status": "Active"
+            },
+            fields=["user_id"]
+        )
+
+        if not emp_wise_recipient:
+            frappe.throw(f"No active employees found with role {row.role}", title="No Active Employees Found")
+
+        # ? EXTRACT USER IDS
+        user_ids = [emp.user_id for emp in emp_wise_recipient if emp.user_id]
+        if not user_ids:
+            frappe.throw(f"No valid user IDs found for employees with role {row.role}", title="No Valid Users")
+
+        # ? GET EMAIL ADDRESSES OF VALID USERS
+        recipients = frappe.get_all(
+            "User",
+            filters={
+                "name": ["in", user_ids],
+                "enabled": 1
+            },
+            fields=["email"],
+            pluck="email"
+        )
+
+        # ? FILTER OUT EMPTY EMAILS
+        recipients = [email for email in recipients if email]
+
+        if not recipients:
+            frappe.throw(f"No email addresses found for users with role {row.role}", title="No Email Addresses")
+
+    # ? IF SINGLE USER IS SELECTED
+    else:
+        if not recipient:
+            frappe.throw("No user or role specified", title="Missing Recipient")
+
+        # ? GET EMAIL FOR SINGLE USER
+        user_email = frappe.db.get_value("User", recipient, "email")
+        if not user_email:
+            frappe.throw(f"No email found for user {recipient}", title="No Email Found")
+
+        recipients = [user_email]
+
+    # ? SEND NOTIFICATION EMAIL
     send_notification_email(
-        recipients=[recipient],
+        recipients=recipients,
         notification_name=notification_name,
         doctype=doc_type,
         docname=doc_name,
         button_label="View Details",
     )
+
+    frappe.msgprint("Notification email sent successfully.")
