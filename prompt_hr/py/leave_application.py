@@ -41,16 +41,18 @@ def before_save(doc, method):
     if employee_doc.resignation_letter_date:
         if not leave_type_doc.custom_allow_for_employees_who_are_on_notice_period:
             if frappe.utils.getdate(doc.to_date) >= employee_doc.resignation_letter_date:
-                frappe.throw(_("{0} cannot be applied during notice period.").format(leave_type_doc.name))
-    if leave_type_doc.custom_prior_days_required_for_applying_leave:
-        if  doc.from_date:
-            if date_diff(doc.from_date, frappe.utils.getdate()) <= leave_type_doc.custom_prior_days_required_for_applying_leave:
-                frappe.throw(_("You must apply at least {0} days before the leave date").format(leave_type_doc.custom_prior_days_required_for_applying_leave))
-    
+                frappe.throw(_("{0} cannot be applied during notice period.").format(leave_type_doc.name))     
     if leave_type_doc.custom_require_attachment:
         if not doc.custom_attachment:
             frappe.throw(_("Please attach a file for {0}").format(leave_type_doc.name))
-    
+
+def before_insert(doc, method):
+    leave_type_doc = frappe.get_doc("Leave Type", doc.leave_type)
+    if leave_type_doc.custom_prior_days_required_for_applying_leave:
+        if doc.from_date:
+            if date_diff(doc.from_date, frappe.utils.getdate()) <= leave_type_doc.custom_prior_days_required_for_applying_leave:
+                frappe.throw(_("You must apply at least {0} days before the leave date").format(leave_type_doc.custom_prior_days_required_for_applying_leave))
+
 def on_update(doc, method):
     if doc.has_value_changed("workflow_state"):
         employee = frappe.get_doc("Employee", doc.employee)
@@ -151,6 +153,61 @@ def on_update(doc, method):
             if employee_notification:
                 # Notify the employee regarding the confirmation of their leave.
                 subject = frappe.render_template(employee_notification.subject, {"doc":doc,"request_type":"Leave Application"})
+                if employee_id and not doc.flags.skip_workflow_email:
+                    frappe.sendmail(
+                    recipients=employee_id,
+                    message = frappe.render_template(employee_notification.message, {"doc": doc}),
+                    subject = subject,
+                    reference_doctype=doc.doctype,
+                    reference_name=doc.name,
+                )
+                    
+        elif doc.workflow_state == "Extension Requested":
+            notification = frappe.get_doc("Notification", "Leave Extension Request Notification")
+            if notification:
+                # Notify the Reporting Manager about the leave extension request.
+                subject = frappe.render_template(notification.subject, {"doc":doc,})
+                if reporting_manager_id:
+                    frappe.sendmail(
+                    recipients=reporting_manager_id,
+                    cc = other_recipents,
+                    message = frappe.render_template(notification.message, {"doc": doc}),
+                    subject = subject,
+                    reference_doctype=doc.doctype,
+                    reference_name=doc.name,
+                    expose_recipients="header"
+                )
+                    
+        elif doc.workflow_state == "Extension Approved" or doc.workflow_state == "Extension Rejected":
+            employee_notification = frappe.get_doc("Notification", "Leave Extension Request Response By Reporting Manager")
+            if doc.workflow_state == "Extension Approved":
+                doc.db_set("custom_extension_status", "Approved")
+            else:
+                doc.db_set("custom_extension_status", "Rejected")
+                doc.db_set("to_date", doc.custom_original_to_date)
+                total_leaves = custom_get_number_of_leave_days(doc.employee, doc.leave_type, doc.from_date, doc.custom_original_to_date, doc.half_day, doc.half_day_date, doc.custom_half_day_time)
+                doc.db_set("total_leave_days", total_leaves)
+                doc.db_set("docstatus",0)
+
+            if employee_notification:
+                # Notify the employee regarding the approval/rejection of their leave extension.
+                subject = frappe.render_template(employee_notification.subject, {"doc":doc})
+                if employee_id:
+                    frappe.sendmail(
+                    recipients=employee_id,
+                    cc = other_recipents,
+                    message = frappe.render_template(employee_notification.message, {"doc": doc}),
+                    subject = subject,
+                    reference_doctype=doc.doctype,
+                    reference_name=doc.name,
+                    expose_recipients="header"
+                )
+                    
+        elif doc.workflow_state == "Extension Confirmed":
+            employee_notification = frappe.get_doc("Notification", "Leave Extension Confirmation")
+            if employee_notification:
+                # Notify the employee regarding the confirmation of their leave extension.
+                subject = frappe.render_template(employee_notification.subject, {"doc":doc})
                 if employee_id:
                     frappe.sendmail(
                     recipients=employee_id,
@@ -159,11 +216,27 @@ def on_update(doc, method):
                     reference_doctype=doc.doctype,
                     reference_name=doc.name,
                 )
-
+            
 @frappe.whitelist()
 def extend_leave_application(leave_application, extend_to):
     leave_application = frappe.get_doc("Leave Application", leave_application)
-    leave_application.db_set("to_date", extend_to)
+    if getdate(extend_to) <= getdate(leave_application.to_date):
+        frappe.throw(_("Extended Date must be after previous To Date"))
+    cur_docstatus = leave_application.docstatus
+    try:
+        frappe.db.begin()
+        leave_application.db_set("docstatus", 0)
+        leave_application.db_set("custom_original_to_date", leave_application.to_date)
+        leave_application.to_date = extend_to
+        leave_application.save()
+        leave_application.db_set("custom_leave_status", leave_application.workflow_state)
+        leave_application.db_set("workflow_state", "Extension Requested")
+        leave_application.run_method("on_update")
+        frappe.db.commit()
+    except Exception as e:
+        frappe.db.rollback()
+        leave_application.db_set("docstatus", cur_docstatus)
+        raise e
 
 def custom_check_effective_date(from_date, today=None, frequency=None, allocate_on_day=None):
     from_date = get_datetime(from_date)
