@@ -379,11 +379,9 @@ def fetch_leave_type_for_indifoss(doctype, txt, searchfield, start, page_len, fi
 # ? FUNCTION TO SHARE DOCUMENT AND SEND NOTIFICATION EMAIL
 def expense_claim_workflow_email(doc):
     old_doc = doc.get_doc_before_save()
-    print(f"[DEBUG] Old Document\n\n\n: {old_doc}")
 
     # ? CHECK IF WORKFLOW STATE CHANGED
     if old_doc and doc.workflow_state != old_doc.workflow_state:
-        print(f"[DEBUG] Workflow changed from {old_doc.workflow_state} to {doc.workflow_state}")
 
         if doc.workflow_state == "Escalated":
             print(f"[DEBUG] BU Head Email\n\n\n:")

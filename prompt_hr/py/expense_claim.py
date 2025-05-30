@@ -1,7 +1,7 @@
 import frappe
 from frappe.utils import getdate
 import frappe.workflow
-from prompt_hr.py.utils import send_notification_email, expense_claim_workflow_email
+from prompt_hr.py.utils import send_notification_email, expense_claim_workflow_email,get_prompt_company_name, get_indifoss_company_name
 
 # ! prompt_hr.py.expense_clain.before_submit
 # ? BEFORE SUBMIT EVENT
@@ -15,6 +15,7 @@ def on_update(doc, method):
     # ? CHECK IF EXPENSE CLAIM IS EXCEEDING THE ALLOWED BUDGET
     if doc.expenses:
         get_expense_claim_exception(doc)
+        validate_attachments_compulsion(doc)
 
     # ? SHARE DOCUMENT AND SEND NOTIFICATION EMAIL
     expense_claim_workflow_email(doc)
@@ -228,13 +229,13 @@ def get_expense_claim_exception(doc):
 
         if expense.expense_type == "Food":
             allowed_amount = budget_row.meal_allowance_non_metro
-            if expense.custom_is_metro:
+            if expense.custom_for_metro_city:
                 allowed_amount = budget_row.meal_allowance_metro
             if expense.amount > allowed_amount:
                 expense.custom_is_exception = 1
         elif expense.expense_type == "Lodging":
             allowed_amount = budget_row.lodging_allowance_non_metro
-            if expense.custom_is_metro:
+            if expense.custom_for_metro_city:
                 allowed_amount = budget_row.lodging_allowance_metro
             if expense.amount > allowed_amount:
                 expense.custom_is_exception = 1
@@ -243,3 +244,19 @@ def get_expense_claim_exception(doc):
             if expense.amount > allowed_amount:
                 expense.custom_is_exception = 1
 
+
+def validate_attachments_compulsion(doc):
+
+    emp_company = frappe.db.get_value("Employee", doc.employee, "company")
+    if not emp_company:
+        frappe.throw("Employee company not found. Please set the employee company first.")
+    
+    if emp_company == get_indifoss_company_name():
+
+        for expense in doc.expenses:
+            if expense.custom_is_exception == 1 and not expense.attachments:
+               
+                frappe.throw(
+                        f"Attachments are mandatory for the expense type '{expense.expense_type}' "
+                        f"when it exceeds the allowed budget. Please attach the necessary documents."
+                    )
