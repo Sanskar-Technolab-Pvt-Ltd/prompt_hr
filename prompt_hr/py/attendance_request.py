@@ -1,9 +1,30 @@
 import frappe
 
 from frappe import throw
-from prompt_hr.py.utils import send_notification_email, check_user_is_reporting_manager
+from prompt_hr.py.utils import send_notification_email, check_user_is_reporting_manager, fetch_company_name
 
 
+
+
+def is_valid_for_partial_day(doc, event):
+    
+    
+    print(f"\n\n running \n\n")
+    prompt_company_name = fetch_company_name(prompt=1)
+    
+    
+    
+    
+    if not prompt_company_name.get("error") and doc.company == prompt_company_name.get("company_id"):
+        print(f"\n\n company matched \n\n")
+        
+        partial_day_allowed_minutes = frappe.db.get_single_value("HR Settings", "custom_partial_day_minutes_for_prompt")
+
+        if partial_day_allowed_minutes and partial_day_allowed_minutes < doc.custom_partial_day_request_minutes:
+            throw("Allowed Partial Day Minutes are {0}".format(partial_day_allowed_minutes))
+    elif prompt_company_name.get("error"):
+        throw(prompt_company_name.get("message"))
+        
 
 
 def before_submit(doc, event):

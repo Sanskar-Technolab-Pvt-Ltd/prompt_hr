@@ -40,5 +40,46 @@ frappe.ui.form.on('Attendance Request', {
                 }
             })
         }
+
+        if (frm.doc.company) {
+            set_partial_day_option(frm)
+        }
+    },
+    employee: function (frm) {
+        
+            set_partial_day_option(frm)
+    
     }
 });
+
+
+function set_partial_day_option(frm) {
+    console.log("Function Ran", frm.doc.company)
+
+    frappe.call({
+        method: 'prompt_hr.py.utils.fetch_company_name',
+        args: {
+            "prompt": 1
+        },
+        callback: function (res) {
+
+            options = {
+                "default_options": ['Work From Home', 'On Duty'],
+                "prompt_options": ['Work From Home', 'On Duty', 'Partial Day']
+            }
+
+            if (!res.message.error && res.message.company_id == frm.doc.company){
+                
+                frm.set_df_property('reason', 'options', options["prompt_options"])
+                
+            }
+            else if (res.message.error) {
+                frappe.throw(res.message.message)
+            }
+            else {
+                
+                frm.set_df_property('reason', 'options', options["default_options"])
+            }
+        }
+    })
+}
