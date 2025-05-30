@@ -35,14 +35,14 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Local Commute",
-   "options": "Taxi\nAuto\nBus"
+   "options": "Auto\nBus\nTaxi\nBike\nCar"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-05-29 18:50:43.018657",
+ "modified": "2025-05-30 12:32:57.655260",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Travel Mode Table",
