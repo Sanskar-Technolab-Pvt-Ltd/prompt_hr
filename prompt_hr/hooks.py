@@ -165,7 +165,7 @@ override_doctype_class = {
     "Interview": "prompt_hr.overrides.interview_override.CustomInterview",
     "Job Offer": "prompt_hr.overrides.job_offer_override.CustomJobOffer",
     "Leave Application": "prompt_hr.overrides.leave_application_override.CustomLeaveApplication",
-    "Attendance Request": "prompt_hr.overrides.attendance_request.CustomAttendanceRequest"
+    "Attendance Request": "prompt_hr.overrides.attendance_request_override.CustomAttendanceRequest"
 }
 
 # Document Events
@@ -223,7 +223,10 @@ doc_events = {
     # },
     "Attendance Request": {
         "after_insert": "prompt_hr.py.attendance_request.notify_reporting_manager",
-        "validate": "prompt_hr.py.attendance_request.notify_reporting_manager",
+        "validate": [
+                        "prompt_hr.py.attendance_request.notify_reporting_manager",
+                        "prompt_hr.py.attendance_request.is_valid_for_partial_day"
+                    ],
         "before_submit": "prompt_hr.py.attendance_request.before_submit"
     },
     "Payroll Entry": {
