@@ -226,7 +226,7 @@ def send_mail_to_job_applicant(doc, is_resend=False, notification_name=None):
             doctype="Job Offer",
             docname=doc.name,
             hash_input_text=candidate.name,
-            button_link=f"/candidate-portal/new",
+            button_link=f"/login?redirect-to=/candidate-portal/new#login",
             send_attach=True,
             letterhead=letter_head,
             print_format=print_format
