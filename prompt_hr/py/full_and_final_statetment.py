@@ -107,7 +107,7 @@ def custom_create_component_row(doc, components, component_type):
         elif component == "Employee Advance":
             employee_advance_docs = frappe.get_all(
                 "Employee Advance",
-                fields=["name", "pending_amount"],
+                fields=["name", "advance_amount"],
                 filters={"docstatus": 1, "employee": doc.employee, "status": "Unpaid"},
             )
             if employee_advance_docs:
@@ -119,7 +119,7 @@ def custom_create_component_row(doc, components, component_type):
                             "component": component,
                             "reference_document_type": "Employee Advance",
                             "reference_document": employee_advance_doc.name,
-                            "amount": employee_advance_doc.pending_amount,
+                            "amount": employee_advance_doc.advance_amount,
                         },
                     )
         elif component == "Loan":
