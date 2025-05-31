@@ -494,6 +494,7 @@ def create_confirmation_evaluation_form_for_prompt():
         
 def inform_employee_for_confirmation_process():
     """ Method to inform employee about confirmation process  before the days set user in HR Settings probation period is over 
+        FOR INDIFOSS
     """
     try:
         
