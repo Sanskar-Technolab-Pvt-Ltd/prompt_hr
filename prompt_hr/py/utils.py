@@ -256,7 +256,7 @@ def invite_for_document_collection(args, joining_document_checklist, child_table
                 doctype="Candidate Portal",
                 docname=invitation.name,
                 button_label="Submit Documents",
-                button_link=f"/candidate-portal/",
+                button_link=f"/login?redirect-to=/candidate-portal/new#login",
                 hash_input_text = invitation.name,
             )
             return _("Invitation updated successfully.")
