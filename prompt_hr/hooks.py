@@ -257,6 +257,8 @@ doc_events = {
         "on_cancel": "prompt_hr.py.leave_application.on_cancel",
         "before_save": "prompt_hr.py.leave_application.before_save",
         "before_insert": "prompt_hr.py.leave_application.before_insert",
+        "before_validate": "prompt_hr.py.leave_application.before_validate",
+        "before_submit": "prompt_hr.py.leave_application.before_submit",
     },
     "Expense Claim":{ 
         "on_update": "prompt_hr.py.expense_claim.on_update",
