@@ -377,13 +377,21 @@ async function loadDialogBox(frm) {
         const old_val = frm.doc[selected_meta.fieldname] || '';
         dialog.set_value('old_value', old_val);
 
+        // ? GET FIELD DEFINITION FROM CURRENT FORM
+        const field_df = cur_frm.fields_dict[selected_meta.fieldname]?.df;
+
         // ? PREPARE CONFIG FOR NEW VALUE FIELD BASED ON FIELD TYPE
         const new_field_config = {
             label: 'New Value',
             fieldname: 'new_value',
-            fieldtype: selected_meta.fieldtype || 'Data',
-            options: selected_meta.options || undefined
+            fieldtype: field_df?.fieldtype || 'Data',
+            options: field_df?.options || undefined
         };
+
+        // ? ADD OR UPDATE THE FIELD IN THE DIALOG
+        dialog.fields_dict.new_value.df = new_field_config;
+        dialog.refresh();
+
 
         // ? REPLACE EXISTING FIELD WITH CORRECT TYPE
         dialog.replace_field('new_value', new_field_config);
