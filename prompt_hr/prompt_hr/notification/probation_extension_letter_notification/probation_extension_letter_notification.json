@@ -1,5 +1,5 @@
 {
- "attach_print": 1,
+ "attach_print": 0,
  "channel": "Email",
  "creation": "2025-04-25 12:23:30.735237",
  "days_in_advance": 0,
@@ -12,12 +12,12 @@
  "is_standard": 1,
  "message": "Dear {{doc.employee_name}},<br><br>\nThis is to inform you that your probation period has been extended for an additional {{\"extension_period\"}} months, effective from {{\"extension_start_date\"}}.<br><br>\nPlease find attached the probation extension letter with complete details. We encourage you to discuss any concerns with your reporting manager.<br><br>\nRegards,<br>\n{{doc.company}} HR Team",
  "message_type": "HTML",
- "modified": "2025-04-25 15:00:30.227537",
+ "modified": "2025-05-31 12:29:48.772554",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Probation Extension Letter Notification",
  "owner": "Administrator",
- "print_format": "Probation Extension Letter",
+ "print_format": "",
  "recipients": [
   {}
  ],

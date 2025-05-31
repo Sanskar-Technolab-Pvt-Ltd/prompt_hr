@@ -19,8 +19,14 @@ frappe.ui.form.on("Leave Application", {
 		if (frm.doc.custom_optional_holidays) {
 			frm.trigger("leave_type");
 		}
-		frappe.db.get_value("Leave Type", frm.doc.leave_type, "custom_allow_leave_extension").then(r => {
-			if (r.message.custom_allow_leave_extension && (frm.doc.workflow_state == 'Approved' || frm.doc.workflow_state == 'Confirmed') && (!frm.doc.custom_extension_status || frm.doc.custom_extension_status == "")) {
+		frappe.call({
+			method: "prompt_hr.py.leave_application.leave_extension_allowed",
+			args: {	
+				leave_type: frm.doc.leave_type || '',
+				employee: frm.doc.employee || '',
+			},
+			callback: function (r) {
+				if (r.message && (frm.doc.workflow_state == 'Approved' || frm.doc.workflow_state == 'Confirmed') && (!frm.doc.custom_extension_status || frm.doc.custom_extension_status == "")) {
 				frm.add_custom_button(__('Extend Leave'), function() {
 					let d = new frappe.ui.Dialog({
 						title: 'Extend Leave',
@@ -110,7 +116,8 @@ frappe.ui.form.on("Leave Application", {
 					d.show()
 				}).removeClass("btn-default").addClass("btn-primary");
 			}
-		});
+			}
+		})
 	},
     calculate_total_days: function (frm) {
 		if (frm.doc.from_date && frm.doc.to_date && frm.doc.employee && frm.doc.leave_type) {
