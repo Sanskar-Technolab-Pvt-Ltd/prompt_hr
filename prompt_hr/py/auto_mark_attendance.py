@@ -1,7 +1,7 @@
 import frappe
 
 from frappe import throw
-from frappe.utils import datetime, today
+from frappe.utils import datetime, today, getdate, get_datetime
 from datetime import timedelta
 from prompt_hr.py.utils import fetch_company_name
 
@@ -33,18 +33,91 @@ def mark_attendance_for_prompt(is_scheduler=0):
         else:
             throw(prompt_company_name.get("message"))
     
-    employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": prompt_company_name.get("company_id")}, ["name", "holiday_list"])
+    
+    company_id = prompt_company_name.get("company_id")
+    
+    
+    employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": company_id} ["name", "holiday_list", "custom_is_overtime_applicable"])
+    
+    today_date = getdate(today())
+    
+    
     
     if not employee_list:
         throw("No Employees Found") if is_scheduler else frappe.log_error("Error in mark_attendance_for_prompt", "No Employee Found")    
 
+    today_start_time = get_datetime(today_date + " 00:00:00")
+    today_end_time = get_datetime(today_date + " 23:59:59")    
+    for employee_data in employee_list:
+        assigned_shift = frappe.db.get_all("Shift Assignment", {"docstatus": 1, "status": "Active","employee": employee_data.get("name"), "start_date":["<=", today_date], "end_date":["<=", today_date]}, ["name","shift_type"], order_by="creation desc", limit=1)
+
+        #* If no shift assigned then move to next employee
+        if not assigned_shift:
+            continue
+        
+    
+        #* Checking if attendance exists then move to another employee
+        attendance_exists = frappe.db.exists("Attendance", {"employee": employee_data.get("name"), "attendance_date": today_date})
+        if attendance_exists:
+            continue
+        
+        
+        shift_type = assigned_shift[0].get("shift_type")
+        in_type_emp_checkin = frappe.db.get_all("Employee Checkin", {"employee": employee_data.get("name"), "log_type": "IN", "time": ["between", [today_start_time, today_end_time]]}, ["name", "time"], order_by="time asc", limit=1)
+        out_type_emp_checkin = frappe.db.get_all("Employee Checkin", {"employee": employee_data.get("name"), "log_type": "OUT", "time": ["between", [today_start_time, today_end_time]]}, ["name", "time"], order_by="time desc", limit=1)
+        
+        if in_type_emp_checkin and out_type_emp_checkin:
+            
+            in_time = in_type_emp_checkin[0].get("time").time()    
+            out_time = out_type_emp_checkin[0].get("time").time()
+            
+            
+            
+            
+    
+        
 def mark_attendance_for_indifoss():
     """Method to mark attendance for indifoss employee
     """
     pass
 
 
+def is_holiday_or_weekoff(emp_id, today_date):
+    """Method to check if today is holiday or weekoff or  not
+    """
+    emp_holiday_list = frappe.db.get_value("Employee", emp_id, "holiday_list")
+    
+    if not emp_holiday_list:
+        return 0
+    
+    is_holiday = frappe.db.get_all("Holiday", {"parenttype": "Holiday List", "parent": emp_holiday_list, "holiday_date": today_date}, "name", limit=1)
+    
+    weekoff = frappe.db.get_all("WeekOff Change Request", {"status": "Approved", "employee": emp_id}, "name")
+    
+    is_weekoff = False
+    
+    
+    if weekoff:
+        for weekoff_detail in weekoff:
+            is_existing_date = frappe.db.get_all("WeekOff Request Details", {"parenttype": "WeekOff Change Request", "parent": weekoff_detail.get("name"), "existing_weekoff_date": today_date}, "name", limit=1)
+    
+            is_new_date = frappe.db.get_all("WeekOff Request Details", {"parenttype": "WeekOff Change Request", "parent": weekoff_detail.get("name"), "new_weekoff_date": today_date}, "name", limit=1)
+            
+            if is_existing_date:
+                is_weekoff = False
+                break
+            
+            if is_new_date:
+                is_weekoff = True
+                break
+            
+    if is_holiday or is_weekoff:
+        return 1
 
+    return 0
+    
+    
+        
 def str_to_timedelta(work_hours):
     if isinstance(work_hours, str):
         parts = work_hours.split(":")
