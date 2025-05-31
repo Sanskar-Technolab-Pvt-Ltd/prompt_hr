@@ -238,7 +238,7 @@ def on_update(doc, method):
         log(f"Employee has user_id: {doc.user_id}")
         if not frappe.db.exists("Welcome Page", {"user": doc.user_id}):
             log(f"Welcome Page does not exist for {doc.user_id}, creating...")
-            create_welcome_status(doc.user_id,company)
+            create_welcome_status(doc.user_id,doc.company)
         else:
             log(f"Welcome Page already exists for {doc.user_id}")
     else:
@@ -365,6 +365,11 @@ def send_service_agreement(name):
     subject = frappe.render_template(notification.subject, {"doc": doc})
     message = frappe.render_template(notification.message, {"doc": doc})
     email = None
+    company_abbr = frappe.db.get_value("Company", doc.company, "abbr")
+    if company_abbr == frappe.db.get_single_value("HR Settings", "custom_prompt_abbr"):
+        letter_name = "Prompt Equipments _ Service Agreement"
+    else:
+        letter_name = "Indifoss _ Service Agreement"
     if doc.prefered_contact_email:
         if doc.prefered_contact_email == "Company Email":
             email = doc.company_email
@@ -375,15 +380,15 @@ def send_service_agreement(name):
     else:
         email = doc.personal_email
     attachment = None
-    if notification.attach_print and notification.print_format:
-        pdf_content = frappe.get_print(
-            "Employee", doc.name, print_format=notification.print_format, as_pdf=True
-        )
+    
+    pdf_content = frappe.get_print(
+        "Employee", doc.name, print_format=letter_name, as_pdf=True
+    )
 
-        attachment = {
-            "fname": f"{notification.print_format}.pdf",
-            "fcontent": pdf_content,
-        }
+    attachment = {
+        "fname": f"{letter_name}.pdf",
+        "fcontent": pdf_content,
+    }
 
     if email:
         frappe.sendmail(
@@ -413,6 +418,11 @@ def send_confirmation_letter(name):
     message = frappe.render_template(notification.message, {"doc": doc})
 
     email = None
+    company_abbr = frappe.db.get_value("Company", doc.company, "abbr")
+    if company_abbr == frappe.db.get_single_value("HR Settings", "custom_prompt_abbr"):
+        letter_name = "Confirmation Letter - Prompt"
+    else:
+        letter_name = "Confirmation Letter - IndiFOSS"
     if doc.prefered_contact_email:
         if doc.prefered_contact_email == "Company Email":
             email = doc.company_email
@@ -424,15 +434,15 @@ def send_confirmation_letter(name):
         email = doc.personal_email
 
     attachment = None
-    if notification.attach_print and notification.print_format:
-        pdf_content = frappe.get_print(
-            "Employee", doc.name, print_format=notification.print_format, as_pdf=True
-        )
 
-        attachment = {
-            "fname": f"{notification.print_format}.pdf",
-            "fcontent": pdf_content,
-        }
+    pdf_content = frappe.get_print(
+        "Employee", doc.name, print_format=letter_name, as_pdf=True
+    )
+
+    attachment = {
+        "fname": f"{letter_name}.pdf",
+        "fcontent": pdf_content,
+    }
 
     # ? Send the email
     if email:
@@ -445,7 +455,7 @@ def send_confirmation_letter(name):
             attachments=[attachment] if attachment else None,
         )
         notify_signatory_on_email(
-            doc.company, "HR Manager", doc.name, "Confirmation Letter"
+            doc.company, "HR Manager", doc.name, letter_name
         )
     else:
         frappe.throw("No Email found for Employee")
@@ -462,6 +472,11 @@ def send_probation_extension_letter(name):
     subject = frappe.render_template(notification.subject, {"doc": doc})
     message = frappe.render_template(notification.message, {"doc": doc})
     email = None
+    company_abbr = frappe.db.get_value("Company", doc.company, "abbr")
+    if company_abbr == frappe.db.get_single_value("HR Settings", "custom_prompt_abbr"):
+        letter_name = "Probation Extension Letter - Prompt"
+    else:
+        letter_name = "Probation Extension Letter - Indifoss"
     if doc.prefered_contact_email:
         if doc.prefered_contact_email == "Company Email":
             email = doc.company_email
@@ -473,17 +488,17 @@ def send_probation_extension_letter(name):
         email = doc.personal_email
 
     attachment = None
-    if notification.attach_print and notification.print_format:
-        pdf_content = frappe.get_print(
-            "Employee", doc.name, print_format=notification.print_format, as_pdf=True
-        )
+    
+    pdf_content = frappe.get_print(
+        "Employee", doc.name, print_format=letter_name, as_pdf=True
+    )
 
-        attachment = {
-            "fname": f"{notification.print_format}.pdf",
-            "fcontent": pdf_content,
-        }
-
+    attachment = {
+        "fname": f"{letter_name}.pdf",
+        "fcontent": pdf_content,
+    }
     if email:
+        
         frappe.sendmail(
             recipients=email,
             subject=subject,
@@ -493,7 +508,7 @@ def send_probation_extension_letter(name):
             attachments=[attachment] if attachment else None,
         )
         notify_signatory_on_email(
-            doc.company, "HR Manager", doc.name, "Probation Extension Letter"
+            doc.company, "HR Manager", doc.name, letter_name
         )
     else:
         frappe.throw("No Email found for Employee")

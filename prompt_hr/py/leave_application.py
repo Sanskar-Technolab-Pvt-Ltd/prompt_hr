@@ -95,6 +95,20 @@ def before_submit(doc, method):
                 entry_doc.db_set("docstatus", 2)
                 frappe.delete_doc("Leave Ledger Entry", entry_name)
 
+    elif doc.custom_leave_status == "Approved" and doc.custom_extension_status == "Rejected":
+        entry = frappe.get_all(
+            "Leave Ledger Entry",
+            filters={"transaction_name": doc.name, "docstatus": 1},
+            order_by="creation desc",
+            limit=1
+        )
+
+        if entry:
+            entry_name = entry[0].name
+            entry_doc = frappe.get_doc("Leave Ledger Entry", entry_name)
+            entry_doc.db_set("docstatus", 2)
+            frappe.delete_doc("Leave Ledger Entry", entry_name)
+
 
 def on_update(doc, method):
     employee = frappe.get_doc("Employee", doc.employee)
@@ -273,7 +287,7 @@ def extend_leave_application(leave_application, extend_to):
         leave_application.db_set("workflow_state", "Extension Requested")
         leave_application.db_set("custom_original_to_date", leave_application.to_date)
         if leave_application.custom_leave_status == "Confirmed":
-            leave_application.from_date = leave_application.to_date
+            leave_application.custom_original_to_date = leave_application.to_date
         leave_application.to_date = extend_to
         leave_application.save()
         frappe.db.commit()
@@ -867,3 +881,45 @@ def custom_get_allocated_and_expired_leaves(
 					new_allocation += record.leaves
 
 	return new_allocation, expired_leaves, carry_forwarded_leaves
+
+@frappe.whitelist()
+def leave_extension_allowed(leave_type, employee):
+    """
+    Checks whether the current user is allowed to extend the leave for a given Leave Type and Employee.
+
+    Conditions:
+    - The Leave Type must have `custom_allow_leave_extension` set to True.
+    - The current user must either be:
+        - The employee (matched via user_id), OR
+        - An Administrator.
+    
+    Returns:
+        True if extension is allowed, otherwise False.
+    """
+
+    if not leave_type:
+        return False
+    if not employee:
+        return False
+    
+    # Fetch the Leave Type document
+
+    leave_type_doc = frappe.get_doc("Leave Type", leave_type)
+
+    # Check if leave extension is allowed in the Leave Type
+    if leave_type_doc.custom_allow_leave_extension:
+        
+        # Get the user ID linked to the given Employee
+        employee_user_id = frappe.db.get_value("Employee", employee, "user_id")
+        
+        # Allow if the current session user is either:
+        # - The employee themselves
+        # - OR an Administrator
+        if employee_user_id == frappe.session.user or frappe.session.user == "Administrator":
+            return True
+
+        # Otherwise, not allowed
+        return False
+
+    # If leave extension is not enabled for this Leave Type, return False
+    return False
