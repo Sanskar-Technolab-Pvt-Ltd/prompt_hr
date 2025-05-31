@@ -6,7 +6,7 @@ from frappe.model.document import Document
 from frappe import _
 from frappe.utils import nowdate
 import frappe.utils
-from prompt_hr.py.utils import send_notification_email, get_hr_managers_by_company
+from prompt_hr.py.utils import send_notification_email, get_hr_managers_by_company,get_prompt_company_name
 
 
 class ExitApprovalProcess(Document):
@@ -105,7 +105,6 @@ def raise_exit_checklist(employee, company):
 			"message": _("An unexpected error occurred: {0}").format(str(e))
 		}
 
-
 @frappe.whitelist()
 def raise_exit_interview(employee, company):
 	try:
@@ -121,16 +120,39 @@ def raise_exit_interview(employee, company):
 		exit_interview.employee = employee
 		exit_interview.company = company
 		exit_interview.date = nowdate()
-		exit_interview.custom_resignation_quiz = "prompt-resignation-web-form-quiz"
 
+		# ? DETERMINE QUIZ NAME BASED ON COMPANY
+		if company == get_prompt_company_name().get("company_name"):
+			quiz_name = frappe.db.get_value("HR Settings", None, "custom_exit_quiz_at_employee_form_for_prompt")
+		elif company == get_indifoss_company_name().get("company_name"):
+			quiz_name = frappe.db.get_value("HR Settings", None, "custom_exit_quiz_at_employee_form_for_indifoss")
+		else:
+			frappe.throw(_("Company not recognized or quiz not configured."))
+
+		if not quiz_name:
+			frappe.throw(_("Exit quiz not configured for this company."))
+
+		# ? ASSIGN QUIZ TO THE DOCUMENT
+		exit_interview.custom_resignation_quiz = quiz_name
+
+		# ? INSERT DOCUMENT
 		exit_interview.insert(ignore_permissions=True)
 		frappe.db.commit()
 
-		send_notification_email(doctype="Exit Interview", docname=exit_interview, recipients=[frappe.db.get_value("Employee", employee, "user_id")], notification_name="Exit Questionnaire Mail To Employee", button_link = frappe.utils.get_url()+"/exit-questionnaire/new")
+		# ? SEND EMAIL TO EMPLOYEE
+		user_id = frappe.db.get_value("Employee", employee, "user_id")
+		send_notification_email(
+			doctype="Exit Interview",
+			docname=exit_interview.name,
+			recipients=[user_id],
+			notification_name="Exit Questionnaire Mail To Employee",
+			button_link=frappe.utils.get_url() + "/exit-questionnaire/new"
+		)
+
 		return {
-				"status": "success",
-				"message": _("Exit Interview record created successfully.")
-			}
+			"status": "success",
+			"message": _("Exit Interview record created successfully.")
+		}
 
 	except frappe.ValidationError as ve:
 		frappe.log_error(frappe.get_traceback(), "Validation Error in raise_exit_interview")

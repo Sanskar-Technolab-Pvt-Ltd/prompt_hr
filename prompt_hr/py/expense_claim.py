@@ -210,40 +210,59 @@ def record_expense_log_in_campaign(doc, campaign_doc, method):
         campaign_doc.save()
 
 def get_expense_claim_exception(doc):
-    
-    travel_budget = frappe.db.get_value("Travel Budget", {"company":doc.company}, "name")
+    # ? GET TRAVEL BUDGET
+    travel_budget = frappe.db.get_value("Travel Budget", {"company": doc.company}, "name")
     if not travel_budget:
         frappe.throw("Travel Budget is not set for this company. Please create a Travel Budget first.")
-    
+
+    # ? GET EMPLOYEE GRADE
     employee_grade = frappe.db.get_value("Employee", doc.employee, "grade")
     if not employee_grade:
         frappe.throw("Employee grade is not set. Please set the employee grade first.")
-    20
-    budget_row = frappe.db.get_value("Budget Allocation", {
-        "parent": travel_budget,
-        "grade": employee_grade
-    }, ["lodging_allowance_metro", "lodging_allowance_non_metro", "meal_allowance_metro", "meal_allowance_non_metro", "local_commute_limit"], as_dict=True)
 
-    
-    for expense in doc.expenses:
+    # ? GET BUDGET ALLOCATION FOR THE GRADE
+    budget_row = frappe.db.get_value(
+        "Budget Allocation",
+        {
+            "parent": travel_budget,
+            "parentfield": "buget_allocation",
+            "grade": employee_grade
+        },
+        [
+            "lodging_allowance_metro",
+            "lodging_allowance_non_metro",
+            "meal_allowance_metro",
+            "meal_allowance_non_metro",
+            "local_commute_limit"
+        ],
+        as_dict=True
+    )
+
+    if not budget_row:
+        frappe.throw(f"No budget allocation found for employee grade '{employee_grade}' in Travel Budget '{travel_budget}'. Please create a budget allocation first.")
+
+    # ? LOOP THROUGH EACH EXPENSE ITEM
+    for idx, expense in enumerate(doc.expenses, start=1):
+        allowed_amount = 0
+        is_exception = False
 
         if expense.expense_type == "Food":
-            allowed_amount = budget_row.meal_allowance_non_metro
-            if expense.custom_for_metro_city:
-                allowed_amount = budget_row.meal_allowance_metro
-            if expense.amount > allowed_amount:
-                expense.custom_is_exception = 1
+            allowed_amount = budget_row.meal_allowance_metro if expense.custom_for_metro_city else budget_row.meal_allowance_non_metro
+            is_exception = expense.amount > allowed_amount
+
         elif expense.expense_type == "Lodging":
-            allowed_amount = budget_row.lodging_allowance_non_metro
-            if expense.custom_for_metro_city:
-                allowed_amount = budget_row.lodging_allowance_metro
-            if expense.amount > allowed_amount:
-                expense.custom_is_exception = 1
+            allowed_amount = budget_row.lodging_allowance_metro if expense.custom_for_metro_city else budget_row.lodging_allowance_non_metro
+            is_exception = expense.amount > allowed_amount
+
         elif expense.expense_type == "Local Commute":
             allowed_amount = budget_row.local_commute_limit
-            if expense.amount > allowed_amount:
-                expense.custom_is_exception = 1
+            is_exception = expense.amount > allowed_amount
 
+        # ? IF EXCEPTION, FLAG IT AND CHECK ATTACHMENT
+        if is_exception:
+            expense.custom_is_exception = 1
+            if not expense.custom_attachments:
+                frappe.throw(f"Attachment is required for Expense at row #{idx} of type '{expense.expense_type}' because it exceeds the allowed limit ({allowed_amount}). Please upload the attachment.")
 
 def validate_attachments_compulsion(doc):
 

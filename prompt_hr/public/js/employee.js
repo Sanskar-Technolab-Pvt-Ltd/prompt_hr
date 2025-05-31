@@ -206,6 +206,7 @@ function createEmployeeResignationButton(frm) {
         // ? FETCH RESIGNATION QUESTIONS FROM BACKEND
         frappe.call({
             method: "prompt_hr.py.employee.get_raise_resignation_questions",
+            args: {"company": frm.doc.company},
             callback: function (res) {
                 if (res.message && res.message.length > 0) {
                     const questions = res.message;

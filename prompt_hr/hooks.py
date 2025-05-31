@@ -67,7 +67,6 @@ doctype_js = {
     "Expense Claim": "public/js/expense_claim.js",
     "Full and Final Statement": "public/js/full_and_final_statement.js",
     "Loan Application": "public/js/loan_application.js",
-
 }
 
 doctype_list_js = {

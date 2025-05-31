@@ -517,10 +517,25 @@ def send_probation_extension_letter(name):
 
 # ! prompt_hr.py.employee.get_raise_resignation_questions
 @frappe.whitelist()
-def get_raise_resignation_questions():
+def get_raise_resignation_questions(company):
     try:
-        # ? FETCH QUIZ NAME FROM HR SETTINGS
-        quiz_name = "prompt-resignation-questionnaire"
+        
+        if company == get_prompt_company_name().get("company_name"):
+            # ? FETCH QUIZ NAME FROM HR SETTINGS FOR PROMPT
+            quiz_name = frappe.db.get_value(
+                "HR Settings", None, "custom_exit_quiz_at_employee_form_for_prompt"
+            )
+        elif company == get_indifoss_company_name().get("company_name"):
+            # ? FETCH QUIZ NAME FROM HR SETTINGS FOR INDIFOSS
+            quiz_name = frappe.db.get_value(
+                "HR Settings", None, "custom_exit_quiz_at_employee_form_for_indifoss"
+            )
+        else:
+            # ? DEFAULT QUIZ NAME IF COMPANY NOT FOUND
+            frappe.throw(_("Company not recognized or quiz not configured."))
+
+        if quiz_name is None:
+            frappe.throw(_("Exit quiz not configured for this company."))
 
         questions = frappe.get_all(
             "LMS Quiz Question",
