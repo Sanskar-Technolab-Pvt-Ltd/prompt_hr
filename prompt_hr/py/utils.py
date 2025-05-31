@@ -514,6 +514,7 @@ def get_prompt_company_name():
     except Exception as e:
         return {"error": 1, "message": str(e)}
 
+@frappe.whitelist()
 def get_indifoss_company_name():
     """Method to fetch the company name for Indifoss HR"""
     try:
