@@ -1,6 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "format:TRA-BUG-{##}",
  "creation": "2025-04-11 05:23:47.407300",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -8,7 +9,8 @@
   "section_break_fqct",
   "company",
   "buget_allocation",
-  "mode_of_travel"
+  "mode_of_travel",
+  "amended_from"
  ],
  "fields": [
   {
@@ -32,16 +34,27 @@
    "fieldtype": "Table",
    "label": "Mode of Travel",
    "options": "Travel Mode Table"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Travel Budget",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-05-29 18:49:09.155284",
+ "modified": "2025-06-01 18:51:13.817110",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Travel Budget",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {
