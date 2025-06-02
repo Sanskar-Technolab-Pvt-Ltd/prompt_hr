@@ -35,7 +35,7 @@ def custom_set_actual_encashable_days(doc, method=None):
                 ),
             )
     if leave_type.custom_maximum_ctc_limit_to_eligible_for_encashment:
-        if employee_doc.ctc <= leave_type.custom_maximum_ctc_limit_to_eligible_for_encashment:
+        if employee_doc.custom_gross_salary <= leave_type.custom_maximum_ctc_limit_to_eligible_for_encashment:
             max_encashable_leave = doc.leave_balance
         else:
             max_encashable_leave = 0

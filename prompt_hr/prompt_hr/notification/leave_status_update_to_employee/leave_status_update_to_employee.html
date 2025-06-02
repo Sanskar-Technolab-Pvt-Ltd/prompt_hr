@@ -5,7 +5,7 @@ Your compensatory leave request has been <b>{{ doc.workflow_state }}</b> by your
 
 <b>Leave Details:</b><br>
 - <b>Leave Type:</b> {{ doc.leave_type }}<br>
-- <b>Compensatory Work Period:</b> {{ doc.work_from_date }} to {{ doc.work_end_date }}<br>
+- <b>Compensatory Work Period:</b> {{frappe.utils.format_date(doc.work_from_date,"dd-MM-yyyy") }} to {{ frappe.utils.format_date(doc.work_end_date,"dd-MM-yyyy") }}<br>
 - <b>Status:</b> {{ doc.workflow_state }}<br>
 
 <b>Request Link:</b> <a href="{{ frappe.utils.get_url() }}/app/compensatory-leave-request/{{ doc.name }}">View Your Request</a><br><br>
@@ -14,7 +14,7 @@ Your leave application has been <b>{{ doc.workflow_state }}</b> by your HR Manag
 
 <b>Leave Details:</b><br>
 - <b>Leave Type:</b> {{ doc.leave_type }}<br>
-- <b>Leave Period:</b> {{ doc.from_date }} to {{ doc.to_date }}<br>
+- <b>Leave Period:</b> {{ frappe.utils.format_date(doc.from_date,"dd-MM-yyyy") }} to {{  frappe.utils.format_date(doc.to_date,"dd-MM-yyyy") }}<br>
 - <b>Status:</b> {{ doc.workflow_state }}<br>
 
 <b>Request Link:</b> <a href="{{ frappe.utils.get_url() }}/app/leave-application/{{ doc.name }}">View Your Request</a><br><br>
