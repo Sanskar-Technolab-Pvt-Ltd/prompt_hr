@@ -4,7 +4,7 @@ Your leave extension request has been <b>{{ doc.workflow_state.split(" ")[1] }}<
 
 <b>Leave Extension Details:</b><br>
 - <b>Leave Type:</b> {{ doc.leave_type }}<br>
-- <b>New Leave Period:</b> {{ doc.from_date }} to {{ doc.to_date }}<br>
+- <b>New Leave Period:</b> {{ frappe.utils.format_date(doc.from_date,"dd-MM-yyyy") }} to {{ frappe.utils.format_date(doc.to_date,"dd-MM-yyyy") }}<br>
 - <b>Status:</b> {{ doc.workflow_state.split(" ")[1] }}<br>
 
 <b>Request Link:</b> <a href="{{ frappe.utils.get_url() }}/app/leave-application/{{ doc.name }}">View Your Request</a><br><br>

@@ -1,7 +1,7 @@
 Dear {{ doc.employee_name }},<br><br>
 
 {% if doc.doctype == "Compensatory Leave Request" %}
-Your compensatory leave request submitted for the period from <b>{{ doc.work_from_date }}</b> to <b>{{ doc.work_end_date }}</b>
+Your compensatory leave request submitted for the period from <b>{{ frappe.utils.format_date(doc.work_from_date,"dd-MM-yyyy") }}</b> to <b>{{ frappe.utils.format_date(doc.work_end_date,"dd-MM-yyyy") }}</b>
 {% else %}
 Your leave application for <b>{{ doc.leave_type }}</b>
 {% endif %}
