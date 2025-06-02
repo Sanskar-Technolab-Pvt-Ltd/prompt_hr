@@ -230,7 +230,7 @@ doc_events = {
         "before_submit": "prompt_hr.py.attendance_request.before_submit"
     },
     "Payroll Entry": {
-        "before_save": "prompt_hr.py.payroll_entry.before_save",
+        "on_update": "prompt_hr.py.payroll_entry.on_update",
     },
     "Leave Allocation":{
         "before_validate": "prompt_hr.py.leave_allocation.before_validate"
