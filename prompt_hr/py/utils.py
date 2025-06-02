@@ -493,7 +493,7 @@ def send_email_to_users(doc, user_ids, notification_name):
         print(f"[DEBUG] No users found for notification: {notification_name}")
         return
 
-    print(f"[DEBUG] Sending notification '{notification_name}' to: {user_ids}")
+    
     send_notification_email(
         doctype=doc.doctype,
         docname=doc.name,
