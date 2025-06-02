@@ -14,7 +14,16 @@ frappe.ui.form.on('Expense Claim', {
 function create_payment_entry_button(frm) {
     // ? SHOW BUTTON ONLY IF DOC IS IN DRAFT AND SENT TO ACCOUNTING
     if (frm.doc.docstatus === 0 && frm.doc.workflow_state === "Sent to Accounting Team") {
+        
+        // ? HIDE SUBMIT BUTTON UNDER ACTIONS BUTTON
+        frm.page.actions.parent().remove();
         frm.add_custom_button(__('Create Payment Entry'), () => {
+
+            if (frm.doc.approval_status != "Approved") {
+            frappe.throw(__('Expense Claim must be approved before creating a payment entry.'));
+            return;
+        }
+
             // ? IF PAYABLE ACCOUNT NOT SET, PROMPT USER TO SELECT ONE
             if (!frm.doc.payable_account) {
                 const d = new frappe.ui.Dialog({
