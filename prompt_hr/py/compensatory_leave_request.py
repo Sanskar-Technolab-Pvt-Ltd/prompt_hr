@@ -2,7 +2,8 @@ import frappe
 import frappe.utils
 from prompt_hr.py.leave_allocation import get_matching_link_field
 from frappe import _
-from frappe.utils import getdate
+from collections import defaultdict
+from frappe.utils import getdate, flt, add_days, date_diff
 
 @frappe.whitelist()
 def before_save(doc, method):
@@ -16,6 +17,53 @@ def before_save(doc, method):
                 leave_type.name, leave_type.custom_request_compensatory_within_days_of_working
             )
         )
+            
+    if leave_type.custom_threshold_limit_for_availing_compensatory:
+        apply_dates = defaultdict(list)
+        current_date = doc.work_from_date
+        while current_date <= doc.work_end_date:
+            month_key = frappe.utils.getdate(current_date).strftime("%b")
+            apply_dates[month_key].append(current_date)
+            current_date = frappe.utils.add_days(current_date, 1)
+        compenstory_leave = frappe.get_all(
+            "Compensatory Leave Request",
+            filters={"employee": doc.employee, "leave_type": doc.leave_type, "docstatus": ["!=", 2], "name": ["!=", doc.name]},
+            fields=["work_from_date", "work_end_date"],
+        )
+        if compenstory_leave:
+            compenstory_leave_dates = defaultdict(list)
+            for leave in compenstory_leave:
+                leave_start_date = leave.work_from_date
+                leave_end_date = leave.work_end_date
+                while leave_start_date <= leave_end_date:
+                    month_key = frappe.utils.getdate(leave_start_date).strftime("%b")
+                    compenstory_leave_dates[month_key].append(leave_start_date)
+                    leave_start_date = frappe.utils.add_days(leave_start_date, 1)
+            for month in set(list(compenstory_leave_dates.keys()) + list(apply_dates.keys())):
+                total_dates = compenstory_leave_dates[month] + apply_dates[month]
+                if len(total_dates) > leave_type.custom_threshold_limit_for_availing_compensatory:
+                    frappe.throw(
+                        _(
+                            "You cannot apply for more than {0} Compensatory Leave(s) of type {1} in the month of {2}"
+                        ).format(
+                            leave_type.custom_threshold_limit_for_availing_compensatory,
+                            leave_type.name,
+                            month
+                        )
+                    )          
+        else:
+            for month, dates in apply_dates.items():
+                if len(dates) > leave_type.custom_threshold_limit_for_availing_compensatory:
+                    frappe.throw(
+                        _(
+                            "You cannot apply for more than {0} Compensatory Leave(s) of type {1} in the month of {2}"
+                        ).format(
+                            leave_type.custom_threshold_limit_for_availing_compensatory,
+                            leave_type.name,
+                            month
+                        )
+                    )
+
     if leave_type.custom_compensatory_applicable_to:
         compensatory_apply = 0
         for compensatory_applicable_to in leave_type.custom_compensatory_applicable_to:
@@ -122,47 +170,72 @@ def on_update(doc, method):
                     reference_name=doc.name,
                 )
 
-
 @frappe.whitelist()
 def expire_compensatory_leave_after_confirmation():
-    # Fetch compensatory leave types with custom validity days
-    leave_types = frappe.get_all("Leave Type", filters={"is_compensatory": 1, "custom_leave_validity_days": [">", 0]}, fields=["name"])
+    # Get compensatory leave types that have custom validity defined
+    leave_types = frappe.get_all(
+        "Leave Type",
+        filters={"is_compensatory": 1, "custom_leave_validity_days": [">", 0]},
+        fields=["name"]
+    )
 
-    if not leave_types:
-        frappe.msgprint("No compensatory leave types with validity defined.")
-        return
-
-    # Fetch leave allocations for employees with approved compensatory leave types
-    allocations = frappe.get_all("Leave Allocation",
+    # Fetch all approved compensatory leave requests for those leave types
+    compensatory_leave_requests = frappe.get_all(
+        "Compensatory Leave Request",
         filters={
             "docstatus": 1,
             "leave_type": ["in", [lt.name for lt in leave_types]]
         },
         fields=["*"]
     )
-    # Check each allocation for usage and validity
-    for alloc in allocations:
-        # Check if any leave has been taken within the allocated period
-        leave_taken = frappe.db.exists("Leave Application", {
-            "employee": alloc.employee,
-            "leave_type": alloc.leave_type,
-            "docstatus": 1,
-            "from_date": ["between", [alloc.from_date, alloc.to_date]]
-        })
-        if not leave_taken:
-           leave_type = frappe.get_doc("Leave Type", alloc.leave_type)
-           expiry_days = frappe.utils.add_days(alloc.from_date, leave_type.custom_leave_validity_days)
-           if expiry_days < frappe.utils.getdate():
-                ledger_entry = frappe.get_doc({
-                    "doctype": "Leave Ledger Entry",
-                    "employee": alloc.employee,
-                    "leave_type": alloc.leave_type,
-                    "company": alloc.company,
-                    "leaves": -1*abs(frappe.utils.flt(alloc.total_leaves_allocated)),
-                    "transaction_type": "Leave Allocation",
-                    "transaction_name": alloc.name,
-                    "from_date": getdate(),
-                    "to_date": alloc.to_date
-                })
-                ledger_entry.insert(ignore_permissions=True)
-                ledger_entry.submit()
+
+    for alloc in compensatory_leave_requests:
+        leave_type = frappe.get_doc("Leave Type", alloc.leave_type)
+
+        # Calculate expiry based on the modified date and custom validity days
+        expiry_date = add_days(alloc.modified, leave_type.custom_leave_validity_days)
+        print(expiry_date)
+        # Skip if not yet expired
+        if getdate(expiry_date) >= getdate():
+            continue
+
+        # Get the original leave allocation linked to the request
+        leave_allocation = frappe.get_doc("Leave Allocation", alloc.leave_allocation)
+
+        # Fetch leave applications made under this allocation
+        leaves_taken = frappe.get_all(
+            "Leave Application",
+            filters={
+                "employee": alloc.employee,
+                "leave_type": alloc.leave_type,
+                "docstatus": 1,
+                "from_date": [">=", leave_allocation.from_date],
+                "to_date": ["<=", leave_allocation.to_date]
+            },
+            fields=["*"]
+        )
+
+        # Calculate total leave days taken
+        leave_days_taken = sum(flt(leave.total_leave_days) for leave in leaves_taken)
+
+        # Total allocated leave based on the request duration
+        total_allocated = date_diff(alloc.work_end_date, add_days(alloc.work_from_date, -1))
+
+        # Calculate unused leave
+        unused_leaves = total_allocated - leave_days_taken
+
+        # If unused leave exists, expire it by adding a negative ledger entry
+        if unused_leaves > 0:
+            ledger_entry = frappe.get_doc({
+                "doctype": "Leave Ledger Entry",
+                "employee": alloc.employee,
+                "leave_type": alloc.leave_type,
+                "company": alloc.company,
+                "leaves": -1 * unused_leaves,
+                "transaction_type": "Leave Allocation",
+                "transaction_name": leave_allocation.name,
+                "from_date": getdate("2025-06-12"),
+                "to_date": getdate(leave_allocation.to_date)
+            })
+            ledger_entry.insert(ignore_permissions=True)
+            ledger_entry.submit()

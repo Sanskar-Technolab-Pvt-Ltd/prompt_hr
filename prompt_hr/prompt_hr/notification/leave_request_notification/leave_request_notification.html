@@ -1,18 +1,18 @@
 Dear {{ role }},<br><br>
-
+{% set employee =  frappe.get_doc("Employee", doc.employee) %}
 {% if doc.doctype == "Compensatory Leave Request" %}
 A compensatory leave request has been submitted and requires your attention. Please find the details below:<br><br>
 {% else %}
 A leave application has been submitted and requires your attention. Please find the details below:<br><br>
 {% endif %}
 - <b>Employee Name:</b> {{ doc.employee_name }}<br>
-- <b>Employee ID:</b> {{ doc.employee_number }}<br>
+- <b>Employee ID:</b> {{ employee.employee_number }}<br>
 - <b>Leave Type:</b> {{ doc.leave_type }}<br>
 {% if doc.doctype == "Compensatory Leave Request" %}
-- <b>Compensatory Work Period:</b> {{ doc.work_from_date }} to {{ doc.work_end_date }}<br>
+- <b>Compensatory Work Period:</b> {{ frappe.utils.format_date(doc.work_from_date,"dd-MM-yyyy") }} to {{ frappe.utils.format_date(doc.work_end_date,"dd-MM-yyyy") }}<br>
 - <b>Reason:</b> {{ doc.reason or 'Not provided' }}<br>
 {% else %}
-- <b>Leave Period:</b> {{ doc.from_date }} to {{ doc.to_date }}<br>
+- <b>Leave Period:</b> {{ frappe.utils.format_date(doc.from_date,"dd-MM-yyyy") }} to {{ frappe.utils.format_date(doc.to_date,"dd-MM-yyyy") }}<br>
 - <b>Reason:</b> {{ doc.description or 'Not provided' }}<br>
 {% endif %}
 - <b>Request Link:</b> <a href="{{ frappe.utils.get_url() }}/app/{{ doc.doctype|lower|replace(' ', '-') }}/{{ doc.name }}">View Request</a><br><br>
