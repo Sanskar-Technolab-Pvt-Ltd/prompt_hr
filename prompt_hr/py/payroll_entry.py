@@ -3,7 +3,7 @@ import frappe
 
 # ? ON UPDATE CONTROLLER METHOD
 # ! prompt_hr.py.payroll_entry.on_update
-def before_save(doc, method):
+def on_update(doc, method):
 
     # ? SET NEW JOINEE COUNT
     set_new_joinee_count(doc)
