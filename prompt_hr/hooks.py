@@ -164,7 +164,8 @@ override_doctype_class = {
     "Interview": "prompt_hr.overrides.interview_override.CustomInterview",
     "Job Offer": "prompt_hr.overrides.job_offer_override.CustomJobOffer",
     "Leave Application": "prompt_hr.overrides.leave_application_override.CustomLeaveApplication",
-    "Attendance Request": "prompt_hr.overrides.attendance_request_override.CustomAttendanceRequest"
+    "Attendance Request": "prompt_hr.overrides.attendance_request_override.CustomAttendanceRequest",
+    "Salary Slip": "prompt_hr.overrides.salary_slip_override.CustomSalarySlip",
 }
 
 # Document Events
