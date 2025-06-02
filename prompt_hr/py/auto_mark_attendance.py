@@ -1,7 +1,7 @@
 import frappe
 
 from frappe import throw
-from frappe.utils import datetime, today, getdate, get_datetime
+from frappe.utils import datetime, today, getdate, get_datetime, format_duration, time
 from datetime import timedelta
 from prompt_hr.py.utils import fetch_company_name
 
@@ -21,7 +21,8 @@ def auto_attendance(attendance_date=None, is_scheduler = 0):
             frappe.log_error("Error while marking attendance", frappe.get_traceback())
 
 
-def mark_attendance_for_prompt(is_scheduler=0):
+@frappe.whitelist()
+def mark_attendance_for_prompt(attendance_date=None, is_scheduler=0):
     """Method to mark attendance for prompt employee
     """
     prompt_company_name = fetch_company_name(prompt=1)
@@ -37,41 +38,165 @@ def mark_attendance_for_prompt(is_scheduler=0):
     company_id = prompt_company_name.get("company_id")
     
     
-    employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": company_id} ["name", "holiday_list", "custom_is_overtime_applicable"])
+    employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": company_id}, ["name", "holiday_list", "custom_is_overtime_applicable"])
     
-    today_date = getdate(today())
-    
+    today_date = getdate(attendance_date) if attendance_date else getdate(today())
+    str_today_date = today_date.strftime("%Y-%m-%d")
     
     
     if not employee_list:
         throw("No Employees Found") if is_scheduler else frappe.log_error("Error in mark_attendance_for_prompt", "No Employee Found")    
 
-    today_start_time = get_datetime(today_date + " 00:00:00")
-    today_end_time = get_datetime(today_date + " 23:59:59")    
+    today_start_time = get_datetime(today_date)
+    today_end_time = get_datetime(str_today_date + " 23:59:59")     
+    
+    grace_time_period_for_late_coming = frappe.db.get_single_value("HR Settings", "custom_grace_time_period_for_late_coming_for_prompt") or 0
+    
     for employee_data in employee_list:
-        assigned_shift = frappe.db.get_all("Shift Assignment", {"docstatus": 1, "status": "Active","employee": employee_data.get("name"), "start_date":["<=", today_date], "end_date":["<=", today_date]}, ["name","shift_type"], order_by="creation desc", limit=1)
+        
+        assigned_shift = frappe.db.get_all("Shift Assignment", {"docstatus": 1, "status": "Active","employee": employee_data.get("name"), "start_date":["<=", today_date], "end_date":[">=", today_date]}, ["name","shift_type"], order_by="creation desc", limit=1)
 
         #* If no shift assigned then move to next employee
         if not assigned_shift:
             continue
         
-    
         #* Checking if attendance exists then move to another employee
         attendance_exists = frappe.db.exists("Attendance", {"employee": employee_data.get("name"), "attendance_date": today_date})
+        
         if attendance_exists:
             continue
         
-        
         shift_type = assigned_shift[0].get("shift_type")
+        half_day_threshold= frappe.db.get_value("Shift Type", shift_type, "working_hours_threshold_for_half_day")
+        absent_threshold = frappe.db.get_value("Shift Type", shift_type, "working_hours_threshold_for_absent")
+        shift_in_time = frappe.db.get_value("Shift Type", shift_type, "start_time")
+        shift_out_time = frappe.db.get_value("Shift Type", shift_type, "end_time")
+        
+        is_half_day = False
+        is_absent = False
+        is_full_day = False
+        
         in_type_emp_checkin = frappe.db.get_all("Employee Checkin", {"employee": employee_data.get("name"), "log_type": "IN", "time": ["between", [today_start_time, today_end_time]]}, ["name", "time"], order_by="time asc", limit=1)
         out_type_emp_checkin = frappe.db.get_all("Employee Checkin", {"employee": employee_data.get("name"), "log_type": "OUT", "time": ["between", [today_start_time, today_end_time]]}, ["name", "time"], order_by="time desc", limit=1)
         
-        if in_type_emp_checkin and out_type_emp_checkin:
+        
+        attendance_status = None
+        formatted_working_hours = '',
+        final_working_hours = 0.0
+        ot_duration = 0.0
+        is_early_exit = 0
+        late_entry = 0
+        apply_penalty = 0
+        is_only_one_record = 0
+        is_overtime_applicable = employee_data.get("custom_is_overtime_applicable")
+        remarks = ''
+        in_type_emp_checkin_id = None
+        in_datetime = None
+        out_type_emp_checkin_id = None
+        out_datetime = None
+        if not in_type_emp_checkin and not out_type_emp_checkin:
+            holiday_or_weekoff = is_holiday_or_weekoff(employee_data.get("name"), today_date)
             
-            in_time = in_type_emp_checkin[0].get("time").time()    
-            out_time = out_type_emp_checkin[0].get("time").time()
+            if not holiday_or_weekoff.get("is_holiday") and not holiday_or_weekoff.get("is_weekoff"):
+                continue            
+            if holiday_or_weekoff.get("is_holiday"):
+                continue
+            if holiday_or_weekoff.get("is_weekoff"):
+                attendance_status = "WeekOff"
+                print(f"\n\n CREATE Attendance of weekoff \n\n")
+            
+        
+        if in_type_emp_checkin:
+            in_type_emp_checkin_id = in_type_emp_checkin[0].get("name")
+            in_datetime = in_type_emp_checkin[0].get("time")    
+        if out_type_emp_checkin:
+            out_type_emp_checkin_id = out_type_emp_checkin[0].get("name")
+            out_datetime = out_type_emp_checkin[0].get("time")
+        
+        if in_datetime and out_datetime:
+        
+            work_duration = out_datetime - in_datetime
+            
+            work_hours = work_duration.total_seconds() / 3600
+            final_working_hours = round(work_hours, 1)
+            
+            total_minutes = int(work_duration.total_seconds())
+            
+            formatted_working_hours = format_duration(total_minutes)
+            
+            if final_working_hours < half_day_threshold and final_working_hours > absent_threshold:
+                attendance_status = "Half Day"
+            
+            elif final_working_hours < absent_threshold:
+                attendance_status = "Absent"
+            else:
+                attendance_status = "Present"
+            if is_overtime_applicable:
+                ot_duration = overtime_duration(out_datetime, shift_out_time)
+            
+            late_entry_and_apply_penalty = is_late_entry(in_datetime, shift_in_time, grace_time_period_for_late_coming, for_prompt=1)
+            
+            late_entry = late_entry_and_apply_penalty.get("is_late_entry")
+            apply_penalty = late_entry_and_apply_penalty.get("apply_penalty")
+            
+            shift_out_datetime = get_datetime(out_datetime.date()) + shift_out_time
+            if out_datetime < shift_out_datetime:
+                is_early_exit = 1
+        
+        elif in_datetime:
+            late_entry_and_apply_penalty = is_late_entry(in_datetime, shift_in_time, grace_time_period_for_late_coming, for_prompt = 1)
+            
+            late_entry = late_entry_and_apply_penalty.get("is_late_entry")
+            apply_penalty = late_entry_and_apply_penalty.get("apply_penalty")
+            
+            is_only_one_record = 1
+
+        elif out_datetime:
+            shift_out_datetime = get_datetime(out_datetime.date()) + shift_out_time
+            if out_datetime < shift_out_datetime:
+                is_early_exit = 1
+            is_only_one_record = 1
+                
+        
+        
+        attendance_request = frappe.db.get_all("Attendance Request", {"docstatus":1, "custom_status":"Approved", "employee": employee_data.get("name"), "from_date": ["<=", today_date], "to_date":[">=", today_date]}, ["name", "reason"], limit=1)
+        
+        attendance_type = None
+        if attendance_request:
+                attendance_type = attendance_request[0].get("reason")
+
+        if is_only_one_record:
+            attendance_status = "Mispunch"
+            remarks = "Only single record found"
+        
+        print(f"\n\n status {attendance_status}  {apply_penalty} {formatted_working_hours}\n\n")
+        create_attendance(
+            employee_data.get("name"),
+            today_date,
+            attendance_status,
+            custom_type = attendance_type,
+            custom_work_hours=formatted_working_hours,
+            working_hours=final_working_hours,
+            custom_overtime = ot_duration,
+            late_entry = late_entry,
+            early_exit = is_early_exit,
+            custom_apply_penalty = apply_penalty,
+            shift = shift_type,
+            in_time = in_datetime if in_type_emp_checkin else None,
+            out_time = out_datetime if in_type_emp_checkin else None,
+            custom_checkin_time = in_datetime if in_type_emp_checkin else None,
+            custom_checkout_time = out_datetime if in_type_emp_checkin else None,
+            custom_remarks = remarks,
+            custom_employee_checkin = in_type_emp_checkin_id if in_type_emp_checkin else None,
+            custom_employee_checkout = out_type_emp_checkin_id if out_type_emp_checkin else None
+        )
             
             
+            
+            
+
+
+        
             
             
     
@@ -88,7 +213,7 @@ def is_holiday_or_weekoff(emp_id, today_date):
     emp_holiday_list = frappe.db.get_value("Employee", emp_id, "holiday_list")
     
     if not emp_holiday_list:
-        return 0
+        return {"is_holiday": 0, "is_weekoff": 0}
     
     is_holiday = frappe.db.get_all("Holiday", {"parenttype": "Holiday List", "parent": emp_holiday_list, "holiday_date": today_date}, "name", limit=1)
     
@@ -111,12 +236,100 @@ def is_holiday_or_weekoff(emp_id, today_date):
                 is_weekoff = True
                 break
             
-    if is_holiday or is_weekoff:
+    
+    return {"is_holiday": 1 if is_holiday else 0, "is_weekoff": 1 if is_weekoff else 0}
+    
+
+def calculate_work_hours():
+    pass
+def overtime_duration(employee_out_time, shift_out_time):
+    """ Method to calculate overtime duration
+    """
+    
+    overtime_details = frappe.db.get_all("Overtime Details", {"parenttype": "HR Settings"}, ["from_time", "to_time", "final_time"])
+    
+    shift_end_time = get_datetime(employee_out_time.date()) + shift_out_time
+    
+    overtime = employee_out_time - shift_end_time
+    
+    overtime_float_value = round(overtime.total_seconds() / 3600, 2)
+    
+    print(f"\n\n overtime_float_value {overtime_float_value} \n\n")
+    final_overtime = 0.0
+    
+    if overtime_details:
+        for overtime_detail in overtime_details:
+            if overtime_detail.get("from_time") <= overtime_float_value <= overtime_detail.get("to_time"):
+                final_overtime = overtime_detail.get("final_time")
+                break
+    else:
+        final_overtime = overtime_float_value
+    
+    return final_overtime
+    
+def is_late_entry(employee_in_datetime, shift_start_time, grace_time ,for_prompt = 0):
+    """Method to check if the employee is late or not
+    """
+    shift_start_datetime = get_datetime(employee_in_datetime.date()) + shift_start_time
+    
+    time_diff = employee_in_datetime - shift_start_datetime
+    
+    
+    late_minutes = int(time_diff.total_seconds() // 60)
+    print(f"\n\n late_minutes {type(late_minutes)} {type(grace_time)}\n\n")
+    
+    if for_prompt:
+        return {"is_late_entry": 1 if late_minutes > 0 else 0, "apply_penalty": 1 if late_minutes > grace_time else 0}
+    else:
         return 1
 
-    return 0
+def create_attendance(
+    employee,
+    attendance_date,
+    status,
+    custom_type=None,
+    custom_work_hours = '',
+    working_hours = 0.0,
+    custom_overtime= 0.0,
+    late_entry = 0,
+    early_exit = 0,
+    custom_apply_penalty = 0,
+    shift = '',
+    in_time = None,
+    out_time = None,
+    custom_checkin_time = None,
+    custom_checkout_time = None,
+    custom_remarks = '',
+    custom_employee_checkin = None,
+    custom_employee_checkout = None
     
+):
+    """Method to create attendance
+    """
     
+    attendance_doc = frappe.new_doc("Attendance")
+    attendance_doc.employee = employee
+    attendance_doc.attendance_date = attendance_date
+    attendance_doc.status = status
+    attendance_doc.custom_type = custom_type
+    attendance_doc.custom_work_hours = custom_work_hours
+    attendance_doc.working_hours = working_hours
+    attendance_doc.custom_overtime = custom_overtime
+    attendance_doc.late_entry = late_entry
+    attendance_doc.early_exit = early_exit
+    attendance_doc.custom_apply_penalty = custom_apply_penalty
+    attendance_doc.shift = shift
+    attendance_doc.in_time = in_time,
+    attendance_doc.out_time = out_time,
+    attendance_doc.custom_checkin_time = custom_checkin_time
+    attendance_doc.custom_checkout_time = custom_checkout_time
+    attendance_doc.custom_remarks =custom_remarks
+    attendance_doc.custom_employee_checkin = custom_employee_checkin
+    attendance_doc.custom_employee_checkout = custom_employee_checkout
+    
+    attendance_doc.insert(ignore_permissions=True)
+    frappe.db.commit()
+#*-------------------------------------------------------------------------------------------------------------------------------
         
 def str_to_timedelta(work_hours):
     if isinstance(work_hours, str):
