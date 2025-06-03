@@ -86,11 +86,12 @@ function add_raise_exit_interview_button(frm) {
             args: {
                 employee: frm.doc.employee,
                 company: frm.doc.company,
+                exit_approval_process: frm.doc.name
             },
             callback: function (r) {
                 if (r.message) {
                     const res = r.message;
-
+                    
                     // ? SHOW MESSAGE BASED ON RESPONSE STATUS
                     if (res.status === "success") {
                         frappe.msgprint({
@@ -98,7 +99,13 @@ function add_raise_exit_interview_button(frm) {
                             indicator: "green",
                             message: res.message
                         });
-                    } else if (res.status === "info") {
+
+                        // ? RELOAD THE DOCUMENT AFTER 3 SECONDS
+                        setTimeout(() => {
+                            frappe.reload_doc();
+                        }, 3000);
+                    }
+                     else if (res.status === "info") {
                         frappe.msgprint({
                             title: __("Info"),
                             indicator: "blue",
