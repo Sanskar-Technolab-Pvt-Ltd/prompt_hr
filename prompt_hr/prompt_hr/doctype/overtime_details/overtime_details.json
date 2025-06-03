@@ -33,11 +33,11 @@
    "precision": "1"
   }
  ],
- "grid_page_length": 50,
+ "grid_page_length": 10,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-06-02 15:51:12.734505",
+ "modified": "2025-06-03 12:57:56.951619",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Overtime Details",
