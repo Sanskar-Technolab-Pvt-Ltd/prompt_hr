@@ -15,3 +15,8 @@ class CustomAttendance(Attendance):
         self.validate_employee_status()
         self.check_leave_record()
 
+    def on_submit(self):
+        if self.status == "Half Day" and self.leave_application:
+            leave_application = frappe.get_doc("Leave Application", self.leave_application)
+            if leave_application.custom_half_day_time:
+                self.db_set("custom_half_day_time", leave_application.custom_half_day_time)
