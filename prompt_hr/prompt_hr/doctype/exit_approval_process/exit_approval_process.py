@@ -107,7 +107,7 @@ def raise_exit_checklist(employee, company):
 
 # ? FUNCTION TO RAISE EXIT INTERVIEW
 @frappe.whitelist()
-def raise_exit_interview(employee, company):
+def raise_exit_interview(employee, company, exit_approval_process):
 	try:
 		# ? CHECK IF EXIT INTERVIEW RECORD ALREADY EXISTS
 		if frappe.db.exists("Exit Interview", {"employee": employee}):
@@ -138,7 +138,9 @@ def raise_exit_interview(employee, company):
 
 		# ? SEND EXIT INTERVIEW NOTIFICATION
 		send_exit_interview_notification(employee, exit_interview.name)
-
+		# ? LINK EXIT INTERVIEW TO EMPLOYEE SEPARATION
+		frappe.db.set_value("Exit Approval Process", exit_approval_process, "exit_interview", exit_interview.name)
+		frappe
 		return {
 			"status": "success",
 			"message": _("Exit Interview record created successfully."),
