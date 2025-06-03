@@ -68,6 +68,7 @@ doctype_js = {
     "Full and Final Statement": "public/js/full_and_final_statement.js",
     "Loan Application": "public/js/loan_application.js",
     "Exit Interview": "public/js/exit_interview.js",
+    "Travel Request": "public/js/travel_request.js",
 }
 
 doctype_list_js = {
