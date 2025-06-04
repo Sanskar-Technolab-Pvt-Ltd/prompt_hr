@@ -1059,7 +1059,9 @@ def penalize_employee_for_late_entry_for_prompt(emp_id, company_id, month_first_
     """
     # *  TO BE ADDED IN HOOKS
     try:
-                    
+        if (not check_employee_penalty_criteria(emp_id.get("name"), "For Late Arrival")):
+                return
+        print("penalize_employee_for_late_entry_for_prompt", emp_id.get("name"))            
         late_attendance_list = frappe.db.get_all("Attendance", {"docstatus": 1, "employee": emp_id.get("name"), "attendance_date": ["between", [month_first_date, month_last_date]], "late_entry": 1, "custom_apply_penalty": 1}, ["name", "attendance_date"], order_by="attendance_date asc")
         
         leave_allocation_id = None
@@ -1124,7 +1126,9 @@ def penalize_incomplete_day_for_prompt(emp, check_attendance_date, expected_work
     """
     #* TO BE ADDED IN HOOKS
     try:
-                            
+        if (not check_employee_penalty_criteria(emp.get("name"), "For Work Hours")):
+                return
+        print("penalize_incomplete_day_for_prompt",emp.get("name"))     
         attendance_list = frappe.db.get_all("Attendance", {"docstatus": 1, "employee": emp.get("name"), "attendance_date": check_attendance_date, "working_hours": ["<",expected_work_hours]}, ["name", "attendance_date"], order_by="attendance_date asc")
 
         if attendance_list:
@@ -1188,6 +1192,9 @@ def penalize_incomplete_day_for_prompt(emp, check_attendance_date, expected_work
 def penalization_for_no_attendance_for_prompt(emp, check_attendance_date, leave_period_data, no_attendance_leave_type, no_attendance_deduct_leave):
     try:
         print(f"\n\n this function is called\n\n")
+        if (not check_employee_penalty_criteria(emp.get("name"), "For No Attendance")):
+            return
+        print("penalization_for_no_attendance_for_prompt",emp.get("name"))
         if not frappe.db.exists("Attendance", {"employee": emp.get("name"), "attendance_date": check_attendance_date, "docstatus": 1}):
             
             leave_application_exists = frappe.db.exists("Leave Application", {"employee": emp.get("name"), "docstatus":1,"from_date": ["<=", check_attendance_date], "to_date": [">=", check_attendance_date]})
@@ -1427,3 +1434,43 @@ def add_leave_ledger_entry(employee, leave_type, leave_allocation_id, leave_peri
 #         attendance_request = frappe.db.get_all("Attendance Request", {"docstatus": 1, "custom_status": "Approved"})
 #     except Exception as e:
 #         frappe.log_error("Error in allow_checkin_from_website_to_employee schedular method", frappe.get_traceback())
+
+def check_employee_penalty_criteria(employee=None, penalization_type=None):
+    employee = frappe.get_doc("Employee", employee)
+    company_abbr = frappe.db.get_value("Company", employee.company, "abbr")
+    hr_settings = frappe.get_single("HR Settings")
+
+    # Mapping of DocType label to employee fieldname
+    criteria = {
+        "Business Unit": "custom_business_unit",
+        "Department": "department",
+        "Address": "custom_work_location",
+        "Employment Type": "employment_type",
+        "Employee Grade": "grade",
+        "Designation": "designation",
+        "Product Line": "custom_product_line"
+    }
+
+    if company_abbr == frappe.db.get_single_value("HR Settings", "custom_prompt_abbr"):
+        if hr_settings.custom_penalization_criteria_table_for_prompt:
+            is_penalisation = False
+            for row in hr_settings.custom_penalization_criteria_table_for_prompt:
+                if row.penalization_type == penalization_type:
+                    is_penalisation = True
+                    if row.select_doctype == "Department" and row.is_sub_department:
+                        if employee.custom_subdepartment == row.value:
+                            return True
+                    else:
+                        employee_fieldname = criteria.get(row.select_doctype)
+                        if employee_fieldname and getattr(employee, employee_fieldname, None) == row.value:
+                            return True
+            if is_penalisation:
+                return False
+            else:
+                return True
+        else:
+            # If no criteria configured, allow by default
+            return True
+    else:
+        # If company doesn't match, allow by default
+        return True
