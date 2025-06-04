@@ -141,12 +141,12 @@ def create_welcome_status(user_id, company):
         if frappe.db.exists("Welcome Page", {"user": user_id}):
             return
 
-        if company == get_prompt_company_name():
+        if company == get_prompt_company_name().get("company_name"):
                 permission = frappe.db.get_value(
                     "HR Settings", None, "custom_enable_welcome_page_for_prompt")
                 if permission != 1:    
                     return
-        elif company == get_indifoss_company_name():
+        elif company == get_indifoss_company_name().get("company_name"):
                 permission = frappe.db.get_value(
                     "HR Settings", None, "custom_enable_welcome_page_for_indifoss")
                 if permission != 1:
