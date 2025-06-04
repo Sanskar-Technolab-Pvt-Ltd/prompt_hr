@@ -10,12 +10,14 @@ def before_submit(doc, method):
     # ? UPDATE THE ACTUAL EXPENSE AMOUNT IN CAMPAIGN AND MARKETING PLANNING
     update_amount_in_marketing_planning(doc, method)
 
-def on_update(doc, method):
+def before_save(doc, method):
     
     # ? CHECK IF EXPENSE CLAIM IS EXCEEDING THE ALLOWED BUDGET
     if doc.expenses:
         get_expense_claim_exception(doc)
         validate_attachments_compulsion(doc)
+
+def on_update(doc, method):
 
     # ? SHARE DOCUMENT AND SEND NOTIFICATION EMAIL
     expense_claim_workflow_email(doc)
@@ -260,7 +262,7 @@ def get_expense_claim_exception(doc):
 
         # ? IF EXCEPTION, FLAG IT AND CHECK ATTACHMENT
         if is_exception:
-            frappe.db.set_value("Expense Claim Detail", expense.name, "custom_is_exception", 1)
+            expense.custom_is_exception = 1
             if not expense.custom_attachments and doc.company == get_indifoss_company_name():
                 frappe.throw(f"Attachment is required for Expense at row #{idx} of type '{expense.expense_type}' because it exceeds the allowed limit ({allowed_amount}). Please upload the attachment.")
     
