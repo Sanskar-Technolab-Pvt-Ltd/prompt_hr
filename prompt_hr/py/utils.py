@@ -392,7 +392,7 @@ def fetch_leave_type_for_indifoss(doctype, txt, searchfield, start, page_len, fi
         return []
 
 # ? FUNCTION TO SHARE DOCUMENT AND SEND NOTIFICATION EMAIL
-def expense_claim_workflow_email(doc):
+def expense_claim_and_travel_request_workflow_email(doc):
     try:
         old_doc = doc.get_doc_before_save()
 

@@ -1,7 +1,7 @@
 import frappe
 from frappe.utils import getdate
 import frappe.workflow
-from prompt_hr.py.utils import send_notification_email, expense_claim_workflow_email,get_prompt_company_name, get_indifoss_company_name
+from prompt_hr.py.utils import send_notification_email, expense_claim_and_travel_request_workflow_email,get_prompt_company_name, get_indifoss_company_name
 
 # ! prompt_hr.py.expense_clain.before_submit
 # ? BEFORE SUBMIT EVENT
@@ -20,7 +20,7 @@ def before_save(doc, method):
 def on_update(doc, method):
 
     # ? SHARE DOCUMENT AND SEND NOTIFICATION EMAIL
-    expense_claim_workflow_email(doc)
+    expense_claim_and_travel_request_workflow_email(doc)
     
 #  !prompt_marketing.api.hook.doctype.purchase_invoice.update_amount_in_marketing_planning
 # ? UPDATE THE ACTUAL EXPENSE AMOUNT IN CAMPAIGN AND MARKETING PLANNING
