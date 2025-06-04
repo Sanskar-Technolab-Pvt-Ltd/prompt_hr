@@ -3,13 +3,37 @@
 frappe.ui.form.on("Travel Request", {
 	refresh: function (frm) {
 		add_query_filter_to_existing_rows(frm);
-	}	
+	}, 	
+	employee: function (frm) {
+		add_query_filter_to_existing_rows(frm);
+	},
+	company: function (frm) {
+		add_query_filter_to_existing_rows(frm);
+	},
 });
+
+
+// ? HANDLE CHILD TABLE ROW ADD/REMOVE EVENTS
+frappe.ui.form.on("Travel Itinerary", {
+	// ? TRIGGER WHEN A ROW IS ADDED
+	itinerary_add: function (frm, cdt, cdn) {
+		add_query_filter_to_existing_rows(frm);
+	},
+	// ? TRIGGER WHEN A ROW IS REMOVED (WORKS VIA ON_CHANGE)
+	itinerary_remove: function (frm) {
+		add_query_filter_to_existing_rows(frm);
+	}
+});
+
+
 
 // ? FUNCTION TO ADD QUERY FILTER TO EXISTING ROWS
 function add_query_filter_to_existing_rows(frm) {
 	// ? GET EXISTING CHILD TABLE ROWS
 	const rows = frm.doc.itinerary || [];
+	if (!rows.length || !frm.doc.employee || !frm.doc.company) {
+		return; // No rows to process
+	}
 
 	// ? CALL PYTHON METHOD TO FETCH GRADE BASED ON EMPLOYEE AND COMPANY
 	frappe.call({
