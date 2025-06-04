@@ -1,5 +1,19 @@
 frappe.ui.form.on("HR Settings", {
     refresh: function (frm) {
+
+        frm.fields_dict.custom_penalization_criteria_table_for_prompt.grid.get_field('value').get_query = function(doc, cdt, cdn) {
+            let row = locals[cdt][cdn];
+            if (row.is_sub_department && row.select_doctype == "Department") {
+                return {
+                    filters: {
+                        parent_department: ['!=', "All Departments"]
+                    }
+                };
+            } else {
+                return {};
+            }
+        };
+
         if (frm.doc.custom_deduct_leave_penalty_for_indifoss) {
             apply_filter_for_leave_type(frm, "custom_deduct_leave_penalty_for_indifoss", "custom_leave_type_for_indifoss", 0, 1);
         }
@@ -199,3 +213,10 @@ function hide_add_row_buttom_of_field_table(frm) {
     frm.set_df_property("custom_employee_changes_allowed_fields_for_indifoss", "cannot_add_rows", 1);
     frm.set_df_property("custom_employee_changes_allowed_fields_for_prompt", "cannot_add_rows", 1);
 }
+
+frappe.ui.form.on('Penalization Criteria', {
+    is_sub_department: function(frm, cdt, cdn) {
+        frappe.model.set_value(cdt, cdn, 'value', null);
+        frm.fields_dict.custom_penalization_criteria_table_for_prompt.grid.refresh_row(cdn);
+    }
+});
