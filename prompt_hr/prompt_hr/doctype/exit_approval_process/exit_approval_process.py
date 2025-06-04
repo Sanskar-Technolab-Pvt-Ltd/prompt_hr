@@ -19,10 +19,13 @@ class ExitApprovalProcess(Document):
 
 # ? FUNCTION TO AUTO CREATE EMPLOYEE SEPARATION RECORD
 @frappe.whitelist()
-def raise_exit_checklist(employee, company):
+def raise_exit_checklist(employee, company, exit_approval_process):
 	try:
+		separation = frappe.db.get_value("Employee Separation", {"employee": employee})
 		# ? CHECK IF EMPLOYEE SEPARATION RECORD ALREADY EXISTS
-		if frappe.db.exists("Employee Separation", {"employee": employee}):
+		if separation:
+			# ? LINK EMPLOYEE SEPARATION TO EXIT APPROVAL PROCESS
+			frappe.db.set_value("Exit Approval Process", exit_approval_process, "employee_separation", separation)
 			return {
 				"status": "info",
 				"message": _("Employee Separation record already exists.")
@@ -85,6 +88,9 @@ def raise_exit_checklist(employee, company):
 		frappe.db.commit()
 		send_notification_email(doctype="Employee Separation", docname=separation.name, recipients=recipients, notification_name="Employee Separation Notification")
 
+		# ? LINK EMPLOYEE SEPARATION TO EXIT APPROVAL PROCESS
+		frappe.db.set_value("Exit Approval Process", exit_approval_process, "employee_separation", separation.name)
+
 		return {
 				"status": "success",
 				"message": _("Employee Separation record created successfully.")
@@ -118,9 +124,9 @@ def raise_exit_interview(employee, company, exit_approval_process):
 
 		# ? DETERMINE QUIZ NAME BASED ON COMPANY
 		if company == get_prompt_company_name().get("company_name"):
-			quiz_name = frappe.db.get_value("HR Settings", None, "custom_exit_quiz_at_employee_form_for_prompt")
+			quiz_name = frappe.db.get_value("HR Settings", None, "custom_exit_interview_quiz_prompt")
 		elif company == get_indifoss_company_name().get("company_name"):
-			quiz_name = frappe.db.get_value("HR Settings", None, "custom_exit_quiz_at_employee_form_for_indifoss")
+			quiz_name = frappe.db.get_value("HR Settings", None, "custom_exit_interview_quiz_indifoss")
 		else:
 			frappe.throw(_("Company not recognized or quiz not configured."))
 
