@@ -1,9 +1,9 @@
 import frappe
-from prompt_hr.py.utils import expense_claim_workflow_email
+from prompt_hr.py.utils import expense_claim_and_travel_request_workflow_email
 
 def on_update(doc, method):
     # ? SEND EMAIL NOTIFICATION FOR EXPENSE CLAIM WORKFLOW
-    expense_claim_workflow_email(doc)
+    expense_claim_and_travel_request_workflow_email(doc)
 
 @frappe.whitelist()
 def get_eligible_travel_modes(employee,company):
