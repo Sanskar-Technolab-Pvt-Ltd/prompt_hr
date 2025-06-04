@@ -277,7 +277,7 @@ def validate_attachments_compulsion(doc):
     if not emp_company:
         frappe.throw("Employee company not found. Please set the employee company first.")
     
-    if emp_company == get_indifoss_company_name():
+    if emp_company == get_indifoss_company_name().get("company_name"):
 
         for expense in doc.expenses:
             if expense.custom_is_exception == 1 and not expense.attachments:

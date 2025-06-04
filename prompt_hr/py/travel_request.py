@@ -5,6 +5,8 @@ def on_update(doc, method):
     # ? SEND EMAIL NOTIFICATION FOR EXPENSE CLAIM WORKFLOW
     expense_claim_and_travel_request_workflow_email(doc)
 
+# ! prompt_hr.py.travel_request.get_eligible_travel_modes
+# ? FUNCTION TO GET ELEGIBLE TRAVEL MODE WITH RESEPECT TO EMPLOYEE AND COMPANY
 @frappe.whitelist()
 def get_eligible_travel_modes(employee,company):
     travel_budget = frappe.db.get_value(
