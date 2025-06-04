@@ -14,8 +14,9 @@ def before_save(doc, method):
     
     # ? CHECK IF EXPENSE CLAIM IS EXCEEDING THE ALLOWED BUDGET
     if doc.expenses:
-        get_expense_claim_exception(doc)
         validate_attachments_compulsion(doc)
+        get_expense_claim_exception(doc)
+        
 
 def on_update(doc, method):
 
@@ -262,9 +263,12 @@ def get_expense_claim_exception(doc):
 
         # ? IF EXCEPTION, FLAG IT AND CHECK ATTACHMENT
         if is_exception:
-            expense.custom_is_exception = 1
-            if not expense.custom_attachments and doc.company == get_indifoss_company_name():
+            
+            if not expense.custom_attachments and doc.company == get_indifoss_company_name().get("company_name"):
                 frappe.throw(f"Attachment is required for Expense at row #{idx} of type '{expense.expense_type}' because it exceeds the allowed limit ({allowed_amount}). Please upload the attachment.")
+            else: 
+                expense.custom_is_exception = 1
+
     
 
 def validate_attachments_compulsion(doc):
