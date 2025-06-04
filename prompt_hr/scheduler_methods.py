@@ -708,7 +708,9 @@ def penalize_employee_for_late_entry_for_indifoss():
                 
                 
                 for emp_id in indifoss_employee_list:
-                    
+                    if (not check_employee_penalty_criteria(emp_id.get("name"), "For Late Arrival")):
+                        return
+                    print("penalize_employee_for_late_entry_for_indifoss",emp_id.get('name'))
                     remaining_leave_balance_for_late_entry = 0.0
                     leave_allocation_id = None
                     
@@ -798,7 +800,9 @@ def penalize_incomplete_week_for_indifoss():
         
         if employee_list:
             for emp in employee_list:
-                
+                if (not check_employee_penalty_criteria(emp.get("name"), "For Work Hours")):
+                    return
+                print("penalize_incomplete_week_for_indifoss", emp.get("name"))
                 remaining_leave_balance = 0.0
                 leave_allocation_id = None
                     
@@ -1440,7 +1444,7 @@ def check_employee_penalty_criteria(employee=None, penalization_type=None):
     company_abbr = frappe.db.get_value("Company", employee.company, "abbr")
     hr_settings = frappe.get_single("HR Settings")
 
-    # Mapping of DocType label to employee fieldname
+    # Field mapping
     criteria = {
         "Business Unit": "custom_business_unit",
         "Department": "department",
@@ -1451,26 +1455,33 @@ def check_employee_penalty_criteria(employee=None, penalization_type=None):
         "Product Line": "custom_product_line"
     }
 
-    if company_abbr == frappe.db.get_single_value("HR Settings", "custom_prompt_abbr"):
-        if hr_settings.custom_penalization_criteria_table_for_prompt:
-            is_penalisation = False
-            for row in hr_settings.custom_penalization_criteria_table_for_prompt:
-                if row.penalization_type == penalization_type:
-                    is_penalisation = True
-                    if row.select_doctype == "Department" and row.is_sub_department:
-                        if employee.custom_subdepartment == row.value:
-                            return True
-                    else:
-                        employee_fieldname = criteria.get(row.select_doctype)
-                        if employee_fieldname and getattr(employee, employee_fieldname, None) == row.value:
-                            return True
-            if is_penalisation:
-                return False
-            else:
+    # Abbreviations
+    prompt_abbr = hr_settings.custom_prompt_abbr
+    indifoss_abbr = hr_settings.custom_indifoss_abbr
+
+    # Determine which table to use based on company
+    if company_abbr == prompt_abbr:
+        table = hr_settings.custom_penalization_criteria_table_for_prompt
+    elif company_abbr == indifoss_abbr:
+        table = hr_settings.custom_penalization_criteria_table_for_indifoss
+    else:
+        return True  # Default allow if company doesn't match
+
+    if not table:
+        return True  # Allow if table is not configured
+
+    is_penalisation = False
+    for row in table:
+        if row.penalization_type != penalization_type:
+            continue
+
+        is_penalisation = True
+        if row.select_doctype == "Department" and row.is_sub_department:
+            if employee.custom_subdepartment == row.value:
                 return True
         else:
-            # If no criteria configured, allow by default
-            return True
-    else:
-        # If company doesn't match, allow by default
-        return True
+            employee_fieldname = criteria.get(row.select_doctype)
+            if employee_fieldname and getattr(employee, employee_fieldname, None) == row.value:
+                return True
+
+    return not is_penalisation or False
