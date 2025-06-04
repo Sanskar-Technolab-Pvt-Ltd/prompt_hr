@@ -44,31 +44,32 @@ function update_notice_period_days(frm) {
 
 // ? ADD THE "RAISE EXIT CHECKLIST" BUTTON
 function add_raise_exit_checklist_button(frm) {
-	frm.add_custom_button('Raise Exit Checklist', function () {
+	frm.add_custom_button('Raise Employee Separation', function () {
 		frappe.call({
             method: 'prompt_hr.prompt_hr.doctype.exit_approval_process.exit_approval_process.raise_exit_checklist',
             args: {
                 employee: frm.doc.employee,
                 company: frm.doc.company,
+                exit_approval_process: frm.doc.name
             },
             callback: function (r) {
                 console.log(r);
                 if (r.message) {
-                    // Optionally tick checkbox if it's a success message
-                    if (r.message.status.includes("success")) {
-                        frm.set_value("raise_exit_checklist", 1);
+                    console.log(r)
+                    // ? OPTIONALLY TICK CHECKBOX IF IT'S A SUCCESS MESSAGE
+                    if (r.message.status =="success") {
                         frm.save().then(() => {
-                            frappe.show_alert({
-                                message: __('Exit Checklist Raised'),
-                                indicator: 'green'
+                            frappe.msgprint({
+                                message: __(r.message.message),
+                                title: __('Success'),
                             });
                         }
                         );
                     }
                     else {
-                        frappe.show_alert({
-                            message: __('Exit Checklist Not Raised'),
-                            indicator: 'red'
+                        frappe.msgprint({
+                            message: __(r.message.message),
+                            title: __('Error'),
                         });
                     }
                 }
