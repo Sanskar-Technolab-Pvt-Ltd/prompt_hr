@@ -739,7 +739,7 @@ def penalize_employee_for_late_entry_for_indifoss():
                         
                     
                     
-                    late_attendance_list = frappe.db.get_all("Attendance", {"docstatus": 1, "employee": emp_id.get("name"), "attendance_date": ["between", [month_first_date, month_last_date]], "late_entry":1}, ["name", "attendance_date"], order_by="attendance_date asc")
+                    late_attendance_list = frappe.db.get_all("Attendance", {"docstatus": 1, "employee": emp_id.get("name"), "attendance_date": ["between", [month_first_date, month_last_date]], "late_entry":1, "custom_apply_penalty": 1}, ["name", "attendance_date"], order_by="attendance_date asc")
                 
                     if late_attendance_list:
                         for attendance_id in late_attendance_list[allowed_late_entries:]:
