@@ -6,7 +6,9 @@
  "engine": "InnoDB",
  "field_order": [
   "attendance_date",
-  "mark_attendance"
+  "mark_attendance",
+  "column_break_dfqc",
+  "company"
  ],
  "fields": [
   {
@@ -20,13 +22,23 @@
    "fieldname": "mark_attendance",
    "fieldtype": "Button",
    "label": "Mark Attendance"
+  },
+  {
+   "fieldname": "column_break_dfqc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-05-30 13:45:24.518864",
+ "modified": "2025-06-05 13:28:04.115643",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Mark Attendance",

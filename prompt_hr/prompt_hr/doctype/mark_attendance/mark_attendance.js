@@ -6,7 +6,18 @@ frappe.ui.form.on("Mark Attendance", {
         frm.save()
     },
     mark_attendance: function (frm) {
-        console.log("Calling Method to mark attendance for the specified date")
+        if (!frm.doc.company) {
+            frappe.throw("Please Select a Company")
+        }
+
+        frappe.call({
+            method: "prompt_hr.py.auto_mark_attendance.mark_attendance",
+            args: {
+                "attendance_date": frm.doc.attendance_date,
+                "company": frm.doc.company,
+            }
+        })
+        
     }
 
 });
