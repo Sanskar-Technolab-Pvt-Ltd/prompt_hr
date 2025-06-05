@@ -750,7 +750,7 @@ def penalize_employee_for_late_entry_for_indifoss():
                     if late_attendance_list:
                         for attendance_id in late_attendance_list[allowed_late_entries:]:
                             
-                            leave_application_exists = frappe.db.exists("Leave Application", {"employee": emp_id.get("name"), "docstatus": 1,"from_date": ["<=",attendance_id.get("attendance_date")], "to_date": [">=",attendance_id.get("attendance_date")], "custom_is_penalty_leave":0 })
+                            leave_application_exists = frappe.db.exists("Leave Application", {"employee": emp_id.get("name"), "docstatus": 1,"from_date": ["<=",attendance_id.get("attendance_date")], "to_date": [">=",attendance_id.get("attendance_date")]})
                             
                             attendance_regularization_exists = frappe.db.get_all("Attendance Regularization", {"employee": emp_id.get("name"), "attendance": attendance_id.get("name"),"regularization_date": attendance_id.get("attendance_date")}, "name")
                             
@@ -887,7 +887,7 @@ def penalize_incomplete_week_for_indifoss():
                             
                             if attendance_id:
                                 
-                                leave_application_exists = frappe.db.exists("Leave Application", {"employee": emp.get("name"), "docstatus": 1, "from_date": ["<=",attendance_id[0].get("attendance_date")], "to_date": [">=",attendance_id[0].get("attendance_date")], "custom_is_penalty_leave":0 })
+                                leave_application_exists = frappe.db.exists("Leave Application", {"employee": emp.get("name"), "docstatus": 1, "from_date": ["<=",attendance_id[0].get("attendance_date")], "to_date": [">=",attendance_id[0].get("attendance_date")]})
                 
                                 attendance_regularization_exists = frappe.db.get_all("Attendance Regularization", {"employee": emp.get("name"), "attendance": attendance_id[0].get("name"),"regularization_date": attendance_id[0].get("attendance_date")}, "name")
                 
@@ -1101,7 +1101,7 @@ def penalize_employee_for_late_entry_for_prompt(emp_id, company_id, month_first_
             for attendance_id in late_attendance_list[allowed_late_entries:]:
                 
                 
-                leave_application_exists = frappe.db.exists("Leave Application", {"employee": emp_id.get("name"), "docstatus": 1,"from_date": ["<=",attendance_id.get("attendance_date")], "to_date": [">=",attendance_id.get("attendance_date")], "custom_is_penalty_leave":0 })
+                leave_application_exists = frappe.db.exists("Leave Application", {"employee": emp_id.get("name"), "docstatus": 1,"from_date": ["<=",attendance_id.get("attendance_date")], "to_date": [">=",attendance_id.get("attendance_date")]})
                 
                 attendance_regularization_exists = frappe.db.get_all("Attendance Regularization", {"employee": emp_id.get("name"), "attendance": attendance_id.get("name"),"regularization_date": attendance_id.get("attendance_date")}, "name")
                 
@@ -1165,7 +1165,7 @@ def penalize_incomplete_day_for_prompt(emp, check_attendance_date, expected_work
                 
             for attendance in attendance_list:
                 
-                leave_application_exists = frappe.db.exists("Leave Application", {"employee": emp.get("name"), "docstatus":1,"from_date": ["<=",attendance.get("attendance_date")], "to_date": [">=",attendance.get("attendance_date")], "custom_is_penalty_leave":0 })
+                leave_application_exists = frappe.db.exists("Leave Application", {"employee": emp.get("name"), "docstatus":1,"from_date": ["<=",attendance.get("attendance_date")], "to_date": [">=",attendance.get("attendance_date")] })
                 
                 attendance_regularization_exists = frappe.db.get_all("Attendance Regularization", {"employee": emp.get("name"), "attendance": attendance.get("name"),"regularization_date": attendance.get("attendance_date")}, "name")
                 
