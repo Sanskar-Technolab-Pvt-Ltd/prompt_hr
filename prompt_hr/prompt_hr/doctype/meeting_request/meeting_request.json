@@ -20,6 +20,7 @@
   "column_break_uouy",
   "booking_status",
   "mode",
+  "city",
   "generate_meeting_link",
   "is_recurring_meeting",
   "recurring_frequency",
@@ -179,13 +180,19 @@
    "fieldname": "color",
    "fieldtype": "Color",
    "label": "Color"
+  },
+  {
+   "depends_on": "eval:in_list([\"Offline\", \"On Site\"], doc.mode)",
+   "fieldname": "city",
+   "fieldtype": "Data",
+   "label": "City"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_calendar_and_gantt": 1,
  "links": [],
- "modified": "2025-05-05 17:26:16.123089",
+ "modified": "2025-06-04 16:06:46.216629",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Meeting Request",
