@@ -828,6 +828,7 @@ def get_employee_changable_fields(emp_id):
         "DocField",
         filters={"parent": "Employee", "label": ["in", field_labels]},
         fields=["fieldname", "label", "fieldtype"],
+        ignore_permissions = True
     )
 
     return fields
@@ -844,6 +845,7 @@ def get_employee_doctype_fields():
             filters={"parent": "Employee", "hidden": 0},
             fields=["label", "fieldname", "fieldtype"],
             order_by="idx asc",
+            ignore_permissions = True
         )
 
         # ? ADD CUSTOM FIELDS FROM Employee DocType
@@ -852,6 +854,7 @@ def get_employee_doctype_fields():
             filters={"dt": "Employee", "hidden": 0},
             fields=["label", "fieldname", "fieldtype"],
             order_by="idx asc",
+            ignore_permissions = True
         )
 
         # ? APPEND CUSTOM FIELDS TO THE FIELDS LIST
