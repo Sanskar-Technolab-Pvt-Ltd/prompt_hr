@@ -103,13 +103,15 @@ def send_notification_to_hr_manager(name, company, user):
         message = frappe.render_template(notification.message, {"doc": doc, "interviewer": user_doc.full_name})
 
         # Update Interview Detail if the interviewer is internal
+        employee_user = frappe.get_all("Employee", filters={"user_id":user_doc.name, "status":"Active"}, fields=["name"])
         interviewer = frappe.get_all(
             "Interview Detail",
-            filters={"parent": doc.name, "custom_interviewer_name": user_doc.full_name},
+            filters={"parent": doc.name, "custom_interviewer_employee": employee_user[0].name},
             fields=["name"]
         )
         if interviewer:
-            frappe.db.set_value("Interview Detail", interviewer[0].name, "custom_is_confirm", 1)
+            interviewer_doc = frappe.get_doc("Interview Detail", interviewer[0].name)
+            interviewer_doc.db_set("custom_is_confirm", 1)
         
         # Update External Interviewer confirmation if the interviewer is external
         external_interviewers = frappe.get_all(
