@@ -1,40 +1,40 @@
 {
  "actions": [],
  "allow_rename": 1,
- "creation": "2025-05-29 18:46:08.557710",
+ "creation": "2025-06-05 18:03:01.409574",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "grade",
-  "mode_of_travel"
+  "type_of_travel",
+  "rate_per_km"
  ],
  "fields": [
   {
    "allow_on_submit": 1,
-   "fieldname": "grade",
-   "fieldtype": "Link",
+   "fieldname": "type_of_travel",
+   "fieldtype": "Select",
    "in_list_view": 1,
-   "label": "Grade",
-   "options": "Employee Grade"
+   "label": "Type of Travel",
+   "options": "Bike\nCar"
   },
   {
    "allow_on_submit": 1,
-   "fieldname": "mode_of_travel",
-   "fieldtype": "Link",
+   "fieldname": "rate_per_km",
+   "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "Mode of Travel",
-   "options": "Travel Mode"
+   "label": "Rate Per KM",
+   "precision": "2"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-06-05 18:22:04.940149",
+ "modified": "2025-06-05 18:17:02.818224",
  "modified_by": "Administrator",
  "module": "Prompt HR",
- "name": "Travel Mode Table",
+ "name": "Service KM Rate",
  "owner": "Administrator",
  "permissions": [],
  "row_format": "Dynamic",

@@ -1,44 +1,43 @@
 {
  "actions": [],
  "allow_rename": 1,
- "creation": "2025-04-16 13:26:43.830997",
+ "creation": "2025-06-05 19:19:26.933898",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "product_group",
-  "last_evaluation_date",
-  "next_evaluation_date"
+  "column_break_mxcs",
+  "related_to",
+  "participant"
  ],
  "fields": [
   {
-   "fieldname": "product_group",
+   "fieldname": "related_to",
    "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "Product Group",
-   "options": "Product Group"
+   "label": "Related To",
+   "options": "DocType"
   },
   {
-   "fieldname": "last_evaluation_date",
-   "fieldtype": "Date",
-   "in_list_view": 1,
-   "label": "Last Evaluation Date"
+   "fieldname": "column_break_mxcs",
+   "fieldtype": "Column Break"
   },
   {
-   "fieldname": "next_evaluation_date",
-   "fieldtype": "Date",
+   "fieldname": "participant",
+   "fieldtype": "Dynamic Link",
    "in_list_view": 1,
-   "label": "Next Evaluation Date"
+   "label": "Participant",
+   "options": "related_to"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-06-05 17:07:53.474726",
+ "modified": "2025-06-05 19:20:52.766892",
  "modified_by": "Administrator",
  "module": "Prompt HR",
- "name": "Product Knowledge",
+ "name": "Meeting Participants",
  "owner": "Administrator",
  "permissions": [],
  "row_format": "Dynamic",
