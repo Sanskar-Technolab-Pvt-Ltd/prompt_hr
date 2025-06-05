@@ -29,6 +29,8 @@
   "related_to",
   "related_to_form",
   "color",
+  "participants_section",
+  "table_qygi",
   "room_setup_instruction_section_section",
   "room_setup_instruction",
   "section_break_nlgt",
@@ -77,6 +79,7 @@
   {
    "fieldname": "participants",
    "fieldtype": "Table MultiSelect",
+   "hidden": 1,
    "label": "Participants",
    "options": "Employee Multiselect"
   },
@@ -186,13 +189,23 @@
    "fieldname": "city",
    "fieldtype": "Data",
    "label": "City"
+  },
+  {
+   "fieldname": "participants_section",
+   "fieldtype": "Section Break",
+   "label": "Participants"
+  },
+  {
+   "fieldname": "table_qygi",
+   "fieldtype": "Table",
+   "options": "Meeting Participants"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_calendar_and_gantt": 1,
  "links": [],
- "modified": "2025-06-04 16:06:46.216629",
+ "modified": "2025-06-05 19:21:57.232387",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Meeting Request",
