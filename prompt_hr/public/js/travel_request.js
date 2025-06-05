@@ -3,7 +3,7 @@
 frappe.ui.form.on("Travel Request", {
 	refresh: function (frm) {
 		add_query_filter_to_existing_rows(frm);
-	}, 	
+	},
 	employee: function (frm) {
 		add_query_filter_to_existing_rows(frm);
 	},
