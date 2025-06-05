@@ -5,9 +5,24 @@ frappe.ui.form.on("HR Settings", {
             let row = locals[cdt][cdn];
             if (row.is_sub_department && row.select_doctype == "Department") {
                 return {
-                    filters: {
-                        parent_department: ['!=', "All Departments"]
-                    }
+                    filters : [
+                        ["parent_department", "!=", "All Departments"],
+                        ["parent_department", "is", "set"]
+                    ]
+                };
+            } else {
+                return {};
+            }
+        };
+
+        frm.fields_dict.custom_penalization_criteria_table_for_indifoss.grid.get_field('value').get_query = function(doc, cdt, cdn) {
+            let row = locals[cdt][cdn];
+            if (row.is_sub_department && row.select_doctype == "Department") {
+                return {
+                    filters : [
+                        ["parent_department", "!=", "All Departments"],
+                        ["parent_department", "is", "set"]
+                    ]
                 };
             } else {
                 return {};
@@ -218,5 +233,6 @@ frappe.ui.form.on('Penalization Criteria', {
     is_sub_department: function(frm, cdt, cdn) {
         frappe.model.set_value(cdt, cdn, 'value', null);
         frm.fields_dict.custom_penalization_criteria_table_for_prompt.grid.refresh_row(cdn);
+        frm.fields_dict.custom_penalization_criteria_table_for_indifoss.grid.refresh_row(cdn);
     }
 });
