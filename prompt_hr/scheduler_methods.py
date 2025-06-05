@@ -3,8 +3,16 @@ import frappe
 import frappe.commands
 from frappe.utils import date_diff, today, add_to_date, getdate, get_datetime, add_months
 from prompt_hr.py.utils import fetch_company_name
+from prompt_hr.py.auto_mark_attendance import mark_attendance
 from datetime import timedelta, datetime
 
+
+
+
+
+@frappe.whitelist()
+def auto_attendance():
+    mark_attendance(is_scheduler=1)
 
 @frappe.whitelist()
 def create_probation_feedback_form():
