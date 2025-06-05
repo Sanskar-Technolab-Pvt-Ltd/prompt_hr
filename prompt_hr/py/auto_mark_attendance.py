@@ -8,126 +8,145 @@ from prompt_hr.py.utils import fetch_company_name
 
 
 
-def auto_attendance(attendance_date=None, is_scheduler = 1):
-    """Method to create attendance for the specified date or current date.
-    """
-    try:
-        pass
-        # if is_scheduler:
-        #     mark_attendance(prompt=1)
-        #     mark_attendance(indifoss=1)
-        # else:
-        #     if attendance_date:
-        #         mark_attendance()
-    except Exception as e:
-        if is_scheduler:
-            frappe.log_error("Error in auto attendance", frappe.get_traceback())
-        else:
-            throw(f"Error While Marking Attendance \n{e}")
-            frappe.log_error("Error while marking attendance", frappe.get_traceback())
+# def auto_attendance(attendance_date=None, is_scheduler = 1):
+#     """Method to create attendance for the specified date or current date.
+#     """
+#     try:
+#         pass
+#         # if is_scheduler:
+#         #     mark_attendance(prompt=1)
+#         #     mark_attendance(indifoss=1)
+#         # else:
+#         #     if attendance_date:
+#         #         mark_attendance()
+#     except Exception as e:
+#         if is_scheduler:
+#             frappe.log_error("Error in auto attendance", frappe.get_traceback())
+#         else:
+#             throw(f"Error While Marking Attendance \n{e}")
+#             frappe.log_error("Error while marking attendance", frappe.get_traceback())
 
 
 
 @frappe.whitelist()
-def mark_attendance(emp_id=None, attendance_date=None, is_scheduler=1, prompt=0, indifoss=0):
+def mark_attendance(attendance_date=None, company = None,is_scheduler=0):
     """Method to mark attendance for prompt employee
     """
-    
-    if not is_scheduler:
-        if prompt:
-            company_name = fetch_company_name(prompt=1)
-        elif indifoss:
-            company_name = fetch_company_name(indifoss=1)
-        
-        if company_name.get("error"):
-            throw(company_name.get("message"))
-        
-        company_id = company_name.get("company_id")
-
-        
-        employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": company_id}, ["name", "holiday_list", "custom_is_overtime_applicable"])
-
-        if not employee_list:
-            throw("No Employees Found")
-
-        if prompt:
-            grace_time_period_for_late_coming = frappe.db.get_single_value("HR Settings", "custom_grace_time_period_for_late_coming_for_prompt") or 0
-            grace_time_for_insufficient_hours = frappe.db.get_single_value("HR Settings", "custom_daily_hours_criteria_for_penalty_for_prompt") or 0
-        elif indifoss:
-            grace_time_period_for_late_coming = frappe.db.get_single_value("HR Settings", "custom_grace_time_period_for_late_coming_for_indifoss") or 0
-        
-    else:
+    try:
         prompt_company_name = fetch_company_name(prompt=1)
         indifoss_company_name = fetch_company_name(indifoss=1)
-        
-        if prompt_company_name.get("error"):
-            frappe.log_error("Error in fetch_company_name method", company_name.get("message"))
-            return 0
-        
-        if indifoss_company_name.get("error"):
-            frappe.log_error("Error in fetch_company_name method", company_name.get("message"))
-            return 0
-
-        
-        prompt_company_id = prompt_company_name.get("company_id")
-        indifoss_company_id = indifoss_company_name.get("company_id")
-        
-        employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": ["in", [prompt_company_id, indifoss_company_id]]}, ["name", "holiday_list", "custom_is_overtime_applicable", "company"])
-        
-        if not employee_list:
-            frappe.log_error("Error in mark_attendance_for_prompt", "No Employee Found")    
-        
-        
-        grace_time_period_for_late_coming_for_prompt = frappe.db.get_single_value("HR Settings", "custom_grace_time_period_for_late_coming_for_prompt") or 0
-        grace_time_for_insufficient_hours_for_prompt = frappe.db.get_single_value("HR Settings", "custom_daily_hours_criteria_for_penalty_for_prompt") or 0
-        
-        grace_time_period_for_late_coming_for_indifoss = frappe.db.get_single_value("HR Settings", "custom_grace_time_period_for_late_coming_for_indifoss") or 0
-        
-            
-    mark_attendance_date = getdate(attendance_date) if attendance_date else getdate(today())
-    str_mark_attendance_date = mark_attendance_date.strftime("%Y-%m-%d")
-    
-
-    day_start_time = get_datetime(mark_attendance_date)
-    day_end_time = get_datetime(str_mark_attendance_date + " 23:59:59")     
-        
-    for employee_data in employee_list:
-        if is_scheduler:
-            if employee_data.get("company") == prompt_company_id:
+        if not is_scheduler:
+            prompt = 0
+            indifoss = 0
                 
-                is_marked = attendance(
-                    employee_data,
-                    mark_attendance_date,
-                    str_mark_attendance_date,
-                    day_start_time,
-                    day_end_time,
-                    grace_time_period_for_late_coming_for_prompt,
-                    grace_time_for_insufficient_hours = grace_time_for_insufficient_hours_for_prompt,
-                    prompt = 1
-                )
+            if prompt_company_name.get("error"):
+                throw(prompt_company_name.get("message"))
+            
+            if indifoss_company_name.get("error"):
+                throw(indifoss_company_name.get("message"))
+                
+            
+            if company == prompt_company_name.get("company_id"):
+                company_id = prompt_company_name.get("company_id")
+                prompt = 1
+        
+            if company == indifoss_company_name.get("company_id"):
+                company_id = indifoss_company_name.get("company_id")
+                indifoss = 1
+            print(f"\n\n {indifoss} {prompt} \n\n")
+            
+            employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": company_id}, ["name", "holiday_list", "custom_is_overtime_applicable"])
 
-            elif employee_data.get("company") == indifoss_company_id:
-                is_marked = attendance(
-                    employee_data,
-                    mark_attendance_date,
-                    str_mark_attendance_date,
-                    day_start_time,
-                    day_end_time,
-                    grace_time_period_for_late_coming_for_indifoss,
-                    grace_time_for_insufficient_hours = grace_time_period_for_late_coming_for_indifoss,
-                )
+            if not employee_list:
+                throw("No Employees Found")
+
+            if prompt:
+                grace_time_period_for_late_coming = frappe.db.get_single_value("HR Settings", "custom_grace_time_period_for_late_coming_for_prompt") or 0
+                grace_time_for_insufficient_hours = frappe.db.get_single_value("HR Settings", "custom_daily_hours_criteria_for_penalty_for_prompt") or 0
+            elif indifoss:
+                grace_time_period_for_late_coming = frappe.db.get_single_value("HR Settings", "custom_grace_time_period_for_late_coming_for_indifoss") or 0
+            
         else:
-            is_marked = attendance(
-                employee_data,
-                mark_attendance_date,
-                str_mark_attendance_date,
-                day_start_time,
-                day_end_time,
-                grace_time_period_for_late_coming,
-                grace_time_for_insufficient_hours,
-                prompt = prompt
-            )
+            
+            if prompt_company_name.get("error"):
+                frappe.log_error("Error in fetch_company_name method",prompt_company_name.get("message"))
+                return 0
+            
+            if indifoss_company_name.get("error"):
+                frappe.log_error("Error in fetch_company_name method", indifoss_company_name.get("message"))
+                return 0
 
+            
+            prompt_company_id = prompt_company_name.get("company_id")
+            indifoss_company_id = indifoss_company_name.get("company_id")
+            
+            employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": ["in", [prompt_company_id, indifoss_company_id]]}, ["name", "holiday_list", "custom_is_overtime_applicable", "company"])
+            
+            if not employee_list:
+                frappe.log_error("Error in mark_attendance_for_prompt", "No Employee Found")    
+            
+            # print(f"\n\n employee list {employee_list} \n\n")
+            grace_time_period_for_late_coming_for_prompt = frappe.db.get_single_value("HR Settings", "custom_grace_time_period_for_late_coming_for_prompt") or 0
+            grace_time_for_insufficient_hours_for_prompt = frappe.db.get_single_value("HR Settings", "custom_daily_hours_criteria_for_penalty_for_prompt") or 0
+            
+            grace_time_period_for_late_coming_for_indifoss = frappe.db.get_single_value("HR Settings", "custom_grace_time_period_for_late_coming_for_indifoss") or 0
+            
+                
+        mark_attendance_date = getdate(attendance_date) if attendance_date else getdate(today())
+        str_mark_attendance_date = mark_attendance_date.strftime("%Y-%m-%d")
+        
+
+        day_start_time = get_datetime(mark_attendance_date)
+        day_end_time = get_datetime(str_mark_attendance_date + " 23:59:59")     
+
+        
+        for employee_data in employee_list:
+                if is_scheduler:
+                    print(f"\n\n  is scheduler {employee_data.get('name')}\n\n")
+                    if employee_data.get("company") == prompt_company_id:
+                        
+                        attendance(
+                            employee_data,
+                            mark_attendance_date,
+                            str_mark_attendance_date,
+                            day_start_time,
+                            day_end_time,
+                            grace_time_period_for_late_coming_for_prompt,
+                            grace_time_for_insufficient_hours = grace_time_for_insufficient_hours_for_prompt,
+                            prompt = 1
+                        )
+
+                    elif employee_data.get("company") == indifoss_company_id:
+                        
+                        
+                        attendance(
+                            employee_data,
+                            mark_attendance_date,
+                            str_mark_attendance_date,
+                            day_start_time,
+                            day_end_time,
+                            grace_time_period_for_late_coming_for_indifoss,
+                            grace_time_for_insufficient_hours = grace_time_period_for_late_coming_for_indifoss,
+                        )
+                else:
+                    print(f"\n\n prompt {prompt}  \n\n")
+                    attendance(
+                        employee_data,
+                        mark_attendance_date,
+                        str_mark_attendance_date,
+                        day_start_time,
+                        day_end_time,
+                        grace_time_period_for_late_coming,
+                        grace_time_for_insufficient_hours if prompt else 0,
+                        prompt = prompt
+                    )
+    except Exception as e:
+        if is_scheduler:
+            frappe.log_error("Error While Marking Attendance", frappe.get_traceback())
+        else:
+            frappe.log_error("Error While Marking Attendance", frappe.get_traceback())
+            throw(str(e))
+            
 def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, day_start_time, day_end_time, grace_time_period_for_late_coming, grace_time_for_insufficient_hours=0, prompt=0):
     
     assigned_shift = frappe.db.get_all("Shift Assignment", {"docstatus": 1, "status": "Active","employee": employee_data.get("name"), "start_date":["<=", mark_attendance_date], "end_date":[">=", mark_attendance_date]}, ["name","shift_type"], order_by="creation desc", limit=1)
@@ -227,6 +246,7 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
             attendance_status = "Half Day"
             
             if prompt:
+                print(f"\n\n  penalizing for hald day \n\n")
                 if final_working_hours < grace_time_for_insufficient_hours:
                     apply_penalty = 1
             
@@ -238,7 +258,11 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
         
         
         if prompt and is_overtime_applicable:
-            ot_duration = overtime_duration(out_datetime, shift_end_time)
+            if is_half_day:
+                ot_duration = overtime_duration(out_datetime, shift_end_datetime, is_half_day = 1)
+            else:
+                ot_duration = overtime_duration(out_datetime, shift_end_time)
+                
         
         if not is_half_day:
             late_entry_and_apply_penalty = is_late_entry(in_datetime, shift_start_time, grace_time_period_for_late_coming)
@@ -248,7 +272,8 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
         late_entry = late_entry_and_apply_penalty.get("is_late_entry")
         apply_penalty = late_entry_and_apply_penalty.get("apply_penalty")
         
-        shift_end_datetime = get_datetime(out_datetime.date()) + shift_end_time
+        if not is_half_day:
+            shift_end_datetime = get_datetime(out_datetime.date()) + shift_end_time
         if out_datetime < shift_end_datetime:
             is_early_exit = 1
     
@@ -264,7 +289,8 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
         is_only_one_record = 1
 
     elif out_datetime:
-        shift_end_datetime = get_datetime(out_datetime.date()) + shift_end_time
+        if not is_half_day:
+            shift_end_datetime = get_datetime(out_datetime.date()) + shift_end_time
         if out_datetime < shift_end_datetime:
             is_early_exit = 1
         is_only_one_record = 1
@@ -281,12 +307,13 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
         attendance_status = "Mispunch"
         remarks = "Only single record found"
     
-    if attendance_status in ["Half Day", "Absent"] and not apply_penalty:
-        apply_penalty = 1
-    
-    print(f"\n\n status {attendance_status}  {apply_penalty} {formatted_working_hours} \n\n")
-    
+    if attendance_status in ["Half Day", "Absent"] and not apply_penalty and prompt:
+
+            if not is_half_day or (is_half_day and attendance_status == "Absent"):
+                apply_penalty = 1
+        
     if is_half_day:
+        
         update_attendance(half_day_attendance.get("name"), {
             "custom_type": attendance_type,
             "custom_work_hours": formatted_working_hours,
@@ -319,8 +346,8 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
             shift = shift_type,
             in_time = in_datetime if in_type_emp_checkin else None,
             out_time = out_datetime if out_type_emp_checkin else None,
-            custom_checkin_time = in_datetime if in_type_emp_checkin else None,
-            custom_checkout_time = out_datetime if out_type_emp_checkin else None,
+            custom_checkin_time = in_datetime if in_type_emp_checkin else '',
+            custom_checkout_time = out_datetime if out_type_emp_checkin else '',
             custom_remarks = remarks,
             custom_employee_checkin = in_type_emp_checkin_id if in_type_emp_checkin else None,
             custom_employee_checkout = out_type_emp_checkin_id if out_type_emp_checkin else None
@@ -361,13 +388,13 @@ def is_holiday_or_weekoff(emp_id, mark_attendance_date):
 
 def calculate_work_hours():
     pass
-def overtime_duration(employee_out_time, shift_end_time):
+def overtime_duration(employee_out_time, shift_end_time, is_half_day=0):
     """ Method to calculate overtime duration
     """
     
     overtime_details = frappe.db.get_all("Overtime Details", {"parenttype": "HR Settings"}, ["from_time", "to_time", "final_time"])
-    
-    shift_end_time = get_datetime(employee_out_time.date()) + shift_end_time
+    if not is_half_day:
+        shift_end_time = get_datetime(employee_out_time.date()) + shift_end_time
     
     overtime = employee_out_time - shift_end_time
     
@@ -389,7 +416,6 @@ def overtime_duration(employee_out_time, shift_end_time):
 def is_late_entry(employee_in_datetime, shift_start_time, grace_time , is_half_day = 0):
     """Method to check if the employee is late or not
     """
-    print(f"\n\n  sdfdsff {grace_time} \n\n")
     if not is_half_day:
         shift_start_datetime = get_datetime(employee_in_datetime.date()) + shift_start_time
     else:
@@ -414,8 +440,8 @@ def create_attendance(
     shift = '',
     in_time = None,
     out_time = None,
-    custom_checkin_time = None,
-    custom_checkout_time = None,
+    custom_checkin_time = '',
+    custom_checkout_time = '',
     custom_remarks = '',
     custom_employee_checkin = None,
     custom_employee_checkout = None
@@ -455,9 +481,7 @@ def update_attendance(attendance_id, update_values):
     # attendance_doc = frappe.get_doc("Attendance", attendance_id)
     
     if update_values:
-        print(f"\n\nsdsad  {update_values} \n\n")
         for fieldname, values in update_values.items():
-            print(f"\n fieldname value {fieldname} {values}\n")
             frappe.db.set_value("Attendance", attendance_id, fieldname, values)
     
     frappe.db.commit()
