@@ -153,7 +153,6 @@ frappe.ui.form.on("Leave Application", {
 						frm.set_df_property('to_date', 'hidden', 1);
 						frm.set_df_property('half_day', 'hidden', 1);
 						frm.set_df_property('half_day_date', 'hidden', 1);
-						frm.set_df_property('custom_is_penalty_leave', 'hidden', 1);
 						frm.set_df_property('description', 'hidden', 1);
 						frm.set_df_property('custom_attachment', 'hidden', 1);
 						frm.set_df_property('custom_optional_holidays', 'hidden', 0);
@@ -186,7 +185,6 @@ frappe.ui.form.on("Leave Application", {
 						frm.set_df_property('to_date', 'hidden', 0);
 						frm.set_df_property('half_day', 'hidden', 0);
 						frm.set_df_property('half_day_date', 'hidden', 0);
-						frm.set_df_property('custom_is_penalty_leave', 'hidden', 0);
 						frm.set_df_property('description', 'hidden', 0);
 						frm.set_df_property('custom_attachment', 'hidden', 0);
                     }
