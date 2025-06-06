@@ -893,7 +893,6 @@ def penalize_incomplete_week_for_indifoss():
                 
                                 employee_late_penalty_exists = frappe.db.exists("Employee Penalty", {"employee": emp.get("name"), "attendance": attendance_id[0].get("name"), "for_insufficient_hours": 1})
                                 
-                                print(f"\n\n {leave_application_exists} {attendance_regularization_exists} {employee_late_penalty_exists}\n\n")
                                 # if not frappe.db.exists("Leave Application", {"employee": emp.get("name"), "from_date": attendance_id[0]}):
                                 if not (leave_application_exists or attendance_regularization_exists or employee_late_penalty_exists):
                                     print(f"\n\n Creating Penalty \n\n")
@@ -984,8 +983,7 @@ def penalize_prompt_employee():
         no_attendance_buffer_days = hr_settings_doc.custom_buffer_period_for_no_attendance_penalty_for_prompt
         is_lwp_for_no_attendance = 1
         no_attendance_deduct_leave = 1.0
-       
-        
+    
         #* GETTING DATE TO CHECK THE ATTENDANCE FOR THAT DATE FOR INSUFFICIENT DAILY HOURS
         if no_attendance_buffer_days:    
                 no_attendance_date = getdate(add_to_date(today(), days=-(no_attendance_buffer_days + 1)))
@@ -1137,7 +1135,7 @@ def penalize_incomplete_day_for_prompt(emp, check_attendance_date, expected_work
         if (not check_employee_penalty_criteria(emp.get("name"), "For Work Hours")):
                 return
         print("penalize_incomplete_day_for_prompt",emp.get("name"))     
-        attendance_list = frappe.db.get_all("Attendance", {"docstatus": 1, "employee": emp.get("name"), "attendance_date": check_attendance_date, "working_hours": ["<",expected_work_hours]}, ["name", "attendance_date"], order_by="attendance_date asc")
+        attendance_list = frappe.db.get_all("Attendance", {"docstatus": 1, "employee": emp.get("name"), "attendance_date": check_attendance_date, "working_hours": ["<",expected_work_hours], "custom_apply_penalty": 1}, ["name", "attendance_date"], order_by="attendance_date asc")
 
         if attendance_list:
             if not is_lwp_for_insufficient_hours:
