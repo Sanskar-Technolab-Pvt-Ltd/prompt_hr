@@ -78,22 +78,38 @@ class EmployeeStandardSalary(Document):
                         deduction.amount = SalarySlip.eval_condition_and_formula(self, deduction, data)
 
     def get_data_for_eval(self):
-        """Get data context for formula evaluation"""
+        """Get merged data context for salary formula evaluation."""
         data = frappe._dict()
 
-        # Get employee data
-        employee = frappe.get_cached_doc("Employee", self.employee).as_dict()
-        data.update(employee)
+        # 1. Get Employee data
+        if self.employee:
+            try:
+                employee = frappe.get_cached_doc("Employee", self.employee).as_dict()
+                data.update(employee)
+            except frappe.DoesNotExistError:
+                frappe.throw(f"Employee record not found for {self.employee}")
 
-        # Get salary structure assignment data
+        # 2. Get Salary Structure Assignment data
         if self.salary_structure_assignment:
-            salary_structure_assignment = frappe.get_cached_doc(
-                "Salary Structure Assignment", self.salary_structure_assignment
-            ).as_dict()
-            data.update(salary_structure_assignment)
+            try:
+                salary_structure_assignment = frappe.get_cached_doc(
+                    "Salary Structure Assignment", self.salary_structure_assignment
+                ).as_dict()
+                data.update(salary_structure_assignment)
+            except frappe.DoesNotExistError:
+                frappe.throw(f"Salary Structure Assignment not found for {self.salary_structure_assignment}")
 
-        # Add current document data
+        # 3. Add current document (Salary Slip or related Doc) fields
         data.update(self.as_dict())
+
+        # 4. Set default values for evaluation fields (if not already present)
+        data.setdefault("total_working_days", 31)
+        data.setdefault("leave_without_pay", 0)
+        data.setdefault("custom_lop_days", 0)
+        data.setdefault("absent_days", 0)
+        data.setdefault("payment_days", 0)
+        data.setdefault("custom_penalty_leave_days", 0)
+        data.setdefault("custom_overtime", 0)
 
         return data
 
