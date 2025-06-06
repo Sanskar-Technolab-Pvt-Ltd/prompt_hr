@@ -31,14 +31,15 @@
    "fieldname": "company",
    "fieldtype": "Link",
    "label": "Company",
-   "options": "Company"
+   "options": "Company",
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-06-05 13:28:04.115643",
+ "modified": "2025-06-06 12:01:04.588187",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Mark Attendance",
@@ -55,6 +56,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []

@@ -2,6 +2,16 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on("Employee Standard Salary", {
+    refresh: function(frm){
+        frm.set_query("salary_structure_assignment", function () {
+                return {
+                    filters: {
+                        employee: frm.doc.employee,
+                        docstatus: 1,
+                    },
+                };
+            });
+    },
 	employee(frm) {
         if (frm.doc.employee) {
             frappe.db.get_list("Salary Structure Assignment", {
