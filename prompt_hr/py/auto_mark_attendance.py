@@ -149,7 +149,7 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0):
             
 def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, day_start_time, day_end_time, grace_time_period_for_late_coming, grace_time_for_insufficient_hours=0, prompt=0):
     
-    assigned_shift = frappe.db.get_all("Shift Assignment", {"docstatus": 1, "status": "Active","employee": employee_data.get("name"), "start_date":["<=", mark_attendance_date], "end_date":[">=", mark_attendance_date]}, ["name","shift_type"], order_by="creation desc", limit=1)
+    assigned_shift = frappe.db.get_all("Shift Assignment", {"docstatus": 1, "status": "Active","employee": employee_data.get("name"), "start_date":["<=", mark_attendance_date]}, ["name","shift_type"], order_by="creation desc", limit=1)
 
     #* If no shift assigned then move to next employee
     if not assigned_shift:
@@ -187,9 +187,10 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
         middle_datetime = shift_start_datetime + middle_time_delta
         
         if half_day_attendance.get("custom_half_day_time") == "First":
-            shift_start_time = middle_datetime.time()
+            shift_start_datetime = middle_datetime 
+            
         elif half_day_attendance.get("custom_half_day_time") == "Second":
-            shift_end_time = middle_datetime.time()
+            shift_end_datetime = middle_datetime
             
     
     #* FETCHING EMPLOYEE'S FIRST CHECKIN & LAST CHECKOUT RECORD
@@ -246,7 +247,6 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
             attendance_status = "Half Day"
             
             if prompt:
-                print(f"\n\n  penalizing for hald day \n\n")
                 if final_working_hours < grace_time_for_insufficient_hours:
                     apply_penalty = 1
             
@@ -400,7 +400,6 @@ def overtime_duration(employee_out_time, shift_end_time, is_half_day=0):
     
     overtime_float_value = round(overtime.total_seconds() / 3600, 2)
     
-    print(f"\n\n overtime_float_value {overtime_float_value} \n\n")
     final_overtime = 0.0
     
     if overtime_details:
