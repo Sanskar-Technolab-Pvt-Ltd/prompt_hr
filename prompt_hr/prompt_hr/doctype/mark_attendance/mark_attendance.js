@@ -9,6 +9,9 @@ frappe.ui.form.on("Mark Attendance", {
         if (!frm.doc.company) {
             frappe.throw("Please Select a Company")
         }
+        if (!frm.doc.attendance_date) {
+            frappe.throw("Please Select a date for marking attendance")
+        }
 
         frappe.call({
             method: "prompt_hr.py.auto_mark_attendance.mark_attendance",
