@@ -309,7 +309,7 @@ def get_expense_claim_exception(doc):
         if expense.expense_type == "Food":
             allowed_amount = (
                 budget_row.meal_allowance_metro
-                if expense.custom_for_metro_city
+                if expense.custom_is_metro
                 else budget_row.meal_allowance_non_metro
             )
             is_exception = expense.amount > allowed_amount
@@ -317,7 +317,7 @@ def get_expense_claim_exception(doc):
         elif expense.expense_type == "Lodging":
             allowed_amount = (
                 budget_row.lodging_allowance_metro
-                if expense.custom_for_metro_city
+                if expense.custom_is_metro
                 else budget_row.lodging_allowance_non_metro
             )
             is_exception = expense.amount > allowed_amount
@@ -357,3 +357,41 @@ def validate_attachments_compulsion(doc):
                     f"Attachments are mandatory for the expense type '{expense.expense_type}' "
                     f"when it exceeds the allowed budget. Please attach the necessary documents."
                 )
+
+@frappe.whitelist()
+def get_data_from_expense_claim_as_per_grade(employee, company): 
+
+    # ? GET TRAVEL BUDGET DOC NAME
+    travel_budget = frappe.db.get_value("Travel Budget", {"company": company}, "name")
+
+    grade = frappe.db.get_value("Employee",employee,"grade")
+
+    if not travel_budget:
+        return {
+            "success": 0,
+            "message": f"No Travel Budget found for company {company}"
+        }
+
+    # ? GET LOCAL COMMUTE OPTIONS FOR THE GRADE
+    allowed_local_commute = frappe.get_all(
+        "Local Commute Details",
+        filters={"parent": travel_budget, "grade": grade},
+        fields=["mode_of_commute", "type_of_commute"]
+    )
+
+    allowed_local_commute_public = []
+    allowed_local_commute_non_public = []
+
+    for commute in allowed_local_commute:
+        if commute.get("mode_of_commute") == "Public":
+            allowed_local_commute_public.append(commute.get("type_of_commute"))
+        elif commute.get("mode_of_commute") == "Non Public":
+            allowed_local_commute_non_public.append(commute.get("type_of_commute"))
+
+    return {
+        "success": 1,
+        "data": {
+            "allowed_local_commute_public": allowed_local_commute_public,
+            "allowed_local_commute_non_public":allowed_local_commute_non_public
+        }
+    }
