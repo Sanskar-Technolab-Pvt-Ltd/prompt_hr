@@ -2,6 +2,7 @@ import frappe
 from prompt_hr.py.utils import validate_hash, send_notification_email, get_hr_managers_by_company
 import json
 from frappe import _
+from datetime import datetime
 
 
 def get_context(context):
@@ -53,14 +54,24 @@ def validate_candidate_portal_hash(
     else:
         frappe.throw("Invalid hash")
 
-
+# ? FUNCTION TO UPDATE JOB OFFER FIELDS
+@frappe.whitelist()
 def update_job_offer(
     job_offer,
     expected_date_of_joining,
     offer_acceptance,
     condition_for_offer_acceptance,
 ):
-    if job_offer:
+    try:
+        if not job_offer:
+            frappe.throw(_("Job Offer ID is required"))
+
+        if not frappe.db.exists("Job Offer", job_offer):
+            frappe.throw(_("Job Offer {0} does not exist").format(job_offer))
+
+       
+
+        # ? UPDATE FIELDS
         frappe.db.set_value(
             "Job Offer",
             job_offer,
@@ -68,7 +79,10 @@ def update_job_offer(
             expected_date_of_joining,
         )
         frappe.db.set_value(
-            "Job Offer", job_offer, "custom_candidate_offer_acceptance", offer_acceptance
+            "Job Offer",
+            job_offer,
+            "custom_candidate_offer_acceptance",
+            offer_acceptance,
         )
         frappe.db.set_value(
             "Job Offer",
@@ -76,6 +90,19 @@ def update_job_offer(
             "custom_candidate_condition_for_offer_acceptance",
             condition_for_offer_acceptance,
         )
+
+        return {
+            "status": "success",
+            "message": _("Job Offer updated successfully")
+        }
+
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), "Error Updating Job Offer")
+        return {
+            "status": "error",
+            "message": _("Something went wrong while updating the Job Offer.")
+        }
+
 
 
 # ! prompt_hr.py.candidate_portal.update_candidate_portal
