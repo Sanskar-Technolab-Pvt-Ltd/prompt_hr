@@ -131,27 +131,23 @@ def send_notification_email(
                 # ? CONTINUE WITHOUT ATTACHMENT RATHER THAN FAILING THE ENTIRE EMAIL
 
         for email in recipients:
+            
             user = frappe.db.get_value(
-                "User", {"email": email}, ["name", "first_name"], as_dict=True
-            )
+                    "User", {"email": email}, ["name", "first_name"], as_dict=True
+                )
+           
             final_message = message
-
-            # ? IF NO USER FOUND, LOG AND SKIP SENDING EMAIL
-            if not user:
-                frappe.log_error(
-                    title="Notification Email Error",
-                    message=f"User not found for email: {email}. Skipping notification.",
-                )
-                continue
-
             if send_header_greeting and user:
-                # ? ADD GREETING BASED ON USER'S FIRST NAME
-                greeting = (
-                    f"<p>Dear {user.first_name},</p>"
-                    if user.first_name
-                    else "<p>Dear User,</p>"
-                )
-                final_message = greeting + final_message
+                
+
+                if user:
+                    # ? ADD GREETING BASED ON USER'S FIRST NAME
+                    greeting = (
+                        f"<p>Dear {user.first_name},</p>"
+                        if user.first_name
+                        else "<p>Dear User,</p>"
+                    )
+                    final_message = greeting + final_message
 
             # ? ADD HASH AND ACTION BUTTON TO MESSAGE IF LINK SHOULD BE INCLUDED
             if send_link:

@@ -18,7 +18,7 @@
  "list_columns": [],
  "login_required": 1,
  "max_attachment_size": 10,
- "modified": "2025-05-28 01:56:55.054564",
+ "modified": "2025-06-06 11:40:06.976252",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "candidate-portal",
@@ -96,7 +96,7 @@
    "max_length": 0,
    "max_value": 0,
    "precision": "",
-   "read_only": 0,
+   "read_only": 1,
    "reqd": 0,
    "show_in_filter": 0
   },
@@ -109,7 +109,7 @@
    "max_length": 0,
    "max_value": 0,
    "precision": "",
-   "read_only": 0,
+   "read_only": 1,
    "reqd": 0,
    "show_in_filter": 0
   },

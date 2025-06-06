@@ -66,26 +66,38 @@ def accept_changes(
         frappe.throw("Something went wrong while accepting the offer changes.")
 
 
-# ? CREATE OR UPDATE CANDIDATE PORTAL FROM JOB OFFER
 @frappe.whitelist()
 def sync_candidate_portal_from_job_offer(job_offer):
     try:
-        # ? CONVERT TO DOC IF NAME PASSED
+        # ? IF NAME PASSED, GET NECESSARY FIELDS
         if isinstance(job_offer, str):
-            job_offer = frappe.get_doc("Job Offer", job_offer)
+            job_offer_fields = frappe.db.get_value(
+                "Job Offer",
+                job_offer,
+                ["name", "job_applicant", "offer_date", "custom_expected_date_of_joining", "status"],
+                as_dict=True
+            )
+            if not job_offer_fields:
+                frappe.throw("Job Offer not found.")
 
-        if not job_offer.job_applicant:
+            job_offer = job_offer_fields
+
+        # ? VALIDATE JOB APPLICANT
+        if not job_offer.get("job_applicant"):
             frappe.throw("Job Applicant not linked in Job Offer.")
 
         # ? GET JOB APPLICANT EMAIL
         email = frappe.db.get_value(
-            "Job Applicant", job_offer.job_applicant, "email_id"
+            "Job Applicant", job_offer.get("job_applicant"), "email_id"
         )
         if not email:
             frappe.throw("Email ID not found for Job Applicant.")
 
         # ? CREATE OR UPDATE CANDIDATE PORTAL
-        portal_name = frappe.db.exists("Candidate Portal", {"applicant_email": email})
+        portal_name = frappe.db.get_value(
+            "Candidate Portal", {"applicant_email": email}, "name"
+        )
+
         portal = (
             frappe.get_doc("Candidate Portal", portal_name)
             if portal_name
@@ -95,10 +107,10 @@ def sync_candidate_portal_from_job_offer(job_offer):
         portal.update(
             {
                 "applicant_email": email,
-                "job_offer": job_offer.name,
-                "offer_date": job_offer.offer_date,
-                "expected_date_of_joining": job_offer.custom_expected_date_of_joining,
-                "offer_acceptance": job_offer.status,
+                "job_offer": job_offer.get("name"),
+                "offer_date": job_offer.get("offer_date"),
+                "expected_date_of_joining": job_offer.get("custom_expected_date_of_joining"),
+                "offer_acceptance": job_offer.get("status"),
             }
         )
 
@@ -109,18 +121,18 @@ def sync_candidate_portal_from_job_offer(job_offer):
             )
             pdf_file = frappe.attach_print(
                 "Job Offer",
-                job_offer.name,
+                job_offer.get("name"),
                 print_format=print_format,
                 print_letterhead=True,
             )
             file_doc = frappe.get_doc(
                 {
                     "doctype": "File",
-                    "file_name": f"Job Offer - {job_offer.name}.pdf",
+                    "file_name": f"Job Offer - {job_offer.get('name')}.pdf",
                     "content": pdf_file.get("fcontent"),
                     "is_private": 1,
                     "attached_to_doctype": "Job Offer",
-                    "attached_to_name": job_offer.name,
+                    "attached_to_name": job_offer.get("name"),
                 }
             ).insert()
             portal.offer_letter = f"http://192.168.2.111:8007{file_doc.file_url}"
@@ -134,12 +146,13 @@ def sync_candidate_portal_from_job_offer(job_offer):
         )
         frappe.db.commit()
         frappe.msgprint("Candidate Portal updated from Job Offer.")
-        
+
         return portal.name
 
     except Exception as e:
         frappe.log_error(f"Failed to sync Candidate Portal: {e}")
         frappe.throw("Something went wrong while syncing Candidate Portal.")
+
 
 
 # ? ENSURE CANDIDATE PORTAL EXISTS FOR JOB OFFER
@@ -176,19 +189,49 @@ def ensure_candidate_portal_exists(job_offer_doc):
 # ? RELEASE JOB OFFER TO CANDIDATE
 @frappe.whitelist()
 def release_offer_letter(doctype, docname, is_resend=False, notification_name=None):
-    doc = frappe.get_doc(doctype, docname)
+    try:
+        # ? FETCH THE DOCUMENT
+        doc = frappe.get_doc(doctype, docname)
 
-    if doc.job_applicant:
-        # Ensure candidate portal exists before sending
+        if not doc.job_applicant:
+            return {
+                "status": "error",
+                "message": "No Job Applicant linked with this Job Offer."
+            }
+
+        # ? ENSURE CANDIDATE PORTAL EXISTS
         portal_name = ensure_candidate_portal_exists(doc)
         if not portal_name:
-            frappe.throw("Could not create or find Candidate Portal for this Job Offer.")
-            
+            return {
+                "status": "error",
+                "message": "Could not create or find Candidate Portal for this Job Offer."
+            }
+
+        # ? SEND THE EMAIL
         send_mail_to_job_applicant(
             doc,
             is_resend=frappe.parse_json(is_resend),
             notification_name=notification_name,
         )
+
+        return {
+            "status": "success",
+            "message": "Offer Letter successfully sent to the candidate."
+        }
+
+    except frappe.DoesNotExistError:
+        frappe.log_error(frappe.get_traceback(), "Job Offer Document Not Found")
+        return {
+            "status": "error",
+            "message": "The specified Job Offer document does not exist."
+        }
+
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), "Error in release_offer_letter")
+        return {
+            "status": "error",
+            "message": "Something went wrong while releasing the offer letter."
+        }
 
 
 # ? SEND JOB OFFER EMAIL TO CANDIDATE
