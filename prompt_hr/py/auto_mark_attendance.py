@@ -149,7 +149,7 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0):
             
 def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, day_start_time, day_end_time, grace_time_period_for_late_coming, grace_time_for_insufficient_hours=0, prompt=0):
     
-    assigned_shift = frappe.db.get_all("Shift Assignment", {"docstatus": 1, "status": "Active","employee": employee_data.get("name"), "start_date":["<=", mark_attendance_date], "end_date":[">=", mark_attendance_date]}, ["name","shift_type"], order_by="creation desc", limit=1)
+    assigned_shift = frappe.db.get_all("Shift Assignment", {"docstatus": 1, "status": "Active","employee": employee_data.get("name"), "start_date":["<=", mark_attendance_date]}, ["name","shift_type"], order_by="creation desc", limit=1)
 
     #* If no shift assigned then move to next employee
     if not assigned_shift:
