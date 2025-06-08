@@ -296,6 +296,22 @@ def get_expense_claim_exception(doc):
         as_dict=True,
     )
 
+    amount_per_km_map = frappe.db.get_all(
+    "Service KM Rate",
+    filters={
+        "parent": travel_budget,
+        "parentfield": "service_km_rate",
+    },
+    fields=["type_of_travel", "rate_per_km"]
+)
+
+    # ? CONVERT LIST OF DICTS TO A MAPPING FOR QUICK LOOKUPS
+    amount_per_km_map = {entry["type_of_travel"]: entry["rate_per_km"] for entry in amount_per_km_map}
+
+
+    print(amount_per_km_map,"\n\n")
+
+
     if not budget_row:
         frappe.throw(
             f"No budget allocation found for employee grade '{employee_grade}' in Travel Budget '{travel_budget}'. Please create a budget allocation first."
@@ -324,6 +340,10 @@ def get_expense_claim_exception(doc):
 
         elif expense.expense_type == "Local Commute":
             allowed_amount = budget_row.local_commute_limit
+            if allowed_amount == None or allowed_amount == 0:
+                rate_per_km = expense.get("custom_type_of_vehicle")
+                expense.amount = amount_per_km_map.get((rate_per_km * float(expense.get("custom_km"))) or 0)
+
             is_exception = expense.amount > allowed_amount
 
         # ? IF EXCEPTION, FLAG IT AND CHECK ATTACHMENT
@@ -378,6 +398,8 @@ def get_data_from_expense_claim_as_per_grade(employee, company):
         filters={"parent": travel_budget, "grade": grade},
         fields=["mode_of_commute", "type_of_commute"]
     )
+
+    
 
     allowed_local_commute_public = []
     allowed_local_commute_non_public = []
