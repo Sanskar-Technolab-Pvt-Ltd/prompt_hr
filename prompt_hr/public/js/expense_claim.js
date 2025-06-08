@@ -1,70 +1,72 @@
+// ? MAIN FORM EVENTS
 frappe.ui.form.on('Expense Claim', {
     refresh(frm) {
         create_payment_entry_button(frm);
         fetch_commute_data(frm);
     },
-    employee(frm) {
-        fetch_commute_data(frm);
-    },
-    company(frm) {
-        fetch_commute_data(frm);
-    },
+    employee: fetch_commute_data,
+    company: fetch_commute_data,
     project(frm) {
         setCampaignFromProject(frm);
     }
 });
 
+// ? CHILD TABLE EVENTS
 frappe.ui.form.on("Expense Claim Detail", {
-    custom_mode_of_vehicle(frm, cdt, cdn) {
-        const row = locals[cdt][cdn];
-        update_type_of_vehicle_options(frm, row.custom_mode_of_vehicle);
-    },
     expenses_add(frm, cdt, cdn) {
-        // Clear custom_mode_of_vehicle when new row is added
-        frappe.model.set_value(cdt, cdn, "custom_mode_of_vehicle", "");
+        reset_commute_fields(cdt, cdn);
+        const grid_row = frm.fields_dict.expenses.grid.get_row(cdn);
+        if (grid_row) hide_commute_fields(grid_row);
+    },
+    expense_type(frm, cdt, cdn) {
+        const row = locals[cdt][cdn];
+        const grid_row = frm.fields_dict.expenses.grid.get_row(cdn);
+        if (grid_row) toggle_commute_fields(frm, grid_row, row);
     }
 });
 
+// ? CREATE PAYMENT ENTRY BUTTON
 function create_payment_entry_button(frm) {
-    if (frm.doc.docstatus === 0 && frm.doc.workflow_state === "Sent to Accounting Team") {
-        // Remove default submit/save buttons to avoid confusion
-        frm.page.actions.parent().remove();
+    if (frm.doc.docstatus !== 0 || frm.doc.workflow_state !== "Sent to Accounting Team") return;
 
-        frm.add_custom_button(__('Create Payment Entry'), () => {
-            if (frm.doc.approval_status !== "Approved") {
-                frappe.throw(__('Expense Claim must be approved before creating a payment entry.'));
-                return;
-            }
-            if (!frm.doc.payable_account) {
-                const d = new frappe.ui.Dialog({
-                    title: __('Create Payment Entry'),
-                    fields: [{
-                        fieldtype: 'Link',
-                        fieldname: 'payable_account',
-                        label: __('Payable Account'),
-                        options: 'Account',
-                        reqd: 1,
-                        get_query: () => frm.fields_dict["payable_account"].get_query()
-                    }],
-                    primary_action_label: __('Create'),
-                    primary_action(values) {
-                        frm.set_value("payable_account", values.payable_account);
-                        frm.set_value("workflow_state", "Expense Claim Submitted");
-                        frm.save()
-                            .then(() => frm.savesubmit())
-                            .then(() => frm.events.make_payment_entry(frm));
-                        d.hide();
-                    }
-                });
-                d.show();
-            } else {
-                frm.set_value("workflow_state", "Expense Claim Submitted");
-                frm.savesubmit().then(() => frm.events.make_payment_entry(frm));
-            }
-        });
-    }
+    frm.page.actions.parent().remove();
+
+    frm.add_custom_button(__('Create Payment Entry'), () => {
+        if (frm.doc.approval_status !== "Approved") {
+            frappe.throw(__('Expense Claim must be approved before creating a payment entry.'));
+        }
+
+        const proceed = () => {
+            frm.set_value("workflow_state", "Expense Claim Submitted");
+            frm.savesubmit().then(() => frm.events.make_payment_entry(frm));
+        };
+
+        if (!frm.doc.payable_account) {
+            const d = new frappe.ui.Dialog({
+                title: __('Create Payment Entry'),
+                fields: [{
+                    fieldtype: 'Link',
+                    fieldname: 'payable_account',
+                    label: __('Payable Account'),
+                    options: 'Account',
+                    reqd: 1,
+                    get_query: () => frm.fields_dict["payable_account"].get_query()
+                }],
+                primary_action_label: __('Create'),
+                primary_action(values) {
+                    frm.set_value("payable_account", values.payable_account);
+                    d.hide();
+                    proceed();
+                }
+            });
+            d.show();
+        } else {
+            proceed();
+        }
+    });
 }
 
+// ? FETCH COMMUTE DATA AND INITIALIZE EVENTS
 function fetch_commute_data(frm) {
     const { employee, company } = frm.doc;
     if (!employee || !company) return;
@@ -72,84 +74,110 @@ function fetch_commute_data(frm) {
     frappe.call({
         method: "prompt_hr.py.expense_claim.get_data_from_expense_claim_as_per_grade",
         args: { employee, company },
-        callback: (res) => {
-            if (res.message?.success) {
-                const commuteData = {
-                    public: res.message.data.allowed_local_commute_public || [],
-                    non_public: res.message.data.allowed_local_commute_non_public || []
-                };
-                const key = `commute_options_${employee}_${company}`;
-                localStorage.setItem(key, JSON.stringify(commuteData));
+        callback: ({ message }) => {
+            if (!message?.success) return;
 
-                // Validate existing rows in child table 'expenses'
-                if (frm.doc.expenses && frm.doc.expenses.length) {
-                    frm.doc.expenses.forEach(row => {
-                        const mode = row.custom_mode_of_vehicle || "";
-                        const type = row.custom_type_of_vehicle || "";
+            const commuteData = {
+                public: message.data.allowed_local_commute_public || [],
+                non_public: message.data.allowed_local_commute_non_public || []
+            };
+            const key = `commute_options_${employee}_${company}`;
+            localStorage.setItem(key, JSON.stringify(commuteData));
 
-                        // Allowed options based on mode
-                        const allowedTypes = {
-                            "Public": commuteData.public,
-                            "Non Public": commuteData.non_public,
-                            "": [""]
-                        };
-
-                        const allowedTypeOptions = allowedTypes[mode] || [];
-
-                        // If current custom_type_of_vehicle is not allowed OR mode itself is invalid, clear both fields
-                        if (!allowedTypeOptions.includes(type) || !(mode in allowedTypes)) {
-                            frappe.model.set_value(row.doctype, row.name, "custom_mode_of_vehicle", "");
-                            frappe.model.set_value(row.doctype, row.name, "custom_type_of_vehicle", "");
-                        }
-                    });
-                    frm.refresh_field("expenses");
-                }
-
-                // Apply click event on child table field
-                apply_click_event_on_field(frm, "expenses", "custom_type_of_vehicle", (row) => {
-                    update_type_of_vehicle_options(frm, row.custom_mode_of_vehicle);
+            // ? ATTACH CLICK HANDLERS TO COMMUTE FIELDS
+            ["custom_mode_of_vehicle", "custom_type_of_vehicle", "custom_km"].forEach(field => {
+                apply_click_event_on_field(frm, "expenses", field, (row_doc) => {
+                    const grid_row = frm.fields_dict.expenses.grid.get_row(row_doc.name);
+                    if (grid_row) toggle_commute_fields(frm, grid_row, row_doc);
                 }, true);
-            }
-        }
-    });
-}
-
-
-function apply_click_event_on_field(frm, parent_field, target_field, callback, is_child_table = false) {
-    frappe.after_ajax(() => {
-        if (is_child_table) {
-            const grid = frm.fields_dict[parent_field]?.grid;
-            if (!grid?.wrapper) return;
-            grid.wrapper.off("click.custom_event").on("click.custom_event", `[data-fieldname="${target_field}"]`, function () {
-                const row = $(this).closest(".grid-row").data("doc");
-                if (row) callback(row, target_field);
             });
-        } else {
-            const field = frm.fields_dict[target_field];
-            if (field?.input) {
-                $(field.input).off("click.custom_event").on("click.custom_event", () => callback(frm.doc[target_field], target_field));
-            }
+
+            // ? ATTACH FORM OPEN LOGIC TO UPDATE VISIBILITY
+            frm.fields_dict.expenses.grid.wrapper.on("click", ".grid-row", function () {
+                const row_name = $(this).data("name");
+                const grid_row = frm.fields_dict.expenses.grid.get_row(row_name);
+                if (grid_row?.grid_form) {
+                    grid_row.grid_form.on("form_render", () => {
+                        toggle_commute_fields(frm, grid_row, grid_row.doc);
+                    });
+                }
+            });
+
+            // ? HANDLE ALREADY ADDED ROWS
+            frm.doc.expenses?.forEach(row => {
+                const grid_row = frm.fields_dict.expenses.grid.get_row(row.name);
+                if (grid_row) toggle_commute_fields(frm, grid_row, row);
+            });
         }
     });
 }
 
+// ? FUNCTION To SHOW/HIDE COMMUTE FIELDS BASED ON EXPENSE TYPE
+function toggle_commute_fields(frm, grid_row, row) {
+    if (!row || !grid_row) return;
+
+    const is_local = row.expense_type === "Local Commute";
+
+    if (is_local) {
+        show_commute_fields(grid_row);
+        update_type_of_vehicle_options(frm, row.custom_mode_of_vehicle);
+    } else {
+        reset_commute_fields(row.doctype, row.name);
+        hide_commute_fields(grid_row);
+    }
+}
+
+// ? FUNCTION To RESET FIELDS IF NOT LOCAL COMMUTE
+function reset_commute_fields(cdt, cdn) {
+    frappe.model.set_value(cdt, cdn, "custom_mode_of_vehicle", "");
+    frappe.model.set_value(cdt, cdn, "custom_type_of_vehicle", "");
+    frappe.model.set_value(cdt, cdn, "custom_km", "");
+}
+
+// ? FUNCTION To UPDATE VEHICLE OPTIONS BASED ON MODE
 function update_type_of_vehicle_options(frm, mode) {
     const key = `commute_options_${frm.doc.employee}_${frm.doc.company}`;
     const stored = localStorage.getItem(key);
     if (!stored) return;
 
     const commuteData = JSON.parse(stored);
-    const options_map = {
-        "": [""],
-        "Public": commuteData.public || [],
-        "Non Public": commuteData.non_public || []
-    };
-    const options = ["", ... (options_map[mode] || [])];
+    const options = ["", ...(mode === "Public" ? commuteData.public : commuteData.non_public || [])];
 
     frm.fields_dict.expenses.grid.update_docfield_property("custom_type_of_vehicle", "options", options);
-    frm.fields_dict.expenses.grid.refresh();
 }
 
+// ? FUNCTION To HIDE FIELDS
+function hide_commute_fields(grid_row) {
+    ["custom_mode_of_vehicle", "custom_type_of_vehicle", "custom_km"].forEach(fieldname => {
+        grid_row.set_field_property(fieldname, "hidden", true);
+        grid_row.set_field_property(fieldname, "read_only", true);
+    });
+}
+
+// ? FUNCTION To SHOW FIELDS
+function show_commute_fields(grid_row) {
+    ["custom_mode_of_vehicle", "custom_type_of_vehicle", "custom_km"].forEach(fieldname => {
+        grid_row.set_field_property(fieldname, "hidden", false);
+        grid_row.set_field_property(fieldname, "read_only", false);
+    });
+}
+
+// ? FUNCTION To ATTACH CLICK HANDLER TO CHILD TABLE FIELDS
+function apply_click_event_on_field(frm, parent_field, target_field, callback, is_child_table = false) {
+    frappe.after_ajax(() => {
+        if (!is_child_table) return;
+
+        const grid = frm.fields_dict[parent_field]?.grid;
+        if (!grid?.wrapper) return;
+
+        grid.wrapper.off(`click.${target_field}`).on(`click.${target_field}`, `[data-fieldname="${target_field}"]`, function () {
+            const row_doc = $(this).closest(".grid-row").data("doc");
+            if (row_doc) callback(row_doc);
+        });
+    });
+}
+
+// ? PLACEHOLDER FUNCTION IF YOU WANT TO LINK CAMPAIGN TO PROJECT
 function setCampaignFromProject(frm) {
-    // Placeholder for your logic when project changes
+    // Add your logic here if needed
 }
