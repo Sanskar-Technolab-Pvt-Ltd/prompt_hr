@@ -309,23 +309,22 @@ def get_expense_claim_exception(doc):
     amount_per_km_map = {entry["type_of_travel"]: entry["rate_per_km"] for entry in amount_per_km_map}
 
 
-    print(amount_per_km_map,"\n\n")
-
-
     if not budget_row:
         frappe.throw(
             f"No budget allocation found for employee grade '{employee_grade}' in Travel Budget '{travel_budget}'. Please create a budget allocation first."
         )
 
+    total_km = 0
     # ? LOOP THROUGH EACH EXPENSE ITEM
     for idx, expense in enumerate(doc.expenses, start=1):
+        print(expense, idx)
         allowed_amount = 0
         is_exception = False
 
         if expense.expense_type == "Food":
             allowed_amount = (
                 budget_row.meal_allowance_metro
-                if expense.custom_is_metro
+                if expense.custom_for_metro_city
                 else budget_row.meal_allowance_non_metro
             )
             is_exception = expense.amount > allowed_amount
@@ -333,18 +332,26 @@ def get_expense_claim_exception(doc):
         elif expense.expense_type == "Lodging":
             allowed_amount = (
                 budget_row.lodging_allowance_metro
-                if expense.custom_is_metro
+                if expense.custom_for_metro_city
                 else budget_row.lodging_allowance_non_metro
             )
             is_exception = expense.amount > allowed_amount
 
         elif expense.expense_type == "Local Commute":
+            amount = expense.get("amount")
             allowed_amount = budget_row.local_commute_limit
-            if allowed_amount == None or allowed_amount == 0:
-                rate_per_km = expense.get("custom_type_of_vehicle")
-                expense.amount = amount_per_km_map.get((rate_per_km * float(expense.get("custom_km"))) or 0)
 
-            is_exception = expense.amount > allowed_amount
+            if expense.get("custom_mode_of_vehicle") == "Non-Public":
+
+                total_km += float(expense.get("custom_km")) or 0
+
+                if expense.amount == None or expense.amount == 0:
+                    rate_per_km = amount_per_km_map.get(expense.get("custom_type_of_vehicle"))
+                    amount = rate_per_km * float(expense.get("custom_km")) or 0
+                
+                    expense.amount = amount
+            
+            is_exception = amount > allowed_amount
 
         # ? IF EXCEPTION, FLAG IT AND CHECK ATTACHMENT
         if is_exception:
@@ -359,6 +366,8 @@ def get_expense_claim_exception(doc):
             else:
                 expense.custom_is_exception = 1
 
+    doc.custom_total_km = total_km or 0
+
 
 def validate_attachments_compulsion(doc):
 
@@ -371,7 +380,7 @@ def validate_attachments_compulsion(doc):
     if emp_company == get_indifoss_company_name().get("company_name"):
 
         for expense in doc.expenses:
-            if expense.custom_is_exception == 1 and not expense.attachments:
+            if expense.custom_is_exception == 1 and not expense.custom_attachments:
 
                 frappe.throw(
                     f"Attachments are mandatory for the expense type '{expense.expense_type}' "

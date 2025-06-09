@@ -5,7 +5,7 @@ from hrms.payroll.doctype.salary_slip.salary_slip import SalarySlip
 # * CustomSalarySlip overrides the default SalarySlip class to include penalty leaves and custom overtime
 class CustomSalarySlip(SalarySlip):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs) 
 
     # * Override the get_payment_days method to subtract custom penalties and LOPs
     def get_payment_days(self, include_holidays_in_total_working_days):
@@ -16,8 +16,8 @@ class CustomSalarySlip(SalarySlip):
         penalty_leaves = self.custom_penalty_leave_days or 0
 
         # * Modify payment days to exclude penalties and add custom LOPs
-        modified_payment_days = self.total_working_days  - penalty_leaves
-        return modified_payment_days
+        modified_payment_days = self.total_working_days - payment_days - penalty_leaves
+        return payment_days
 
     # * Override set_salary_structure_doc to fetch penalty leaves and overtime
     def set_salary_structure_doc(self) -> None:
