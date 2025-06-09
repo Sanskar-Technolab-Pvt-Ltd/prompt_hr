@@ -32,7 +32,7 @@ function add_query_filter_to_existing_rows(frm) {
 	// ? GET EXISTING CHILD TABLE ROWS
 	const rows = frm.doc.itinerary || [];
 	if (!rows.length || !frm.doc.employee || !frm.doc.company) {
-		return; // No rows to process
+		return; 
 	}
 
 	// ? CALL PYTHON METHOD TO FETCH GRADE BASED ON EMPLOYEE AND COMPANY
