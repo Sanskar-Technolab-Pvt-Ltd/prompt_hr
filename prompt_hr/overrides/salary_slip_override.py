@@ -17,7 +17,7 @@ class CustomSalarySlip(SalarySlip):
         penalty_leaves = self.custom_penalty_leave_days or 0
 
         # * Modify payment days to exclude penalties and add custom LOPs
-        modified_payment_days = self.total_working_days  + custom_lop_days - penalty_leaves
+        modified_payment_days = self.total_working_days  - penalty_leaves
         return modified_payment_days
 
     # * Override set_salary_structure_doc to fetch penalty leaves and overtime
