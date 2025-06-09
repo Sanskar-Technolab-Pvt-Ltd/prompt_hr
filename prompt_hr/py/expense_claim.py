@@ -380,7 +380,7 @@ def validate_attachments_compulsion(doc):
     if emp_company == get_indifoss_company_name().get("company_name"):
 
         for expense in doc.expenses:
-            if expense.custom_is_exception == 1 and not expense.attachments:
+            if expense.custom_is_exception == 1 and not expense.custom_attachments:
 
                 frappe.throw(
                     f"Attachments are mandatory for the expense type '{expense.expense_type}' "
