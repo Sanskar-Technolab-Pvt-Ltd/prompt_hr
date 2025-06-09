@@ -13,7 +13,6 @@ class CustomSalarySlip(SalarySlip):
         payment_days = super().get_payment_days(include_holidays_in_total_working_days)
 
         # Get additional deductions if available
-        custom_lop_days = self.custom_lop_days or 0
         penalty_leaves = self.custom_penalty_leave_days or 0
 
         # * Modify payment days to exclude penalties and add custom LOPs
