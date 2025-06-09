@@ -2,6 +2,7 @@ import frappe
 from dateutil import relativedelta
 from hrms.hr.doctype.leave_policy_assignment.leave_policy_assignment import get_leave_type_details
 from frappe import _
+import json
 from frappe.utils import (
 	get_datetime,
 	get_first_day,
@@ -491,6 +492,17 @@ def custom_get_number_of_leave_days(
     custom_half_day_time: str | None = None
 ) -> float:
     """Returns number of leave days between 2 dates considering half-day, holidays, and sandwich rules"""
+    if not custom_half_day_time:
+        doc_json = frappe.form_dict.get("doc")
+        if doc_json:
+            doc = json.loads(doc_json)
+            custom_half_day_time = doc.get("custom_half_day_time")
+            half_day = doc.get("half_day")
+            half_day_date = doc.get("half_day_date")
+    
+    if not holiday_list:
+        holiday_list = get_holiday_list_for_employee(employee)
+
     number_of_days = 0
     if cint(half_day) == 1:
         if getdate(from_date) == getdate(to_date):
