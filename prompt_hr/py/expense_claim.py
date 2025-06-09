@@ -324,7 +324,7 @@ def get_expense_claim_exception(doc):
         if expense.expense_type == "Food":
             allowed_amount = (
                 budget_row.meal_allowance_metro
-                if expense.custom_is_metro
+                if expense.custom_for_metro_city
                 else budget_row.meal_allowance_non_metro
             )
             is_exception = expense.amount > allowed_amount
@@ -332,7 +332,7 @@ def get_expense_claim_exception(doc):
         elif expense.expense_type == "Lodging":
             allowed_amount = (
                 budget_row.lodging_allowance_metro
-                if expense.custom_is_metro
+                if expense.custom_for_metro_city
                 else budget_row.lodging_allowance_non_metro
             )
             is_exception = expense.amount > allowed_amount
