@@ -350,6 +350,7 @@ def get_expense_claim_exception(doc):
                     amount = rate_per_km * float(expense.get("custom_km")) or 0
                 
                     expense.amount = amount
+                    expense.sanctioned_amount = amount
             
             is_exception = amount > allowed_amount
 

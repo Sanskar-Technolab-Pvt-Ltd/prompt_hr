@@ -32,7 +32,7 @@ function add_query_filter_to_existing_rows(frm) {
 	// ? GET EXISTING CHILD TABLE ROWS
 	const rows = frm.doc.itinerary || [];
 	if (!rows.length || !frm.doc.employee || !frm.doc.company) {
-		return; // No rows to process
+		return; 
 	}
 
 	// ? CALL PYTHON METHOD TO FETCH GRADE BASED ON EMPLOYEE AND COMPANY
@@ -58,6 +58,13 @@ function add_query_filter_to_existing_rows(frm) {
 			} else {
 				frappe.msgprint("Could not fetch grade for this employee.");
 				console.error("Error fetching eligible travel modes:", r);
+				frm.fields_dict["itinerary"].grid.get_field("custom_travel_mode").get_query = function (doc, cdt, cdn) {
+						return {
+							filters: {
+								"mode_of_travel": ["in", []],
+							}
+						};
+					};
 			}
 		}
 	});

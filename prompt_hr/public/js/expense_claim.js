@@ -144,7 +144,6 @@ function toggle_commute_fields(frm, grid_row, row) {
 	});
 
 	if (!isLocalCommute) {
-		reset_commute_fields(row.doctype, row.name);
 		reset_amount_read_only(grid_row);
 		return;
 	}
