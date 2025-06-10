@@ -9,6 +9,24 @@ from prompt_hr.py.utils import send_notification_email, check_user_is_reporting_
 
 class WeekOffChangeRequest(Document):
 	
+	def before_insert(self):
+    
+		# * CHECKING IF THE DAY IS ENTERED OR NOT AND IF ENTERED THEN THE DAY IS CORRECT OR NOT ACCORDING TO DATE
+		if self.weekoff_details:
+			for row in  self.weekoff_details:
+				if row.existing_weekoff_date:
+					day_name = get_day_name(row.existing_weekoff_date)
+					if not row.existing_weekoff:
+						row.existing_weekoff = day_name
+					elif row.existing_weekoff and row.existing_weekoff.lower() != day_name.lower():
+						throw("Please Set Correct Existing weekoff Day as per the date")
+
+				if row.new_weekoff_date:
+					day_name = get_day_name(row.new_weekoff_date)
+					if not row.new_weekoff:
+						row.new_weekoff = day_name
+					elif row.new_weekoff and row.new_weekoff.lower() != day_name.lower():
+						throw("Please Set Correct New weekoff Day as per the date")
 	def validate(self):
 
 		# *CHECKING IF THE EXISTING DETAILS IS VALID OR NOT, IF INVALID SHOWING AN ALERT TELLING USER THAT THE EXISTING DATE ENTERED DOES NOT EXISTS IN HOLIDAY LIST
@@ -18,9 +36,24 @@ class WeekOffChangeRequest(Document):
 				if not exists.get("error"):
 					if not exists.get("exists"):
 						throw(f"Date {row.existing_weekoff_date} does not exist in holiday list")
+					else:
+						if row.existing_weekoff_date:
+							day_name = get_day_name(row.existing_weekoff_date)
+							if not row.existing_weekoff:
+								row.existing_weekoff = day_name
+							elif row.existing_weekoff and row.existing_weekoff.lower() != day_name.lower():
+								throw("Please Set Correct Existing weekoff Day as per the date")
+
+						if row.new_weekoff_date:
+							day_name = get_day_name(row.new_weekoff_date)
+							if not row.new_weekoff:
+								row.new_weekoff = day_name
+							elif row.new_weekoff and row.new_weekoff.lower() != day_name.lower():
+								throw("Please Set Correct New weekoff Day as per the date")
 				elif exists.get("error"):
 					throw(f"Error While Verifying Existing Date {exists.get('message')}")
-		
+
+
 		# *CHECKING IF THE CURRENT USER IS THE EMPLOYEE USER LINKED TO DOCUMENT THEN WHEN WE SAVES THIS DOCUMENT THEN SENDING AN EMAIL TO THE EMPLOYEE'S REPORTING HEAD ABOUT THE CREATION WEEKOFF CHANGE REQUEST
 		current_user = frappe.session.user
 
@@ -115,3 +148,10 @@ def check_existing_date(employee_id, existing_date):
 
 
 
+def get_day_name(date_value):
+	try:
+		date_value = getdate(date_value)
+		day_name = date_value.strftime('%A')
+		return day_name
+	except Exception as e:
+		throw("Error while Getting Date Day name")
