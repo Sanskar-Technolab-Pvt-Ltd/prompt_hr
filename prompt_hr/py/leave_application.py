@@ -110,6 +110,65 @@ def before_submit(doc, method):
             entry_doc.db_set("docstatus", 2)
             frappe.delete_doc("Leave Ledger Entry", entry_name)
 
+def on_submit(doc,method=None):
+    # * Get company abbreviation
+    company_abbr = frappe.get_value("Company", doc.company, "abbr")
+    print(company_abbr)
+    # * For PROMPT Company Logic
+    if company_abbr == frappe.db.get_single_value("HR Settings", "custom_prompt_abbr"):
+        leave_type = frappe.get_doc("Leave Type", doc.leave_type)
+        print(leave_type)
+        if leave_type.custom_is_maternity_leave:
+            print(leave_type.custom_is_maternity_leave)
+            if doc.leave_balance == doc.total_leave_days:
+                existing_allocation = frappe.get_all(
+                    "Leave Allocation",
+                    filters={
+                        "employee": doc.employee,
+                        "leave_type": doc.leave_type,
+                        "docstatus": 1
+                    },
+                    fields=["name", "to_date"]
+                )
+                if existing_allocation:
+                    print(existing_allocation)
+                    if len(existing_allocation) > 1:
+                        if int(leave_type.custom_maximum_times_for_applying_leave) > 2:
+                            if len(existing_allocation) < int(leave_type.custom_maximum_times_for_applying_leave):
+                                if leave_type.custom_leave_allowed_for_third_child:
+                                    allocation = frappe.get_doc({
+                                        "doctype": "Leave Allocation",
+                                        "employee": doc.employee,
+                                        "leave_type": doc.leave_type,
+                                        "from_date": frappe.utils.add_days(doc.to_date,1),
+                                        "to_date": existing_allocation[0].to_date,
+                                        "new_leaves_allocated": int(leave_type.custom_leave_allowed_for_third_child),
+                                        "company": doc.company,
+                                        "docstatus": 1,
+                                        "ignore_manual_allocation_check": True
+                                    })
+                                    prev_allocation = frappe.get_doc("Leave Allocation", existing_allocation[0].name)
+                                    prev_allocation.db_set("to_date", doc.to_date)
+                                    allocation.insert(ignore_permissions=True)
+                                    allocation.submit()
+                    else:
+                        allocation = frappe.get_doc({
+                                    "doctype": "Leave Allocation",
+                                    "employee": doc.employee,
+                                    "leave_type": doc.leave_type,
+                                    "from_date": frappe.utils.add_days(doc.to_date,1),
+                                    "to_date": existing_allocation[0].to_date,
+                                    "new_leaves_allocated": int(leave_type.custom_leave_allocation_for_each_child),
+                                    "company": doc.company,
+                                    "docstatus": 1,
+                                    "ignore_manual_allocation_check": True
+                                    })
+                        prev_allocation = frappe.get_doc("Leave Allocation", existing_allocation[0].name)
+                        prev_allocation.db_set("to_date", doc.to_date)
+                        allocation.insert(ignore_permissions=True)
+
+                        allocation.submit()
+
 
 def on_update(doc, method):
     employee = frappe.get_doc("Employee", doc.employee)
@@ -451,34 +510,43 @@ def custom_update_previous_leave_allocation(allocation, annual_allocation, e_lea
 
     if new_allocation != allocation.total_leaves_allocated and new_allocation_without_cf <= annual_allocation:
         today_date = frappe.flags.current_date or getdate()
+        is_maternity_leave = 0
+        leave_applications = frappe.get_all("Leave Application", filters={"employee":allocation.employee,"company":allocation.company,"docstatus":1},fields=["name", "leave_type", "from_date", "to_date"])
+        for leave_application in leave_applications:
+            leave_type  = frappe.get_doc("Leave Type", leave_application.leave_type)
+            if leave_type.custom_is_maternity_leave:
+                if (today_date >= leave_application.from_date) and (today_date <= leave_application.to_date):
+                    is_maternity_leave = 1
+                    break
 
-        allocation.db_set("total_leaves_allocated", new_allocation, update_modified=False)
-        create_additional_leave_ledger_entry(allocation, earned_leaves, today_date)
+        if not is_maternity_leave:
+            allocation.db_set("total_leaves_allocated", new_allocation, update_modified=False)
+            create_additional_leave_ledger_entry(allocation, earned_leaves, today_date)
 
-        if expired_leaves:
-            ledger_entry = frappe.get_doc({
-                "doctype": "Leave Ledger Entry",
-                "employee": allocation.employee,
-                "leave_type": allocation.leave_type,
-                "company": allocation.company,
-                "leaves": flt(expired_leaves),
-                "transaction_type": "Leave Allocation",
-                "transaction_name": allocation.name,
-                "from_date": today_date,
-                "to_date": allocation.to_date
-            })
-            ledger_entry.insert(ignore_permissions=True)
-            ledger_entry.submit()
+            if expired_leaves:
+                ledger_entry = frappe.get_doc({
+                    "doctype": "Leave Ledger Entry",
+                    "employee": allocation.employee,
+                    "leave_type": allocation.leave_type,
+                    "company": allocation.company,
+                    "leaves": flt(expired_leaves),
+                    "transaction_type": "Leave Allocation",
+                    "transaction_name": allocation.name,
+                    "from_date": today_date,
+                    "to_date": allocation.to_date
+                })
+                ledger_entry.insert(ignore_permissions=True)
+                ledger_entry.submit()
 
-        if e_leave_type.allocate_on_day:
-            allocation.add_comment(
-                comment_type="Info",
-                text=_(
-                    "Allocated {0} leave(s) via scheduler on {1} based on the 'Allocate on Day' option set to {2}"
-                ).format(
-                    frappe.bold(earned_leaves), frappe.bold(formatdate(today_date)), e_leave_type.allocate_on_day
+            if e_leave_type.allocate_on_day:
+                allocation.add_comment(
+                    comment_type="Info",
+                    text=_(
+                        "Allocated {0} leave(s) via scheduler on {1} based on the 'Allocate on Day' option set to {2}"
+                    ).format(
+                        frappe.bold(earned_leaves), frappe.bold(formatdate(today_date)), e_leave_type.allocate_on_day
+                    )
                 )
-            )
 
 @frappe.whitelist()
 def custom_get_number_of_leave_days(

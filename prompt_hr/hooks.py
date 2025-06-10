@@ -70,6 +70,9 @@ doctype_js = {
     "Loan Application": "public/js/loan_application.js",
     "Exit Interview": "public/js/exit_interview.js",
     "Travel Request": "public/js/travel_request.js",
+    "Leave Allocation": "public/js/leave_allocation.js",
+    "Leave Policy Assignment": "public/js/leave_policy_assignment.js"
+
 }
 
 doctype_list_js = {
@@ -169,6 +172,7 @@ override_doctype_class = {
     "Attendance Request": "prompt_hr.overrides.attendance_request_override.CustomAttendanceRequest",
     "Salary Slip": "prompt_hr.overrides.salary_slip_override.CustomSalarySlip",
     "Attendance": "prompt_hr.overrides.attendance_override.CustomAttendance",
+    "Leave Policy Assignment": "prompt_hr.overrides.leave_policy_assignment_override.CustomLeavePolicyAssignment"
 }
 
 # Document Events
@@ -235,7 +239,8 @@ doc_events = {
         "on_update": "prompt_hr.py.payroll_entry.on_update",
     },
     "Leave Allocation": {
-        "before_validate": "prompt_hr.py.leave_allocation.before_validate"
+        "before_validate": "prompt_hr.py.leave_allocation.before_validate",
+        "before_submit": "prompt_hr.py.leave_allocation.before_submit"
     },
     "Additional Salary": {"before_save": "prompt_hr.py.additional_salary.before_save"},
     "Leave Encashment": {
@@ -255,6 +260,7 @@ doc_events = {
         "before_insert": "prompt_hr.py.leave_application.before_insert",
         "before_validate": "prompt_hr.py.leave_application.before_validate",
         "before_submit": "prompt_hr.py.leave_application.before_submit",
+        "on_submit": "prompt_hr.py.leave_application.on_submit"
     },
     "Expense Claim": {
         "before_save": "prompt_hr.py.expense_claim.before_save",
@@ -287,9 +293,6 @@ doc_events = {
     },
     "Appraisal": {
         "before_save": "prompt_hr.py.appraisal_letter.before_save",
-    },
-    "Leave Policy Assignment": {
-        "on_submit": "prompt_hr.py.leave_policy_assignment.on_submit",
     },
     "Leave Type": {
         "on_update": "prompt_hr.py.leave_type.on_update",
