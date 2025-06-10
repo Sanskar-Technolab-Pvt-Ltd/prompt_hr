@@ -86,3 +86,95 @@ def custom_set_total_leaves_allocated(doc, method=None):
         and not frappe.db.get_value("Leave Type", doc.leave_type, "is_compensatory")
     ):
         frappe.throw(_("Total leaves allocated is mandatory for Leave Type {0}").format(doc.leave_type))
+
+@frappe.whitelist()
+def get_leave_types_for_display(doctype, txt, searchfield, start, page_len, filters):
+    gender = filters.get("gender")
+    company = filters.get("company")
+
+    # Start with base conditions for leave types
+    base_condition = """
+        (
+            (custom_company = %(company)s OR custom_company IS NULL) and (is_lwp = 0)
+        )
+    """
+
+    # Extend condition based on gender
+    gender_condition = ""
+    if gender == "Male":
+        gender_condition = "OR (custom_is_paternity_leave = 1)"
+    elif gender == "Female":
+        gender_condition = "OR (custom_is_maternity_leave = 1)"
+
+    condition = f"{base_condition} {gender_condition}"
+
+    # Final SQL query
+    return frappe.db.sql(f"""
+        SELECT name FROM `tabLeave Type`
+        WHERE ({condition})
+        ORDER BY name ASC
+        LIMIT %(start)s, %(page_len)s
+    """, {
+        "company": company,
+        "start": start,
+        "page_len": page_len
+    })
+
+
+def before_submit(doc, method):
+    if getattr(doc, "ignore_manual_allocation_check", False):
+        return
+    # * Get the Leave Type document
+    leave_type = frappe.get_doc("Leave Type", doc.leave_type)
+
+    # * Check if it's a Maternity or Paternity Leave
+    if leave_type.custom_is_maternity_leave or leave_type.custom_is_paternity_leave:
+
+        # * Get company abbreviation
+        company_abbr = frappe.get_value("Company", doc.company, "abbr")
+
+        # * For Indifoss Company Logic
+        if company_abbr == frappe.db.get_single_value("HR Settings", "custom_indifoss_abbr"):
+
+            # * Fetch previous allocations excluding the current one
+            prev_allocation_count = frappe.get_all(
+                "Leave Allocation",
+                filters={
+                    "docstatus": 1,
+                    "employee": doc.employee,
+                    "leave_type": doc.leave_type,
+                    "name": ["!=", doc.name]
+                },
+            )
+
+            # * If already 2 allocations exist
+            if len(prev_allocation_count) >= 2:
+                # * Allow only if max allowed is more than 2 and current count is within limit
+                if (
+                    int(leave_type.custom_maximum_times_for_applying_leave) > 2 and
+                    int(leave_type.custom_maximum_times_for_applying_leave) > len(prev_allocation_count)
+                ):
+                    # * Set special leave allocation for third child
+                    doc.new_leaves_allocated = int(leave_type.custom_leave_allowed_for_third_child)
+                    doc.total_leaves_allocated = int(leave_type.custom_leave_allowed_for_third_child)
+                else:
+                    frappe.throw(_("Maximum limit reached for allocating this type of leave to this employee."))
+
+        # * For Prompt Company Logic
+        elif company_abbr == frappe.db.get_single_value("HR Settings", "custom_prompt_abbr"):
+
+            # * Check if any previous allocations exist
+            prev_allocation_count = frappe.get_all(
+                "Leave Allocation",
+                filters={
+                    "docstatus": 1,
+                    "employee": doc.employee,
+                    "leave_type": doc.leave_type,
+                    "name": ["!=", doc.name]
+                },
+            )
+
+            # * Only one-time manual allocation is allowed
+            if len(prev_allocation_count) > 0:
+                frappe.throw(_("Manual allocation for this leave type is allowed only once"))
+
