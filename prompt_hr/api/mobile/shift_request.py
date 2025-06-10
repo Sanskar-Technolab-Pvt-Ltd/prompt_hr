@@ -45,9 +45,6 @@ def list(
         
 
 
-# shift_request
-# SHIFT REQUEST
-# Shift Request
 
 
 # ! prompt_hr.api.mobile.shift_request.get
@@ -55,17 +52,17 @@ def list(
 @frappe.whitelist()
 def get(name):
     try:
-        # ? CHECK IF EMPLOYEE CHECKIN  DOC EXISTS OR NOT
+        # ? CHECK IF SHIFT REQUEST  DOC EXISTS OR NOT
         shift_request_exists = frappe.db.exists("Shift Request", name)
 
-        # ? IF EMPLOYEE CHECKIN  DOC NOT
+        # ? IF SHIFT REQUEST  DOC NOT
         if not shift_request_exists:
             frappe.throw(
                 f"Shift Request: {name} Does Not Exists!",
                 frappe.DoesNotExistError,
             )
 
-        # ? GET EMPLOYEE CHECKIN  DOC
+        # ? GET SHIFT REQUEST  DOC
         shift_request = frappe.get_doc("Shift Request", name)
 
     except Exception as e:
@@ -87,4 +84,136 @@ def get(name):
         }
         
       
- 
+
+
+# ! prompt_hr.api.mobile.shift_request.create
+# ? CREATE SHIFT REQUEST   
+   
+@frappe.whitelist()
+def create(**args):
+    try:
+        # ? DEFINE MANDATORY FIELDS
+        mandatory_fields = {
+            "employee": "Employee",
+            "shift_type": "Shift Type",
+            "from_date": "From Date",
+            "to_date": "To Date",
+            "approver": "Approver"
+            
+
+        }
+
+        # ? CHECK IF THE MANDATORY FIELD IS FILLED OR NOT IF NOT THROW ERROR
+        for field, field_name in mandatory_fields.items():
+            if (
+                not args.get(field)
+                or args.get(field) == "[]"
+                or args.get(field) == "[{}]"
+            ):
+                frappe.throw(
+                    f"Please Fill {field_name} Field!",
+                    frappe.MandatoryError,
+                )
+
+            
+        # ? CREATE SHIFT REQUEST DOC
+        shift_request_doc = frappe.get_doc({
+            "doctype": "Shift Request",
+            **args
+        })
+        shift_request_doc.insert()
+        frappe.db.commit()
+
+    except Exception as e:
+        # ? HANDLE ERRORS
+        frappe.log_error("Error While Creating Shift Request", str(e))
+        frappe.clear_messages()
+        frappe.local.response["message"] = {
+            "success": False,
+            "message": f"Error While Creating Shift Request: {str(e)}",
+            "data": None,
+        }
+
+    else:
+        # ? HANDLE SUCCESS
+        frappe.local.response["message"] = {
+            "success": True,
+            "message": "Shift Request Created Successfully!",
+            "data": shift_request_doc,
+        }
+         
+         
+# ! prompt_hr.api.mobile.shift_request.update
+# ? UPDATE SHIFT REQUEST
+
+@frappe.whitelist()
+def update(**args):
+    try:
+        # ? MANDATORY FIELD FOR IDENTIFICATION
+        if not args.get("name"):
+            frappe.throw("Shift Request 'name' is required to update the document", frappe.MandatoryError)
+
+        # ? FETCH EXISTING DOC
+        shift_request_doc = frappe.get_doc("Shift Request", args.get("name"))
+
+        # ? UPDATE FIELDS
+        for key, value in args.items():
+            if key != "name":  # avoid overwriting the document name
+                shift_request_doc.set(key, value)
+
+        shift_request_doc.save()
+        frappe.db.commit()
+
+    except Exception as e:
+        # ? HANDLE ERRORS
+        frappe.log_error("Error While Updating Shift Request", str(e))
+        frappe.clear_messages()
+        frappe.local.response["message"] = {
+            "success": False,
+            "message": f"Error While Updating Shift Request: {str(e)}",
+            "data": None,
+        }
+
+    else:
+        # ? HANDLE SUCCESS
+        frappe.local.response["message"] = {
+            "success": True,
+            "message": "Shift Request Updated Successfully!",
+            "data": shift_request_doc,
+        }
+
+
+
+
+# ! prompt_hr.api.mobile.shift_request.delete
+# ? DELETE SHIFT REQUEST
+
+@frappe.whitelist()
+def delete(name=None):
+    try:
+        # ? CHECK MANDATORY FIELD
+        if not name:
+            frappe.throw("Shift Request 'name' is required to delete the document", frappe.MandatoryError)
+
+        # ? DELETE THE DOCUMENT
+        frappe.delete_doc("Shift Request", name, ignore_permissions=True)
+        frappe.db.commit()
+
+    except Exception as e:
+        # ? HANDLE ERRORS
+        frappe.log_error("Error While Deleting Shift Request", str(e))
+        frappe.clear_messages()
+        frappe.local.response["message"] = {
+            "success": False,
+            "message": f"Error While Deleting Shift Request: {str(e)}",
+            "data": None,
+        }
+
+    else:
+        # ? HANDLE SUCCESS
+        frappe.local.response["message"] = {
+            "success": True,
+            "message": "Shift Request Deleted Successfully!",
+            "data": {"name": name},
+        }
+         
