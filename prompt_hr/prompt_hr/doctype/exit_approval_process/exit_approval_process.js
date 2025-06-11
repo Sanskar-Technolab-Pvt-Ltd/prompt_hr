@@ -9,6 +9,9 @@ frappe.ui.form.on('Exit Approval Process', {
 
             // ? ADD THE "RAISE EXIT INTERVIEW QUESTIONNAIRE" BUTTON
             add_raise_exit_interview_button(frm);
+
+            // ? HIDE MARKS AND MARKS OUT OF FIELD OF THE CHILD TABLE
+            prompt_hr.utils.update_child_table_columns(frm,"user_response",["is_correct","marks","marks_out_of"]);
         }
     },
 

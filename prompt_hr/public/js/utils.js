@@ -119,3 +119,83 @@ prompt_hr.utils.update_select_field_options = function (frm, {
 	const grid = frm.fields_dict[table_field].grid;
 	grid.update_docfield_property(fieldname, "options", ["", ...options]);
 };
+
+
+/**
+ * Dynamically updates the visibility of columns in a child table grid in a Frappe form.
+ *
+ * If specific fields are provided, only those fields will be hidden. If no fields are provided,
+ * it resets the visibility of all columns in the child table based on the metadata.
+ *
+ * This function also ensures the grid's visible columns and headers are recalculated and re-rendered.
+ *
+ * @namespace prompt_hr.utils
+ * @function update_child_table_columns
+ *
+ * @param {frappe.ui.Form} frm - The Frappe form object.
+ * @param {string} table - The fieldname of the child table in the form.
+ * @param {string[]|null} [fields=null] - Optional array of fieldnames to hide. If null, all fields will be reset to their default visibility.
+ *
+ * @example
+ * // Hide specific columns in a child table
+ * prompt_hr.utils.update_child_table_columns(frm, "product_core_details", ["defect", "solution"]);
+ *
+ * @example
+ * // Reset all columns in the child table to their default visibility
+ * prompt_hr.utils.update_child_table_columns(frm, "product_core_details");
+ */
+
+prompt_hr.utils.update_child_table_columns = function (frm, table, fields = null) {
+	const grid = frm.get_field(table)?.grid;
+	if (!grid) return;
+
+	const parent_doctype = frm.doctype;
+	const child_doctype = frm.fields_dict[table].df.options;
+
+	if (fields && fields.length) {
+		fields.forEach((fieldname) => {
+			if (grid.fields_map[fieldname]) {
+				grid.fields_map[fieldname].hidden = 1;
+				frm.fields_dict[table].grid.update_docfield_property(fieldname, "hidden", 1);
+			}
+		});
+	} else {
+		frappe.meta.get_docfields(child_doctype).forEach((df) => {
+			const field = grid.fields_map[df.fieldname];
+			if (field) {
+				const original_df = frappe.meta.get_docfield(
+					child_doctype,
+					df.fieldname,
+					parent_doctype
+				);
+				field.hidden = original_df?.hidden || 0;
+				frm.fields_dict[table].grid.update_docfield_property(df.fieldname, "hidden", 0);
+			}
+		});
+	}
+
+	grid.visible_columns = undefined;
+	grid.setup_visible_columns();
+
+	if (grid.header_row) {
+		grid.header_row.wrapper.remove();
+		delete grid.header_row;
+		grid.make_head();
+	}
+
+	grid.grid_rows.forEach((row) => {
+		if (row.open_form_button) {
+			row.open_form_button.parent().remove();
+			delete row.open_form_button;
+		}
+		if (row.columns) {
+			Object.keys(row.columns).forEach((col) => {
+				if (row.columns[col]) {
+					row.columns[col].remove();
+				}
+			});
+			row.columns = [];
+		}
+		row.render_row();
+	});
+};
