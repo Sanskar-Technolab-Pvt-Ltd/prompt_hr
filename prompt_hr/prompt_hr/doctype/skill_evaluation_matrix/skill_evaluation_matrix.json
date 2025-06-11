@@ -1,0 +1,74 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-03-31 13:56:34.333037",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "column_break_cglx",
+  "released_on",
+  "notes",
+  "standard_skill_matrix_section",
+  "skill_matrix"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "column_break_cglx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "released_on",
+   "fieldtype": "Date",
+   "label": "Released On"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Data",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "standard_skill_matrix_section",
+   "fieldtype": "Section Break",
+   "label": "Standard Skill Matrix"
+  },
+  {
+   "fieldname": "skill_matrix",
+   "fieldtype": "Table",
+   "label": "Skill Matrix",
+   "options": "Skill Matrix"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-04-02 10:44:20.723983",
+ "modified_by": "jignasha@sanskartechnolab.com",
+ "module": "Prompt HR",
+ "name": "Skill Evaluation Matrix",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

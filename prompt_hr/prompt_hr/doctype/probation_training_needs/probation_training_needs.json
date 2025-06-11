@@ -1,0 +1,47 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-03-31 12:22:32.823668",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "45_days",
+  "90_days",
+  "180_days"
+ ],
+ "fields": [
+  {
+   "fieldname": "45_days",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "45 Days"
+  },
+  {
+   "fieldname": "90_days",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "90 Days"
+  },
+  {
+   "fieldname": "180_days",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "180 Days"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-04-02 10:44:21.478738",
+ "modified_by": "jignasha@sanskartechnolab.com",
+ "module": "Prompt HR",
+ "name": "Probation Training Needs",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

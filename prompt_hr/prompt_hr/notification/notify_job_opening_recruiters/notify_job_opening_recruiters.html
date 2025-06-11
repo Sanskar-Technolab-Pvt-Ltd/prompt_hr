@@ -1,0 +1,21 @@
+<p>Dear {{ recruiter_name or "Recruiter" }},</p>
+
+<p>You have been assigned as a recruiter for the following job opening:</p>
+
+<ul>
+    <li><strong>Position:</strong> {{ doc.designation }}</li>
+    <li><strong>No. of Positions:</strong> {{ doc.custom_no_of_position }}</li>
+    <li><strong>Job Opening ID:</strong> {{ doc.name }}</li>
+    <li><strong>Company:</strong> {{ doc.company }}</li>
+    
+</ul>
+
+<p>Please proceed with the necessary recruitment actions, such as shortlisting candidates and coordinating interviews.</p>
+
+<p>You can <a href="{{ frappe.utils.get_url() }}/app/job-opening/{{ doc.name }}">click here</a> to access the job opening directly in the system.</p>
+
+<p>If you have any questions, feel free to contact the HR department.</p>
+
+<p>Best regards,<br>
+HR Team</p>
+

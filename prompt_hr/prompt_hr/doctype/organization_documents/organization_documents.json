@@ -1,0 +1,133 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-03-31 12:34:14.812837",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "document_name",
+  "type",
+  "attachment",
+  "column_break_rgkt",
+  "is_published",
+  "publish_date",
+  "is_acknowledgement_mendatory",
+  "templates",
+  "access_criteria_section",
+  "department",
+  "designation",
+  "employment_type",
+  "column_break_ufyg",
+  "employee_grade",
+  "work_location"
+ ],
+ "fields": [
+  {
+   "fieldname": "document_name",
+   "fieldtype": "Data",
+   "label": "Document Name"
+  },
+  {
+   "fieldname": "type",
+   "fieldtype": "Select",
+   "label": "Type",
+   "options": "Policy\nPost\nArticle"
+  },
+  {
+   "fieldname": "attachment",
+   "fieldtype": "Attach",
+   "label": "Attachment"
+  },
+  {
+   "fieldname": "column_break_rgkt",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_published",
+   "fieldtype": "Check",
+   "label": "Is Published"
+  },
+  {
+   "fieldname": "publish_date",
+   "fieldtype": "Date",
+   "label": "Publish Date"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_acknowledgement_mendatory",
+   "fieldtype": "Check",
+   "label": "Is Acknowledgement Mendatory"
+  },
+  {
+   "fieldname": "access_criteria_section",
+   "fieldtype": "Section Break",
+   "label": "Access Criteria"
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department"
+  },
+  {
+   "fieldname": "designation",
+   "fieldtype": "Link",
+   "label": "Designation",
+   "options": "Designation"
+  },
+  {
+   "fieldname": "employment_type",
+   "fieldtype": "Link",
+   "label": "Employment Type",
+   "options": "Employment Type"
+  },
+  {
+   "fieldname": "column_break_ufyg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "employee_grade",
+   "fieldtype": "Link",
+   "label": "Employee Grade",
+   "options": "Employee Grade"
+  },
+  {
+   "fieldname": "work_location",
+   "fieldtype": "Link",
+   "label": "Work Location",
+   "options": "Address"
+  },
+  {
+   "fieldname": "templates",
+   "fieldtype": "Data",
+   "label": "Templates"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-04-11 05:08:46.400940",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Organization Documents",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

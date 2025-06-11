@@ -1,0 +1,27 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-04-25 12:21:53.196100",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Employee",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "<p>Dear {{doc.employee_name}},<br><br>\nThis is to confirm that your Service Level Agreement has been released. Please review the attached document and acknowledge receipt.<br><br>\nFor any questions, please contact the HR department.<br><br>\nRegards,<br>\n{{doc.company}} HR Team</p>\n",
+ "message_type": "HTML",
+ "modified": "2025-05-31 13:37:18.422653",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Service Agreement Letter",
+ "owner": "Administrator",
+ "print_format": "",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "Service Level Agreement for {{doc.employee_name}}"
+}

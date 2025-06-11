@@ -1,0 +1,126 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-11 05:02:08.833800",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "award_name",
+  "description",
+  "panelists",
+  "column_break_xrqj",
+  "is_trophy_provided",
+  "is_certificate_provided",
+  "number_of_winners",
+  "reward_type",
+  "reward_value",
+  "amended_from",
+  "nominee_details_tab",
+  "award_nominee",
+  "winner_details"
+ ],
+ "fields": [
+  {
+   "fieldname": "award_name",
+   "fieldtype": "Data",
+   "label": "Award Name"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "column_break_xrqj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_trophy_provided",
+   "fieldtype": "Check",
+   "label": "Is trophy provided"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_certificate_provided",
+   "fieldtype": "Check",
+   "label": "Is certificate provided"
+  },
+  {
+   "fieldname": "number_of_winners",
+   "fieldtype": "Int",
+   "label": "Number of Winners"
+  },
+  {
+   "fieldname": "reward_type",
+   "fieldtype": "Select",
+   "label": "Reward Type",
+   "options": "Cash\nVoucher\nOther"
+  },
+  {
+   "fieldname": "reward_value",
+   "fieldtype": "Data",
+   "label": "Reward Value"
+  },
+  {
+   "fieldname": "panelists",
+   "fieldtype": "Table MultiSelect",
+   "label": "Panelists",
+   "options": "Employee Multiselect"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Award",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "nominee_details_tab",
+   "fieldtype": "Tab Break",
+   "label": "Nominee Details"
+  },
+  {
+   "fieldname": "award_nominee",
+   "fieldtype": "Table",
+   "label": "Award Nominee",
+   "options": "Award Nominee"
+  },
+  {
+   "fieldname": "winner_details",
+   "fieldtype": "Table",
+   "label": "Winner Details",
+   "options": "Award Nominee"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-04-11 05:07:20.542394",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Award",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

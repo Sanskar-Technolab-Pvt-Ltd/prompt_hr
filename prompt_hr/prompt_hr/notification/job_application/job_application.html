@@ -1,0 +1,19 @@
+<p>Dear {{ doc.applicant_name }},</p>
+
+<p>We are pleased to inform you that we have extended a job offer to you for the position of <b>{{ doc.designation }}</b> at <b>{{ doc.company }}</b>.</p>
+
+<p>To view and accept your offer, please visit your Candidate Portal by following the link provided below:</p>
+
+<p><b>Job Offer Details:</b></p>
+
+<ul>
+  <li><b>Position:</b> {{ doc.designation }}</li>
+  <li><b>Offer Date:</b> {{ doc.offer_date }}</li>
+  <li><b>Expected Date of Joining:</b> {{ doc.custom_expected_date_of_joining }}</li>
+</ul>
+
+<p>We kindly request that you review the offer at your earliest convenience. Should you have any questions or require further clarification, please do not hesitate to contact us.</p>
+
+<p>We are excited about the possibility of having you join our team and look forward to welcoming you on board.</p>
+
+<p>Best regards,<br>The {{ doc.company }} HR Team</p>

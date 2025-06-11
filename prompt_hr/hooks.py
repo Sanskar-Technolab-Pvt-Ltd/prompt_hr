@@ -1,0 +1,469 @@
+app_name = "prompt_hr"
+app_title = "Prompt HR"
+app_publisher = "Jignasha Chavda"
+app_description = "Prompt HR"
+app_email = "jignasha@sanskartechnolab.com"
+app_license = "mit"
+
+# Apps
+# ------------------
+
+# required_apps = []
+
+# Each item in the list will be shown as an app in the apps page
+# add_to_apps_screen = [
+# 	{
+# 		"name": "prompt_hr",
+# 		"logo": "/assets/prompt_hr/logo.png",
+# 		"title": "Prompt HR",
+# 		"route": "/prompt_hr",
+# 		"has_permission": "prompt_hr.api.permission.has_app_permission"
+# 	}
+# ]
+
+# Includes in <head>
+# ------------------
+
+# include js, css files in header of desk.html
+# app_include_css = "/assets/prompt_hr/css/prompt_hr.css"
+app_include_js = [
+    "assets/prompt_hr/js/welcome_page_check.js",
+    "assets/prompt_hr/js/utils.js",
+    "assets/prompt_hr/js/frappe/form/workflow.js",
+]
+
+
+# include js, css files in header of web template
+# web_include_css = "/assets/prompt_hr/css/prompt_hr.css"
+# web_include_js = "/assets/prompt_hr/js/prompt_hr.js"
+
+# include custom scss in every website theme (without file extension ".scss")
+# website_theme_scss = "prompt_hr/public/scss/website"
+
+# include js, css files in header of web form
+# webform_include_js = {"doctype": "public/js/doctype.js"}
+# webform_include_css = {"doctype": "public/css/doctype.css"}
+
+# include js in page
+# page_js = {"page" : "public/js/file.js"}
+
+# include js in doctype views
+doctype_js = {
+    "Employee Onboarding": "public/js/employee_onboarding.js",
+    "Job Offer": "public/js/job_offer.js",
+    "Job Requisition": "public/js/job_requisition.js",
+    "Job Opening": "public/js/job_opening.js",
+    "Employee": "public/js/employee.js",
+    "Job Applicant": "public/js/job_applicant.js",
+    "Appointment Letter": "public/js/appointment_letter.js",
+    "Interview": "public/js/interview.js",
+    "Interview Feedback": "public/js/interview_feedback.js",
+    "Interview Round": "public/js/interview_round.js",
+    "Attendance": "public/js/attendance.js",
+    "Attendance Request": "public/js/attendance_request.js",
+    "Payroll Entry": "public/js/payroll_entry.js",
+    "Leave Application": "public/js/leave_application.js",
+    "Employee Checkin": "public/js/employee_checkin.js",
+    "HR Settings": "public/js/hr_settings.js",
+    "Expense Claim": "public/js/expense_claim.js",
+    "Full and Final Statement": "public/js/full_and_final_statement.js",
+    "Loan Application": "public/js/loan_application.js",
+    "Exit Interview": "public/js/exit_interview.js",
+    "Travel Request": "public/js/travel_request.js",
+    "Leave Allocation": "public/js/leave_allocation.js",
+    "Leave Policy Assignment": "public/js/leave_policy_assignment.js"
+
+}
+
+doctype_list_js = {
+    "Job Applicant": "public/js/job_applicant_list.js",
+    "Attendance": "public/js/attendance_list.js"
+}
+
+# doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
+# doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
+
+# Svg Icons
+# ------------------
+# include app icons in desk
+# app_include_icons = "prompt_hr/public/icons.svg"
+
+# Home Pages
+# ----------
+
+# application home page (will override Website Settings)
+# home_page = "login"
+
+# website user home page (by Role)
+# role_home_page = {
+# 	"Role": "home_page"
+# }
+
+# Generators
+# ----------
+
+# automatically create page for each record of this doctype
+# website_generators = ["Web Page"]
+
+# Jinja
+# ----------
+
+# add methods and filters to jinja environment
+# jinja = {
+# 	"methods": "prompt_hr.utils.jinja_methods",
+# 	"filters": "prompt_hr.utils.jinja_filters"
+# }
+
+# Installation
+# ------------
+
+# before_install = "prompt_hr.install.before_install"
+# after_install = "prompt_hr.install.after_install"
+
+# Uninstallation
+# ------------
+
+# before_uninstall = "prompt_hr.uninstall.before_uninstall"
+# after_uninstall = "prompt_hr.uninstall.after_uninstall"
+
+# Integration Setup
+# ------------------
+# To set up dependencies/integrations with other apps
+# Name of the app being installed is passed as an argument
+
+# before_app_install = "prompt_hr.utils.before_app_install"
+# after_app_install = "prompt_hr.utils.after_app_install"
+
+# Integration Cleanup
+# -------------------
+# To clean up dependencies/integrations with other apps
+# Name of the app being uninstalled is passed as an argument
+
+# before_app_uninstall = "prompt_hr.utils.before_app_uninstall"
+# after_app_uninstall = "prompt_hr.utils.after_app_uninstall"
+
+# Desk Notifications
+# ------------------
+# See frappe.core.notifications.get_notification_config
+
+# notification_config = "prompt_hr.notifications.get_notification_config"
+
+# Permissions
+# -----------
+# Permissions evaluated in scripted ways
+
+permission_query_conditions = {
+    "Interview": "prompt_hr.py.interview_availability.check_interviewer_permission",
+    "Interview Feedback": "prompt_hr.py.interview_feedback.get_permission_query_conditions",
+    "Job Opening": "prompt_hr.py.job_opening.get_permission_query_conditions",
+}
+
+# has_permission = {
+# 	"Event": "frappe.desk.doctype.event.event.has_permission",
+# }
+
+# DocType Class
+# ---------------
+# Override standard doctype classes
+
+override_doctype_class = {
+    # "ToDo": "custom_app.overrides.CustomToDo"
+    "Interview": "prompt_hr.overrides.interview_override.CustomInterview",
+    "Job Offer": "prompt_hr.overrides.job_offer_override.CustomJobOffer",
+    "Attendance Request": "prompt_hr.overrides.attendance_request_override.CustomAttendanceRequest",
+    "Salary Slip": "prompt_hr.overrides.salary_slip_override.CustomSalarySlip",
+    "Attendance": "prompt_hr.overrides.attendance_override.CustomAttendance",
+    "Leave Policy Assignment": "prompt_hr.overrides.leave_policy_assignment_override.CustomLeavePolicyAssignment"
+}
+
+# Document Events
+# ---------------
+# Hook on document methods and events
+
+doc_events = {
+    "Employee Onboarding": {
+        "validate": "prompt_hr.py.employee_onboarding.validate",
+        "after_insert": "prompt_hr.py.employee_onboarding.after_insert",
+    },
+    "Job Requisition": {
+        "validate": [
+            "prompt_hr.py.job_requisition.add_or_update_custom_last_updated_by",
+            "prompt_hr.py.job_requisition.set_requested_by",
+        ],
+        "on_update": [
+            "prompt_hr.py.job_requisition.on_update",
+            "prompt_hr.py.job_requisition.notify_approver",
+        ],
+        # "after_insert": "prompt_hr.py.job_requisition.after_insert",
+    },
+    "Job Applicant": {
+        "after_insert": "prompt_hr.py.job_applicant.after_insert",
+        "before_insert": "prompt_hr.py.job_applicant.before_insert",
+    },
+    "Interview": {
+        "validate": "prompt_hr.custom_methods.update_job_applicant_status_based_on_interview",
+        "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_interview",
+        "on_update": "prompt_hr.py.interview_availability.on_update",
+        "before_save": "prompt_hr.py.interview.before_save",
+    },
+    "Job Offer": {
+        "validate": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
+        "after_insert": "prompt_hr.py.job_offer.after_insert",
+        "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
+    },
+    "Employee": {
+        "on_update": "prompt_hr.py.employee.on_update",
+        "validate": "prompt_hr.py.employee.validate",
+    },
+    # "Probation Feedback Form": {
+    #     "on_submit": "prompt_hr.custom_methods.add_probation_feedback_data_to_employee"
+    # },
+    "LMS Quiz Submission": {
+        "validate": "prompt_hr.py.lms_quiz_submission.update_status"
+    },
+    "Interview Feedback": {
+        "on_submit": "prompt_hr.py.interview_feedback.on_submit",
+        "on_update": "prompt_hr.py.interview_feedback.on_update",
+    },
+    # "User": {
+    #     "after_insert": "prompt_hr.py.welcome_status.after_insert"
+    # },
+    "Attendance Request": {
+        "after_insert": "prompt_hr.py.attendance_request.notify_reporting_manager",
+        "validate": [
+            "prompt_hr.py.attendance_request.notify_reporting_manager",
+            "prompt_hr.py.attendance_request.is_valid_for_partial_day",
+        ],
+        "before_submit": "prompt_hr.py.attendance_request.before_submit",
+    },
+    "Payroll Entry": {
+        "on_update": "prompt_hr.py.payroll_entry.on_update",
+    },
+    "Leave Allocation": {
+        "before_validate": "prompt_hr.py.leave_allocation.before_validate",
+        "before_submit": "prompt_hr.py.leave_allocation.before_submit"
+    },
+    "Additional Salary": {"before_save": "prompt_hr.py.additional_salary.before_save"},
+    "Leave Encashment": {
+        "before_save": "prompt_hr.py.leave_encashment.before_save",
+    },
+    "Compensatory Leave Request": {
+        "before_save": "prompt_hr.py.compensatory_leave_request.before_save",
+        "on_cancel": "prompt_hr.py.compensatory_leave_request.on_cancel",
+        "on_update": "prompt_hr.py.compensatory_leave_request.on_update",
+    },
+    "Additional Salary": {"before_save": "prompt_hr.py.additional_salary.before_save"},
+    "Job Opening": {"before_insert": "prompt_hr.py.job_opening.before_insert"},
+    "Leave Application": {
+        "on_update": "prompt_hr.py.leave_application.on_update",
+        "on_cancel": "prompt_hr.py.leave_application.on_cancel",
+        "before_save": "prompt_hr.py.leave_application.before_save",
+        "before_insert": "prompt_hr.py.leave_application.before_insert",
+        "before_validate": "prompt_hr.py.leave_application.before_validate",
+        "before_submit": "prompt_hr.py.leave_application.before_submit",
+        "on_submit": "prompt_hr.py.leave_application.on_submit"
+    },
+    "Expense Claim": {
+        "before_save": "prompt_hr.py.expense_claim.before_save",
+        "on_update": "prompt_hr.py.expense_claim.on_update",
+        "before_submit": "prompt_hr.py.expense_claim.before_submit",
+        "on_cancel": "prompt_hr.py.expense_claim.update_amount_in_marketing_planning",
+    },
+    "Employee Tax Exemption Declaration": {
+        "before_save": "prompt_hr.py.income_tax_computation.before_save"
+    },
+    "Full and Final Statement": {
+        "on_update": "prompt_hr.py.full_and_final_statetment.on_update",
+    },
+    "Travel Request": {
+        "on_update": "prompt_hr.py.travel_request.on_update",
+    },
+    "Loan Application": {
+        "on_update": "prompt_hr.py.loan_application.on_update",
+        "on_cancel": "prompt_hr.py.loan_application.on_cancel",
+    },
+    "Salary Slip": {
+        "on_submit": "prompt_hr.py.salary_slip.loan_repayment_amount",
+        "on_update": "prompt_hr.py.salary_slip.update_loan_principal_amount",
+    },
+    "Salary Structure Assignment": {
+        "on_submit": "prompt_hr.py.salary_structure_assignment.update_employee_ctc",
+    },
+    "Appointment Letter": {
+        "before_save": "prompt_hr.py.appointment_letter.before_save",
+    },
+    "Appraisal": {
+        "before_save": "prompt_hr.py.appraisal_letter.before_save",
+    },
+    "Leave Type": {
+        "on_update": "prompt_hr.py.leave_type.on_update",
+    },
+    "Employee Separation": {
+        "before_save": "prompt_hr.py.employee_separation.before_save"
+    },
+}
+
+
+# Scheduled Tasks
+# ---------------
+
+scheduler_events = {
+    "daily": [
+        "prompt_hr.py.employee_changes_approval.daily_check_employee_changes_approval",
+        "prompt_hr.py.compensatory_leave_request.expire_compensatory_leave_after_confirmation",
+        # "prompt_hr.scheduler_methods.create_probation_feedback_form",
+        # "prompt_hr.scheduler_methods.create_confirmation_evaluation_form_for_prompt",
+        # "prompt_hr.scheduler_methods.inform_employee_for_confirmation_process",
+        # "prompt_hr.scheduler_methods.validate_employee_holiday_list",
+        # "prompt_hr.scheduler_methods.assign_checkin_role",
+        # "prompt_hr.scheduler_methods.validate_employee_holiday_list",
+        # "prompt_hr.scheduler_methods.validate_employee_holiday_list",
+    ],
+}
+
+# Testing
+# -------
+
+# before_tests = "prompt_hr.install.before_tests"
+
+# Overriding Methods
+# ------------------------------
+#
+# override_whitelisted_methods = {
+# "frappe.desk.doctype.event.event.get_events": "prompt_hr.event.get_events"
+# "frappe.model.workflow.get_transitions": "prompt_hr.overrides.workflow_override.custom_get_transitions",
+# "frappe.model.workflow.apply_workflow": "prompt_hr.overrides.workflow_override.custom_apply_workflow"
+# }
+#
+# each overriding function accepts a `data` argument;
+# generated from the base implementation of the doctype dashboard,
+# along with any modifications made in other Frappe apps
+# override_doctype_dashboards = {
+# 	"Task": "prompt_hr.task.get_dashboard_data"
+# }
+
+# exempt linked doctypes from being automatically cancelled
+#
+# auto_cancel_exempted_doctypes = ["Auto Repeat"]
+
+# Ignore links to specified DocTypes when deleting documents
+# -----------------------------------------------------------
+
+# ignore_links_on_delete = ["Communication", "ToDo"]
+
+# Request Events
+# ----------------
+# before_request = ["prompt_hr.utils.before_request"]
+# after_request = ["prompt_hr.utils.after_request"]
+
+# Job Events
+# ----------
+# before_job = ["prompt_hr.utils.before_job"]
+# after_job = ["prompt_hr.utils.after_job"]
+
+# User Data Protection
+# --------------------
+
+# user_data_fields = [
+# 	{
+# 		"doctype": "{doctype_1}",
+# 		"filter_by": "{filter_by}",
+# 		"redact_fields": ["{field_1}", "{field_2}"],
+# 		"partial": 1,
+# 	},
+# 	{
+# 		"doctype": "{doctype_2}",
+# 		"filter_by": "{filter_by}",
+# 		"partial": 1,
+# 	},
+# 	{
+# 		"doctype": "{doctype_3}",
+# 		"strict": False,
+# 	},
+# 	{
+# 		"doctype": "{doctype_4}"
+# 	}
+# ]
+
+# Authentication and authorization
+# --------------------------------
+
+# auth_hooks = [
+# 	"prompt_hr.auth.validate"
+# ]
+
+# Automatically update python controller files with type annotations for this app.
+# export_python_type_annotations = True
+
+# default_log_clearing_doctypes = {
+# 	"Logging DocType Name": 30  # days to retain logs
+# }
+
+fixtures = [
+    # {
+    #     "dt": "Kanban Board",
+    #     "filters": [
+    #         [
+    #             "name",
+    #             "in",
+    #             [
+    #                 "Meetings",
+    #             ],
+    #         ]
+    #     ],
+    # },
+    # {"dt":"Notification","filters":[
+    #     [
+    #         "module","in",[
+    #             "Prompt HR"
+    #         ]
+    #     ]
+    # ]},
+    # {"dt":"Custom Field","filters":[
+    #     [
+    #         "module","in",[
+    #             "Prompt HR"
+    #         ]
+    #     ]
+    # ]},
+    # {"dt":"Property Setter","filters":[
+    #     [
+    #         "module","in",[
+    #             "Prompt HR"
+    #         ]
+    #     ]
+    # ]},
+    # {"dt":"Client Script","filters":[
+    #     [
+    #         "module","in",[
+    #             "Prompt HR"
+    #         ]
+    #     ]
+    # ]},
+    # {"dt":"Server Script","filters":[
+    #     [
+    #         "module","in",[
+    #             "Prompt HR"
+    #         ]
+    #     ]
+    # ]},
+    # {"dt":"Print Format","filters":[
+    #     [
+    #         "module","in",[
+    #             "Prompt HR"
+    #         ]
+    #     ]
+    # ]},
+    # {
+    #     "dt":"Role", "filters": [["name", "in", ["Job Requisition", "Head of Department", "Managing Director"]]]
+    # },
+    # {
+    #     "dt":"Workflow", "filters": [["name", "in", ["Job Requisition", "Compensatory Leave Request", "Leave Application", "Loan Application"]]]
+    # },
+    # {
+    #     "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled", "Confirmed", "Approved by HR", "Rejected by HR", "Approved by BU Head", "Rejected by BU Head", "Extension Approved", "Extension Confirmed", "Extension Rejected", "Extension Requested"]]]
+    # },
+    # {
+    #     "dt":"Workflow Action Master", "filters": [["name", "in", ["Confirm"]]]
+    # }
+]

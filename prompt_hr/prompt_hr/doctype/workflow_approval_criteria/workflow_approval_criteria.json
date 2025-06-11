@@ -1,0 +1,39 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-17 16:39:24.633051",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "field_name",
+  "expected_value"
+ ],
+ "fields": [
+  {
+   "fieldname": "expected_value",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Expected Value"
+  },
+  {
+   "fieldname": "field_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Field Name"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-04-18 17:14:04.009878",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Workflow Approval Criteria",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

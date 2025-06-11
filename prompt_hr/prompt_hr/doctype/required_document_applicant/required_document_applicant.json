@@ -1,0 +1,80 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:REQ-DOC-{#####}",
+ "creation": "2025-03-26 17:35:08.596941",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "required_document",
+  "document_collection_stage",
+  "type_of_document",
+  "column_break_jumz",
+  "company"
+ ],
+ "fields": [
+  {
+   "fieldname": "document_collection_stage",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Document Collection Stage",
+   "options": "Document Collection Stage",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_jumz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "required_document",
+   "fieldtype": "Long Text",
+   "label": "Required Document",
+   "max_height": "100px",
+   "reqd": 1
+  },
+  {
+   "allow_in_quick_entry": 1,
+   "fieldname": "type_of_document",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Type of Document",
+   "options": "\nProof of Qualification\nProof of Address\nProof of Identity\nProof of Work Experience"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-04-18 13:11:21.095503",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Required Document Applicant",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "show_title_field_in_link": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "required_document"
+}

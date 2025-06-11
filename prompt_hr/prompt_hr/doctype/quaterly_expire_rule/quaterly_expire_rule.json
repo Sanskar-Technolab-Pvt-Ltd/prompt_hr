@@ -1,0 +1,42 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-29 22:43:45.112607",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "accrued_on_quater",
+  "expired_by_quater_start"
+ ],
+ "fields": [
+  {
+   "fieldname": "accrued_on_quater",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Accrued on Quater",
+   "options": "Quater"
+  },
+  {
+   "fieldname": "expired_by_quater_start",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Expired by Quater Start",
+   "options": "Quater"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-04-29 22:46:03.212365",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Quaterly Expire Rule",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

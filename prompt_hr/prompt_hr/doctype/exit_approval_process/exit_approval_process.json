@@ -1,0 +1,116 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-18 07:18:52.049691",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "posting_date",
+  "employee",
+  "employee_name",
+  "exit_interview",
+  "employee_separation",
+  "column_break_lhxs",
+  "resignation_approval",
+  "company",
+  "notice_period_days",
+  "last_date_of_working",
+  "section_break_nreu",
+  "user_response"
+ ],
+ "fields": [
+  {
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "label": "Posting Date"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee",
+   "options": "Employee",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name"
+  },
+  {
+   "fieldname": "column_break_lhxs",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "resignation_approval",
+   "fieldtype": "Select",
+   "label": "Resignation Approval",
+   "options": "\nApproved\nRejected"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "section_break_nreu",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "user_response",
+   "fieldtype": "Table",
+   "label": "User Response",
+   "options": "LMS Quiz Result"
+  },
+  {
+   "fieldname": "notice_period_days",
+   "fieldtype": "Data",
+   "label": "Notice Period Days"
+  },
+  {
+   "fieldname": "last_date_of_working",
+   "fieldtype": "Date",
+   "label": "Last Date of Working"
+  },
+  {
+   "fieldname": "exit_interview",
+   "fieldtype": "Link",
+   "label": "Exit interview",
+   "options": "Exit Interview"
+  },
+  {
+   "fieldname": "employee_separation",
+   "fieldtype": "Link",
+   "label": "Employee Separation",
+   "options": "Employee Separation"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-06-04 11:14:38.323028",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Exit Approval Process",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

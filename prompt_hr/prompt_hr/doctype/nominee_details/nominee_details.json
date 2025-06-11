@@ -1,0 +1,109 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-03-28 06:48:30.135983",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "nominee_name",
+  "date_of_birth",
+  "age",
+  "gender",
+  "nationality",
+  "column_break_zbjq",
+  "relation_with_employee",
+  "occupation",
+  "blood_group",
+  "is_nominee",
+  "share"
+ ],
+ "fields": [
+  {
+   "columns": 2,
+   "fieldname": "nominee_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Nominee Name"
+  },
+  {
+   "columns": 1,
+   "fieldname": "date_of_birth",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date of Birth"
+  },
+  {
+   "columns": 1,
+   "fieldname": "age",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Age",
+   "precision": "1"
+  },
+  {
+   "columns": 1,
+   "fieldname": "gender",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Gender",
+   "options": "Gender"
+  },
+  {
+   "fieldname": "nationality",
+   "fieldtype": "Data",
+   "label": "Nationality"
+  },
+  {
+   "fieldname": "column_break_zbjq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "columns": 2,
+   "fieldname": "relation_with_employee",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Relation With Employee"
+  },
+  {
+   "fieldname": "occupation",
+   "fieldtype": "Data",
+   "label": "Occupation"
+  },
+  {
+   "fieldname": "blood_group",
+   "fieldtype": "Select",
+   "label": "Blood Group",
+   "options": "\nA+\nA-\nB+\nB-\nAB+\nAB-\nO+\nO-"
+  },
+  {
+   "columns": 2,
+   "default": "0",
+   "fieldname": "is_nominee",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Nominee"
+  },
+  {
+   "columns": 2,
+   "fieldname": "share",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "Share(%)"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-04-02 10:44:22.145482",
+ "modified_by": "jignasha@sanskartechnolab.com",
+ "module": "Prompt HR",
+ "name": "Nominee Details",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

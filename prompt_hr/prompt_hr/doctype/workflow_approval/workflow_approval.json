@@ -1,0 +1,73 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:WORKFLOW-APPR-{####}",
+ "creation": "2025-04-15 18:05:15.064380",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "applicable_doctype",
+  "company",
+  "workflow_approval_criteria",
+  "approval_flow_section",
+  "workflow_approval_hierarchy"
+ ],
+ "fields": [
+  {
+   "fieldname": "applicable_doctype",
+   "fieldtype": "Link",
+   "label": "Applicable Doctype",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "approval_flow_section",
+   "fieldtype": "Section Break",
+   "label": "Approval Flow"
+  },
+  {
+   "fieldname": "workflow_approval_hierarchy",
+   "fieldtype": "Table",
+   "label": "Workflow Approval Hierarchy",
+   "options": "Workflow Approval Hierarchy"
+  },
+  {
+   "fieldname": "workflow_approval_criteria",
+   "fieldtype": "Table",
+   "label": "Workflow Approval Criteria",
+   "options": "Workflow Approval Criteria"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-05-22 16:19:58.134148",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Workflow Approval",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

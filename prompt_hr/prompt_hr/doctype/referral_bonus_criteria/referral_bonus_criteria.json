@@ -1,0 +1,50 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-13 19:46:06.705324",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "from_grade",
+  "to_grade",
+  "bonus_amount"
+ ],
+ "fields": [
+  {
+   "fieldname": "from_grade",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "From Grade",
+   "options": "Employee Grade"
+  },
+  {
+   "fieldname": "to_grade",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "To Grade",
+   "options": "Employee Grade"
+  },
+  {
+   "fieldname": "bonus_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Bonus Amount",
+   "precision": "2"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-04-13 19:47:10.962715",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Referral Bonus Criteria",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

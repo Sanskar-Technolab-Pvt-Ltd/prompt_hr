@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-05-29 16:49:36.219351",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Leave Application",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "Dear Reporting Manager,<br><br>\n\nA leave extension request has been submitted and requires your attention. Please find the details below:<br><br>\n\n- <b>Employee Name:</b> {{ doc.employee_name }}<br>\n- <b>Employee ID:</b> {{ doc.employee }}<br>\n- <b>Leave Type:</b> {{ doc.leave_type }}<br>\n- <b>New Leave Period:</b> {{ frappe.utils.format_date(doc.from_date,\"dd-MM-yyyy\") }} to {{frappe.utils.format_date(doc.to_date,\"dd-MM-yyyy\") }}<br>\n- <b>Leave Application Link:</b> <a href=\"{{ frappe.utils.get_url() }}/app/{{ doc.doctype|lower|replace(' ', '-') }}/{{ doc.name }}\">View Request</a><br><br>\n\nYou are kindly requested to review this application and take the necessary action at your earliest convenience.<br><br>\n\nThank you,<br>\nHR System\n",
+ "message_type": "HTML",
+ "modified": "2025-06-02 13:07:10.747503",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Leave Extension Request Notification",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 0,
+ "send_to_all_assignees": 0,
+ "subject": "Leave Extension Requested by {{doc.employee_name}}"
+}

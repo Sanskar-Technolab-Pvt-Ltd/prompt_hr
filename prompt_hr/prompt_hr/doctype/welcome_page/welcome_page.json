@@ -1,0 +1,157 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:user",
+ "creation": "2025-04-10 13:25:23.135752",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "user",
+  "nps_consent",
+  "do_you_have_a_pran_no",
+  "pran_no",
+  "column_break_uars",
+  "is_completed",
+  "meal_tab",
+  "meal_wallet",
+  "meal_amount",
+  "fuel_tab",
+  "fuel_wallet",
+  "fuel_amount",
+  "attire_tab",
+  "attire_wallet",
+  "attire_amount",
+  "background_verification_tab",
+  "consent_for_background_verification"
+ ],
+ "fields": [
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "User",
+   "options": "User",
+   "unique": 1
+  },
+  {
+   "fieldname": "column_break_uars",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_completed",
+   "fieldtype": "Check",
+   "label": "Is Completed?"
+  },
+  {
+   "fieldname": "do_you_have_a_pran_no",
+   "fieldtype": "Select",
+   "label": "Do you Have a PRAN No.?",
+   "options": "\nYes\nNo"
+  },
+  {
+   "depends_on": "eval:doc.do_you_have_a_pran_no==\"Yes\"",
+   "fieldname": "pran_no",
+   "fieldtype": "Data",
+   "label": "PRAN No.",
+   "mandatory_depends_on": "eval:doc.do_you_have_a_pran_no==\"Yes\""
+  },
+  {
+   "fieldname": "nps_consent",
+   "fieldtype": "Select",
+   "label": "NPS Consent",
+   "options": "\nYes\nNo"
+  },
+  {
+   "fieldname": "meal_tab",
+   "fieldtype": "Tab Break",
+   "label": "Meal"
+  },
+  {
+   "fieldname": "meal_wallet",
+   "fieldtype": "Select",
+   "label": "Meal Wallet",
+   "options": "\nYes\nNo"
+  },
+  {
+   "depends_on": "eval:doc.meal_wallet == \"Yes\"",
+   "fieldname": "meal_amount",
+   "fieldtype": "Select",
+   "label": "Amount",
+   "options": "\n2500\n3500"
+  },
+  {
+   "depends_on": "eval:doc.fuel_wallet == \"Yes\"",
+   "fieldname": "fuel_tab",
+   "fieldtype": "Tab Break",
+   "label": "Fuel"
+  },
+  {
+   "fieldname": "fuel_wallet",
+   "fieldtype": "Select",
+   "label": "Fuel Wallet",
+   "options": "\nYes\nNo"
+  },
+  {
+   "fieldname": "fuel_amount",
+   "fieldtype": "Select",
+   "label": "Fuel Amount",
+   "options": "\n2500\n3300"
+  },
+  {
+   "fieldname": "attire_tab",
+   "fieldtype": "Tab Break",
+   "label": "Attire"
+  },
+  {
+   "fieldname": "attire_wallet",
+   "fieldtype": "Select",
+   "label": "Attire Wallet",
+   "options": "\nYes\nNo"
+  },
+  {
+   "depends_on": "eval:doc.attire_wallet == \"Yes\"",
+   "fieldname": "attire_amount",
+   "fieldtype": "Select",
+   "label": "Attire Amount",
+   "options": "\n2000\n3000"
+  },
+  {
+   "fieldname": "background_verification_tab",
+   "fieldtype": "Tab Break",
+   "label": "Background Verification"
+  },
+  {
+   "fieldname": "consent_for_background_verification",
+   "fieldtype": "Select",
+   "label": "Consent For Background Verification",
+   "options": "\nYes\nNo"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-04-11 18:54:20.236439",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Welcome Page",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

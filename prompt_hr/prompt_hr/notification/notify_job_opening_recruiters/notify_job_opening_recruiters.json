@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-04-24 15:05:08.623255",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Job Opening",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "<p>Dear {{ recruiter_name or \"Recruiter\" }},</p>\n\n<p>You have been assigned as a recruiter for the following job opening:</p>\n\n<ul>\n    <li><strong>Position:</strong> {{ doc.designation }}</li>\n    <li><strong>No. of Positions:</strong> {{ doc.custom_no_of_position }}</li>\n    <li><strong>Job Opening ID:</strong> {{ doc.name }}</li>\n    <li><strong>Company:</strong> {{ doc.company }}</li>\n    \n</ul>\n\n<p>Please proceed with the necessary recruitment actions, such as shortlisting candidates and coordinating interviews.</p>\n\n<p>You can <a href=\"{{ frappe.utils.get_url() }}/app/job-opening/{{ doc.name }}\">click here</a> to access the job opening directly in the system.</p>\n\n<p>If you have any questions, feel free to contact the HR department.</p>\n\n<p>Best regards,<br>\nHR Team</p>\n\n",
+ "message_type": "HTML",
+ "modified": "2025-04-24 18:06:06.334164",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Notify Job Opening Recruiters",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 0,
+ "send_to_all_assignees": 0,
+ "subject": "Job Opening Assigned - {{doc.name}}"
+}

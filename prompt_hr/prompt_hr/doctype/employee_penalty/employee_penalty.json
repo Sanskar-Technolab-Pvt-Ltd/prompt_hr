@@ -1,0 +1,139 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:EP-PEN-{####}",
+ "creation": "2025-05-23 10:57:01.339950",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "employee",
+  "leave_type",
+  "company",
+  "deduct_earned_leave",
+  "deduct_leave_without_pay",
+  "column_break_yxdx",
+  "penalty_date",
+  "attendance",
+  "total_leave_penalty",
+  "leave_balance_before_application",
+  "for_late_coming",
+  "for_insufficient_hours",
+  "for_no_attendance",
+  "section_break_ixto",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "leave_type",
+   "fieldtype": "Link",
+   "label": "Leave Type",
+   "options": "Leave Type"
+  },
+  {
+   "fieldname": "column_break_yxdx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "attendance",
+   "fieldtype": "Link",
+   "label": "Attendance",
+   "options": "Attendance"
+  },
+  {
+   "fieldname": "section_break_ixto",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  },
+  {
+   "fetch_from": "employee.company",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "leave_balance_before_application",
+   "fieldtype": "Float",
+   "label": "Leave Balance Before Application",
+   "precision": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "for_late_coming",
+   "fieldtype": "Check",
+   "label": "For late coming"
+  },
+  {
+   "default": "0",
+   "fieldname": "for_insufficient_hours",
+   "fieldtype": "Check",
+   "label": "For insufficient hours"
+  },
+  {
+   "fieldname": "penalty_date",
+   "fieldtype": "Date",
+   "label": "Penalty date"
+  },
+  {
+   "fieldname": "deduct_earned_leave",
+   "fieldtype": "Float",
+   "label": "Deduct Earned Leave",
+   "precision": "1"
+  },
+  {
+   "description": "These unpaid leaves will be deducted from salary slip",
+   "fieldname": "deduct_leave_without_pay",
+   "fieldtype": "Float",
+   "label": "Deduct Leave without pay",
+   "precision": "1"
+  },
+  {
+   "fieldname": "total_leave_penalty",
+   "fieldtype": "Float",
+   "label": "Total Leave Penalty",
+   "precision": "1"
+  },
+  {
+   "default": "0",
+   "fieldname": "for_no_attendance",
+   "fieldtype": "Check",
+   "label": "For no attendance"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-05-26 19:11:15.409202",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Employee Penalty",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

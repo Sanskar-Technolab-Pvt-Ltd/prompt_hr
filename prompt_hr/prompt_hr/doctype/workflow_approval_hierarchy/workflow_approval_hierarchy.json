@@ -1,0 +1,121 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-16 18:46:18.739584",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "state",
+  "action",
+  "next_state",
+  "allowed_by",
+  "role",
+  "employee",
+  "employee_name",
+  "user",
+  "column_break_amyn",
+  "allow_self_approval",
+  "send_email_to_creator",
+  "condition"
+ ],
+ "fields": [
+  {
+   "depends_on": "eval:doc.allowed_by == \"User\";",
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "depends_on": "eval:doc.allowed_by == \"User\";",
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name"
+  },
+  {
+   "fieldname": "action",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Action",
+   "options": "Workflow Action Master"
+  },
+  {
+   "fieldname": "next_state",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Next State",
+   "options": "Workflow State"
+  },
+  {
+   "fieldname": "allowed_by",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Allowed By",
+   "options": "\nUser\nRole"
+  },
+  {
+   "depends_on": "eval:doc.allowed_by == \"Role\";",
+   "fieldname": "role",
+   "fieldtype": "Link",
+   "label": "Role",
+   "options": "Role"
+  },
+  {
+   "depends_on": "eval:doc.allowed_by == \"User\";",
+   "fetch_from": "employee.user_id",
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "User",
+   "options": "User"
+  },
+  {
+   "fieldname": "state",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "State",
+   "options": "Workflow State"
+  },
+  {
+   "default": "0",
+   "description": "Allow approval for creator of the document",
+   "fieldname": "allow_self_approval",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Allow Self Approval"
+  },
+  {
+   "default": "0",
+   "fieldname": "send_email_to_creator",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "send_email_to_creator"
+  },
+  {
+   "fieldname": "condition",
+   "fieldtype": "Code",
+   "hidden": 1,
+   "label": "Condition",
+   "options": "Python"
+  },
+  {
+   "fieldname": "column_break_amyn",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-05-22 16:19:14.234321",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Workflow Approval Hierarchy",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

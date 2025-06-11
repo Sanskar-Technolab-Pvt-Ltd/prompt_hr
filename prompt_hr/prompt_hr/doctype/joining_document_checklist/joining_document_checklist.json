@@ -1,0 +1,71 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:REQ-DOC-CHECKLIST-{##}",
+ "creation": "2025-04-14 06:17:58.539111",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "checklist_name",
+  "column_break_zdth",
+  "company",
+  "joining_checklist_section",
+  "table_mcwa"
+ ],
+ "fields": [
+  {
+   "fieldname": "checklist_name",
+   "fieldtype": "Data",
+   "label": "Checklist Name"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_zdth",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "joining_checklist_section",
+   "fieldtype": "Section Break",
+   "label": "Joining Checklist"
+  },
+  {
+   "fieldname": "table_mcwa",
+   "fieldtype": "Table",
+   "options": "Joining Document"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-04-16 18:37:06.119754",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Joining Document Checklist",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

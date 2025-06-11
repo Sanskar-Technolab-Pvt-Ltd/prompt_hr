@@ -1,0 +1,330 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:job_applicant",
+ "creation": "2025-03-27 17:47:08.604122",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "job_applicant",
+  "applicant_name",
+  "designation",
+  "department",
+  "column_break_igwx",
+  "employment_type",
+  "work_location",
+  "company",
+  "it_requirements_section",
+  "system_allocation",
+  "system_configuration",
+  "sitting_arrangements",
+  "company_mobile_no",
+  "column_break_iblz",
+  "create_company_email_id",
+  "email_domain",
+  "company_email",
+  "chat_software_access",
+  "bts_project_name",
+  "buddy_name",
+  "section_break_bclx",
+  "crm_access_required",
+  "crm_division",
+  "crm_project",
+  "crm_module",
+  "column_break_pvjx",
+  "stock_requirement",
+  "git_project_requirements_section",
+  "git_project_access_required",
+  "git_project_name",
+  "column_break_vqjl",
+  "engineer_dongle",
+  "erp_requirements_section",
+  "assign_erp_role",
+  "column_break_sjkz",
+  "erp_module_access",
+  "admin_requirements_section",
+  "cug",
+  "visiting_cards",
+  "column_break_noaq",
+  "special_requirements",
+  "imprest_allocation_section",
+  "is_imprest_allocation_required",
+  "column_break_onzp",
+  "imprest_allocation_document"
+ ],
+ "fields": [
+  {
+   "fieldname": "job_applicant",
+   "fieldtype": "Link",
+   "label": "Job Applicant",
+   "options": "Job Applicant",
+   "unique": 1
+  },
+  {
+   "fetch_from": "job_applicant.applicant_name",
+   "fieldname": "applicant_name",
+   "fieldtype": "Data",
+   "label": "Applicant Name"
+  },
+  {
+   "fetch_from": "job_applicant.designation",
+   "fieldname": "designation",
+   "fieldtype": "Data",
+   "label": "Designation"
+  },
+  {
+   "fetch_from": "job_applicant.custom_department",
+   "fieldname": "department",
+   "fieldtype": "Data",
+   "label": "Department"
+  },
+  {
+   "fieldname": "column_break_igwx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "job_applicant.custom_employment_type",
+   "fieldname": "employment_type",
+   "fieldtype": "Data",
+   "label": "Employment Type"
+  },
+  {
+   "fieldname": "work_location",
+   "fieldtype": "Data",
+   "label": "Work Location"
+  },
+  {
+   "fetch_from": "job_applicant.custom_company",
+   "fieldname": "company",
+   "fieldtype": "Data",
+   "label": "Company"
+  },
+  {
+   "fieldname": "it_requirements_section",
+   "fieldtype": "Section Break",
+   "label": "IT Requirements"
+  },
+  {
+   "fieldname": "system_allocation",
+   "fieldtype": "Select",
+   "label": "System Allocation",
+   "options": "Desktop\nLaptop"
+  },
+  {
+   "fieldname": "system_configuration",
+   "fieldtype": "Data",
+   "label": "System Configuration"
+  },
+  {
+   "description": "(Please Specify the Desk no.)",
+   "fieldname": "sitting_arrangements",
+   "fieldtype": "Data",
+   "label": "Sitting Arrangements"
+  },
+  {
+   "fieldname": "column_break_iblz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "create_company_email_id",
+   "fieldtype": "Check",
+   "label": "Create Company Email ID"
+  },
+  {
+   "depends_on": "eval:doc.create_company_email_id==1",
+   "fieldname": "email_domain",
+   "fieldtype": "Link",
+   "label": "Email Domain",
+   "options": "Email ID Domain"
+  },
+  {
+   "default": "0",
+   "fieldname": "chat_software_access",
+   "fieldtype": "Check",
+   "label": "Chat Software Access"
+  },
+  {
+   "fieldname": "bts_project_name",
+   "fieldtype": "Data",
+   "label": "BTS Project Name"
+  },
+  {
+   "fieldname": "buddy_name",
+   "fieldtype": "Data",
+   "label": "Buddy Name"
+  },
+  {
+   "fieldname": "section_break_bclx",
+   "fieldtype": "Section Break",
+   "label": "CRM Requirements"
+  },
+  {
+   "default": "0",
+   "fieldname": "crm_access_required",
+   "fieldtype": "Check",
+   "label": "CRM Access Required"
+  },
+  {
+   "depends_on": "eval:doc.crm_access_required==1",
+   "fieldname": "crm_division",
+   "fieldtype": "Link",
+   "label": "CRM Division",
+   "options": "CRM Division"
+  },
+  {
+   "depends_on": "eval:doc.crm_access_required==1",
+   "fieldname": "crm_project",
+   "fieldtype": "Data",
+   "label": "CRM Project"
+  },
+  {
+   "depends_on": "eval:doc.crm_access_required==1",
+   "fieldname": "crm_module",
+   "fieldtype": "Link",
+   "label": "CRM Module",
+   "options": "Module Def"
+  },
+  {
+   "fieldname": "column_break_pvjx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "stock_requirement",
+   "fieldtype": "Check",
+   "label": "Stock Requirement"
+  },
+  {
+   "fieldname": "company_mobile_no",
+   "fieldtype": "Data",
+   "label": "Company Mobile No"
+  },
+  {
+   "fieldname": "git_project_requirements_section",
+   "fieldtype": "Section Break",
+   "label": "Git Project Requirements"
+  },
+  {
+   "default": "0",
+   "fieldname": "git_project_access_required",
+   "fieldtype": "Check",
+   "label": "Git Project Access Required"
+  },
+  {
+   "depends_on": "eval:doc.git_project_access_required==1",
+   "fieldname": "git_project_name",
+   "fieldtype": "Data",
+   "label": "Git Project Name"
+  },
+  {
+   "fieldname": "column_break_vqjl",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "engineer_dongle",
+   "fieldtype": "Data",
+   "label": "Engineer Dongle"
+  },
+  {
+   "fieldname": "erp_requirements_section",
+   "fieldtype": "Section Break",
+   "label": "ERP Requirements"
+  },
+  {
+   "fieldname": "assign_erp_role",
+   "fieldtype": "Table MultiSelect",
+   "label": "Assign ERP Role",
+   "options": "Role Multiselect"
+  },
+  {
+   "fieldname": "column_break_sjkz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "erp_module_access",
+   "fieldtype": "Table MultiSelect",
+   "label": "ERP Module Access",
+   "options": "Module Multiselect"
+  },
+  {
+   "fieldname": "admin_requirements_section",
+   "fieldtype": "Section Break",
+   "label": "Admin Requirements"
+  },
+  {
+   "default": "0",
+   "fieldname": "cug",
+   "fieldtype": "Check",
+   "label": "CUG"
+  },
+  {
+   "default": "0",
+   "fieldname": "visiting_cards",
+   "fieldtype": "Check",
+   "label": "Visiting Cards"
+  },
+  {
+   "fieldname": "column_break_noaq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "special_requirements",
+   "fieldtype": "Data",
+   "label": "Special Requirements"
+  },
+  {
+   "fieldname": "company_email",
+   "fieldtype": "Data",
+   "label": "Company Email"
+  },
+  {
+   "fieldname": "imprest_allocation_section",
+   "fieldtype": "Section Break",
+   "label": "Imprest Allocation"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_imprest_allocation_required",
+   "fieldtype": "Check",
+   "label": "Is Imprest Allocation Required"
+  },
+  {
+   "fieldname": "column_break_onzp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "imprest_allocation_document",
+   "fieldtype": "Link",
+   "label": "Imprest Allocation Document",
+   "options": "Imprest Allocation"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-05-29 19:23:38.448016",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Reporting Manager Checklist",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

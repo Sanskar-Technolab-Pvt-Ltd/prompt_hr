@@ -1,0 +1,157 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:CAN-{YYYY}-{#####}",
+ "creation": "2025-04-14 06:49:31.557471",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "applicant_email",
+  "applicant_name",
+  "job_offer",
+  "column_break_bicj",
+  "phone_number",
+  "applied_for_designation",
+  "company",
+  "upload_docments_section",
+  "documents",
+  "offer_details_tab",
+  "offer_date",
+  "offer_acceptance",
+  "offer_letter",
+  "column_break_qblg",
+  "expected_date_of_joining",
+  "condition_for_offer_acceptance",
+  "new_joinee_checklist_tab",
+  "new_joinee_documents"
+ ],
+ "fields": [
+  {
+   "fieldname": "applicant_email",
+   "fieldtype": "Link",
+   "label": "Applicant Email",
+   "options": "Job Applicant"
+  },
+  {
+   "fetch_from": "applicant_email.applicant_name",
+   "fieldname": "applicant_name",
+   "fieldtype": "Data",
+   "label": "Applicant Name"
+  },
+  {
+   "fieldname": "column_break_bicj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "applicant_email.phone_number",
+   "fieldname": "phone_number",
+   "fieldtype": "Data",
+   "label": "Phone Number"
+  },
+  {
+   "fetch_from": "applicant_email.designation",
+   "fieldname": "applied_for_designation",
+   "fieldtype": "Data",
+   "label": "Applied for Designation"
+  },
+  {
+   "fieldname": "upload_docments_section",
+   "fieldtype": "Section Break",
+   "label": "Upload Docments"
+  },
+  {
+   "fieldname": "offer_details_tab",
+   "fieldtype": "Tab Break",
+   "label": "Offer Details"
+  },
+  {
+   "default": "Awaiting Response",
+   "fieldname": "offer_acceptance",
+   "fieldtype": "Select",
+   "label": "Offer Acceptance",
+   "options": "Awaiting Response\nAccepted\nRejected\nAccepted with Condition"
+  },
+  {
+   "depends_on": "eval:doc.offer_acceptance==\"Accepted with Condition\"",
+   "fieldname": "condition_for_offer_acceptance",
+   "fieldtype": "Data",
+   "label": "Condition for Offer Acceptance",
+   "mandatory_depends_on": "eval:doc.offer_acceptance==\"Accepted with Consition\""
+  },
+  {
+   "fieldname": "column_break_qblg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "job_offer",
+   "fieldtype": "Link",
+   "label": "Job Offer",
+   "options": "Job Offer"
+  },
+  {
+   "fieldname": "offer_date",
+   "fieldtype": "Date",
+   "label": "Offer Date"
+  },
+  {
+   "fieldname": "expected_date_of_joining",
+   "fieldtype": "Date",
+   "label": "Expected Date of Joining"
+  },
+  {
+   "fieldname": "documents",
+   "fieldtype": "Table",
+   "options": "Document Collection"
+  },
+  {
+   "fieldname": "offer_letter",
+   "fieldtype": "Data",
+   "label": "Offer Letter"
+  },
+  {
+   "fieldname": "new_joinee_checklist_tab",
+   "fieldtype": "Tab Break",
+   "label": "New Joinee Checklist"
+  },
+  {
+   "fieldname": "new_joinee_documents",
+   "fieldtype": "Table",
+   "label": "New Joinee Documents",
+   "options": "Document Collection"
+  },
+  {
+   "fetch_from": "applicant_email.custom_company",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-05-28 20:05:55.296524",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Candidate Portal",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

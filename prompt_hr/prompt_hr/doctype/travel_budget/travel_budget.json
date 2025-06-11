@@ -1,0 +1,96 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:company",
+ "creation": "2025-04-11 05:23:47.407300",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_fqct",
+  "company",
+  "buget_allocation",
+  "mode_of_travel",
+  "local_commute",
+  "service_km_rate",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_fqct",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "unique": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "buget_allocation",
+   "fieldtype": "Table",
+   "label": "Buget Allocation",
+   "options": "Budget Allocation"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "mode_of_travel",
+   "fieldtype": "Table",
+   "label": "Mode of Travel",
+   "options": "Travel Mode Table"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Travel Budget",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "service_km_rate",
+   "fieldtype": "Table",
+   "label": "Service KM Rate",
+   "options": "Service KM Rate"
+  },
+  {
+   "fieldname": "local_commute",
+   "fieldtype": "Table",
+   "label": "Local Commute",
+   "options": "Local Commute Details"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-06-05 18:21:54.552495",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Travel Budget",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

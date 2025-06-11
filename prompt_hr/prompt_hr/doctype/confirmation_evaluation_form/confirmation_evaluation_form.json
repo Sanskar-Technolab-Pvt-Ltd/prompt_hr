@@ -1,0 +1,226 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "CONF-EVAL-.#####",
+ "creation": "2025-03-31 12:07:19.436212",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_sihy",
+  "employee",
+  "employee_name",
+  "department",
+  "designation",
+  "company",
+  "column_break_dbio",
+  "business_unit",
+  "reporting_manager",
+  "evaluation_date",
+  "hod",
+  "evaluation_details_section",
+  "table_txep",
+  "rh_rating_added",
+  "dh_rating_added",
+  "confirmation_details_section",
+  "probation_status",
+  "confirmation_date",
+  "column_break_lggp",
+  "reason",
+  "extension_period",
+  "reason_for_termination",
+  "last_work_date",
+  "section_break_csmg",
+  "remarks",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_sihy",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name"
+  },
+  {
+   "fetch_from": "employee.department",
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department"
+  },
+  {
+   "fetch_from": "employee.designation",
+   "fieldname": "designation",
+   "fieldtype": "Data",
+   "label": "Designation"
+  },
+  {
+   "fetch_from": "employee.company",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "column_break_dbio",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "employee.custom_business_unit",
+   "fieldname": "business_unit",
+   "fieldtype": "Data",
+   "label": "Business Unit"
+  },
+  {
+   "fetch_from": "employee.reports_to",
+   "fieldname": "reporting_manager",
+   "fieldtype": "Link",
+   "label": "Reporting Manager",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "evaluation_date",
+   "fieldtype": "Date",
+   "label": "Evaluation Date"
+  },
+  {
+   "fetch_from": "department.custom_department_head",
+   "fetch_if_empty": 1,
+   "fieldname": "hod",
+   "fieldtype": "Link",
+   "label": "HOD",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "evaluation_details_section",
+   "fieldtype": "Section Break",
+   "label": "Evaluation Details"
+  },
+  {
+   "fieldname": "table_txep",
+   "fieldtype": "Table",
+   "options": "Confirmation Evaluation"
+  },
+  {
+   "fieldname": "confirmation_details_section",
+   "fieldtype": "Section Break",
+   "label": "Confirmation Details"
+  },
+  {
+   "fieldname": "probation_status",
+   "fieldtype": "Select",
+   "label": "Probation Status",
+   "options": "Pending\nConfirm\nExtend\nTerminate"
+  },
+  {
+   "fieldname": "column_break_lggp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.probation_status==\"Extend\";",
+   "fieldname": "reason",
+   "fieldtype": "Data",
+   "label": "Reason",
+   "mandatory_depends_on": "eval:doc.probation_status==\"Extend\";"
+  },
+  {
+   "depends_on": "eval:doc.probation_status==\"Extend\";",
+   "fieldname": "extension_period",
+   "fieldtype": "Float",
+   "label": "Extension Period",
+   "mandatory_depends_on": "eval:doc.probation_status==\"Extend\";",
+   "precision": "1"
+  },
+  {
+   "fieldname": "section_break_csmg",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Confirmation Evaluation Form",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "depends_on": "eval:doc.probation_status==\"Confirm\";",
+   "fieldname": "confirmation_date",
+   "fieldtype": "Date",
+   "label": "Confirmation Date",
+   "mandatory_depends_on": "eval:doc.probation_status==\"Confirm\";"
+  },
+  {
+   "default": "0",
+   "fieldname": "rh_rating_added",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "RH Rating Added"
+  },
+  {
+   "default": "0",
+   "fieldname": "dh_rating_added",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "DH Rating Added"
+  },
+  {
+   "depends_on": "eval:doc.probation_status == \"Terminate\";",
+   "fieldname": "reason_for_termination",
+   "fieldtype": "Data",
+   "label": "Reason for Termination",
+   "mandatory_depends_on": "eval:doc.probation_status == \"Terminate\";"
+  },
+  {
+   "depends_on": "eval:doc.probation_status == \"Terminate\";",
+   "fieldname": "last_work_date",
+   "fieldtype": "Date",
+   "label": "Last Work Date",
+   "mandatory_depends_on": "eval:doc.probation_status == \"Terminate\";"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-04-28 17:27:51.364430",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Confirmation Evaluation Form",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

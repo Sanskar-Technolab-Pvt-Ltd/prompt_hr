@@ -1,0 +1,80 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-04-11 05:24:27.480878",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "grade",
+  "lodging_allowance_metro",
+  "lodging_allowance_non_metro",
+  "column_break_mtfy",
+  "meal_allowance_metro",
+  "meal_allowance_non_metro",
+  "local_commute_limit"
+ ],
+ "fields": [
+  {
+   "allow_on_submit": 1,
+   "fieldname": "grade",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Grade",
+   "options": "Employee Grade"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "lodging_allowance_metro",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Lodging Allowance (Metro)"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "lodging_allowance_non_metro",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Lodging Allowance (Non-metro)"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "meal_allowance_metro",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Meal Allowance (Metro)"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "meal_allowance_non_metro",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Meal Allowance (Non-metro)"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "local_commute_limit",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Local Commute Limit"
+  },
+  {
+   "fieldname": "column_break_mtfy",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-06-05 18:16:24.846304",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Budget Allocation",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
