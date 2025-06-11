@@ -105,7 +105,6 @@ def raise_exit_checklist(employee, company, exit_approval_process):
 
             recipients = []
             for act in activities:
-                recipients.append(act.user)
                 separation.append("activities", act)
 
             recipients += get_hr_managers_by_company(company)
@@ -119,6 +118,8 @@ def raise_exit_checklist(employee, company, exit_approval_process):
             recipients=recipients,
             notification_name="Employee Separation Notification",
         )
+
+        
 
         # ? LINK EMPLOYEE SEPARATION TO EXIT APPROVAL PROCESS
         frappe.db.set_value(
