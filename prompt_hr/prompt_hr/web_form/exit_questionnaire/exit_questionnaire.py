@@ -46,7 +46,6 @@ def save_response(employee, response):
     # ? DESERIALIZE JSON STRING TO PYTHON OBJECT
     try:
         response = json.loads(response)
-        employee = json.loads(response)
     except Exception as e:
         frappe.throw(f"Invalid response format: {e}")
 
