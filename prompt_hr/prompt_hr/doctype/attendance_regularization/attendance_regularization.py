@@ -5,7 +5,7 @@ import frappe
 from frappe.model.document import Document
 from prompt_hr.py.utils import check_user_is_reporting_manager, send_notification_email
 from frappe.utils import get_datetime, time_diff_in_hours
-
+from prompt_hr.py.auto_mark_attendance import mark_attendance
 
 
 class AttendanceRegularization(Document):
@@ -35,13 +35,24 @@ class AttendanceRegularization(Document):
 				# 		working_hours += time_diff_in_hours(row.out_time, last_in_time)
 				
 				# frappe.db.set_value("Attendance", self.attendance, {"in_time", ""})
-				attendance_doc = frappe.get_doc("Attendance", self.attendance)
-				attendance_doc.flags.ignore_validate_update_after_submit = True
-				attendance_doc.in_time = in_time
-				attendance_doc.out_time = out_time
-				# attendance_doc.working_hours = round(working_hours, 2)
-				attendance_doc.save(ignore_permissions=True)
-    
+				print(f"\n\n Calling Mark Attendance \n\n")
+				mark_attendance(
+					attendance_date = self.regularization_date,
+					company=self.company,
+					regularize_attendance = 1,
+					attendance_id = self.attendance if self.attendance else None,
+					regularize_start_time = in_time,
+					regularize_end_time = out_time,
+					emp_id=self.employee
+				)
+				# * --------------------------------------------------------------------------
+				# attendance_doc = frappe.get_doc("Attendance", self.attendance)
+				# attendance_doc.flags.ignore_validate_update_after_submit = True
+				# attendance_doc.in_time = in_time
+				# attendance_doc.out_time = out_time
+				# # attendance_doc.working_hours = round(working_hours, 2)
+				# attendance_doc.save(ignore_permissions=True)
+				# *----------------------------------------------------------------------------------
 				# * SENDING MAIL TO INFORM EMPLOYEE ABOUT ATTENDANCE REGULARIZATION IS APPROVED AND ONLY SENDING MAIL IF EMPLOYEE IS NOT NOTIFIED
 				if not self.employee_notified:
 					emp_user_id = frappe.db.get_value("Employee", self.employee, "user_id")
