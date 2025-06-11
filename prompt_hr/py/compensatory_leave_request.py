@@ -234,7 +234,7 @@ def expire_compensatory_leave_after_confirmation():
                 "leaves": -1 * unused_leaves,
                 "transaction_type": "Leave Allocation",
                 "transaction_name": leave_allocation.name,
-                "from_date": getdate("2025-06-12"),
+                "from_date": getdate(),
                 "to_date": getdate(leave_allocation.to_date)
             })
             ledger_entry.insert(ignore_permissions=True)
