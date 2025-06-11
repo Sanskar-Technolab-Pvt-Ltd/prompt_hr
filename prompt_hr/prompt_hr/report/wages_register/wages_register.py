@@ -62,19 +62,13 @@ def get_data(filters):
     for slip in slips:
         # Fetch all attendance records where overtime is possible
         attendance_records = frappe.get_all("Attendance",
-            fields=["name", "employee", "employee_name", "attendance_date", "in_time", "out_time", "working_hours"],
+            fields=["name", "employee", "employee_name", "attendance_date", "in_time", "out_time", "working_hours","custom_overtime"],
             filters={"docstatus": 1,"employee":slip.employee, "status": "Present","attendance_date": ["between", [from_date, to_date]]},
             order_by="employee_name, attendance_date"
         )
         overtime = 0
         for att in attendance_records:
-            worked_hours = att.working_hours or 0
-            if att.in_time and att.out_time and worked_hours == 0:
-                worked_hours = att.working_hours or round((att.out_time - att.in_time).total_seconds() / 3600, 2)
-            overtime_hours = max(0, worked_hours - threshold_hours)
-
-            if overtime_hours > 0:
-                overtime += overtime_hours
+            overtime += att.custom_overtime
 
         row = {
             "employee_name": slip.employee_name,
@@ -86,7 +80,7 @@ def get_data(filters):
             "total_income_tax": slip.total_income_tax or 0,
             "total_deductions": slip.total_deduction,
             "net_pay": slip.net_pay,
-            "payment_date": slip.posting_date,
+            "payment_date": frappe.utils.getdate(slip.posting_date),
             "signature": slip.employee_name,
         }
         # Fetch dynamic salary components for each slip
