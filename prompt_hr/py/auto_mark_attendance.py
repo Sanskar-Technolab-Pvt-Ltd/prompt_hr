@@ -29,13 +29,32 @@ from prompt_hr.py.utils import fetch_company_name
 
 
 @frappe.whitelist()
-def mark_attendance(attendance_date=None, company = None,is_scheduler=0):
+def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regularize_attendance = 0, attendance_id=None, regularize_start_time = None, regularize_end_time=0, emp_id=None):
     """Method to mark attendance for prompt employee
     """
     try:
+        
+            
         prompt_company_name = fetch_company_name(prompt=1)
         indifoss_company_name = fetch_company_name(indifoss=1)
+        employee_list = []
         if not is_scheduler:
+            
+            #* IF REGULARIZE ATTENDANCE THEN VALIDATING SPECIFIC PARAMETERS AND SHOW MESSAGE IF NOT FOUND
+            if regularize_attendance: 
+                if not attendance_date:                
+                    throw("Please Provide Attendance Date")
+                
+                if not regularize_start_time:
+                    throw("Please Provide Shift Start Time")
+                
+                if not regularize_end_time:
+                    throw("Please Provide Shift End Time")
+                
+                if not emp_id:
+                    throw("Please Provide Employee ID")
+                    
+                    
             prompt = 0
             indifoss = 0
                 
@@ -45,7 +64,9 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0):
             if indifoss_company_name.get("error"):
                 throw(indifoss_company_name.get("message"))
                 
-            
+            if not company:
+                throw("Please Provide Company Name")
+                
             if company == prompt_company_name.get("company_id"):
                 company_id = prompt_company_name.get("company_id")
                 prompt = 1
@@ -55,10 +76,16 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0):
                 indifoss = 1
             print(f"\n\n {indifoss} {prompt} \n\n")
             
-            employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": company_id}, ["name", "holiday_list", "custom_is_overtime_applicable"])
+            
+            if regularize_attendance:
+                employee_data = frappe.db.get_value("Employee", emp_id, ["name", "holiday_list", "custom_is_overtime_applicable"], as_dict=True)
+                if not employee_data:
+                    throw("No Employees Found")
+            else:
+                employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": company_id}, ["name", "holiday_list", "custom_is_overtime_applicable"])
 
-            if not employee_list:
-                throw("No Employees Found")
+                if not employee_list:
+                    throw("No Employees Found")
 
             if prompt:
                 grace_time_period_for_late_coming = frappe.db.get_single_value("HR Settings", "custom_grace_time_period_for_late_coming_for_prompt") or 0
@@ -91,7 +118,7 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0):
             
             grace_time_period_for_late_coming_for_indifoss = frappe.db.get_single_value("HR Settings", "custom_grace_time_period_for_late_coming_for_indifoss") or 0
             
-                
+        
         mark_attendance_date = getdate(attendance_date) if attendance_date else getdate(today())
         str_mark_attendance_date = mark_attendance_date.strftime("%Y-%m-%d")
         
@@ -99,47 +126,63 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0):
         day_start_time = get_datetime(mark_attendance_date)
         day_end_time = get_datetime(str_mark_attendance_date + " 23:59:59")     
 
-        
-        for employee_data in employee_list:
-                if is_scheduler:
-                    print(f"\n\n  is scheduler {employee_data.get('name')}\n\n")
-                    if employee_data.get("company") == prompt_company_id:
-                        
-                        attendance(
-                            employee_data,
-                            mark_attendance_date,
-                            str_mark_attendance_date,
-                            day_start_time,
-                            day_end_time,
-                            grace_time_period_for_late_coming_for_prompt,
-                            grace_time_for_insufficient_hours = grace_time_for_insufficient_hours_for_prompt,
-                            prompt = 1
-                        )
+        if not regularize_attendance:
+            for employee_data in employee_list:
+                    if is_scheduler:
+                        print(f"\n\n  is scheduler {employee_data.get('name')}\n\n")
+                        if employee_data.get("company") == prompt_company_id:
+                            
+                            attendance(
+                                employee_data,
+                                mark_attendance_date,
+                                str_mark_attendance_date,
+                                day_start_time,
+                                day_end_time,
+                                grace_time_period_for_late_coming_for_prompt,
+                                grace_time_for_insufficient_hours = grace_time_for_insufficient_hours_for_prompt,
+                                prompt = 1
+                            )
 
-                    elif employee_data.get("company") == indifoss_company_id:
-                        
-                        
+                        elif employee_data.get("company") == indifoss_company_id:
+                            
+                            
+                            attendance(
+                                employee_data,
+                                mark_attendance_date,
+                                str_mark_attendance_date,
+                                day_start_time,
+                                day_end_time,
+                                grace_time_period_for_late_coming_for_indifoss,
+                                grace_time_for_insufficient_hours = grace_time_period_for_late_coming_for_indifoss,
+                            )
+                    else:
+                        print(f"\n\n prompt {prompt}  \n\n")
                         attendance(
                             employee_data,
                             mark_attendance_date,
                             str_mark_attendance_date,
                             day_start_time,
                             day_end_time,
-                            grace_time_period_for_late_coming_for_indifoss,
-                            grace_time_for_insufficient_hours = grace_time_period_for_late_coming_for_indifoss,
+                            grace_time_period_for_late_coming,
+                            grace_time_for_insufficient_hours if prompt else 0,
+                            prompt = prompt
                         )
-                else:
-                    print(f"\n\n prompt {prompt}  \n\n")
-                    attendance(
-                        employee_data,
-                        mark_attendance_date,
-                        str_mark_attendance_date,
-                        day_start_time,
-                        day_end_time,
-                        grace_time_period_for_late_coming,
-                        grace_time_for_insufficient_hours if prompt else 0,
-                        prompt = prompt
-                    )
+        elif regularize_attendance:
+            print(f"\n\n Attendance Regularization \n\n")
+            attendance(
+                            employee_data,
+                            mark_attendance_date,
+                            str_mark_attendance_date,
+                            day_start_time,
+                            day_end_time,
+                            grace_time_period_for_late_coming,
+                            grace_time_for_insufficient_hours if prompt else 0,
+                            prompt = prompt,
+                            regularize_attendance = regularize_attendance,
+                            attendance_id = attendance_id,
+                            regularize_start_time = regularize_start_time,
+                            regularize_end_time = regularize_end_time
+                        )
     except Exception as e:
         if is_scheduler:
             frappe.log_error("Error While Marking Attendance", frappe.get_traceback())
@@ -147,22 +190,24 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0):
             frappe.log_error("Error While Marking Attendance", frappe.get_traceback())
             throw(str(e))
             
-def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, day_start_time, day_end_time, grace_time_period_for_late_coming, grace_time_for_insufficient_hours=0, prompt=0):
+def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, day_start_time, day_end_time, grace_time_period_for_late_coming, grace_time_for_insufficient_hours=0, prompt=0, regularize_attendance=None, attendance_id=None,   regularize_start_time=None, regularize_end_time=None):
     
     assigned_shift = frappe.db.get_all("Shift Assignment", {"docstatus": 1, "status": "Active","employee": employee_data.get("name"), "start_date":["<=", mark_attendance_date]}, ["name","shift_type"], order_by="creation desc", limit=1)
 
     #* If no shift assigned then move to next employee
     if not assigned_shift:
+        print(f"\n\n no assigned shift \n\n")
         return 0
     
     #* Checking if attendance exists then move to another employee
-    attendance_exists = frappe.db.exists("Attendance", {"employee": employee_data.get("name"), "attendance_date": mark_attendance_date, "status": ["!=", "Half Day"]})
+    if not regularize_attendance:
+        attendance_exists = frappe.db.exists("Attendance", {"employee": employee_data.get("name"), "attendance_date": mark_attendance_date, "status": ["!=", "Half Day"]})
+        if attendance_exists:
+            return 0
     
     #* CHECKING IS THERE ANY HALF DAY ATTENDANCE OR NOT
     half_day_attendance = frappe.db.get_value("Attendance", {"employee": employee_data.get("name"), "attendance_date": mark_attendance_date, "status": "Half Day", "leave_application": ["is", "set"]}, ["name", "custom_half_day_time"], as_dict=True)
     
-    if attendance_exists:
-        return 0
     
     #* FETCHING SHIFT DETAILS
     shift_type = assigned_shift[0].get("shift_type")
@@ -214,7 +259,8 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
     out_datetime = None
     
     
-    if not in_type_emp_checkin and not out_type_emp_checkin:
+    if not in_type_emp_checkin and not out_type_emp_checkin and not regularize_attendance:
+        print(f"\n\n No tinsadas \n\n")
         holiday_or_weekoff = is_holiday_or_weekoff(employee_data.get("name"), mark_attendance_date)
         
         if not holiday_or_weekoff.get("is_holiday") and not holiday_or_weekoff.get("is_weekoff"):
@@ -225,12 +271,25 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
             attendance_status = "WeekOff"
         
     
-    if in_type_emp_checkin:
-        in_type_emp_checkin_id = in_type_emp_checkin[0].get("name")
-        in_datetime = in_type_emp_checkin[0].get("time")    
-    if out_type_emp_checkin:
-        out_type_emp_checkin_id = out_type_emp_checkin[0].get("name")
-        out_datetime = out_type_emp_checkin[0].get("time")
+    if in_type_emp_checkin or regularize_attendance:
+        
+        if in_type_emp_checkin:
+            in_type_emp_checkin_id = in_type_emp_checkin[0].get("name")
+        
+        if regularize_attendance:
+            in_datetime = regularize_start_time
+        else:
+            in_datetime = in_type_emp_checkin[0].get("time")
+            
+        
+    if out_type_emp_checkin or regularize_attendance:
+        if out_type_emp_checkin:
+            out_type_emp_checkin_id = out_type_emp_checkin[0].get("name")
+            
+        if regularize_attendance:
+            out_datetime = regularize_end_time
+        else:
+            out_datetime = out_type_emp_checkin[0].get("time")
     
     if in_datetime and out_datetime:
         
@@ -311,27 +370,48 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
 
             if not is_half_day or (is_half_day and attendance_status == "Absent"):
                 apply_penalty = 1
-        
-    if is_half_day:
-        
-        update_attendance(half_day_attendance.get("name"), {
-            "custom_type": attendance_type,
-            "custom_work_hours": formatted_working_hours,
-            "working_hours": final_working_hours,
-            "custom_overtime": ot_duration,
-            "late_entry": late_entry,
-            "early_exit": is_early_exit,
-            "custom_apply_penalty": apply_penalty,
-            "in_time" : in_datetime if in_type_emp_checkin else None,
-            "out_time" : out_datetime if out_type_emp_checkin else None,
-            "custom_checkin_time" : in_datetime if in_type_emp_checkin else None,
-            "custom_checkout_time" : out_datetime if out_type_emp_checkin else None,
-            "custom_remarks" : remarks,
-            "custom_employee_checkin" : in_type_emp_checkin_id if in_type_emp_checkin else None,
-            "custom_employee_checkout" : out_type_emp_checkin_id if out_type_emp_checkin else None
+    
+    if is_half_day or attendance_id:
+
             
-        })
+            if attendance_id:
+                update_attendance(attendance_id, {
+                    "custom_type": attendance_type,
+                    "custom_work_hours": formatted_working_hours,
+                    "working_hours": final_working_hours,
+                    "custom_overtime": ot_duration,
+                    "late_entry": late_entry,
+                    "early_exit": is_early_exit,
+                    "custom_apply_penalty": apply_penalty,
+                    "in_time" : in_datetime if in_type_emp_checkin or regularize_start_time else None,
+                    "out_time" : out_datetime if out_type_emp_checkin or regularize_end_time else None,
+                    "custom_checkin_time" : in_datetime if in_type_emp_checkin else None,
+                    "custom_checkout_time" : out_datetime if out_type_emp_checkin else None,
+                    "custom_remarks" : remarks,
+                    "custom_employee_checkin" : in_type_emp_checkin_id if in_type_emp_checkin else None,
+                    "custom_employee_checkout" : out_type_emp_checkin_id if out_type_emp_checkin else None
+                    
+                })
+            else:
+                update_attendance(half_day_attendance.get("name"), {
+                    "custom_type": attendance_type,
+                    "custom_work_hours": formatted_working_hours,
+                    "working_hours": final_working_hours,
+                    "custom_overtime": ot_duration,
+                    "late_entry": late_entry,
+                    "early_exit": is_early_exit,
+                    "custom_apply_penalty": apply_penalty,
+                    "in_time" : in_datetime if in_type_emp_checkin else None,
+                    "out_time" : out_datetime if out_type_emp_checkin else None,
+                    "custom_checkin_time" : in_datetime if in_type_emp_checkin else None,
+                    "custom_checkout_time" : out_datetime if out_type_emp_checkin else None,
+                    "custom_remarks" : remarks,
+                    "custom_employee_checkin" : in_type_emp_checkin_id if in_type_emp_checkin else None,
+                    "custom_employee_checkout" : out_type_emp_checkin_id if out_type_emp_checkin else None
+                    
+                })
     else:
+        print(f"\n Creating Attendance \n\n")
         create_attendance(
             employee_data.get("name"),
             mark_attendance_date,
@@ -344,8 +424,8 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
             early_exit = is_early_exit,
             custom_apply_penalty = apply_penalty,
             shift = shift_type,
-            in_time = in_datetime if in_type_emp_checkin else None,
-            out_time = out_datetime if out_type_emp_checkin else None,
+            in_time = in_datetime if in_type_emp_checkin or regularize_start_time else None,
+            out_time = out_datetime if out_type_emp_checkin or regularize_end_time else None,
             custom_checkin_time = in_datetime if in_type_emp_checkin else '',
             custom_checkout_time = out_datetime if out_type_emp_checkin else '',
             custom_remarks = remarks,
