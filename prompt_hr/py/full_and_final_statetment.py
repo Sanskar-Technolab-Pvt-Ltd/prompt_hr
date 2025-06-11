@@ -55,7 +55,7 @@ def custom_create_component_row(doc, components, component_type):
             expense_claim_docs = frappe.get_all(
                 "Expense Claim",
                 fields=["name", "total_claimed_amount"],
-                filters={"docstatus": 1, "employee": doc.employee, "status": "Unpaid"},
+                filters={"docstatus": ["!=", 2], "employee": doc.employee, "status": ["in",["Unpaid","Draft"]], "workflow_state": ["in",["Sent to Accounting Team","Expense Claim Submitted"]]},
             )
             if expense_claim_docs:
                 for expense_claim in expense_claim_docs:
