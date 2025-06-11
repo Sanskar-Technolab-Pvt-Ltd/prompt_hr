@@ -89,7 +89,7 @@ def send_pending_action_email_for_exit(row, checklist_name, company):
     try:
         doc_type = row.custom_checklist_name or "Exit Checklist"
         doc_name = checklist_name
-        notification_name = "Exit IT Checklist"
+        notification_name = "Exit Checklist"
 
         if not company:
             frappe.throw("Company not found for checklist employee.")
