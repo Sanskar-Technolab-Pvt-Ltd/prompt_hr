@@ -117,9 +117,7 @@ def on_submit(doc,method=None):
     # * For PROMPT Company Logic
     if company_abbr == frappe.db.get_single_value("HR Settings", "custom_prompt_abbr"):
         leave_type = frappe.get_doc("Leave Type", doc.leave_type)
-        print(leave_type)
-        if leave_type.custom_is_maternity_leave:
-            print(leave_type.custom_is_maternity_leave)
+        if leave_type.custom_is_maternity_leave or leave_type.custom_is_paternity_leave:
             if doc.leave_balance == doc.total_leave_days:
                 existing_allocation = frappe.get_all(
                     "Leave Allocation",
@@ -131,7 +129,6 @@ def on_submit(doc,method=None):
                     fields=["name", "to_date"]
                 )
                 if existing_allocation:
-                    print(existing_allocation)
                     if len(existing_allocation) > 1:
                         if int(leave_type.custom_maximum_times_for_applying_leave) > 2:
                             if len(existing_allocation) < int(leave_type.custom_maximum_times_for_applying_leave):

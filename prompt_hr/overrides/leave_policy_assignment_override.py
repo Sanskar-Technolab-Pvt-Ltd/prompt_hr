@@ -3,7 +3,7 @@ from hrms.hr.doctype.leave_policy_assignment.leave_policy_assignment import (
     LeavePolicyAssignment,
 )
 from frappe import _, bold
-from frappe.utils import formatdate
+from frappe.utils import formatdate, getdate
 
 
 class CustomLeavePolicyAssignment(LeavePolicyAssignment):
@@ -46,6 +46,28 @@ class CustomLeavePolicyAssignment(LeavePolicyAssignment):
             is_quarterly = leave_type_doc.custom_is_quarterly_carryforward_rule_applied
             allocation_day = leave_type_doc.allocate_on_day
 
+            # Check if Maternity Leave Application is Present on Curernt Date
+            is_maternity_leave = 0
+            leave_applications = frappe.get_all(
+                "Leave Application",
+                filters={
+                    "employee": self.employee,
+                    "company": self.company,
+                    "docstatus": 1,
+                },
+                fields=["name", "leave_type", "from_date", "to_date"],
+            )
+            for leave_application in leave_applications:
+                leave_type_app = frappe.get_doc(
+                    "Leave Type", leave_application.leave_type
+                )
+                if leave_type_app.custom_is_maternity_leave:
+                    if (getdate(current_date) >= leave_application.from_date) and (
+                        getdate(current_date) <= leave_application.to_date
+                    ):
+                        is_maternity_leave = 1
+                        break
+
             if is_earned and is_quarterly:
                 # Quarterly allocation logic
                 quarters = []
@@ -69,6 +91,10 @@ class CustomLeavePolicyAssignment(LeavePolicyAssignment):
 
                 allocated_leaves = passed_quarters * leave_per_quarter
 
+                # Allocated 0 Earned Leaves if Maternity Leave Application is Confirmed.
+                if is_maternity_leave:
+                    allocated_leaves = 0
+                
                 # Update Leave Allocation and Ledger Entry
                 for alloc in leave_allocations:
                     if alloc.leave_type == leave_type:
@@ -98,6 +124,37 @@ class CustomLeavePolicyAssignment(LeavePolicyAssignment):
                                 "leaves",
                                 allocated_leaves,
                             )
+            # Update Monthly Earned Leave Allocation if Employee is on Maternity Leave on That Day
+            elif is_maternity_leave and is_earned and leave_type_doc.is_earned_leave:
+                for alloc in leave_allocations:
+                    if alloc.leave_type == leave_type:
+                        total_allocated = alloc.unused_leaves or 0
+                        frappe.db.set_value(
+                            "Leave Allocation",
+                            alloc.name,
+                            "new_leaves_allocated",
+                            0,
+                        )
+                        frappe.db.set_value(
+                            "Leave Allocation",
+                            alloc.name,
+                            "total_leaves_allocated",
+                            total_allocated,
+                        )
+
+                        ledger_name = frappe.db.get_value(
+                            "Leave Ledger Entry",
+                            {"transaction_name": alloc.name, "is_carry_forward": 0},
+                            "name",
+                        )
+                        if ledger_name:
+                            frappe.db.set_value(
+                                "Leave Ledger Entry",
+                                ledger_name,
+                                "leaves",
+                                0,
+                            )
+                
 
         frappe.db.commit()
 

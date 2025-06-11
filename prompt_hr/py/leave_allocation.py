@@ -91,34 +91,26 @@ def custom_set_total_leaves_allocated(doc, method=None):
 def get_leave_types_for_display(doctype, txt, searchfield, start, page_len, filters):
     gender = filters.get("gender")
     company = filters.get("company")
+    leave_policy_display = []
 
-    # Start with base conditions for leave types
-    base_condition = """
-        (
-            (custom_company = %(company)s OR custom_company IS NULL) and (is_lwp = 0)
-        )
-    """
+    leave_type_docs = frappe.get_all(
+        "Leave Type",
+        filters={"custom_company": company},
+        fields=["name", "custom_is_paternity_leave", "custom_is_maternity_leave","leave_type_name"]
+    )
 
-    # Extend condition based on gender
-    gender_condition = ""
-    if gender == "Male":
-        gender_condition = "OR (custom_is_paternity_leave = 1)"
-    elif gender == "Female":
-        gender_condition = "OR (custom_is_maternity_leave = 1)"
+    for lt in leave_type_docs:
+        # Exclude based on gender
+        if gender == "Male" and lt.custom_is_maternity_leave:
+            continue
+        if gender == "Female" and lt.custom_is_paternity_leave:
+            continue
 
-    condition = f"{base_condition} {gender_condition}"
+        # Match against search text
+        if txt.lower() in lt.name.lower():
+            leave_policy_display.append((lt.name, lt.leave_type_name))
 
-    # Final SQL query
-    return frappe.db.sql(f"""
-        SELECT name FROM `tabLeave Type`
-        WHERE ({condition})
-        ORDER BY name ASC
-        LIMIT %(start)s, %(page_len)s
-    """, {
-        "company": company,
-        "start": start,
-        "page_len": page_len
-    })
+    return leave_policy_display
 
 
 def before_submit(doc, method):
