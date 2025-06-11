@@ -380,6 +380,7 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
                     "custom_work_hours": formatted_working_hours,
                     "working_hours": final_working_hours,
                     "custom_overtime": ot_duration,
+                    "status": attendance_status,
                     "late_entry": late_entry,
                     "early_exit": is_early_exit,
                     "custom_apply_penalty": apply_penalty,
