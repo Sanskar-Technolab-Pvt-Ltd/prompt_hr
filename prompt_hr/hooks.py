@@ -272,7 +272,8 @@ doc_events = {
         "before_save": "prompt_hr.py.income_tax_computation.before_save"
     },
     "Full and Final Statement": {
-        "on_update": "prompt_hr.py.full_and_final_statetment.on_update",
+        "on_update": "prompt_hr.py.full_and_final_statement.on_update",
+        "before_submit": "prompt_hr.py.full_and_final_statement.before_submit"
     },
     "Travel Request": {
         "on_update": "prompt_hr.py.travel_request.on_update",
@@ -307,6 +308,14 @@ doc_events = {
 # ---------------
 
 scheduler_events = {
+    "cron": {
+        "50 23 * * *": [
+            "prompt_hr.py.employee.update_employee_status_for_prompt_company"
+        ],
+        "0 20 * * *": [
+            "prompt_hr.py.employee.update_employee_status_for_indifoss_company"
+        ]
+    },
     "daily": [
         "prompt_hr.py.employee_changes_approval.daily_check_employee_changes_approval",
         "prompt_hr.py.compensatory_leave_request.expire_compensatory_leave_after_confirmation",

@@ -1226,3 +1226,44 @@ def handle_sales_person_operations_on_update(doc, method):
         )
         # ? RE-RAISE THE EXCEPTION TO ENSURE THE TRANSACTION IS ROLLED BACK
         raise
+
+
+def update_employee_status_for_company(company_abbr: str):
+    # Fetch employees with a set relieving date and matching company
+    company_name = frappe.db.get_value("Company", {"abbr": company_abbr}, "name")
+    
+    if company_name:
+        employees = frappe.get_all(
+            "Employee",
+            filters={
+                "relieving_date": ["is", "set"],
+                "company": company_name
+            },
+            fields=["name", "relieving_date"]
+        )
+        today = getdate()
+
+        for employee in employees:
+            relieving_date = getdate(employee.relieving_date)
+            
+            # Update status if relieving date is today
+            if today == relieving_date:
+                employee_doc = frappe.get_doc("Employee", employee.name)
+                employee_doc.db_set("status", "Left")
+
+                # Disable associated user account if exists
+                if employee_doc.user_id:
+                    user = frappe.get_doc("User", employee_doc.user_id)
+                    user.db_set("enabled", 0)
+
+
+# For PROMPT company
+def update_employee_status_for_prompt_company():
+    prompt_abbr = frappe.db.get_single_value("HR Settings", "custom_prompt_abbr")
+    update_employee_status_for_company(prompt_abbr)
+
+
+# For Indifoss company
+def update_employee_status_for_indifoss_company():
+    indifoss_abbr = frappe.db.get_single_value("HR Settings", "custom_indifoss_abbr")
+    update_employee_status_for_company(indifoss_abbr)
