@@ -286,5 +286,77 @@
   "name": "Draft",
   "style": "",
   "workflow_state_name": "Draft"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-03-26 13:53:15.754377",
+  "name": "Level 1 Approved",
+  "style": "",
+  "workflow_state_name": "Level 1 Approved"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-03-26 13:53:15.754377",
+  "name": "Level 1 Rejected",
+  "style": "",
+  "workflow_state_name": "Level 1 Rejected"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-03-26 13:53:15.754377",
+  "name": "Level 2 Rejected",
+  "style": "",
+  "workflow_state_name": "Level 2 Rejected"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-03-26 13:53:15.754377",
+  "name": "Level 2 Approved",
+  "style": "",
+  "workflow_state_name": "Level 2 Approved"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-03-26 13:53:15.754377",
+  "name": "Level 3 Approved",
+  "style": "",
+  "workflow_state_name": "Level 3 Approved"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-03-26 13:53:15.754377",
+  "name": "Level 3 Rejected",
+  "style": "",
+  "workflow_state_name": "Level 3 Rejected"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-03-26 13:53:15.754377",
+  "name": "Final Approval",
+  "style": "",
+  "workflow_state_name": "Final Approval"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-03-26 13:53:15.754377",
+  "name": "Final Rejection",
+  "style": "",
+  "workflow_state_name": "Final Rejection"
  }
 ]
