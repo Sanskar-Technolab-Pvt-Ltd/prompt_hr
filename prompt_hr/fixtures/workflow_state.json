@@ -17,21 +17,21 @@
   "style": "Info",
   "workflow_state_name": "On-Hold"
  },
-  {
+ {
   "docstatus": 0,
   "doctype": "Workflow State",
   "icon": "",
-  "modified": "2025-04-02 13:13:38.231900",
-  "name": " Approved by Reporting Manager",
+  "modified": "2025-06-12 11:42:14.166470",
+  "name": "Approved by Reporting Manager",
   "style": "Info",
   "workflow_state_name": "Approved by Reporting Manager"
  },
-   {
+ {
   "docstatus": 0,
   "doctype": "Workflow State",
   "icon": "",
-  "modified": "2025-04-02 13:13:38.231900",
-  "name": " Rejected by Reporting Manager",
+  "modified": "2025-06-12 11:42:14.169887",
+  "name": "Rejected by Reporting Manager",
   "style": "Info",
   "workflow_state_name": "Rejected by Reporting Manager"
  },
@@ -111,15 +111,6 @@
   "docstatus": 0,
   "doctype": "Workflow State",
   "icon": "",
-  "modified": "2025-04-02 13:13:07.443097",
-  "name": "Cancelled",
-  "style": "Danger",
-  "workflow_state_name": "Cancelled"
- },
- {
-  "docstatus": 0,
-  "doctype": "Workflow State",
-  "icon": "",
   "modified": "2025-05-29 18:38:32.632751",
   "name": "Extension Approved",
   "style": "Success",
@@ -170,7 +161,7 @@
   "style": "Primary",
   "workflow_state_name": "Extension Requested"
  },
-  {
+ {
   "docstatus": 0,
   "doctype": "Workflow State",
   "icon": "",
@@ -179,7 +170,7 @@
   "style": "Primary",
   "workflow_state_name": "Escalated"
  },
-   {
+ {
   "docstatus": 0,
   "doctype": "Workflow State",
   "icon": "",
@@ -188,7 +179,7 @@
   "style": "Primary",
   "workflow_state_name": "Sent to Accounting Team"
  },
-   {
+ {
   "docstatus": 0,
   "doctype": "Workflow State",
   "icon": "",
@@ -197,7 +188,7 @@
   "style": "Primary",
   "workflow_state_name": "Senior Approval"
  },
-   {
+ {
   "docstatus": 0,
   "doctype": "Workflow State",
   "icon": "",
@@ -206,7 +197,7 @@
   "style": "Primary",
   "workflow_state_name": "Senior Rejection"
  },
-   {
+ {
   "docstatus": 0,
   "doctype": "Workflow State",
   "icon": "",
@@ -214,5 +205,86 @@
   "name": "Expense Claim Submitted",
   "style": "Primary",
   "workflow_state_name": "Expense Claim Submitted"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-04-09 13:05:42.170272",
+  "name": "Amended",
+  "style": "Primary",
+  "workflow_state_name": "Amended"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-04-09 13:05:18.896019",
+  "name": "Reviewed",
+  "style": "Info",
+  "workflow_state_name": "Reviewed"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-04-02 13:13:07.443097",
+  "name": "Cancelled",
+  "style": "Danger",
+  "workflow_state_name": "Cancelled"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-04-09 13:03:07.301513",
+  "name": "Rework",
+  "style": "Danger",
+  "workflow_state_name": "Rework"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-04-09 13:05:08.823621",
+  "name": "Pending for Review",
+  "style": "Warning",
+  "workflow_state_name": "Pending for Review"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "remove",
+  "modified": "2025-04-07 10:38:05.761747",
+  "name": "Rejected",
+  "style": "Danger",
+  "workflow_state_name": "Rejected"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "ok-sign",
+  "modified": "2025-03-20 13:06:36.225532",
+  "name": "Approved",
+  "style": "Success",
+  "workflow_state_name": "Approved"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-06-10 17:53:35.248631",
+  "name": "Submit",
+  "style": "",
+  "workflow_state_name": "Submit"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-03-26 13:53:15.754377",
+  "name": "Draft",
+  "style": "",
+  "workflow_state_name": "Draft"
  }
 ]
