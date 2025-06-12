@@ -17,6 +17,24 @@
   "style": "Info",
   "workflow_state_name": "On-Hold"
  },
+  {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-04-02 13:13:38.231900",
+  "name": " Approved by Reporting Manager",
+  "style": "Info",
+  "workflow_state_name": "Approved by Reporting Manager"
+ },
+   {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-04-02 13:13:38.231900",
+  "name": " Rejected by Reporting Manager",
+  "style": "Info",
+  "workflow_state_name": "Rejected by Reporting Manager"
+ },
  {
   "docstatus": 0,
   "doctype": "Workflow State",
@@ -151,5 +169,50 @@
   "name": "Extension Requested",
   "style": "Primary",
   "workflow_state_name": "Extension Requested"
+ },
+  {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-05-29 10:20:36.270966",
+  "name": "Escalated",
+  "style": "Primary",
+  "workflow_state_name": "Escalated"
+ },
+   {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-05-29 10:20:36.270966",
+  "name": "Sent to Accounting Team",
+  "style": "Primary",
+  "workflow_state_name": "Sent to Accounting Team"
+ },
+   {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-05-29 10:20:36.270966",
+  "name": "Senior Approval",
+  "style": "Primary",
+  "workflow_state_name": "Senior Approval"
+ },
+   {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-05-29 10:20:36.270966",
+  "name": "Senior Rejection",
+  "style": "Primary",
+  "workflow_state_name": "Senior Rejection"
+ },
+   {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-05-29 10:20:36.270966",
+  "name": "Expense Claim Submitted",
+  "style": "Primary",
+  "workflow_state_name": "Expense Claim Submitted"
  }
 ]
