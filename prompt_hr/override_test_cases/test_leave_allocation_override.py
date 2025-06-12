@@ -1,4 +1,4 @@
-from hrms.hr.doctype.leave_allocation.test_leave_allocation import TestLeaveAllocation, create_leave_allocation
+from hrms.hr.doctype.leave_allocation.test_leave_allocation import create_leave_allocation
 import frappe
 from frappe.tests.utils import FrappeTestCase, change_settings
 from frappe.utils import add_days, add_months, getdate, nowdate, flt
