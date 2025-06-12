@@ -102,6 +102,11 @@ def create(**args):
                     f"Please Fill {field_name} Field!",
                     frappe.MandatoryError,
                 )
+                
+        # ? PARSE CHILD TABLE JSON FIELDS
+        if args.get("weekoff_details"):
+            args["weekoff_details"] = frappe.parse_json(args.get("weekoff_details"))        
+                
 
         # ? CREATE WEEKOFF REQUEST DOC
         weekoff_change_request_doc = frappe.get_doc({
@@ -140,6 +145,10 @@ def update(**args):
 
         # ? FETCH EXISTING DOC
         weekoff_change_request_doc = frappe.get_doc("WeekOff Change Request", args.get("name"))
+        
+        # ? PARSE CHILD TABLE JSON FIELDS
+        if args.get("weekoff_details"):
+            args["weekoff_details"] = frappe.parse_json(args.get("weekoff_details")) 
 
         # ? UPDATE FIELDS
         for key, value in args.items():

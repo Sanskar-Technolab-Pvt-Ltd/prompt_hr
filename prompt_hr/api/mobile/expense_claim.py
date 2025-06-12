@@ -1,4 +1,5 @@
 import frappe
+from frappe.utils.file_manager import save_file
 
 
 # ! prompt_hr.api.mobile.expense_claim.list
@@ -86,20 +87,20 @@ def get(name):
       
 
 
-# ! prompt_hr.api.mobile.expense_claim.create
-# ? CREATE EXPENSE CLAIM   
-   
+# # ! prompt_hr.api.mobile.expense_claim.create
+# # ? CREATE EXPENSE CLAIM   
+       
+     
 @frappe.whitelist()
 def create(**args):
     try:
         # ? DEFINE MANDATORY FIELDS
         mandatory_fields = {
             "employee": "Employee",
-            "from_date": "From Date",
-            "to_date": "To Date",
-            "reason": "Reason"
-            
-
+            "expense_approver": "Expense Approver",
+            "custom_type": "Type",
+            "approval_status": "Approval Status",
+            "expenses" : "Expenses"
         }
 
         # ? CHECK IF THE MANDATORY FIELD IS FILLED OR NOT IF NOT THROW ERROR
@@ -114,13 +115,30 @@ def create(**args):
                     frappe.MandatoryError,
                 )
 
-            
+        # ? PARSE CHILD TABLE JSON FIELDS
+        if args.get("expenses"):
+            args["expenses"] = frappe.parse_json(args.get("expenses"))
+        if args.get("advances"):
+            args["advances"] = frappe.parse_json(args.get("advances"))
+                
         # ? CREATE EXPENSE CLAIM DOC
         expense_claim_doc = frappe.get_doc({
             "doctype": "Expense Claim",
             **args
         })
         expense_claim_doc.insert()
+        frappe.db.commit()
+        
+        # ? HANDLE MULTIPLE FILE UPLOADS
+        uploaded_files = frappe.request.files.getlist("file")
+        for uploaded_file in uploaded_files:
+            save_file(
+                uploaded_file.filename,
+                uploaded_file.stream.read(),
+                "Expense Claim",
+                expense_claim_doc.name,
+                is_private=0
+            )
         frappe.db.commit()
 
     except Exception as e:
@@ -140,6 +158,8 @@ def create(**args):
             "message": "Expense Claim Created Successfully!",
             "data": expense_claim_doc,
         }
+                 
+     
          
          
 # ! prompt_hr.api.mobile.expense_claim.update
@@ -155,12 +175,30 @@ def update(**args):
         # ? FETCH EXISTING DOC
         expense_claim_doc = frappe.get_doc("Expense Claim", args.get("name"))
 
-        # ? UPDATE FIELDS
+        # ? PARSE CHILD TABLE JSON FIELDS
+        if args.get("expenses"):
+            args["expenses"] = frappe.parse_json(args.get("expenses"))
+        if args.get("advances"):
+            args["advances"] = frappe.parse_json(args.get("advances"))
+
+        # ? UPDATE MAIN FIELDS AND CHILD TABLES
         for key, value in args.items():
-            if key != "name":  # avoid overwriting the document name
+            if key != "name":
                 expense_claim_doc.set(key, value)
 
         expense_claim_doc.save()
+        frappe.db.commit()
+
+        # ? OPTIONAL: HANDLE FILE UPLOADS IF NEEDED
+        uploaded_files = frappe.request.files.getlist("file")
+        for uploaded_file in uploaded_files:
+            save_file(
+                uploaded_file.filename,
+                uploaded_file.stream.read(),
+                "Expense Claim",
+                expense_claim_doc.name,
+                is_private=0
+            )
         frappe.db.commit()
 
     except Exception as e:
