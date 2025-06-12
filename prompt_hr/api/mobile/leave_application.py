@@ -86,7 +86,6 @@ def get(name):
 @frappe.whitelist()
 def create(**args):
     try:
-        print(f"\n\n METHOS cALLED\n\n")
         # ? DEFINE MANDATORY FIELDS
         mandatory_fields = {
             "employee": "Employee",
@@ -108,55 +107,32 @@ def create(**args):
                     f"Please Fill {field_name} Field!",
                     frappe.MandatoryError,
                 )
-        attachment_url = None
-        if frappe.request.files.get("custom_attachment"):
-            file = frappe.request.files["custom_attachment"]
-            file_doc = frappe.get_doc({
-                "doctype": "File",
-                "file_name": file.filename,
-                "content": file.read(),
-                "is_private": 1,  # Set to private; change to 0 for public
-            })
-            file_doc.save()
-            attachment_url = file_doc.file_url
+        
+         # ? PARSE CHILD TABLE JSON FIELDS
+        if args.get("custom_email_cc"):
+            args["custom_email_cc"] = frappe.parse_json(args.get("custom_email_cc"))
             
-        
-        doc_data = args.copy()
-        if attachment_url:
-            doc_data["custom_attachment"] = attachment_url  # Set custom_attachment field
-
-        
-        email_table = frappe.parse_json(doc_data.get("custom_email_cc"))
-        doc_data["custom_email_cc"] = email_table
-        
         # ? CREATE LEAVE APPLICATION
         leave_application_request_doc = frappe.get_doc({
             "doctype": "Leave Application",
-            **doc_data
+            **args
         })
         
         leave_application_request_doc.insert()
         frappe.db.commit()
-
         
-        # ? ATTACH FILE TO DOCUMENT (IF UPLOADED)
-        if attachment_url:
-            frappe.get_doc({
-                "doctype": "File",
-                "file_name": file_doc.file_name,
-                "file_url": attachment_url,
-                "attached_to_doctype": "Leave Application",
-                "attached_to_name": leave_application_request_doc.name,
-                "is_private": 1,
-            }).insert()
-            
-        # # ? CREATE LEAVE APPLICATION
-        # leave_application_request_doc = frappe.get_doc({
-        #     "doctype": "Leave Application",
-        #     **args
-        # })
-        # leave_application_request_doc.insert()
-        # frappe.db.commit()
+        # ? HANDLE MULTIPLE FILE UPLOADS
+        uploaded_files = frappe.request.files.getlist("file")
+        for uploaded_file in uploaded_files:
+            save_file(
+                uploaded_file.filename,
+                uploaded_file.stream.read(),
+                "Leave Application",
+                leave_application_request_doc.name,
+                is_private=0
+            )
+        frappe.db.commit()
+
     except Exception as e:
         # ? HANDLE ERRORS
         frappe.log_error("Error While Creating Leave Application", str(e))
@@ -186,6 +162,10 @@ def update(**args):
 
         # ? FETCH EXISTING DOC
         leave_application_doc = frappe.get_doc("Leave Application", args.get("name"))
+        
+        # ? PARSE CHILD TABLE JSON FIELDS
+        if args.get("custom_email_cc"):
+            args["custom_email_cc"] = frappe.parse_json(args.get("custom_email_cc"))
 
         # ? UPDATE FIELDS
         for key, value in args.items():
@@ -193,6 +173,18 @@ def update(**args):
                 leave_application_doc.set(key, value)
 
         leave_application_doc.save()
+        frappe.db.commit()
+        
+        # ? HANDLE MULTIPLE FILE UPLOADS
+        uploaded_files = frappe.request.files.getlist("file")
+        for uploaded_file in uploaded_files:
+            save_file(
+                uploaded_file.filename,
+                uploaded_file.stream.read(),
+                "Leave Application",
+                leave_application_doc.name,
+                is_private=0
+            )
         frappe.db.commit()
 
     except Exception as e:
@@ -246,41 +238,3 @@ def delete(name=None):
         
         
         
-import frappe
- 
-# ! prompt_hr.api.mobile.salary_slip.get
-# ? GET SALARY SLIP DETAIL
-@frappe.whitelist()
-def gett(name):
-    try:
-        # ? CHECK IF SALARY SLIP  DOC EXISTS OR NOT
-        salary_slip_exists = frappe.db.exists("Salary Slip", name)
- 
-        # ? IF SALARY SLIP  DOC NOT
-        if not salary_slip_exists:
-            frappe.throw(
-                f"Salary Slip: {name} Does Not Exists!",
-                frappe.DoesNotExistError,
-            )
- 
-        # ? GET SALARY SLIP  DOC
-        salary_slip = frappe.get_doc("Salary Slip", name)
- 
-    except Exception as e:
-        # ? HANDLE ERRORS
-        frappe.log_error("Error While Getting Salary Slip Detail", str(e))
-        frappe.clear_messages()
-        frappe.local.response["message"] = {
-            "success": False,
-            "message": str(e),
-            "data": None,
-        }
- 
-    else:
-        # ? HANDLE SUCCESS
-        frappe.local.response["message"] = {
-            "success": True,
-            "message": "Salary Slip Loaded Successfully!",
-            "data": salary_slip,
-        }
-         
