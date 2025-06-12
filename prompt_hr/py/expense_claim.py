@@ -340,7 +340,12 @@ def get_expense_claim_exception(doc):
         elif expense.expense_type == "Local Commute":
             amount = expense.get("amount")
             allowed_amount = budget_row.local_commute_limit
-
+            attachment_compulsion = frappe.db.get_value("Local Commute Details",{"grade": employee_grade, "mode_of_commute":expense.get("custom_mode_of_vehicle"), "type_of_commute": expense.get("custom_type_of_vehicle")}, "attachment_mandatory")
+            
+            if attachment_compulsion and not expense.get("custom_attachments"):
+                frappe.throw(
+                    f"Attachment is required for Expense at row #{idx} of type '{expense.expense_type}'. Please upload the attachment."
+                )
             if expense.get("custom_mode_of_vehicle") == "Non-Public":
 
                 total_km += float(expense.get("custom_km")) or 0
