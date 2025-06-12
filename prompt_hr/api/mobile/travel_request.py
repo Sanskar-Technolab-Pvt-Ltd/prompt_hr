@@ -88,9 +88,9 @@ def create(**args):
     try:
         # ? DEFINE MANDATORY FIELDS
         mandatory_fields = {
+            "employee": "Employee",
             "travel_type": "Travel Type",
             "purpose_of_travel": "Purpose of Travel",
-            "employee": "Employee",
         }
 
         # ? CHECK IF THE MANDATORY FIELD IS FILLED OR NOT IF NOT THROW ERROR
@@ -105,6 +105,10 @@ def create(**args):
                     frappe.MandatoryError,
                 )
 
+        # ? PARSE CHILD TABLE JSON FIELDS
+        if args.get("itinerary"):
+            args["itinerary"] = frappe.parse_json(args.get("itinerary"))
+            
         # ? CREATE TRAVEL REQUEST DOC
         travel_request_doc = frappe.get_doc({
             "doctype": "Travel Request",
@@ -143,6 +147,10 @@ def update(**args):
 
         # ? FETCH EXISTING DOC
         travel_request_doc = frappe.get_doc("Travel Request", args.get("name"))
+        
+        # ? PARSE CHILD TABLE JSON FIELDS
+        if args.get("itinerary"):
+            args["itinerary"] = frappe.parse_json(args.get("itinerary"))
 
         # ? UPDATE FIELDS
         for key, value in args.items():

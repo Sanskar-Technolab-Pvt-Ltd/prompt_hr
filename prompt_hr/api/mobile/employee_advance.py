@@ -1,5 +1,5 @@
 import frappe
-
+from frappe.utils.file_manager import save_file
 
 # Employee Advance
 # EMPLOYEE ADVANCE
@@ -90,9 +90,6 @@ def get(name):
       
 # ! prompt_hr.api.mobile.employee_advance.create
 # ? CREATE EMPLOYEE ADVANCE WITH OPTIONAL FILE ATTACHMENT
-
-import frappe
-from frappe.utils.file_manager import save_file
 
 @frappe.whitelist()
 def create(**args):
