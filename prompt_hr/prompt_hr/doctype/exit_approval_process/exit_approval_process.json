@@ -8,6 +8,8 @@
   "posting_date",
   "employee",
   "employee_name",
+  "exit_interview",
+  "employee_separation",
   "column_break_lhxs",
   "resignation_approval",
   "company",
@@ -71,12 +73,24 @@
    "fieldname": "last_date_of_working",
    "fieldtype": "Date",
    "label": "Last Date of Working"
+  },
+  {
+   "fieldname": "exit_interview",
+   "fieldtype": "Link",
+   "label": "Exit interview",
+   "options": "Exit Interview"
+  },
+  {
+   "fieldname": "employee_separation",
+   "fieldtype": "Link",
+   "label": "Employee Separation",
+   "options": "Employee Separation"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-06 12:16:40.796153",
+ "modified": "2025-06-04 11:14:38.323028",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Exit Approval Process",

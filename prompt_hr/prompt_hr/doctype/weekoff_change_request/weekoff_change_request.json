@@ -1,6 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "format:WOCR-{#####}",
  "creation": "2025-04-29 06:54:30.493271",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -60,10 +61,11 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-20 15:57:41.741985",
+ "modified": "2025-05-28 12:04:08.759001",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "WeekOff Change Request",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {

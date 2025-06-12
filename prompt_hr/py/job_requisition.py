@@ -1,6 +1,6 @@
 import frappe
 from frappe import throw
-from prompt_hr.py.utils import send_notification_email,get_hr_managers_by_company
+from prompt_hr.py.utils import send_notification_email,get_hr_managers_by_company, fetch_company_name
 
 @frappe.whitelist()
 def on_update(doc, method):
@@ -21,11 +21,21 @@ def notify_approver(doc, method):
     try:
         
         is_insert = doc.flags.in_insert
-        workflow_approval_list = frappe.db.get_all("Workflow Approval", {"applicable_doctype": 'Job Requisition'}, 'name')
+        workflow_approval_list = frappe.db.get_all("Workflow Approval", {"applicable_doctype": 'Job Requisition', "company": doc.company}, 'name')
         applicable_workflow_approval = None
         user_emails = []
         by_roles = []
-    
+        for_prompt = fetch_company_name(prompt=1)
+        for_indifoss = fetch_company_name(indifoss=1)
+        company_id = None
+        
+        
+        
+        if for_prompt.get("error"):
+            throw(for_prompt.get("message"))
+        if for_indifoss.get("error"):
+            throw(for_indifoss.get("message"))
+        
         if workflow_approval_list:
             for workflow_approval in workflow_approval_list:
                 all_criteria = frappe.db.get_all("Workflow Approval Criteria", {"parenttype": "Workflow Approval", "parent": workflow_approval.get("name")}, ["field_name",   "expected_value"])

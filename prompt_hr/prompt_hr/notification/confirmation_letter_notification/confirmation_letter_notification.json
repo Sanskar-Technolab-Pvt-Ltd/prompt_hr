@@ -1,5 +1,5 @@
 {
- "attach_print": 1,
+ "attach_print": 0,
  "channel": "Email",
  "creation": "2025-04-25 12:23:49.547900",
  "days_in_advance": 0,
@@ -12,12 +12,12 @@
  "is_standard": 1,
  "message": "Dear {{doc.employee_name}},<br><br>\nCongratulations! We are pleased to confirm your employment with {{doc.company}}.<br><br>\nYour probation period has been successfully completed, and you are now a confirmed employee.<br><br>Please find attached your confirmation letter with complete details\n<br><br>\nRegards,<br>\n{{doc.company}} HR Team",
  "message_type": "HTML",
- "modified": "2025-04-25 15:01:15.840836",
+ "modified": "2025-05-31 14:49:57.428763",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Confirmation Letter Notification",
  "owner": "Administrator",
- "print_format": "Prompt Equipments _ Confirmation Letter",
+ "print_format": "Confirmation Letter - Prompt",
  "recipients": [
   {}
  ],

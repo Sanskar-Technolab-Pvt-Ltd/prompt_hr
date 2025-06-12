@@ -8,6 +8,14 @@ frappe.ui.form.on("Interview", {
             ? "Revise Teams Calendar" 
             : "Book Teams Calendar";
             frm.add_custom_button(__(button_label), function() {
+                if (frm.is_dirty()) {
+                    frappe.msgprint({
+                        title: __("Unsaved Changes"),
+                        message: __("Please save the document before doing any actions."),
+                        indicator: "orange"
+                    });
+                    return;
+                }
 
                 frappe.call({
                     method: 'prompt_hr.teams.calender_book.teams_calender_book',
@@ -532,11 +540,11 @@ function createInviteButton(frm) {
                             joining_document_checklist: values.joining_document_checklist,
                             document_collection_stage: values.document_collection_stage,
                             documents: selected_documents,
-                            child_table_fieldname: "documents"
                         },
                         joining_document_checklist: values.joining_document_checklist,
                         document_collection_stage: values.document_collection_stage,
-                        documents: selected_documents
+                        documents: selected_documents,
+                        child_table_fieldname: "documents"
                     },
                     callback: function (r) {
                         if (r.message === "Already invited for document collection.") {

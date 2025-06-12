@@ -1,4 +1,5 @@
 import frappe
+from prompt_hr.py.utils import get_applicable_print_format,send_notification_email, get_prompt_company_name
 # testing comment
 @frappe.whitelist()
 def trigger_appointment_notification(name):
@@ -13,53 +14,23 @@ def trigger_appointment_notification(name):
         else employee.prefered_email if preferred == "User ID"
         else employee.personal_email 
     )
+    print("email:\n\n",email)
+    is_prompt = False
+    if doc.company == get_prompt_company_name():
+        is_prompt = True
 
-    notification = frappe.get_doc("Notification", "Send Appointment Letter")
-    if not notification:
-        frappe.throw("No Notification found for Appointment Letter")
+    print_format = get_applicable_print_format(is_prompt=is_prompt, doctype=doc.doctype).get("print_format")
+    send_notification_email(
+        recipients=[email],
+        doctype=doc.doctype,
+        docname=doc.name,
+        notification_name="Send Appointment Letter",
+        send_attach=True,
+        print_format=print_format
+    )
+   
 
-    # Company abbreviation logic
-    company_abbr = frappe.get_doc("Company", doc.company).abbr
-    prompt_abbr = frappe.db.get_single_value("HR Settings", "custom_prompt_abbr")
-    indifoss_abbr = frappe.db.get_single_value("HR Settings", "custom_indifoss_abbr")
-
-    # Generate PDF attachment based on company
-    attachment = None
-    if company_abbr == prompt_abbr:
-        pdf_content = frappe.get_print(
-            "Appointment Letter", doc.name,
-            print_format="Appointment letter - Prompt",
-            as_pdf=True
-        )
-        attachment = {
-            "fname": "Appointment letter - Prompt.pdf",
-            "fcontent": pdf_content
-        }
-    elif company_abbr == indifoss_abbr:
-        pdf_content = frappe.get_print(
-            "Appointment Letter", doc.name,
-            print_format="Appointment letter - Indifoss",
-            as_pdf=True
-        )
-        attachment = {
-            "fname": "Appointment letter - Indifoss.pdf",
-            "fcontent": pdf_content
-        }
-
-    # Send email if email found
-    if email:
-        message = frappe.render_template(notification.message, {"doc": doc, "employee": employee})
-        subject = frappe.render_template(notification.subject, {"doc": doc})
-        frappe.sendmail(
-            recipients=email,
-            subject=subject,
-            content=message,
-            reference_doctype=doc.doctype,
-            reference_name=doc.name,
-            attachments=[attachment] if attachment else None
-        )
-
-        notify_signatory_on_email(doc.company, "HR Manager", doc.name, f"Appointment Letter - {doc.company}")
+    notify_signatory_on_email(doc.company, "HR Manager", doc.name, f"Appointment Letter - {doc.company}")
 
     return "Appointment Letter Successfully"
 

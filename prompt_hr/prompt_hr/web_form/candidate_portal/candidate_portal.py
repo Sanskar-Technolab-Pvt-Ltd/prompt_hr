@@ -1,7 +1,8 @@
 import frappe
-from prompt_hr.py.utils import validate_hash, send_notification_email
+from prompt_hr.py.utils import validate_hash, send_notification_email, get_hr_managers_by_company
 import json
 from frappe import _
+from datetime import datetime
 
 
 def get_context(context):
@@ -53,38 +54,62 @@ def validate_candidate_portal_hash(
     else:
         frappe.throw("Invalid hash")
 
-
+# ? FUNCTION TO UPDATE JOB OFFER FIELDS
+@frappe.whitelist()
 def update_job_offer(
     job_offer,
     expected_date_of_joining,
     offer_acceptance,
     condition_for_offer_acceptance,
 ):
+    try:
+        if not job_offer:
+            frappe.throw(_("Job Offer ID is required"))
 
-    frappe.db.set_value(
-        "Job Offer",
-        job_offer,
-        "custom_candidate_date_of_joining",
-        expected_date_of_joining,
-    )
-    frappe.db.set_value(
-        "Job Offer", job_offer, "custom_candidate_offer_acceptance", offer_acceptance
-    )
-    frappe.db.set_value(
-        "Job Offer",
-        job_offer,
-        "custom_candidate_condition_for_offer_acceptance",
-        condition_for_offer_acceptance,
-    )
+        if not frappe.db.exists("Job Offer", job_offer):
+            frappe.throw(_("Job Offer {0} does not exist").format(job_offer))
+
+       
+
+        # ? UPDATE FIELDS
+        frappe.db.set_value(
+            "Job Offer",
+            job_offer,
+            "custom_candidate_date_of_joining",
+            expected_date_of_joining,
+        )
+        frappe.db.set_value(
+            "Job Offer",
+            job_offer,
+            "custom_candidate_offer_acceptance",
+            offer_acceptance,
+        )
+        frappe.db.set_value(
+            "Job Offer",
+            job_offer,
+            "custom_candidate_condition_for_offer_acceptance",
+            condition_for_offer_acceptance,
+        )
+
+        return {
+            "status": "success",
+            "message": _("Job Offer updated successfully")
+        }
+
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), "Error Updating Job Offer")
+        return {
+            "status": "error",
+            "message": _("Something went wrong while updating the Job Offer.")
+        }
+
 
 
 # ! prompt_hr.py.candidate_portal.update_candidate_portal
-# ? FUNCTION TO UPDATE ONLY 'documents' CHILD TABLE IN CANDIDATE PORTAL
+# ? FUNCTION TO UPDATE CHILD TABLES IN CANDIDATE PORTAL
 @frappe.whitelist(allow_guest=True)
 def update_candidate_portal(doc):
-
     try:
-
         # ? PARSE JSON IF COMING AS STRING
         if isinstance(doc, str):
             doc = frappe.parse_json(doc)
@@ -92,51 +117,85 @@ def update_candidate_portal(doc):
         # ? GET DOCUMENT NAME
         doc_name = doc.get("name")
         if not doc_name:
-            print("doc_name\n\n", doc_name)
             return {"success": False, "message": "Document name is required"}
 
         # ? FETCH DOCUMENT OR THROW IF NOT FOUND
         portal_doc = frappe.get_doc("Candidate Portal", doc_name)
 
+        # ? UPDATE JOB OFFER IF EXISTS
         job_offer = frappe.db.get_value("Candidate Portal", doc_name, "job_offer")
+        if job_offer:
+            update_job_offer(
+                job_offer,
+                doc.get("expected_date_of_joining"),
+                doc.get("offer_acceptance"),
+                doc.get("condition_for_offer_acceptance"),
+            )
 
-        update_job_offer(
-            job_offer,
-            doc.expected_date_of_joining,
-            doc.offer_acceptance,
-            doc.condition_for_offer_acceptance,
-        )
-
-        # ? VALIDATE 'documents' CHILD TABLE DATA
+        # ? UPDATE documents CHILD TABLE
         documents = doc.get("documents")
-        if not isinstance(documents, list):
-            return {"success": False, "message": "'documents' must be a list"}
+        if documents is not None:
+            if not isinstance(documents, list):
+                return {"success": False, "message": "'documents' must be a list"}
+            
+            # ? RESET EXISTING documents CHILD TABLE
+            portal_doc.set("documents", [])
+            
+            # ? APPEND EACH DOCUMENT ENTRY
+            for row in documents:
+                if isinstance(row, dict):
+                    row["upload_date"] = frappe.utils.now()
+                    row["upload_time"] = frappe.utils.now()
+                    row["ip_address_on_document_upload"] = frappe.local.request_ip
+                    portal_doc.append("documents", row)
 
-        # ? RESET EXISTING CHILD TABLE
-        portal_doc.set("documents", [])
+        # ? UPDATE new_joinee_documents CHILD TABLE
+        new_joinee_documents = doc.get("new_joinee_documents")
+        if new_joinee_documents is not None:
+            if not isinstance(new_joinee_documents, list):
+                return {"success": False, "message": "'new_joinee_documents' must be a list"}
+            
+            # ? RESET EXISTING new_joinee_documents CHILD TABLE
+            portal_doc.set("new_joinee_documents", [])
+            
+            # ? APPEND EACH NEW JOINEE DOCUMENT ENTRY
+            for row in new_joinee_documents:
+                if isinstance(row, dict):
+                    row["upload_date"] = frappe.utils.now()
+                    row["upload_time"] = frappe.utils.now()
+                    row["ip_address_on_document_upload"] = frappe.local.request_ip
+                    portal_doc.append("new_joinee_documents", row)
 
-        # ? APPEND EACH DOCUMENT ENTRY
-        for row in documents:
-            row["upload_date"] = frappe.utils.now()
-            row["upload_time"] = frappe.utils.now()
-            row["ip_address_on_document_upload"] = frappe.local.request_ip
-            portal_doc.append("documents", row)
-
-        # ? SEND MAIL TO HR
-        send_notification_email(
-            notification_name="HR Candidate Web Form Revert Mail",
-            recipients=[portal_doc.applicant_email],
-            button_label="View Details",
-            doctype="Candidate Portal",
-            docname=portal_doc.name,
-        )
+        # ? UPDATE OTHER FORM FIELDS
+        updatable_fields = [
+            "offer_acceptance",
+            "expected_date_of_joining", 
+            "condition_for_offer_acceptance"
+        ]
+        
+        for field in updatable_fields:
+            if field in doc:
+                setattr(portal_doc, field, doc.get(field))
 
         # ? SAVE DOCUMENT WITH IGNORED PERMISSIONS
         portal_doc.save(ignore_permissions=True)
 
-        return {"success": True, "message": "Documents updated successfully"}
+        # ? SEND MAIL TO HR
+        try:
+            send_notification_email(
+                notification_name="HR Candidate Web Form Revert Mail",
+                recipients=get_hr_managers_by_company(portal_doc.company),
+                button_label="View Details",
+                doctype="Candidate Portal",
+                docname=portal_doc.name,
+            )
+        except Exception as email_error:
+            # ? LOG EMAIL ERROR BUT DON'T FAIL THE ENTIRE UPDATE
+            frappe.log_error(f"Failed to send notification email: {str(email_error)}", "Email Notification Error")
+
+        return {"success": True, "message": "Information updated successfully"}
 
     except Exception as e:
         # ? LOG ERROR IF SOMETHING FAILS
         frappe.log_error(frappe.get_traceback(), "Candidate Portal Update Error")
-        return {"success": False, "message": f"Error updating documents: {str(e)}"}
+        return {"success": False, "message": f"Error updating information: {str(e)}"}

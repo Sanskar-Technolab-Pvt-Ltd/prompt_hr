@@ -105,9 +105,34 @@ frappe.ready(function () {
                                 "offer_acceptance",
                                 "expected_date_of_joining"
                             ];
-                            if (child_tables_data[1].child_table_data.length > 0) {
+                            console.log("Fields to Hide: ", fieldsToHide);
+                            console.log("Child Tables Data: ", child_tables_data);
+                            child_tables_data.forEach(child_table_data => {
+                                if (child_table_data.child_table_data.length<1) {
+                                fieldsToHide.push(child_table_data.child_table_fieldname); 
+                                console.log("Child Table Field Name: ", child_table_data.child_table_fieldname);
+                                }
+                            });
+
+                            if (child_tables_data[1].child_table_data.length > 0)
                                 fieldsToHide.push("documents");
-                            }
+                               
+                            
+                            fieldsToHide.forEach(field => {
+                                if (frappe.web_form.fields_dict[field]) {
+                                    frappe.web_form.set_df_property(field, "hidden", 1);
+                                }
+                            });
+                        }
+
+                        else if (data.job_offer) {
+                            
+                            const fieldsToHide = []
+                            child_tables_data.forEach(child_table_data => {
+                                if (child_table_data.child_table_data.length < 1) {
+                                    fieldsToHide.push(child_table_data.child_table_fieldname);
+                                }
+                            });
                             fieldsToHide.forEach(field => {
                                 if (frappe.web_form.fields_dict[field]) {
                                     frappe.web_form.set_df_property(field, "hidden", 1);
@@ -118,7 +143,6 @@ frappe.ready(function () {
                         let idx = 0;
                         // ? SET THE CHILD TABLE DATA
                         child_tables_data.forEach( async child_table_data => {
-                            console.log("Child Table Data: ", child_table_data);
                             child_table_fieldname = child_table_data.child_table_fieldname;
                             idx = frappe.web_form.fields_dict[child_table_fieldname].df.idx;
                             frappe.web_form.fields[idx].data = child_table_data.child_table_data;
@@ -142,6 +166,8 @@ frappe.ready(function () {
 
                             // ? INCLUDE THE RECORD NAME
                             formData.name = window.verifiedDocName;
+
+                            console.log(formData)
 
                             // ? MAKE SERVER CALL TO UPDATE RECORD
                             frappe.call({

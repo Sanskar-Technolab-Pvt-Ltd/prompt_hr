@@ -6,30 +6,36 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "item",
-  "item_name"
+  "product_group",
+  "last_evaluation_date",
+  "next_evaluation_date"
  ],
  "fields": [
   {
-   "fieldname": "item",
+   "fieldname": "product_group",
    "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "Item",
-   "options": "Item"
+   "label": "Product Group",
+   "options": "Product Group"
   },
   {
-   "fetch_from": "item.item_name",
-   "fieldname": "item_name",
-   "fieldtype": "Data",
+   "fieldname": "last_evaluation_date",
+   "fieldtype": "Date",
    "in_list_view": 1,
-   "label": "Item Name"
+   "label": "Last Evaluation Date"
+  },
+  {
+   "fieldname": "next_evaluation_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Next Evaluation Date"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-04-16 13:27:19.235061",
+ "modified": "2025-06-05 17:07:53.474726",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Product Knowledge",
