@@ -186,6 +186,10 @@ def delete(name=None):
         # ? CHECK MANDATORY FIELD
         if not name:
             frappe.throw("Travel Request 'name' is required to delete the document", frappe.MandatoryError)
+            
+        # ? VERIFY DOCUMENT EXISTS
+        if not frappe.db.exists("Travel Request", name):
+            frappe.throw(f"Request with name '{name}' does not exist", frappe.DoesNotExistError)       
 
         # ? DELETE THE DOCUMENT
         frappe.delete_doc("Travel Request", name, ignore_permissions=True)
