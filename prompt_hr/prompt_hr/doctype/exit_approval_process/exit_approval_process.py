@@ -110,29 +110,31 @@ def raise_exit_checklist(employee, company, exit_approval_process):
             recipients += get_hr_managers_by_company(company)
             recipients = list(set(recipients))
 
-        separation.insert(ignore_permissions=True)
-        frappe.db.commit()
-        send_notification_email(
-            doctype="Employee Separation",
-            docname=separation.name,
-            recipients=recipients,
-            notification_name="Employee Separation Notification",
-        )
+            separation.insert(ignore_permissions=True)
+            frappe.db.commit()
+            send_notification_email(
+                doctype="Employee Separation",
+                docname=separation.name,
+                recipients=recipients,
+                notification_name="Employee Separation Notification",
+            )
 
-        
+            
 
-        # ? LINK EMPLOYEE SEPARATION TO EXIT APPROVAL PROCESS
-        frappe.db.set_value(
-            "Exit Approval Process",
-            exit_approval_process,
-            "employee_separation",
-            separation.name,
-        )
+            # ? LINK EMPLOYEE SEPARATION TO EXIT APPROVAL PROCESS
+            frappe.db.set_value(
+                "Exit Approval Process",
+                exit_approval_process,
+                "employee_separation",
+                separation.name,
+            )
 
-        return {
-            "status": "success",
-            "message": _("Employee Separation record created successfully."),
-        }
+            return {
+                "status": "success",
+                "message": _("Employee Separation record created successfully."),
+            }
+        else:
+            frappe.throw("Exit Checklist Template does not exist.")
 
     except frappe.ValidationError as ve:
         frappe.log_error(
