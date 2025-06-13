@@ -21,7 +21,7 @@ from prompt_hr.py.salary_slip_overriden_methods import custom_create_salary_slip
 from hrms.hr.doctype.job_requisition import job_requisition
 from prompt_hr.py import job_requisition_overriden_class 
 from hrms.hr.doctype.full_and_final_statement.full_and_final_statement import FullandFinalStatement
-from prompt_hr.py import full_and_final_statetment
+from prompt_hr.py import full_and_final_statement
 from prompt_hr.py.leave_type import custom_get_earned_leaves
 
 @frappe.whitelist()
@@ -79,7 +79,7 @@ LeaveEncashment.set_actual_encashable_days = custom_set_actual_encashable_days
 LeaveEncashment.set_encashment_amount = custom_set_encashment_amount
 payroll_entry.create_salary_slips_for_employees = custom_create_salary_slips_for_employees
 job_requisition.JobRequisition = job_requisition_overriden_class.JobRequisition
-FullandFinalStatement.get_payable_component = full_and_final_statetment.custom_get_payable_component
-FullandFinalStatement.create_component_row = full_and_final_statetment.custom_create_component_row
-FullandFinalStatement.get_receivable_component = full_and_final_statetment.custom_get_receivable_component
+FullandFinalStatement.get_payable_component = full_and_final_statement.custom_get_payable_component
+FullandFinalStatement.create_component_row = full_and_final_statement.custom_create_component_row
+FullandFinalStatement.get_receivable_component = full_and_final_statement.custom_get_receivable_component
 hrms.hr.utils.get_earned_leaves = custom_get_earned_leaves
