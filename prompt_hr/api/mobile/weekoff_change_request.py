@@ -89,6 +89,7 @@ def create(**args):
         # ? DEFINE MANDATORY FIELDS
         mandatory_fields = {
             "employee": "Employee",
+            "weekoff_details": "Weekoff Details"
         }
 
         # ? CHECK IF THE MANDATORY FIELD IS FILLED OR NOT IF NOT THROW ERROR
