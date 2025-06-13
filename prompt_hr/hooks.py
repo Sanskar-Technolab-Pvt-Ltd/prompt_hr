@@ -277,6 +277,7 @@ doc_events = {
     },
     "Travel Request": {
         "on_update": "prompt_hr.py.travel_request.on_update",
+        "before_save":"prompt_hr.py.travel_request.before_save"
     },
     "Loan Application": {
         "on_update": "prompt_hr.py.loan_application.on_update",
