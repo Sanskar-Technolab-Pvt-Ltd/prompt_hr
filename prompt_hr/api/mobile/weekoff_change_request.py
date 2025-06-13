@@ -89,6 +89,7 @@ def create(**args):
         # ? DEFINE MANDATORY FIELDS
         mandatory_fields = {
             "employee": "Employee",
+            "weekoff_details": "Weekoff Details"
         }
 
         # ? CHECK IF THE MANDATORY FIELD IS FILLED OR NOT IF NOT THROW ERROR
@@ -184,6 +185,10 @@ def delete(name=None):
         # ? CHECK MANDATORY FIELD
         if not name:
             frappe.throw("WeekOff Change Request 'name' is required to delete the document", frappe.MandatoryError)
+            
+        # ? VERIFY DOCUMENT EXISTS
+        if not frappe.db.exists("WeekOff Change Request", name):
+            frappe.throw(f"Request with name '{name}' does not exist", frappe.DoesNotExistError)    
 
         # ? DELETE THE DOCUMENT
         frappe.delete_doc("WeekOff Change Request", name, ignore_permissions=True)
