@@ -213,6 +213,10 @@ def delete(name=None):
         # ? CHECK MANDATORY FIELD
         if not name:
             frappe.throw("Employee Advance 'name' is required to delete the document", frappe.MandatoryError)
+            
+        # ? VERIFY DOCUMENT EXISTS
+        if not frappe.db.exists("Employee Advance", name):
+            frappe.throw(f"Request with name '{name}' does not exist", frappe.DoesNotExistError)     
 
         # ? DELETE THE DOCUMENT
         frappe.delete_doc("Employee Advance", name, ignore_permissions=True)
