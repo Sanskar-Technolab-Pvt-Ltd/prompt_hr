@@ -1,4 +1,8 @@
 import frappe
+from frappe import _
+from dateutil.relativedelta import relativedelta  
+from frappe.utils import getdate
+
 
 @frappe.whitelist()
 def custom_get_payable_component(doc):
@@ -8,7 +12,6 @@ def custom_get_payable_component(doc):
     return [
         "Notice Period Recovery", 
         "Expense Claim",
-        "Gratuity",
         "Leave Encashment",
     ]
 
@@ -69,23 +72,6 @@ def custom_create_component_row(doc, components, component_type):
                             "amount": expense_claim.total_claimed_amount,
                         },
                     )
-        elif component == "Gratuity":
-            gratuity_doc = frappe.get_all(
-                "Employee Gratuity",
-                fields=["name", "gratuity_amount"],
-                filters={"docstatus": 1, "employee": doc.employee},
-            ) 
-            if gratuity_doc:
-                doc.append(
-                    component_type,
-                    {
-                        "status": "Unsettled",
-                        "component": component,
-                        "reference_document_type": "Employee Gratuity",
-                        "reference_document": gratuity_doc[0].name,
-                        "amount": gratuity_doc[0].gratuity_amount,
-                    },
-                )
         elif component == "Leave Encashment":
             leave_encashment_docs = frappe.get_all(
                 "Leave Encashment",
@@ -195,3 +181,59 @@ def on_update(doc, method):
         if row.component == "Notice Period Recovery":
             row.amount = amount  # Update the amount for the "Notice Period Recovery" row
             break
+
+@frappe.whitelist()
+def open_or_create_gratuity(employee):
+    """
+    Returns the latest Employee Gratuity document name for the given employee.
+    If no gratuity exists, returns None.
+    """
+    if not employee:
+        frappe.throw("Employee is required")
+
+    # Fetch latest gratuity record sorted by creation date (descending)
+    employee_gratuity = frappe.get_all(
+        "Employee Gratuity",
+        filters={"employee": employee, "docstatus":["!=","2"]},
+        fields=["name"],
+        order_by="creation desc",
+        limit=1
+    )
+
+    # Return the latest gratuity name if found
+    if employee_gratuity:
+        return employee_gratuity[0].name
+
+    return None
+
+@frappe.whitelist()
+def get_gratuity_button_label(employee):
+    # Return dynamic button label based on business logic
+    if frappe.db.exists("Employee Gratuity", {"employee": employee,"docstatus":["!=","2"]}):
+        return _("View Gratuity")
+    else:
+        return _("Process Gratuity")
+
+def before_submit(doc, method=None):
+    # Ensure dates are parsed correctly
+    joining_date = getdate(doc.date_of_joining)
+    relieving_date = getdate(doc.relieving_date)
+
+    # Get the number of years between joining and relieving
+    date_diff = relativedelta(relieving_date, joining_date).years
+
+    # Proceed only if the employee has worked for 5 or more years
+    if date_diff >= 5:
+        # Try to get or create the Employee Gratuity record
+        gratuity = open_or_create_gratuity(doc.employee)
+
+        if gratuity:
+            gratuity_doc = frappe.get_doc("Employee Gratuity", gratuity)
+
+            # If gratuity exists but is not submitted, prevent submission
+            if gratuity_doc and gratuity_doc.docstatus == 0:
+                frappe.throw("Gratuity must be submitted before submitting Full and Final Statement.")
+        else:
+            # No gratuity record exists; prevent submission
+            frappe.throw("Gratuity must be created and submitted before Full and Final Statement submission.")
+    
