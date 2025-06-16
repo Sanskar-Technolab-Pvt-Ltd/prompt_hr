@@ -134,10 +134,10 @@ def append_pending_leave_approvals(doc):
 # ? FUNCTION TO FETCH ELIGIBLE EMPLOYEES BASED ON PAYROLL EMPLOYEE DETAIL AND APPLY DATE RANGE FILTER
 def get_eligible_employees(name):
     return frappe.db.get_all(
-        "Payroll Employee Detail",  # Assuming this DocType stores payroll employee details
+        "Payroll Employee Detail",  # ? ASSUMING THIS DOCTYPE STORES PAYROLL EMPLOYEE DETAILS
         filters={
-            "parent": name,  # Assuming the payroll entry's name is linked in the employee detail
+            "parent": name,  # ? ASSUMING THE PAYROLL ENTRY'S NAME IS LINKED IN THE EMPLOYEE DETAIL
         },
-        fields=["employee"],  # Fetch employee names linked to the payroll entry
+        fields=["employee"],  # ? FETCH EMPLOYEE NAMES LINKED TO THE PAYROLL ENTRY
         pluck="employee",
     )
