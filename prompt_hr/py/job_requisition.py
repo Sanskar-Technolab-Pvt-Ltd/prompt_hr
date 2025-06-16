@@ -103,8 +103,8 @@ def notify_approver(doc, method):
                                         user_id = hod_user
                                 else:
                                     user_id = user.get("user")
-                                if user_id and (user_id not in user_emails and user_id != "Administrator"):
-                                    user_emails.append(user_id)
+                                    if user_id and (user_id not in user_emails and user_id != "Administrator"):
+                                        user_emails.append(user_id)
 
                 if user_emails:
                     if is_insert:
