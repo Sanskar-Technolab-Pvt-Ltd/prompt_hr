@@ -105,7 +105,7 @@ def append_pending_leave_approvals(doc):
     open_leave_applications = frappe.db.get_all(
         "Leave Application",
         filters={
-            "status": "Open",
+            "workflow_state": ["in", ["Approved", "Pending"]],
             "employee": ["in", eligible_employee_ids],
             "from_date": ["between", [doc.start_date, doc.end_date]],
         },
@@ -114,22 +114,61 @@ def append_pending_leave_approvals(doc):
 
     # ? APPEND PENDING LEAVE APPLICATION DETAILS IN TABLE
     doc.set("custom_pending_leave_approval", [])
-
+    # * Process each open leave application
     for leave_application in open_leave_applications:
-        # ? FETCH EMPLOYEE NAME USING THE EMPLOYEE ID
-        employee_name = frappe.db.get_value("Employee", leave_application["employee"], "employee_name")
-        
-        doc.append(
-            "custom_pending_leave_approval",
+        employee = leave_application["employee"]
+        leave_app_name = leave_application["name"]
+        status = leave_application["status"]
+
+        # * Fetch employee name from Employee master
+        employee_name = frappe.db.get_value("Employee", employee, "employee_name")
+
+        # ? Check if record already exists in child table
+        existing = frappe.db.get_value(
+            "Pending Leave Approval",
             {
-                "employee": leave_application["employee"],
+                "leave_application": leave_app_name,
+                "parent": doc.name,
+                "parenttype": doc.doctype,
+                "parentfield": "custom_pending_leave_approval",
+            },
+            ["name", "status"],
+            as_dict=True
+        )
+
+        if not existing:
+            # * Append to parent DocType's child table
+            doc.append(
+                "custom_pending_leave_approval",
+                {
+                    "employee": employee,
+                    "employee_name": employee_name,
+                    "from_date": leave_application["from_date"],
+                    "to_date": leave_application["to_date"],
+                    "status": status if status == "Approved" else "Open",
+                    "leave_application": leave_app_name,
+                }
+            )
+
+            # * Insert into child DocType directly (Pending Leave Approval)
+            frappe.get_doc({
+                "doctype": "Pending Leave Approval",
+                "parent": doc.name,
+                "parenttype": doc.doctype,
+                "parentfield": "custom_pending_leave_approval",
+                "employee": employee,
                 "employee_name": employee_name,
                 "from_date": leave_application["from_date"],
                 "to_date": leave_application["to_date"],
-                "status": leave_application["status"],
-                "leave_application": leave_application["name"],
-            },
-        )
+                "status": status if status == "Approved" else "Open",
+                "leave_application": leave_app_name,
+            }).insert(ignore_permissions=True)
+
+        # * Update status if already exists and status is different
+        elif existing.status != status:
+            # ! Sync status change with DB
+            frappe.db.set_value("Pending Leave Approval", existing.name, "status", status)
+
 
 # ? FUNCTION TO FETCH ELIGIBLE EMPLOYEES BASED ON PAYROLL EMPLOYEE DETAIL AND APPLY DATE RANGE FILTER
 def get_eligible_employees(name):
@@ -141,3 +180,80 @@ def get_eligible_employees(name):
         fields=["employee"],  # Fetch employee names linked to the payroll entry
         pluck="employee",
     )
+
+# ? WHITELISTED FUNCTION TO HANDLE LEAVE ACTIONS
+@frappe.whitelist()
+def handle_leave_action(docname, doctype, action, leaves):
+    # ! Validate action
+    if action not in ("approve", "reject", "confirm"):
+        frappe.throw("Invalid action")
+
+    # * Parse JSON string to list
+    leaves = frappe.parse_json(leaves)
+    updated_rows = []
+
+    # * Get parent document (e.g., Payroll Entry)
+    doc = frappe.get_doc(doctype, docname)
+
+    # * Loop through each leave application
+    for rowname in leaves:
+        row = frappe.get_doc("Leave Application", rowname)
+
+        # ? Skip if already in desired workflow state
+        if action == "approve" and row.workflow_state in ("Approved", "Confirmed"):
+            continue
+        elif action == "reject" and row.workflow_state == "Rejected":
+            continue
+        elif action == "confirm" and row.workflow_state == "Confirmed":
+            continue
+
+        # * Apply workflow changes
+        if action == "approve":
+            row.workflow_state = "Approved"
+
+        elif action == "reject":
+            row.workflow_state = "Rejected"
+            # * Submit if draft
+            if row.docstatus == 0:
+                row.submit()
+
+        elif action == "confirm":
+            row.workflow_state = "Confirmed"
+            row.submit()
+
+        # * Save leave application with updated state
+        row.save(ignore_permissions=True)
+
+        # * Track updated leave applications
+        updated_rows.append({
+            "leave_application": rowname,
+            "workflow_state": row.workflow_state
+        })
+
+        # * Update child row in parent: Pending Leave Approval
+        current_status = row.workflow_state
+        existing = frappe.db.get_value(
+            "Pending Leave Approval",
+            {
+                "leave_application": rowname,
+                "parent": doc.name,
+                "parenttype": doc.doctype,
+                "parentfield": "custom_pending_leave_approval",
+            },
+            ["name", "status"],
+            as_dict=True
+        )
+
+        # * Update the child row's status if found
+        if existing:
+            frappe.db.set_value("Pending Leave Approval", existing.name, "status", current_status)
+
+    # * Refresh child table
+    append_pending_leave_approvals(doc)
+
+    # * Save and commit parent document to reflect child changes
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+
+    # * Return list of updated leave applications
+    return updated_rows
