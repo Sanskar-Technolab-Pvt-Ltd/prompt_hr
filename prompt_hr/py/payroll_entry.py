@@ -14,6 +14,12 @@ def on_update(doc, method):
     # ? APPEND PENDING LEAVE APPLICATIONS
     append_pending_leave_approvals(doc)
 
+    # ? APPEND EMPLOYEES MISSING PF/ESI DETAILS
+    append_employees_with_incomplete_payroll_details(doc)
+
+    # ? APPEND EMPLOYEES MISSING BANK DETAILS
+    append_employees_with_incomplete_bank_details(doc)
+
 
 # ? METHOD TO SET EMPLOYEE COUNT AND APPEND IN PENDING FNF TABLE
 # ! prompt_hr.py.payroll_entry.append_exit_employees
@@ -257,3 +263,129 @@ def handle_leave_action(docname, doctype, action, leaves):
 
     # * Return list of updated leave applications
     return updated_rows
+
+# ? METHOD TO APPEND EMPLOYEES MISSING PF/ESI DETAILS
+# ! prompt_hr.py.payroll_entry.append_employees_with_incomplete_payroll_details
+def append_employees_with_incomplete_payroll_details(doc):
+    # * Clear existing entries before appending
+    frappe.db.delete("Remaining Payroll Details", {
+        "parent": doc.name,
+        "parenttype": doc.doctype,
+        "parentfield": "custom_remaining_payroll_details"
+    })
+
+    doc.set("custom_remaining_payroll_details", [])
+
+    # * Get all employees linked to the payroll entry
+    all_employees = frappe.get_all(
+        "Payroll Employee Detail",
+        filters={"parent": doc.name},
+        fields=["employee"]
+    )
+
+    for employee in all_employees:
+        employee_doc = frappe.get_doc("Employee", employee.employee)
+
+        # * Skip if no consent or if details are already available
+        needs_pf = employee_doc.custom_pf_consent and not employee_doc.custom_uan_number
+        needs_esi = employee_doc.custom_eps_contribution and not employee_doc.custom_esi_number
+
+        if not (needs_pf or needs_esi):
+            continue
+
+        # ? Check if already exists in the child table
+        existing = frappe.db.exists(
+            "Remaining Payroll Details",
+            {
+                "employee": employee_doc.name,
+                "parent": doc.name,
+                "parenttype": doc.doctype,
+                "parentfield": "custom_remaining_payroll_details",
+            }
+        )
+
+        if not existing:
+            # * Append to parent doc child table
+            doc.append(
+                "custom_remaining_payroll_details",
+                {
+                    "employee": employee_doc.name,
+                }
+            )
+
+            # * Insert into separate child DocType directly
+            frappe.get_doc({
+                "doctype": "Remaining Payroll Details",
+                "parent": doc.name,
+                "parenttype": doc.doctype,
+                "parentfield": "custom_remaining_payroll_details",
+                "employee": employee_doc.name,
+            }).insert(ignore_permissions=True)
+
+    # * Refresh from DB so changes reflect immediately in memory
+    frappe.db.commit()
+    doc.reload()
+
+
+# ? METHOD TO APPEND EMPLOYEES WITH INCOMPLETE BANK DETAILS
+# ! prompt_hr.py.payroll_entry.append_employees_with_incomplete_bank_details
+def append_employees_with_incomplete_bank_details(doc):
+    # * Clear existing entries before appending
+    frappe.db.delete("Remaining Bank Details", {
+        "parent": doc.name,
+        "parenttype": doc.doctype,
+        "parentfield": "custom_remaining_bank_details"
+    })
+
+    doc.set("custom_remaining_bank_details", [])
+
+    # * Get all employees linked to the payroll entry
+    all_employees = frappe.get_all(
+        "Payroll Employee Detail",
+        filters={"parent": doc.name},
+        fields=["employee"]
+    )
+
+    for employee in all_employees:
+        employee_doc = frappe.get_doc("Employee", employee.employee)
+
+        # * Skip if no consent or if details are already available
+        bank_name = employee_doc.bank_name
+        bank_ac_no = employee_doc.bank_ac_no
+        ifsc_code = employee_doc.ifsc_code
+
+        if (bank_name and bank_ac_no and ifsc_code):
+            continue
+
+        # ? Check if already exists in the child table
+        existing = frappe.db.exists(
+            "Remaining Bank Details",
+            {
+                "employee": employee_doc.name,
+                "parent": doc.name,
+                "parenttype": doc.doctype,
+                "parentfield": "custom_remaining_bank_details",
+            }
+        )
+
+        if not existing:
+            # * Append to parent doc child table
+            doc.append(
+                "custom_remaining_bank_details",
+                {
+                    "employee": employee_doc.name,
+                }
+            )
+
+            # * Insert into separate child DocType directly
+            frappe.get_doc({
+                "doctype": "Remaining Bank Details",
+                "parent": doc.name,
+                "parenttype": doc.doctype,
+                "parentfield": "custom_remaining_bank_details",
+                "employee": employee_doc.name,
+            }).insert(ignore_permissions=True)
+
+    # * Refresh from DB so changes reflect immediately in memory
+    frappe.db.commit()
+    doc.reload()
