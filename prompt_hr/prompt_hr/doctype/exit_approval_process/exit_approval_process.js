@@ -10,6 +10,9 @@ frappe.ui.form.on('Exit Approval Process', {
             // ? ADD THE "RAISE EXIT INTERVIEW QUESTIONNAIRE" BUTTON
             add_raise_exit_interview_button(frm);
         }
+
+        // ? HIDE MARKS AND MARKS OUT OF FIELD OF THE CHILD TABLE
+        prompt_hr.utils.update_child_table_columns(frm, "user_response", ["is_correct", "marks", "marks_out_of"]);
     },
 
     // ? TRIGGERED WHEN NOTICE PERIOD DAYS IS CHANGED
@@ -44,8 +47,8 @@ function update_notice_period_days(frm) {
 
 // ? ADD THE "RAISE EXIT CHECKLIST" BUTTON
 function add_raise_exit_checklist_button(frm) {
-	frm.add_custom_button('Raise Employee Separation', function () {
-		frappe.call({
+    frm.add_custom_button('Raise Employee Separation', function () {
+        frappe.call({
             method: 'prompt_hr.prompt_hr.doctype.exit_approval_process.exit_approval_process.raise_exit_checklist',
             args: {
                 employee: frm.doc.employee,
@@ -53,30 +56,23 @@ function add_raise_exit_checklist_button(frm) {
                 exit_approval_process: frm.doc.name
             },
             callback: function (r) {
-                console.log(r);
                 if (r.message) {
-                    console.log(r)
-                    // ? OPTIONALLY TICK CHECKBOX IF IT'S A SUCCESS MESSAGE
-                    if (r.message.status =="success") {
-                        frm.save().then(() => {
-                            frappe.msgprint({
-                                message: __(r.message.message),
-                                title: __('Success'),
-                            });
-                        }
-                        );
-                    }
-                    else {
-                        frappe.msgprint({
-                            message: __(r.message.message),
-                            title: __('Error'),
-                        });
-                    }
+                    const res = r.message;
+
+                    // ? SHOW ALERT AND RELOAD AFTER 3s
+                    frappe.show_alert({
+                        message: res.message,
+                        indicator: res.status === "success" ? "green" : (res.status === "info" ? "blue" : "red")
+                    });
+                    if(res.status === "success") {
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 3000);
+                }
                 }
             }
         });
-        
-	});
+    });
 }
 
 // ? FUNCTION TO ADD THE "RAISE EXIT INTERVIEW QUESTIONNAIRE" BUTTON
@@ -92,33 +88,18 @@ function add_raise_exit_interview_button(frm) {
             callback: function (r) {
                 if (r.message) {
                     const res = r.message;
-                    
-                    // ? SHOW MESSAGE BASED ON RESPONSE STATUS
-                    if (res.status === "success") {
-                        frappe.msgprint({
-                            title: __("Success"),
-                            indicator: "green",
-                            message: res.message
-                        });
 
-                        // ? RELOAD THE DOCUMENT AFTER 3 SECONDS
-                        setTimeout(() => {
-                            frappe.reload_doc();
-                        }, 3000);
-                    }
-                     else if (res.status === "info") {
-                        frappe.msgprint({
-                            title: __("Info"),
-                            indicator: "blue",
-                            message: res.message
-                        });
-                    } else if (res.status === "error") {
-                        frappe.msgprint({
-                            title: __("Error"),
-                            indicator: "red",
-                            message: res.message
-                        });
-                    }
+                    // ? SHOW ALERT AND RELOAD AFTER 3s
+                    frappe.show_alert({
+                        message: res.message,
+                        indicator: res.status === "success" ? "green" : (res.status === "info" ? "blue" : "red")
+                    });
+
+                    if(res.status === "success") {
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 3000);
+                }
                 }
             }
         });

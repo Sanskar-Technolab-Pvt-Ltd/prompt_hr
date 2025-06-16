@@ -1,5 +1,5 @@
 import frappe
-
+from frappe.utils.file_manager import save_file
 
 # Employee Advance
 # EMPLOYEE ADVANCE
@@ -90,9 +90,6 @@ def get(name):
       
 # ! prompt_hr.api.mobile.employee_advance.create
 # ? CREATE EMPLOYEE ADVANCE WITH OPTIONAL FILE ATTACHMENT
-
-import frappe
-from frappe.utils.file_manager import save_file
 
 @frappe.whitelist()
 def create(**args):
@@ -216,6 +213,10 @@ def delete(name=None):
         # ? CHECK MANDATORY FIELD
         if not name:
             frappe.throw("Employee Advance 'name' is required to delete the document", frappe.MandatoryError)
+            
+        # ? VERIFY DOCUMENT EXISTS
+        if not frappe.db.exists("Employee Advance", name):
+            frappe.throw(f"Request with name '{name}' does not exist", frappe.DoesNotExistError)     
 
         # ? DELETE THE DOCUMENT
         frappe.delete_doc("Employee Advance", name, ignore_permissions=True)

@@ -8,7 +8,8 @@
  "field_order": [
   "grade",
   "mode_of_commute",
-  "type_of_commute"
+  "type_of_commute",
+  "attachment_mandatory"
  ],
  "fields": [
   {
@@ -34,14 +35,20 @@
    "in_list_view": 1,
    "label": "Type of Commute",
    "options": "Auto\nBus\nTaxi\nBike\nCar"
+  },
+  {
+   "default": "0",
+   "fieldname": "attachment_mandatory",
+   "fieldtype": "Check",
+   "label": "Attachment Mandatory?"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-06-05 18:21:21.207330",
- "modified_by": "Administrator",
+ "modified": "2025-06-12 12:46:53.318291",
+ "modified_by": "malav@sanskartechnolab.com",
  "module": "Prompt HR",
  "name": "Local Commute Details",
  "owner": "Administrator",
