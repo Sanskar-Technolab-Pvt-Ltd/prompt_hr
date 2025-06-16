@@ -1,0 +1,77 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-06-16 15:41:50.873578",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "employee",
+  "employee_name",
+  "lop_month",
+  "column_break_jdwj",
+  "actual_lop_days",
+  "lop_reversal_days",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Employee Name"
+  },
+  {
+   "fieldname": "lop_month",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "LOP Month"
+  },
+  {
+   "fieldname": "actual_lop_days",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Actual LOP Days",
+   "precision": "1"
+  },
+  {
+   "fieldname": "lop_reversal_days",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "LOP Reversal Days",
+   "precision": "1"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Remarks"
+  },
+  {
+   "fieldname": "column_break_jdwj",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-06-16 15:51:52.941694",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "LOP Reversal Details",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
