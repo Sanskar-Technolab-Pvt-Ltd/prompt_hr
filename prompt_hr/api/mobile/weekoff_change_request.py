@@ -89,6 +89,7 @@ def create(**args):
         # ? DEFINE MANDATORY FIELDS
         mandatory_fields = {
             "employee": "Employee",
+            "weekoff_details": "Weekoff Details"
         }
 
         # ? CHECK IF THE MANDATORY FIELD IS FILLED OR NOT IF NOT THROW ERROR
@@ -102,6 +103,11 @@ def create(**args):
                     f"Please Fill {field_name} Field!",
                     frappe.MandatoryError,
                 )
+                
+        # ? PARSE CHILD TABLE JSON FIELDS
+        if args.get("weekoff_details"):
+            args["weekoff_details"] = frappe.parse_json(args.get("weekoff_details"))        
+                
 
         # ? CREATE WEEKOFF REQUEST DOC
         weekoff_change_request_doc = frappe.get_doc({
@@ -140,6 +146,10 @@ def update(**args):
 
         # ? FETCH EXISTING DOC
         weekoff_change_request_doc = frappe.get_doc("WeekOff Change Request", args.get("name"))
+        
+        # ? PARSE CHILD TABLE JSON FIELDS
+        if args.get("weekoff_details"):
+            args["weekoff_details"] = frappe.parse_json(args.get("weekoff_details")) 
 
         # ? UPDATE FIELDS
         for key, value in args.items():
@@ -175,6 +185,10 @@ def delete(name=None):
         # ? CHECK MANDATORY FIELD
         if not name:
             frappe.throw("WeekOff Change Request 'name' is required to delete the document", frappe.MandatoryError)
+            
+        # ? VERIFY DOCUMENT EXISTS
+        if not frappe.db.exists("WeekOff Change Request", name):
+            frappe.throw(f"Request with name '{name}' does not exist", frappe.DoesNotExistError)    
 
         # ? DELETE THE DOCUMENT
         frappe.delete_doc("WeekOff Change Request", name, ignore_permissions=True)

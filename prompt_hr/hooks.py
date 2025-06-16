@@ -77,6 +77,7 @@ doctype_js = {
 
 doctype_list_js = {
     "Job Applicant": "public/js/job_applicant_list.js",
+    "Attendance": "public/js/attendance_list.js"
 }
 
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -277,6 +278,7 @@ doc_events = {
     },
     "Travel Request": {
         "on_update": "prompt_hr.py.travel_request.on_update",
+        "before_save":"prompt_hr.py.travel_request.before_save"
     },
     "Loan Application": {
         "on_update": "prompt_hr.py.loan_application.on_update",

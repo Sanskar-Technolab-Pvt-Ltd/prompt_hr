@@ -2,12 +2,18 @@
 frappe.ui.form.on('Exit Interview', {
     refresh(frm) {
         console.log("Exit Interview Form Refreshed");
+
         // ? REMOVE SEND EXIT QUESTIONNAIRE BUTTON
         remove_send_exit_interview_button(frm);
+
         // ? ADD CUSTOM BUTTON TO RAISE EXIT INTERVIEW QUESTIONNAIRE
         add_invite_for_exit_interview_button(frm);
+
+        // ? HIDE MARKS AND MARKS OUT OF FIELD OF THE CHILD TABLE
+        prompt_hr.utils.update_child_table_columns(frm,"custom_questions",["is_correct","marks","marks_out_of"]);
     },
 });
+
 
 // ? FUNCTION TO REMOVE THE "SEND EXIT QUESTIONNAIRE" BUTTON
 function remove_send_exit_interview_button(frm) {
