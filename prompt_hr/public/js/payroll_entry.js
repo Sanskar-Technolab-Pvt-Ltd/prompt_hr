@@ -28,7 +28,7 @@ frappe.ui.form.on("Payroll Entry", {
             function () {
                 handle_leave_action(frm, "approve");
             },
-            __("Leave Actions")
+            __("Manage Leave Requests")
         );
 
         frm.add_custom_button(
@@ -36,7 +36,7 @@ frappe.ui.form.on("Payroll Entry", {
             function () {
                 handle_leave_action(frm, "reject");
             },
-            __("Leave Actions")
+            __("Manage Leave Requests")
         );
 
         frm.add_custom_button(
@@ -44,7 +44,7 @@ frappe.ui.form.on("Payroll Entry", {
             function () {
                 handle_leave_action(frm, "confirm");
             },
-            __("Leave Actions")
+            __("Manage Leave Requests")
         );
     },
 });
