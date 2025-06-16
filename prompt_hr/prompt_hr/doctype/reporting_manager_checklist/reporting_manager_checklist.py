@@ -9,28 +9,49 @@ class ReportingManagerChecklist(Document):
 
     # ? FUNCTION TRIGGERED AFTER DOCUMENT IS SAVED
     def on_update(self):
+
+       # ? SKIP RUNNING ON FIRST SAVE (CREATION)
+        if self.flags.in_insert:
+            return
+
         update_employee_onboarding_row(self)
 
 
 # ? FUNCTION TO UPDATE EMPLOYEE ONBOARDING ACTIVITY ROW
 def update_employee_onboarding_row(self):
     try:
-        # ? CHECK IF A MATCHING EMPLOYEE BOARDING ACTIVITY ROW EXISTS
-        row_name = frappe.db.exists(
+        # ? GET ALL ROWS LINKED TO THIS CHECKLIST
+        rows = frappe.get_all(
             "Employee Boarding Activity",
-            {"custom_checklist_record": self.name, "user": frappe.session.user},
+            filters={"custom_checklist_record": self.name},
+            fields=["name", "user", "role"]
         )
 
-        if row_name:
-            # ? UPDATE THE FIELD IF ROW EXISTS
+        current_user = frappe.session.user
+        user_roles = frappe.get_roles()
+
+        matched_row = None
+
+        for row in rows:
+            if row.user == current_user:
+                matched_row = row.name
+                break
+            if row.role and row.role in user_roles:
+                matched_row = row.name
+                break
+
+        if matched_row:
+            # ? UPDATE THE FIELD IF A MATCHING ROW IS FOUND
             frappe.db.set_value(
-                "Employee Boarding Activity", row_name, "custom_is_submitted", 1
+                "Employee Boarding Activity",
+                matched_row,
+                "custom_is_submitted",
+                1
             )
-            frappe.msgprint(f"Marked activity as submitted.")
+            frappe.msgprint("Marked activity as submitted.")
         else:
-            frappe.msgprint("No matching Employee Boarding Activity found.")
+            frappe.msgprint("No matching Employee Boarding Activity found for your user or role.")
+
     except Exception as e:
         frappe.msgprint("Something went wrong while updating onboarding activity.")
-        frappe.log_error(
-            frappe.get_traceback(), "Error in update_employee_onboarding_row"
-        )
+        frappe.log_error(frappe.get_traceback(), "Error in update_employee_onboarding_row")

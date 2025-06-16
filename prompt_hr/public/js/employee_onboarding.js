@@ -6,7 +6,7 @@ frappe.ui.form.on("Employee Onboarding", {
         let applicants = await frappe.db.get_list("Job Applicant", {
             fields: ["name"],
             or_filters: [
-                ["status", "=", "Job Offer Accepted"],
+                ["status", "=", "Accepted"],
                 ["custom_is_offer_required_while_onboarding", "=", 0]
             ],
         });
