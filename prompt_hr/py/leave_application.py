@@ -47,9 +47,11 @@ def before_save(doc, method):
 				doc.half_day_date,
 		)
     employee_doc = frappe.get_doc("Employee", doc.employee)
-    reporting_manager = frappe.get_doc("Employee", employee_doc.reports_to)
+    reporting_manager = None
+    if employee_doc.reports_to:
+        reporting_manager = frappe.get_doc("Employee", employee_doc.reports_to)
     leave_type_doc = frappe.get_doc("Leave Type", doc.leave_type)
-    if reporting_manager.user_id:
+    if reporting_manager and reporting_manager.user_id:
         doc.db_set("leave_approver", reporting_manager.user_id)
     if employee_doc.resignation_letter_date:
         if not leave_type_doc.custom_allow_for_employees_who_are_on_notice_period:
@@ -170,9 +172,13 @@ def on_submit(doc,method=None):
 def on_update(doc, method):
     employee = frappe.get_doc("Employee", doc.employee)
     employee_id = employee.get("user_id")
-    reporting_manager = frappe.get_doc("Employee", employee.reports_to)
-    reporting_manager_name = reporting_manager.get("employee_name")
-    reporting_manager_id = reporting_manager.get("user_id")
+    reporting_manager = None
+    reporting_manager_name = None
+    reporting_manager_id = None
+    if employee.reports_to:
+        reporting_manager = frappe.get_doc("Employee", employee.reports_to)
+        reporting_manager_name = reporting_manager.get("employee_name")
+        reporting_manager_id = reporting_manager.get("user_id")
     hr_manager_email = None
     hr_manager_users = frappe.get_all(
         "Employee",
