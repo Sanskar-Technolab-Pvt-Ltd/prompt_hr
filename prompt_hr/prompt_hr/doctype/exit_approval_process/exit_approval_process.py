@@ -179,6 +179,8 @@ def raise_exit_interview(employee, company, exit_approval_process):
         if not quiz_name:
             frappe.throw(_("Exit quiz not configured for this company."))
 
+        
+
         # ? CREATE EXIT INTERVIEW RECORD
         exit_interview = frappe.new_doc("Exit Interview")
         exit_interview.employee = employee
