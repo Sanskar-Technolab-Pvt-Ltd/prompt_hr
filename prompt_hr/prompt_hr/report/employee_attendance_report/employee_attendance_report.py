@@ -122,7 +122,7 @@ def execute(filters=None):
             "sub_department": emp.custom_subdepartment,
             "location": emp.custom_work_location,
             "cost_center": emp.payroll_cost_center,
-            "reports_to": emp.reports_to,
+            "reports_to": emp.reports_to or "",
             **summary
         }
 
