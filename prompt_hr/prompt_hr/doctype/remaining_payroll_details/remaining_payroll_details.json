@@ -46,7 +46,7 @@
   },
   {
    "default": "0",
-   "fetch_from": "employee.custom_eps_contribution",
+   "fetch_from": "employee.custom_esi_consent",
    "fieldname": "esi_applicable",
    "fieldtype": "Check",
    "in_list_view": 1,
@@ -68,7 +68,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-06-16 15:51:12.632178",
+ "modified": "2025-06-17 12:39:58.649621",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Remaining Payroll Details",

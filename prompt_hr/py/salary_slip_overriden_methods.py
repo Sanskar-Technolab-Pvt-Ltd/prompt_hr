@@ -1,8 +1,31 @@
 import frappe
+from frappe import _
 from hrms.payroll.doctype.payroll_entry.payroll_entry import log_payroll_failure, get_existing_salary_slips
 
 def custom_create_salary_slips_for_employees(employees, args, publish_progress=True):
 	payroll_entry = frappe.get_cached_doc("Payroll Entry", args.payroll_entry)
+
+	# * Get company abbreviation from HR Settings
+	prompt_abbr = frappe.db.get_single_value("HR Settings", "custom_prompt_abbr")
+
+	# * Get abbreviation of the company selected in the payroll entry
+	company_abbr = frappe.db.get_value("Company", payroll_entry.company, "abbr")
+
+	# * Initialize list to store employees who are restricted (missing info)
+	restricted_employee = []
+
+	# ? APPLY RESTRICTION ONLY FOR PROMPT
+	if company_abbr == prompt_abbr:
+		# * Fetch pending payroll details for the payroll entry
+		pending_docs = (
+			payroll_entry.custom_remaining_payroll_details
+		)
+
+		# * Extract unique employees from the pending records
+		restricted_employee = list({
+			frappe.get_doc(doc.doctype, doc.name).employee
+			for doc in pending_docs
+		})
 
 	try:
 
@@ -10,7 +33,8 @@ def custom_create_salary_slips_for_employees(employees, args, publish_progress=T
 		count = 0
 		lop_days_map = {emp.employee: emp.custom_lop_reversal_days for emp in payroll_entry.employees}
 
-		employees = list(set(employees) - set(salary_slips_exist_for))
+		# * Remove employees for whom salary slips already exist or are restricted
+		employees = list(set(employees) - set(salary_slips_exist_for) - set(restricted_employee))
 		for emp in employees:
 			args.update({"doctype": "Salary Slip", "employee": emp, "custom_lop_days": lop_days_map.get(emp)})
 			frappe.get_doc(args).insert()
@@ -23,6 +47,16 @@ def custom_create_salary_slips_for_employees(employees, args, publish_progress=T
 				)
 
 		payroll_entry.db_set({"status": "Submitted", "salary_slips_created": 1, "error_message": ""})
+		if restricted_employee:
+			# * Notify about employees with missing bank details or payroll details
+			frappe.msgprint(
+				_(
+					"Salary Slips will not be created for the employees {0} due to missing required details"
+				).format(frappe.bold(", ".join(restricted_employee))),
+				title=_("Incomplete Employee Information"),
+				indicator="blue"
+			)
+			payroll_entry.db_set({"status": "Failed", "salary_slips_created": 0, "error_message": ""})
 
 		if salary_slips_exist_for:
 			frappe.msgprint(
