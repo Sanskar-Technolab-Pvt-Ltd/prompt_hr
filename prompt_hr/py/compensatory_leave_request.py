@@ -87,9 +87,13 @@ def on_update(doc, method):
     if doc.has_value_changed("workflow_state"):
         employee = frappe.get_doc("Employee", doc.employee)
         employee_id = employee.get("user_id")
-        reporting_manager = frappe.get_doc("Employee", employee.reports_to)
-        reporting_manager_name = reporting_manager.get("employee_name")
-        reporting_manager_id = reporting_manager.get("user_id")
+        reporting_manager = None
+        reporting_manager_name = None
+        reporting_manager_id = None
+        if employee.reports_to:
+            reporting_manager = frappe.get_doc("Employee", employee.reports_to)
+            reporting_manager_name = reporting_manager.get("employee_name")
+            reporting_manager_id = reporting_manager.get("user_id")
         hr_manager_email = None
         hr_manager_users = frappe.get_all(
             "Employee",
