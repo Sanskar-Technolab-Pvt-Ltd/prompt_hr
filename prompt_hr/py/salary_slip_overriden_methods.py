@@ -31,7 +31,7 @@ def custom_create_salary_slips_for_employees(employees, args, publish_progress=T
 
 		salary_slips_exist_for = get_existing_salary_slips(employees, args)
 		count = 0
-		lop_days_map = {emp.employee: emp.custom_lop_reversal_days for emp in payroll_entry.employees}
+		lop_days_map = {emp.employee: emp.lop_reversal_days for emp in payroll_entry.custom_lop_reversal_details}
 
 		# * Remove employees for whom salary slips already exist or are restricted
 		employees = list(set(employees) - set(salary_slips_exist_for) - set(restricted_employee))
@@ -46,7 +46,7 @@ def custom_create_salary_slips_for_employees(employees, args, publish_progress=T
 					title=_("Creating Salary Slips..."),
 				)
 
-		payroll_entry.db_set({"status": "Submitted", "salary_slips_created": 1, "error_message": ""})
+
 		if restricted_employee:
 			# * Notify about employees with missing bank details or payroll details
 			frappe.msgprint(
@@ -56,9 +56,12 @@ def custom_create_salary_slips_for_employees(employees, args, publish_progress=T
 				title=_("Incomplete Employee Information"),
 				indicator="blue"
 			)
-			payroll_entry.db_set({"status": "Failed", "salary_slips_created": 0, "error_message": ""})
+			payroll_entry.db_set({"status": "Draft", "salary_slips_created": 0, "error_message": "", "docstatus": "0", "custom_is_salary_slip_created": 1})
 
-		if salary_slips_exist_for:
+		else:
+			payroll_entry.db_set({"status": "Submitted", "salary_slips_created": 1, "error_message": ""})
+		
+		if salary_slips_exist_for and not restricted_employee:
 			frappe.msgprint(
 				_(
 					"Salary Slips already exist for employees {}, and will not be processed by this payroll."
@@ -72,5 +75,5 @@ def custom_create_salary_slips_for_employees(employees, args, publish_progress=T
 		log_payroll_failure("creation", payroll_entry, e)
 
 	finally:
-		frappe.db.commit() 
+		frappe.db.commit()
 		frappe.publish_realtime("completed_salary_slip_creation", user=frappe.session.user)

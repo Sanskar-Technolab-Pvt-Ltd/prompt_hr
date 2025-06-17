@@ -46,6 +46,16 @@ frappe.ui.form.on("Payroll Entry", {
             },
             __("Manage Leave Requests")
         );
+
+        frm.set_query('employee','custom_lop_reversal_details', function(doc, cdt, cdn) {
+            // Get the list of employee names from the employees child table
+            let employee_list = (frm.doc.employees || []).map(row => row.employee).filter(Boolean);
+            return {
+                filters: {
+                    name: ["in", employee_list]
+                }
+            };
+        });
     },
 });
 
@@ -101,3 +111,41 @@ function handle_leave_action(frm, action) {
         }
     });
 }
+
+frappe.ui.form.on("LOP Reversal Details", {
+    employee: function(frm, cdt, cdn) {
+        const row = locals[cdt][cdn];
+        if (row.employee) {
+            let date_obj = frappe.datetime.str_to_obj(frm.doc.start_date);
+
+            date_obj.setMonth(date_obj.getMonth() - 1);
+
+            // Format to "Month-YYYY" (e.g., March-2025 if start_date is April 2025)
+            let formatted_date = date_obj.toLocaleDateString('en-US', {
+                month: 'long',
+                year: 'numeric'
+            }).replace(' ', '-');
+
+            frappe.model.set_value(cdt, cdn, "lop_month", formatted_date);
+            frappe.call({
+                method: "prompt_hr.py.payroll_entry.get_actual_lop_days",
+                args: {
+                    employee: row.employee,
+                    start_date: frm.doc.start_date
+                },
+                callback: function(r) {
+                    if (r.message) {
+                        frappe.model.set_value(cdt, cdn, "actual_lop_days", r.message);
+                    } else {
+                        frappe.model.set_value(cdt, cdn, "actual_lop_days", 0);
+                    }
+                }
+            });
+        }
+        else {
+            frappe.model.set_value(cdt, cdn, "lop_month", "");
+            frappe.model.set_value(cdt, cdn, "actual_lop_days", 0);
+        }
+    }
+    }
+)

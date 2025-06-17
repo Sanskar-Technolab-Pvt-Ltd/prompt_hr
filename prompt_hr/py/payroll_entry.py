@@ -389,3 +389,22 @@ def append_employees_with_incomplete_bank_details(doc):
     # * Refresh from DB so changes reflect immediately in memory
     frappe.db.commit()
     doc.reload()
+
+@frappe.whitelist()
+def get_actual_lop_days(employee, start_date):
+    # * Fetch salary slip of Last Month
+    last_month_salary_slip = frappe.get_all(
+        "Salary Slip",
+        filters={
+            "employee": employee,
+            "end_date": ["<", start_date],
+            "docstatus": 1,
+        },
+        order_by="start_date desc",
+        limit=1,
+        fields=["start_date", "leave_without_pay"]
+    )
+
+    lop_days = last_month_salary_slip[0].leave_without_pay if last_month_salary_slip else 0
+
+    return lop_days
