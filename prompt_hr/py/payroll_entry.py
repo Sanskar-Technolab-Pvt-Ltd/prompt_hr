@@ -179,11 +179,11 @@ def append_pending_leave_approvals(doc):
 # ? FUNCTION TO FETCH ELIGIBLE EMPLOYEES BASED ON PAYROLL EMPLOYEE DETAIL AND APPLY DATE RANGE FILTER
 def get_eligible_employees(name):
     return frappe.db.get_all(
-        "Payroll Employee Detail",  # ? ASSUMING THIS DOCTYPE STORES PAYROLL EMPLOYEE DETAILS
+        "Payroll Employee Detail",  # Assuming this DocType stores payroll employee details
         filters={
-            "parent": name,  # ? ASSUMING THE PAYROLL ENTRY'S NAME IS LINKED IN THE EMPLOYEE DETAIL
+            "parent": name,  # Assuming the payroll entry's name is linked in the employee detail
         },
-        fields=["employee"],  # ? FETCH EMPLOYEE NAMES LINKED TO THE PAYROLL ENTRY
+        fields=["employee"],  # Fetch employee names linked to the payroll entry
         pluck="employee",
     )
 
@@ -288,7 +288,7 @@ def append_employees_with_incomplete_payroll_details(doc):
 
         # * Skip if no consent or if details are already available
         needs_pf = employee_doc.custom_pf_consent and not employee_doc.custom_uan_number
-        needs_esi = employee_doc.custom_eps_contribution and not employee_doc.custom_esi_number
+        needs_esi = employee_doc.custom_esi_consent and not employee_doc.custom_esi_number
 
         if not (needs_pf or needs_esi):
             continue
@@ -354,7 +354,7 @@ def append_employees_with_incomplete_bank_details(doc):
         bank_ac_no = employee_doc.bank_ac_no
         ifsc_code = employee_doc.ifsc_code
 
-        if (bank_name and bank_ac_no and ifsc_code):
+        if (employee_doc.salary_mode != "Bank" or (bank_name and bank_ac_no and ifsc_code)):
             continue
 
         # ? Check if already exists in the child table
