@@ -353,6 +353,7 @@ def get_expense_claim_exception(doc):
                 doc.company,
                 daily_food_lodging_totals_by_type,  # Pass the initialized historical totals
                 current_doc_daily_food_lodging_totals, # Pass the current doc's accumulating totals
+                doc
             )
 
             if (
@@ -384,6 +385,7 @@ def _validate_and_process_expense(
     company,
     daily_food_lodging_totals_by_type,  # Historical (approved) daily totals by type
     current_doc_daily_food_lodging_totals, # Current doc daily totals by type
+    doc
 ):
     """
     Validates and processes an individual expense item within the claim.
@@ -443,6 +445,7 @@ def _validate_and_process_expense(
             current_doc_monthly_totals,
             employee_grade,
             company,
+            doc
         )
 
 
@@ -578,11 +581,13 @@ def _process_local_commute_expense(
     days,
     expense_date,
     budget_row,
-    daily_totals,
+    km_rate_map,  
+    daily_totals_local_commute, 
     monthly_spent_base,
     current_doc_monthly_totals,
     employee_grade,
     company,
+    doc
 ):
     """
     Processes validation for Local Commute expenses, including attachment requirements,
@@ -608,7 +613,7 @@ def _process_local_commute_expense(
     # If non-public transport and amount not provided, calculate from KM rate
     if exp.custom_mode_of_vehicle == COMMUTE_MODES["NON_PUBLIC"]:
         km = flt(exp.custom_km or 0)
-        rate = km_rate_map.get(exp.custom_type_of_vehicle, 0)
+        rate = km_rate_map.get(exp.custom_type_of_vehicle, 0) # km_rate_map is now accessible
 
         if not exp.amount:  # Only calculate if amount is not manually entered
             exp.amount = exp.sanctioned_amount = rate * km
@@ -624,8 +629,8 @@ def _process_local_commute_expense(
     # Check daily limits for each day spanned by the expense
     for i in range(days):
         day = expense_date + timedelta(days=i)
-        daily_totals[day] += daily_avg
-        if daily_limit and daily_totals[day] > daily_limit:
+        daily_totals_local_commute[day] += daily_avg # Use correct variable name for clarity
+        if daily_limit and daily_totals_local_commute[day] > daily_limit: # Use correct variable name
             exceeded_daily = True
 
     # Check monthly limit by combining previously approved amounts and current document's amounts
@@ -634,7 +639,7 @@ def _process_local_commute_expense(
     cumulative_monthly_spend = (
         monthly_spent_base + current_doc_monthly_totals[current_month_key]
     )
-
+    doc.custom_local_commute_monthly_balance = monthly_limit - cumulative_monthly_spend
     if monthly_limit and cumulative_monthly_spend > monthly_limit:
         exceeded_monthly = True
 
@@ -647,7 +652,6 @@ def _process_local_commute_expense(
                 f"Row #{idx}: Attachment is required as the expense exceeds limits."
             )
         exp.custom_is_exception = 1
-
 
 def validate_attachments_compulsion(doc):
     """
