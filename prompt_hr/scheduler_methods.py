@@ -5,6 +5,10 @@ from frappe.utils import date_diff, today, add_to_date, getdate, get_datetime, a
 from prompt_hr.py.utils import fetch_company_name
 from prompt_hr.py.auto_mark_attendance import mark_attendance
 from datetime import timedelta, datetime
+from prompt_hr.prompt_hr.doctype.exit_approval_process.exit_approval_process import (
+    raise_exit_checklist,
+    raise_exit_interview,
+)
 
 
 
@@ -1491,3 +1495,59 @@ def check_employee_penalty_criteria(employee=None, penalization_type=None):
                 return True
 
     return not is_penalisation or False
+
+# ? DAILY SCHEDULER TO HANDLE EXIT CHECKLIST & INTERVIEW AUTOMATICALLY
+def process_exit_approvals():
+    today_date = getdate(today())
+    print(f"\n=== Running Exit Approval Scheduler on {today_date} ===\n")
+
+    records = frappe.get_all(
+        "Exit Approval Process",
+        filters={"resignation_approval": "Approved"},
+        fields=[
+            "name",
+            "employee",
+            "company",
+            "custom_exit_checklist_notification_date",
+            "custom_exit_questionnaire_notification_date",
+            "employee_separation",
+            "exit_interview",
+        ],
+    )
+    print(f"Found {len(records)} approved exit approvals to process.\n")
+
+    for r in records:
+        try:
+            print(f"> Processing: {r.name} | Employee: {r.employee} | Company: {r.company}")
+
+            # ? PROCESS CHECKLIST IF DUE AND NOT YET CREATED
+            checklist_due = (
+                r.custom_exit_checklist_notification_date
+                and getdate(r.custom_exit_checklist_notification_date) <= today_date
+                and not r.employee_separation
+            )
+            if checklist_due:
+                print("  - Raising Exit Checklist...")
+                result = raise_exit_checklist(r.employee, r.company, r.name)
+                print(f"  ✔ Checklist Result: {result.get('message')}")
+
+            # ? PROCESS EXIT INTERVIEW IF DUE AND NOT YET CREATED
+            interview_due = (
+                r.custom_exit_questionnaire_notification_date
+                and getdate(r.custom_exit_questionnaire_notification_date) <= today_date
+                and not r.exit_interview
+            )
+            if interview_due:
+                print("  - Raising Exit Interview...")
+                result = raise_exit_interview(r.employee, r.company, r.name)
+                print(f"  ✔ Interview Result: {result.get('message')}")
+
+        except Exception as e:
+            print(f"  ✖ ERROR while processing {r.name}: {str(e)}")
+            frappe.log_error(
+                title="Auto Exit Process Error",
+                message=frappe.get_traceback()
+                + f"\n\nEmployee: {r.employee}, Company: {r.company}",
+            )
+
+    print("\n=== Scheduler Execution Complete ===\n")
