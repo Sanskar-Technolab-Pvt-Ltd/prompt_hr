@@ -1,4 +1,5 @@
 import frappe
+from dateutil.relativedelta import relativedelta
 
 
 # ? ON UPDATE CONTROLLER METHOD
@@ -19,6 +20,9 @@ def on_update(doc, method):
 
     # ? APPEND EMPLOYEES MISSING BANK DETAILS
     append_employees_with_incomplete_bank_details(doc)
+    if not doc.custom_lop_summary:
+        # ? APPEND LOP SUMMARY
+        append_lop_summary(doc)
 
 
 # ? METHOD TO SET EMPLOYEE COUNT AND APPEND IN PENDING FNF TABLE
@@ -392,19 +396,105 @@ def append_employees_with_incomplete_bank_details(doc):
 
 @frappe.whitelist()
 def get_actual_lop_days(employee, start_date):
+    if isinstance(start_date, str):
+        start_date = frappe.utils.getdate(start_date)
+
+    # Calculate the first and last day of the previous month
+    previous_month_start = (start_date.replace(day=1) - relativedelta(months=1)).replace(day=1)
+    previous_month_end = previous_month_start.replace(day=1) + relativedelta(months=1) - relativedelta(days=1)
+
     # * Fetch salary slip of Last Month
     last_month_salary_slip = frappe.get_all(
         "Salary Slip",
         filters={
             "employee": employee,
-            "end_date": ["<", start_date],
+            "start_date": [">=", previous_month_start],
+            "end_date": ["<=", previous_month_end],
             "docstatus": 1,
         },
-        order_by="start_date desc",
-        limit=1,
-        fields=["start_date", "leave_without_pay"]
+        fields=["start_date", "leave_without_pay"],
+        limit=1
     )
 
     lop_days = last_month_salary_slip[0].leave_without_pay if last_month_salary_slip else 0
 
     return lop_days
+
+
+# ? METHOD TO APPEND LOP SUMMARY
+# ! prompt_hr.py.payroll_entry.append_lop_summary
+def append_lop_summary(doc, method=None):
+    # ! CLEAR old LOP Summary entries to avoid duplicates
+    frappe.db.delete("LOP Summary", {
+        "parent": doc.name,
+        "parenttype": doc.doctype,
+        "parentfield": "custom_lop_summary"
+    })
+    doc.set("custom_lop_summary", [])
+
+    # * Get all employees from Payroll Employee Detail
+    employees = frappe.get_all(
+        "Payroll Employee Detail",
+        filters={"parent": doc.name},
+        fields=["employee"]
+    )
+
+    # * Get all LWP-type leave types once (no need to query per employee)
+    leave_types = frappe.get_all(
+        "Leave Type",
+        filters={"is_lwp": 1},
+        fields=["name"]
+    )
+    leave_type_names = [lt.name for lt in leave_types]
+
+    for emp in employees:
+        emp_id = emp.employee
+
+        # ? Get Penalty LOPs within date range
+        penalties = frappe.get_all(
+            "Employee Penalty",
+            filters={
+                "employee": emp_id,
+                "company": doc.company,
+                "penalty_date": ["between", [doc.start_date, doc.end_date]]
+            },
+            fields=["deduct_leave_without_pay"]
+        )
+        # * Sum total penalty days
+        penalty_days = sum(p.get("deduct_leave_without_pay", 0) for p in penalties)
+
+        # ? Get total approved LWP leave days in date range
+        lwp_leaves = frappe.get_all(
+            "Leave Application",
+            filters={
+                "employee": emp_id,
+                "from_date": ["between", [doc.start_date, doc.end_date]],
+                "workflow_state": "Confirmed",
+                "leave_type": ["in", leave_type_names]
+            },
+            fields=["total_leave_days"]
+        )
+        # * Sum all actual LWP days
+        actual_lwp = sum(l.total_leave_days for l in lwp_leaves)
+
+        # * Append to in-memory child table for UI
+        doc.append("custom_lop_summary", {
+            "employee": emp_id,
+            "penalty_leave_days": penalty_days,
+            "actual_lop": actual_lwp,
+        })
+
+        # ! Optional: Insert to DB (for backend or reports)
+        frappe.get_doc({
+            "doctype": "LOP Summary",
+            "parent": doc.name,
+            "parenttype": doc.doctype,
+            "parentfield": "custom_lop_summary",
+            "employee": emp_id,
+            "penalty_leave_days": penalty_days,
+            "actual_lop": actual_lwp,
+        }).insert(ignore_permissions=True)
+
+    # * Commit changes to DB and reload doc
+    frappe.db.commit()
+    doc.reload()
