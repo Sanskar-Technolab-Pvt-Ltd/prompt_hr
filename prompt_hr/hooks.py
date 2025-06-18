@@ -173,7 +173,8 @@ override_doctype_class = {
     "Attendance Request": "prompt_hr.overrides.attendance_request_override.CustomAttendanceRequest",
     "Salary Slip": "prompt_hr.overrides.salary_slip_override.CustomSalarySlip",
     "Attendance": "prompt_hr.overrides.attendance_override.CustomAttendance",
-    "Leave Policy Assignment": "prompt_hr.overrides.leave_policy_assignment_override.CustomLeavePolicyAssignment"
+    "Leave Policy Assignment": "prompt_hr.overrides.leave_policy_assignment_override.CustomLeavePolicyAssignment",
+    "Payroll Entry": "prompt_hr.overrides.payroll_entry_override.CustomPayrollEntry",
 }
 
 # Document Events
