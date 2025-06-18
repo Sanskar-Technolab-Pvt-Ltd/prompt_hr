@@ -241,6 +241,12 @@ def record_expense_log_in_campaign(doc, campaign_doc, method):
         campaign_doc.save()
 
 
+from datetime import date, timedelta
+from dateutil.relativedelta import relativedelta
+from collections import defaultdict
+import frappe
+from frappe.utils import flt, cint, getdate
+
 def get_expense_claim_exception(doc):
     """
     Flags exceptions in an Expense Claim document based on configured travel budget limits
@@ -296,7 +302,6 @@ def get_expense_claim_exception(doc):
         total_km = 0
 
         # Determine the earliest and latest expense dates in the current document
-        # to define the overall date range for fetching approved expenses.
         current_expense_dates = [
             getdate(exp.expense_date) for exp in doc.expenses if exp.expense_date
         ]
@@ -306,36 +311,46 @@ def get_expense_claim_exception(doc):
             earliest_expense_date = min(current_expense_dates)
             latest_expense_date = max(current_expense_dates)
 
-        # Retrieve total approved local commute expenses for the *month of latest_expense_date*.
-        # This forms the base for cumulative monthly limit checking.
-        monthly_spent_base = get_approved_category_monthly_expense(
-            employee=doc.employee,
-            expense_date=latest_expense_date,  # Only needs a date within the target month
-            expense_type=EXPENSE_TYPES["LOCAL_COMMUTE"],
-            current_doc_name=doc.name,  # Exclude current document if it's already saved
-        )
+        # Get unique months from current document's local commute expenses
+        unique_months = set()
+        for exp in doc.expenses:
+            if exp.expense_type == EXPENSE_TYPES["LOCAL_COMMUTE"] and exp.expense_date:
+                exp_date = getdate(exp.expense_date)
+                unique_months.add((exp_date.year, exp_date.month))
 
-        # This defaultdict accumulates local commute expenses from the *current document*
-        # for each month they fall into, allowing for cumulative checks.
-        current_doc_monthly_totals = defaultdict(float)
+        # Get approved monthly totals for each unique month
+        monthly_approved_totals = {}
+        for year, month in unique_months:
+            month_date = getdate(f"{year}-{month:02d}-01")
+            monthly_approved_totals[(year, month)] = get_approved_category_monthly_expense(
+                employee=doc.employee,
+                expense_date=month_date,
+                expense_type=EXPENSE_TYPES["LOCAL_COMMUTE"],
+                current_doc_name=doc.name,
+            )
 
-        # Initialize daily_food_lodging_totals with approved amounts for the relevant date range
-        # CORRECTED: _get_approved_food_lodging_daily_totals now returns daily totals per expense type
+        # Initialize daily totals for food, lodging, and local commute
         daily_food_lodging_totals_by_type = _get_approved_food_lodging_daily_totals(
             employee=doc.employee,
             from_date=earliest_expense_date,
             to_date=latest_expense_date,
-            current_doc_name=doc.name,  # Exclude current document if it's already saved
+            current_doc_name=doc.name,
+        )
+
+        # Get approved daily local commute totals
+        daily_local_commute_totals = _get_approved_local_commute_daily_totals(
+            employee=doc.employee,
+            from_date=earliest_expense_date,
+            to_date=latest_expense_date,
+            current_doc_name=doc.name,
         )
 
         expenses = sorted(doc.expenses, key=lambda x: (x.expense_date, x.idx or 0))
-        daily_totals_local_commute = defaultdict(
-            float
-        )  # Accumulates daily totals for current document's LOCAL COMMUTE expenses
 
-        # NEW: For current document's Food/Lodging expenses, accumulate daily by type
+        # Current document's daily totals accumulation
         current_doc_daily_food_lodging_totals = defaultdict(lambda: defaultdict(float))
-
+        current_doc_daily_local_commute_totals = defaultdict(float)
+        current_doc_monthly_totals = defaultdict(float)
 
         for exp in expenses:
             exp.custom_is_exception = 0
@@ -346,13 +361,14 @@ def get_expense_claim_exception(doc):
                 idx,
                 budget_row,
                 km_rate_map,
-                daily_totals_local_commute, # Passed for Local Commute
-                monthly_spent_base,
+                daily_local_commute_totals,
+                current_doc_daily_local_commute_totals,
+                monthly_approved_totals,
                 current_doc_monthly_totals,
                 employee_grade,
                 doc.company,
-                daily_food_lodging_totals_by_type,  # Pass the initialized historical totals
-                current_doc_daily_food_lodging_totals, # Pass the current doc's accumulating totals
+                daily_food_lodging_totals_by_type,
+                current_doc_daily_food_lodging_totals,
                 doc
             )
 
@@ -365,7 +381,6 @@ def get_expense_claim_exception(doc):
         doc.custom_total_km = total_km
 
     except frappe.ValidationError:
-        # Re-raise Frappe ValidationErrors directly as they are intended user-facing errors.
         raise
     except Exception as e:
         frappe.throw(
@@ -378,23 +393,22 @@ def _validate_and_process_expense(
     idx,
     budget_row,
     km_rate_map,
-    daily_totals_local_commute,  # For Local Commute
-    monthly_spent_base,
+    daily_local_commute_totals,
+    current_doc_daily_local_commute_totals,
+    monthly_approved_totals,
     current_doc_monthly_totals,
     employee_grade,
     company,
-    daily_food_lodging_totals_by_type,  # Historical (approved) daily totals by type
-    current_doc_daily_food_lodging_totals, # Current doc daily totals by type
+    daily_food_lodging_totals_by_type,
+    current_doc_daily_food_lodging_totals,
     doc
 ):
     """
     Validates and processes an individual expense item within the claim.
-    This includes checking for negative amounts, required dates,
-    month-crossing for local commute, and flagging exceptions based on budget.
     """
     exp.custom_is_exception = 0
     exp_amount = flt(exp.amount or 0)
-    days = cint(exp.custom_days or 0)  # Default to 0 for validation
+    days = cint(exp.custom_days or 0)
     expense_date = getdate(exp.expense_date)
 
     if not exp.expense_date:
@@ -415,12 +429,12 @@ def _validate_and_process_expense(
             days,
             expense_date,
             budget_row,
-            daily_food_lodging_totals_by_type,  # Historical totals for comparison
-            current_doc_daily_food_lodging_totals # Current doc totals for accumulation
+            daily_food_lodging_totals_by_type,
+            current_doc_daily_food_lodging_totals
         )
 
     elif exp.expense_type == EXPENSE_TYPES["LOCAL_COMMUTE"]:
-        if days < 1:
+        if days <= 0:
             frappe.throw(f"Days cannot be less than 1 in Row #{idx}")
 
         end_date = expense_date + timedelta(days=days - 1)
@@ -440,8 +454,9 @@ def _validate_and_process_expense(
             expense_date,
             budget_row,
             km_rate_map,
-            daily_totals_local_commute,
-            monthly_spent_base,
+            daily_local_commute_totals,
+            current_doc_daily_local_commute_totals,
+            monthly_approved_totals,
             current_doc_monthly_totals,
             employee_grade,
             company,
@@ -455,23 +470,19 @@ def _process_food_lodging_expense(
     days,
     expense_start_date,
     budget_row,
-    approved_daily_food_lodging_totals_by_type, # Historical totals (from approved claims)
-    current_doc_daily_food_lodging_totals # Totals for current document's expenses
+    approved_daily_food_lodging_totals_by_type,
+    current_doc_daily_food_lodging_totals
 ):
     """
     Processes validation for Food and Lodging expenses against their defined allowances.
-    Flags `custom_is_exception` if the *accumulated daily average* amount exceeds the limit.
-    This function now correctly distributes the daily expense across all covered days,
-    considering both previously approved and current document's entries,
-    and maintains separate daily totals for Food and Lodging.
     """
     daily_per_item_amount = total_exp_amount / days
 
     metro = exp.custom_for_metro_city
-    expense_type_for_budget_lookup = exp.expense_type.lower() # 'food' or 'lodging'
+    expense_type_for_budget_lookup = exp.expense_type.lower()
 
     if expense_type_for_budget_lookup == "food":
-        expense_type_for_budget_lookup = "meal" # Adjust for budget field naming
+        expense_type_for_budget_lookup = "meal"
 
     limit_field = f"{expense_type_for_budget_lookup}_allowance_{'metro' if metro else 'non_metro'}"
     limit = budget_row.get(limit_field, 0)
@@ -480,17 +491,13 @@ def _process_food_lodging_expense(
     for i in range(days):
         current_day = expense_start_date + timedelta(days=i)
 
-        # Accumulate current document's expense for this specific (day, type)
-        # current_doc_daily_food_lodging_totals is for this specific claim only
         current_doc_daily_food_lodging_totals[current_day][exp.expense_type] += daily_per_item_amount
 
-        # Calculate cumulative total for this (day, type) by adding historical and current
         cumulative_daily_total = (
             approved_daily_food_lodging_totals_by_type[current_day][exp.expense_type] +
             current_doc_daily_food_lodging_totals[current_day][exp.expense_type]
         )
 
-        # Check if the cumulative daily total for this day and type exceeds the limit
         if cumulative_daily_total > flt(limit):
             exceeded_any_day = True
             break
@@ -505,17 +512,12 @@ def _get_approved_food_lodging_daily_totals(
     """
     Calculates the accumulated daily sanctioned amounts for Food and Lodging,
     SEPARATELY BY EXPENSE TYPE, from *approved* Expense Claims within a given date range.
-    Returns a defaultdict(lambda: defaultdict(float)) where keys are
-    date -> expense_type -> total_sanctioned_amount_for_that_date_and_type.
     """
-    # CORRECTED: Use nested defaultdict to store totals per date and per expense type
     approved_daily_totals_by_type = defaultdict(lambda: defaultdict(float))
 
-    # Get all approved expense claims for the employee within the date range
     filters = {
         "employee": employee,
         "approval_status": "Approved",
-        # Consider a wider range for posting_date to ensure all spanning claims are caught
         "posting_date": ["between", [getdate(from_date) - timedelta(days=30), getdate(to_date) + timedelta(days=30)]],
     }
     if current_doc_name:
@@ -531,13 +533,11 @@ def _get_approved_food_lodging_daily_totals(
     if not approved_claim_names:
         return approved_daily_totals_by_type
 
-    # Get all matching expense claim details for Food and Lodging within these approved claims
     expense_claim_details = frappe.get_all(
         doctype="Expense Claim Detail",
         filters={
             "parent": ["in", approved_claim_names],
             "expense_type": ["in", [EXPENSE_TYPES["FOOD"], EXPENSE_TYPES["LODGING"]]],
-            # Filter by expense_date (start date of item) to narrow results before looping
             "expense_date": ["between", [getdate(from_date) - timedelta(days=30), getdate(to_date) + timedelta(days=30)]],
         },
         fields=[
@@ -545,7 +545,7 @@ def _get_approved_food_lodging_daily_totals(
             "expense_date",
             "custom_days",
             "sanctioned_amount",
-            "expense_type", # IMPORTANT: Fetch expense_type to differentiate
+            "expense_type",
         ],
         limit_page_length="UNLIMITED",
     )
@@ -562,16 +562,74 @@ def _get_approved_food_lodging_daily_totals(
 
         per_day_amount = flt(detail.sanctioned_amount) / days
 
-        # Distribute the per-day amount across all days covered by this approved expense item
         for i in range(days):
             current_day = start_date + timedelta(days=i)
-            # Only add if the current day falls within our *originally requested* from_date to_date range
-            # (or within the slightly expanded range for robustness)
             if getdate(from_date) <= current_day <= getdate(to_date):
-                # CORRECTED: Use expense_type as part of the key
                 approved_daily_totals_by_type[current_day][detail.expense_type] += per_day_amount
 
     return approved_daily_totals_by_type
+
+
+def _get_approved_local_commute_daily_totals(
+    employee, from_date, to_date, current_doc_name=None
+):
+    """
+    Calculates the accumulated daily sanctioned amounts for Local Commute
+    from *approved* Expense Claims within a given date range.
+    """
+    approved_daily_totals = defaultdict(float)
+
+    filters = {
+        "employee": employee,
+        "approval_status": "Approved",
+        "posting_date": ["between", [getdate(from_date) - timedelta(days=30), getdate(to_date) + timedelta(days=30)]],
+    }
+    if current_doc_name:
+        filters["name"] = ["!=", current_doc_name]
+
+    approved_claim_names = frappe.get_all(
+        doctype="Expense Claim",
+        filters=filters,
+        pluck="name",
+        limit_page_length="UNLIMITED",
+    )
+
+    if not approved_claim_names:
+        return approved_daily_totals
+
+    expense_claim_details = frappe.get_all(
+        doctype="Expense Claim Detail",
+        filters={
+            "parent": ["in", approved_claim_names],
+            "expense_type": EXPENSE_TYPES["LOCAL_COMMUTE"],
+            "expense_date": ["between", [getdate(from_date) - timedelta(days=30), getdate(to_date) + timedelta(days=30)]],
+        },
+        fields=[
+            "expense_date",
+            "custom_days",
+            "sanctioned_amount",
+        ],
+        limit_page_length="UNLIMITED",
+    )
+
+    for detail in expense_claim_details:
+        if not detail.expense_date or not detail.sanctioned_amount:
+            continue
+
+        start_date = getdate(detail.expense_date)
+        days = cint(detail.custom_days or 1)
+
+        if days <= 0:
+            continue
+
+        per_day_amount = flt(detail.sanctioned_amount) / days
+
+        for i in range(days):
+            current_day = start_date + timedelta(days=i)
+            if getdate(from_date) <= current_day <= getdate(to_date):
+                approved_daily_totals[current_day] += per_day_amount
+
+    return approved_daily_totals
 
 
 def _process_local_commute_expense(
@@ -581,20 +639,20 @@ def _process_local_commute_expense(
     days,
     expense_date,
     budget_row,
-    km_rate_map,  
-    daily_totals_local_commute, 
-    monthly_spent_base,
+    km_rate_map,
+    daily_local_commute_totals,
+    current_doc_daily_local_commute_totals,
+    monthly_approved_totals,
     current_doc_monthly_totals,
     employee_grade,
     company,
     doc
 ):
     """
-    Processes validation for Local Commute expenses, including attachment requirements,
-    KM rate calculation (if applicable), and checks against daily/monthly limits.
-    Flags `custom_is_exception` if limits are exceeded or attachments are missing.
+    Processes validation for Local Commute expenses using daily allowance logic
+    similar to food and lodging, plus monthly limit checks.
     """
-    # Check if attachment is mandatory based on commute details
+    # Check if attachment is mandatory
     attach_required = frappe.db.get_value(
         "Local Commute Details",
         {
@@ -610,54 +668,65 @@ def _process_local_commute_expense(
             f"Attachment required for Local Commute (Row #{idx}) as per commute rules."
         )
 
-    # If non-public transport and amount not provided, calculate from KM rate
+    # Calculate amount for non-public transport if not provided
     if exp.custom_mode_of_vehicle == COMMUTE_MODES["NON_PUBLIC"]:
         km = flt(exp.custom_km or 0)
-        rate = km_rate_map.get(exp.custom_type_of_vehicle, 0) # km_rate_map is now accessible
+        rate = km_rate_map.get(exp.custom_type_of_vehicle, 0)
 
-        if not exp.amount:  # Only calculate if amount is not manually entered
+        if not exp.amount:
             exp.amount = exp.sanctioned_amount = rate * km
-            exp_amount = flt(exp.amount)  # Update exp_amount with the calculated value
+            exp_amount = flt(exp.amount)
 
     daily_limit = flt(budget_row.get("local_commute_limit_daily", 0))
     monthly_limit = flt(budget_row.get("local_commute_limit_monthly", 0))
 
-    daily_avg = exp_amount / days if days > 0 else exp_amount
+    daily_per_item_amount = exp_amount / days
     exceeded_daily = False
     exceeded_monthly = False
 
-    # Check daily limits for each day spanned by the expense
+    # Check daily limits using logic similar to food/lodging
     for i in range(days):
-        day = expense_date + timedelta(days=i)
-        daily_totals_local_commute[day] += daily_avg # Use correct variable name for clarity
-        if daily_limit and daily_totals_local_commute[day] > daily_limit: # Use correct variable name
+        current_day = expense_date + timedelta(days=i)
+        
+        # Accumulate current document's expense for this day
+        current_doc_daily_local_commute_totals[current_day] += daily_per_item_amount
+        
+        # Calculate cumulative daily total
+        cumulative_daily_total = (
+            daily_local_commute_totals[current_day] +
+            current_doc_daily_local_commute_totals[current_day]
+        )
+        
+        # Check if daily limit is exceeded
+        if daily_limit and cumulative_daily_total > daily_limit:
             exceeded_daily = True
+            break
 
-    # Check monthly limit by combining previously approved amounts and current document's amounts
+    # Check monthly limit - simplified since no overlapping logic needed
     current_month_key = (expense_date.year, expense_date.month)
     current_doc_monthly_totals[current_month_key] += exp_amount
-    cumulative_monthly_spend = (
-        monthly_spent_base + current_doc_monthly_totals[current_month_key]
-    )
+    
+    approved_monthly_total = monthly_approved_totals.get(current_month_key, 0)
+    cumulative_monthly_spend = approved_monthly_total + current_doc_monthly_totals[current_month_key]
+    
     doc.custom_local_commute_monthly_balance = monthly_limit - cumulative_monthly_spend
+    
     if monthly_limit and cumulative_monthly_spend > monthly_limit:
         exceeded_monthly = True
 
-    # Flag as exception if any limit is exceeded or attachments are missing for Indifoss
+    # Flag as exception if any limit is exceeded
     if exceeded_daily or exceeded_monthly:
-        if not exp.custom_attachments and company == get_indifoss_company_name().get(
-            "company_name"
-        ):
+        if not exp.custom_attachments and company == get_indifoss_company_name().get("company_name"):
             frappe.throw(
                 f"Row #{idx}: Attachment is required as the expense exceeds limits."
             )
         exp.custom_is_exception = 1
 
+
 def validate_attachments_compulsion(doc):
     """
     Enforces attachment requirement for expenses flagged as exceptions,
-    specifically for the Indifoss company. Throws an error if an exception
-    is flagged but no attachment is provided.
+    specifically for the Indifoss company.
     """
     try:
         emp_company = frappe.db.get_value("Employee", doc.employee, "company")
@@ -680,8 +749,7 @@ def validate_attachments_compulsion(doc):
 @frappe.whitelist()
 def get_data_from_expense_claim_as_per_grade(employee, company):
     """
-    Whitelisted function to retrieve allowed local commute options (public/non-public)
-    for a given employee's grade and company based on configured Travel Budgets.
+    Whitelisted function to retrieve allowed local commute options.
     """
     try:
         travel_budget = frappe.db.get_value(
@@ -733,17 +801,14 @@ def get_approved_category_monthly_expense(
 ):
     """
     Calculates the total sanctioned amount for a specific expense category
-    incurred by an employee within the calendar month of the given `expense_date`,
-    considering only *approved* Expense Claims and excluding the current document if specified.
+    for the month of the given expense_date, simplified without overlapping logic.
     """
     try:
         expense_date = getdate(expense_date)
-
         month_start = expense_date.replace(day=1)
         next_month = month_start + relativedelta(months=1)
         month_end = next_month - timedelta(days=1)
 
-        # Get all approved expense claims for the employee
         filters = {"employee": employee, "approval_status": "Approved"}
         if current_doc_name:
             filters["name"] = ["!=", current_doc_name]
@@ -758,39 +823,20 @@ def get_approved_category_monthly_expense(
         if not all_approved_expense_claims:
             return 0.0
 
-        # Get all matching expense claim details for the specified type and approved claims
         expense_claim_details = frappe.get_all(
             doctype="Expense Claim Detail",
             filters={
                 "expense_type": expense_type,
                 "parent": ["in", all_approved_expense_claims],
+                "expense_date": ["between", [month_start, month_end]],
             },
-            fields=["expense_date", "custom_days", "sanctioned_amount"],
+            fields=["sanctioned_amount"],
             limit_page_length="UNLIMITED",
         )
 
-        total_sanctioned_amount = 0
-
-        for detail in expense_claim_details:
-            if not detail.expense_date or not detail.sanctioned_amount:
-                continue
-
-            start_date = getdate(detail.expense_date)
-            days = cint(detail.custom_days or 1)
-
-            if days <= 0:
-                continue
-
-            end_date = start_date + timedelta(days=days - 1)
-            per_day_amount = flt(detail.sanctioned_amount) / days
-
-            # Calculate overlapping days with the target month
-            overlap_start = max(start_date, month_start)
-            overlap_end = min(end_date, month_end)
-
-            if overlap_start <= overlap_end:
-                overlapping_days = (overlap_end - overlap_start).days + 1
-                total_sanctioned_amount += per_day_amount * overlapping_days
+        total_sanctioned_amount = sum(
+            flt(detail.sanctioned_amount or 0) for detail in expense_claim_details
+        )
 
         return round(total_sanctioned_amount, 2)
 
