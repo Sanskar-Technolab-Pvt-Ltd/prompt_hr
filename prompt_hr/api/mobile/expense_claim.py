@@ -25,7 +25,16 @@ def list(
             limit_page_length=limit_page_length,
             limit_start=limit_start,
         )
-
+        
+        # ? GET TOTAL COUNT (manually count the names matching filters)
+        total_names = frappe.get_all(
+            "Expense Claim",
+            filters=filters,
+            or_filters=or_filters,
+            fields=["name"]
+        )
+        total_count = len(total_names)
+        
     except Exception as e:
         # ? HANDLE ERRORS
         frappe.log_error("Error While Getting Expense Claim List", str(e))
@@ -42,6 +51,7 @@ def list(
             "success": True,
             "message": "Expense Claim List Loaded Successfully!",
             "data": expense_claim_list,
+            "count": total_count        
         }
         
 
