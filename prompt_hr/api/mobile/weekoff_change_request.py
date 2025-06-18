@@ -15,7 +15,7 @@ def list(
     try:
 
         # ? GET WEEKOFF CHANGE REQUEST LIST
-        travel_request_list = frappe.get_list(
+        week_off_request_list = frappe.get_list(
             "WeekOff Change Request",
             filters=filters,
             or_filters=or_filters,
@@ -24,6 +24,15 @@ def list(
             limit_page_length=limit_page_length,
             limit_start=limit_start,
         )
+        
+        # ? GET TOTAL COUNT (manually count the names matching filters)
+        total_names = frappe.get_all(
+            "WeekOff Change Request",
+            filters=filters,
+            or_filters=or_filters,
+            fields=["name"]
+        )
+        total_count = len(total_names)
 
     except Exception as e:
         # ? HANDLE ERRORS
@@ -40,7 +49,8 @@ def list(
         frappe.local.response["message"] = {
             "success": True,
             "message": "WeekOff Change Request List Loaded Successfully!",
-            "data": travel_request_list,
+            "data": week_off_request_list,
+            "count": total_count        
         }
 
 # ! prompt_hr.api.mobile.weekoff_change_request.get

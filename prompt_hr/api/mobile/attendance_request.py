@@ -25,6 +25,15 @@ def list(
             limit_start=limit_start,
         )
 
+        # ? GET TOTAL COUNT (manually count the names matching filters)
+        total_names = frappe.get_all(
+            "Attendance Request",
+            filters=filters,
+            or_filters=or_filters,
+            fields=["name"]
+        )
+        total_count = len(total_names)
+
     except Exception as e:
         # ? HANDLE ERRORS
         frappe.log_error("Error While Getting Attendance Request List", str(e))
@@ -41,6 +50,7 @@ def list(
             "success": True,
             "message": "Attendance Request List Loaded Successfully!",
             "data": attendance_request_list,
+            "count": total_count
         }
         
 

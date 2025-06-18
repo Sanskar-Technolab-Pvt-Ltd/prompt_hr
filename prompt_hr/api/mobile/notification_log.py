@@ -1,7 +1,7 @@
 import frappe
 
-# ! prompt_hr.api.mobile.attendance.list
-# ? GET ATTENDANCE LIST
+# ! prompt_hr.api.mobile.notification_log.list
+# ? GET NOTIFICATION_LOG LIST
 @frappe.whitelist()
 def list(
     filters=None,
@@ -13,9 +13,9 @@ def list(
 ):
     try:
 
-        # ? GET ATTENDANCE LIST
-        attendance_list = frappe.get_list(
-            "Attendance",
+        # ? GET NOTIFICATION_LOG LIST
+        notification_log_list = frappe.get_list(
+            "Notification Log",
             filters=filters,
             or_filters=or_filters,
             fields=frappe.parse_json(fields),
@@ -26,54 +26,57 @@ def list(
         
         # ? GET TOTAL COUNT (manually count the names matching filters)
         total_names = frappe.get_all(
-            "Attendance",
+            "Notification Log",
             filters=filters,
             or_filters=or_filters,
             fields=["name"]
         )
-        
         total_count = len(total_names)
-        
+
     except Exception as e:
         # ? HANDLE ERRORS
-        frappe.log_error("Error While Getting Attendance List", str(e))
+        frappe.log_error("Error While Getting Notification Log List", str(e))
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Getting Attendance List: {str(e)}",
+            "message": f"Error While Getting Notification Log List: {str(e)}",
             "data": None,
         }
+        
+        
 
     else:
         # ? HANDLE SUCCESS
         frappe.local.response["message"] = {
             "success": True,
-            "message": "Attendance List Loaded Successfully!",
-            "data": attendance_list,
+            "message": "Notification Log List Loaded Successfully!",
+            "data": notification_log_list,
             "count": total_count        
         }
           
-# ! prompt_hr.api.mobile.attendance.get
-# ? GET ATTENDANCE DETAIL
+# ! prompt_hr.api.mobile.notification_log.get
+# ? GET NOTIFICATION_LOG DETAIL
 @frappe.whitelist()
 def get(name):
     try:
-        # ? CHECK IF ATTENDANCE  DOC EXISTS OR NOT
-        attendance_exists = frappe.db.exists("Attendance", name)
+        # ? CHECK IF NOTIFICATION_LOG  DOC EXISTS OR NOT
+        notification_log_exists = frappe.db.exists("Notification Log", name)
 
-        # ? IF ATTENDANCE  DOC NOT
-        if not attendance_exists:
+        # ? IF NOTIFICATION_LOG  DOC NOT
+        if not notification_log_exists:
             frappe.throw(
-                f"Attendance: {name} Does Not Exists!",
+                f"Notification Log: {name} Does Not Exists!",
                 frappe.DoesNotExistError,
             )
 
-        # ? GET ATTENDANCE  DOC
-        attendance = frappe.get_doc("Attendance", name)
+        # ? GET NOTIFICATION_LOG  DOC
+        notification_log = frappe.get_doc("Notification Log", name)
+        
+        
 
     except Exception as e:
         # ? HANDLE ERRORS
-        frappe.log_error("Error While Getting Attendance Detail", str(e))
+        frappe.log_error("Error While Getting Notification Log Detail", str(e))
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
@@ -85,6 +88,6 @@ def get(name):
         # ? HANDLE SUCCESS
         frappe.local.response["message"] = {
             "success": True,
-            "message": "Attendance Loaded Successfully!",
-            "data": attendance,
+            "message": "Notification Log Loaded Successfully!",
+            "data": notification_log,
         }
