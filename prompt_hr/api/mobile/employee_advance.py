@@ -28,6 +28,16 @@ def list(
             limit_page_length=limit_page_length,
             limit_start=limit_start,
         )
+        
+        # ? GET TOTAL COUNT (manually count the names matching filters)
+        total_names = frappe.get_all(
+            "Employee Advance",
+            filters=filters,
+            or_filters=or_filters,
+            fields=["name"]
+        )
+        total_count = len(total_names)
+        
 
     except Exception as e:
         # ? HANDLE ERRORS
@@ -45,6 +55,7 @@ def list(
             "success": True,
             "message": "Employee Advance List Loaded Successfully!",
             "data": employee_advance_list,
+            "count": total_count              
         }
         
 
