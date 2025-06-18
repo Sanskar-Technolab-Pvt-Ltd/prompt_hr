@@ -56,6 +56,17 @@ frappe.ui.form.on("Payroll Entry", {
                 }
             };
         });
+
+        frm.set_query('employee','custom_adhoc_salary_details', function(doc, cdt, cdn) {
+            // Get the list of employee names from the employees child table
+            let employee_list = (frm.doc.employees || []).map(row => row.employee).filter(Boolean);
+            return {
+                filters: {
+                    name: ["in", employee_list]
+                }
+            };
+        });
+        
     },
 });
 
