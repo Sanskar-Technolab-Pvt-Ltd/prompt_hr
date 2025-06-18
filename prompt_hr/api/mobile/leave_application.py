@@ -14,16 +14,48 @@ def list(
 ):
     try:
 
-        # ? GET LEAVE APPLICATION LIST
-        leave_application_list = frappe.get_list(
+        current_user = frappe.session.user
+        parsed_fields = frappe.parse_json(fields)
+
+        # Ensure required fields are included
+        required_fields = ["employee", "owner"]
+        for field in required_fields:
+            if field not in parsed_fields:
+                parsed_fields.append(field)
+
+        # Get current user's employee ID
+        current_employee = frappe.get_value("Employee", {"user_id": current_user}, "name")
+
+        # Fetch leave applications
+        leave_application_list_raw = frappe.get_list(
             "Leave Application",
             filters=filters,
             or_filters=or_filters,
-            fields=frappe.parse_json(fields),
+            fields=parsed_fields,
             order_by=order_by,
-            limit_page_length=limit_page_length,    
+            limit_page_length=limit_page_length,
             limit_start=limit_start,
         )
+
+        # Tag each record as Self or Team
+        leave_application_list = []
+        for entry in leave_application_list_raw:
+            if entry.get("employee") == current_employee or entry.get("owner") == current_user:
+                entry["request"] = "My Request"
+            else:
+                entry["request"] = "Team Request"
+            leave_application_list.append(entry)
+
+        
+        # ? GET TOTAL COUNT (manually count the names matching filters)
+        total_names = frappe.get_all(
+            "Leave Application",
+            filters=filters,
+            or_filters=or_filters,
+            fields=["name"]
+        )
+        total_count = len(total_names)
+        
 
     except Exception as e:
         # ? HANDLE ERRORS
@@ -41,6 +73,7 @@ def list(
             "success": True,
             "message": "Leave Application List Loaded Successfully!",
             "data": leave_application_list,
+            "count": total_count        
         }
 
 # ! prompt_hr.api.mobile.leave_application.get
