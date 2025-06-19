@@ -21,7 +21,7 @@ def create_hash(input_text: str) -> str:
 
         return full_hash[:12]
     except Exception as e:
-        frappe.log_error(f"Error creating hash: {str(e)}\n{traceback.format_exc()}")
+        frappe.log_error("Error creating hash:", f"Error creating hash: {str(e)}\n{traceback.format_exc()}")
         frappe.throw(_("Something went wrong during hash generation."))
 
 
@@ -343,7 +343,7 @@ def invite_for_document_collection(
             return _("Invitation sent successfully.")
 
     except Exception as e:
-        frappe.log_error(
+        frappe.log_error("Error inviting for document collection:",
             f"Error inviting for document collection: {str(e)}\n{traceback.format_exc()}"
         )
         frappe.throw(_("An error occurred while inviting for document collection."))
@@ -557,6 +557,7 @@ def expense_claim_and_travel_request_workflow_email(doc):
                 )
     except Exception as e:
         frappe.log_error(
+            "Error While expense claim workflow email",
             f"Error in expense claim workflow email: {str(e)}\n{traceback.format_exc()}"
         )
 

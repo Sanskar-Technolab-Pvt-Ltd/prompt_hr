@@ -1,46 +1,42 @@
 import frappe
 
-# ! prompt_hr.api.mobile.mode_of_travel.list
-# ? GET MODE OF TRAVEL LIST
 @frappe.whitelist()
-def list(
-    filters=None,
-    or_filters=None,
-    fields=["*"],
-    order_by=None,
-    limit_page_length=0,
-    limit_start=0,
-):
+def get(employee=None, company=None):
     try:
+        # ? VALIDATE INPUTS
+        if not employee:
+            frappe.throw("Employee is required")
+        if not company:
+            frappe.throw("Company is required")
 
-        # ? GET MODE OF TRAVEL LIST
-        mode_of_travel_list = frappe.get_list(
-            "Travel Mode",
-            filters=filters,
-            or_filters=or_filters,
-            fields=frappe.parse_json(fields),
-            order_by=order_by,
-            limit_page_length=limit_page_length,
-            limit_start=limit_start,
+        # ? GET TRAVEL BUDGET REFERENCE
+        travel_budget = frappe.db.get_value("Travel Budget", {"company": company}, "name")
+        if not travel_budget:
+            frappe.throw(f"Travel Budget not found for Company: {company}")
+
+        # ? GET EMPLOYEE GRADE
+        grade = frappe.db.get_value("Employee", employee, "grade")
+        if not grade:
+            frappe.throw(f"Grade not found for Employee: {employee}")
+
+        # ? FETCH TRAVEL MODES FROM BUDGET TABLE
+        travel_modes = frappe.get_all(
+            "Travel Mode Table",
+            filters={
+                "parent": travel_budget,
+                "grade": grade,
+            },
+            fields=["mode_of_travel"],
+            pluck="mode_of_travel",
         )
-        
-        # ? GET TOTAL COUNT (manually count the names matching filters)
-        total_names = frappe.get_all(
-            "Travel Mode",
-            filters=filters,
-            or_filters=or_filters,
-            fields=["name"]
-        )
-        total_count = len(total_names)
-        
 
     except Exception as e:
         # ? HANDLE ERRORS
-        frappe.log_error("Error While Getting Travel Mode List", str(e))
+        frappe.log_error("Error While Getting Travel Modes", str(e))
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Getting Travel Mode List: {str(e)}",
+            "message": f"Error While Getting Travel Modes: {str(e)}",
             "data": None,
         }
 
@@ -48,8 +44,6 @@ def list(
         # ? HANDLE SUCCESS
         frappe.local.response["message"] = {
             "success": True,
-            "message": "Travel Mode List Loaded Successfully!",
-            "data": mode_of_travel_list,
-            "count": total_count        
+            "message": "Travel Modes Loaded Successfully!",
+            "data": travel_modes if travel_modes else [],
         }
-        
