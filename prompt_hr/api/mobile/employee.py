@@ -78,6 +78,7 @@ def get(name):
             "date_of_Birth": employee.date_of_birth,
             "date_of_joining": employee.date_of_joining,
             "blood_group": employee.blood_group,
+            "city": employee.custom_village_city
         }
 
         company_info = {
