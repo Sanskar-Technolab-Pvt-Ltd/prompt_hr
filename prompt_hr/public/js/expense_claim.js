@@ -3,6 +3,7 @@ frappe.ui.form.on('Expense Claim', {
 	refresh(frm) {
 		create_payment_entry_button(frm);
 		fetch_commute_data(frm);
+		set_local_commute_monthly_expense(frm);
 	},
 	employee: fetch_commute_data,
 	company: fetch_commute_data,
@@ -212,3 +213,37 @@ function reset_amount_read_only(grid_row) {
 function setCampaignFromProject(frm) {
 	// Add your logic here if needed
 }
+
+
+function set_local_commute_monthly_expense(frm) {
+    if (!frm.doc.employee) {
+        frappe.msgprint("Please select an employee first.");
+        return;
+    }
+
+    frappe.call({
+        method: "prompt_hr.py.expense_claim.get_local_commute_expense_in_expense_claim",
+        args: { employee: frm.doc.employee },
+        callback: (res) => {
+            const data = res.message;
+            if (!data) {
+                frappe.msgprint("Could not fetch commute budget details.");
+                return;
+            }
+
+            // Format HTML content (specific, compact, accurate)
+            const html = `
+                <div style="padding: 6px 0; font-size: 14px;">
+                    <p><strong>Monthly Local Commute Budget:</strong> ₹ ${data.monthly_budget || 0}</p>
+                    <p><strong>Local Commute Spent:</strong> ₹ ${data.monthly_expense || 0}</p>
+                    <p><strong>Remaining Commute Budget:</strong> ₹ ${data.remaining_budget || 0}</p>
+                </div>
+            `;
+
+            // Set the HTML field
+            frm.set_df_property("custom_local_commute_budget_details", "options", html);
+            frm.refresh_field("custom_local_commute_budget_details");
+        }
+    });
+}
+
