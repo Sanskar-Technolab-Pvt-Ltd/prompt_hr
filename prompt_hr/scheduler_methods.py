@@ -1499,7 +1499,6 @@ def check_employee_penalty_criteria(employee=None, penalization_type=None):
 # ? DAILY SCHEDULER TO HANDLE EXIT CHECKLIST & INTERVIEW AUTOMATICALLY
 def process_exit_approvals():
     today_date = getdate(today())
-    print(f"\n=== Running Exit Approval Scheduler on {today_date} ===\n")
 
     records = frappe.get_all(
         "Exit Approval Process",
@@ -1514,11 +1513,9 @@ def process_exit_approvals():
             "exit_interview",
         ],
     )
-    print(f"Found {len(records)} approved exit approvals to process.\n")
 
     for r in records:
         try:
-            print(f"> Processing: {r.name} | Employee: {r.employee} | Company: {r.company}")
 
             # ? PROCESS CHECKLIST IF DUE AND NOT YET CREATED
             checklist_due = (
@@ -1527,9 +1524,7 @@ def process_exit_approvals():
                 and not r.employee_separation
             )
             if checklist_due:
-                print("  - Raising Exit Checklist...")
                 result = raise_exit_checklist(r.employee, r.company, r.name)
-                print(f"  ✔ Checklist Result: {result.get('message')}")
 
             # ? PROCESS EXIT INTERVIEW IF DUE AND NOT YET CREATED
             interview_due = (
@@ -1538,16 +1533,12 @@ def process_exit_approvals():
                 and not r.exit_interview
             )
             if interview_due:
-                print("  - Raising Exit Interview...")
                 result = raise_exit_interview(r.employee, r.company, r.name)
-                print(f"  ✔ Interview Result: {result.get('message')}")
 
         except Exception as e:
-            print(f"  ✖ ERROR while processing {r.name}: {str(e)}")
             frappe.log_error(
                 title="Auto Exit Process Error",
                 message=frappe.get_traceback()
                 + f"\n\nEmployee: {r.employee}, Company: {r.company}",
             )
 
-    print("\n=== Scheduler Execution Complete ===\n")
