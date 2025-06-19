@@ -47,7 +47,9 @@ def create_or_link_checklists_and_notify(doc):
 
 # ? FUNCTION TO CREATE A NEW IT EXIT CHECKLIST
 def create_new_it_exit_checklist(employee_id):
+
     try:
+
         # ? FETCH EMPLOYEE DETAILS
         fields = [
             "employee_name",
@@ -58,6 +60,7 @@ def create_new_it_exit_checklist(employee_id):
             "relieving_date",
             "company"
         ]
+        
         values = frappe.db.get_value("Employee", employee_id, fields, as_dict=True)
 
         if not values:
@@ -74,29 +77,33 @@ def create_new_it_exit_checklist(employee_id):
         checklist.relieving_date = values.relieving_date
         checklist.company = values.company
 
-        # ? ONLY FOR INDIFOSS COMPANY
-        if values.company == get_indifoss_company_name():
-            # ? FETCH ALL CLEARANCE ITEMS
-            clearance_items = frappe.get_all(
-                "Clearance Item",
-                fields=["clearance_item", "table_name"]
-            )
+       
 
-            # ? GROUP ITEMS BY TABLE NAME
-            table_map = {}
-            for item in clearance_items:
-                table = item.table_name
-                if table not in table_map:
-                    table_map[table] = []
-                table_map[table].append(item.clearance_item)
+        # ? FETCH ALL CLEARANCE ITEMS
+        clearance_items = frappe.get_all(
+            "Exit Clearance Item",
+            fields=["clearance_item", "table_name"]
+        )
 
-            # ? ADD ITEMS TO THEIR RESPECTIVE CHILD TABLES
-            for table_name, items in table_map.items():
-                for item_name in items:
-                    checklist.append(table_name, {
-                        "clearance_item": item_name,
-                        "status": "Pending"
-                    })
+        frappe.msgprint(f"Total Clearance Items Fetched: {len(clearance_items)}")
+         
+        # ? GROUP ITEMS BY TABLE NAME
+        table_map = {}
+        for item in clearance_items:
+            table = item.table_name
+            if table not in table_map:
+                table_map[table] = []
+            table_map[table].append(item.clearance_item)
+
+        frappe.msgprint(f"Grouped Items by Table: {table_map}")
+
+        # ? ADD ITEMS TO THEIR RESPECTIVE CHILD TABLES
+        for table_name, items in table_map.items():
+            for item_name in items:
+                checklist.append(table_name, {
+                    "clearance_item": item_name,
+                })
+                frappe.msgprint(f"Added {item_name} to {table_name}")
 
         checklist.insert(ignore_permissions=True)
         frappe.msgprint(f"Created IT Exit Checklist: {checklist.name}")

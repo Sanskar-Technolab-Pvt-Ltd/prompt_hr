@@ -1,0 +1,57 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-06-19 18:47:55.598446",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "clearance_item",
+  "status",
+  "hold_till",
+  "employee"
+ ],
+ "fields": [
+  {
+   "fieldname": "clearance_item",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Clearance Item",
+   "options": "Exit Clearance Item"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "\nDiscontinue\nHold Till (Mention Date)\nForward/Transfer To"
+  },
+  {
+   "depends_on": "eval:doc.status == \"Hold Till (Mention Date)\"",
+   "fieldname": "hold_till",
+   "fieldtype": "Date",
+   "label": "Hold Till"
+  },
+  {
+   "depends_on": "eval:doc.status == \"Forward/Transfer To\"",
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-06-19 20:35:18.022067",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "IT Asset Clearance",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
