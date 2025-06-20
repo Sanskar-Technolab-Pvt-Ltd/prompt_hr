@@ -1,0 +1,30 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-06-20 12:07:20.268774",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Employee Penalty",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "<p>{% if doc.employee %}\n{% set employee = frappe.get_doc(\"Employee\", doc.employee) %}\n{% endif %}</p>\n\n<p>Dear <b>{{employee.employee_name or \"\"}}</b>,</p>\n\n<p>\n    A penalty has been issued for <strong>{{reason or \"\"}}</strong> on \n    <strong>{{frappe.utils.format_date(doc.penalty_date,\"dd-MM-yyyy\") or \"\"}}</strong> as per company attendance policy.\n</p>\n\n<p>\n    Please check your attendance records and reach out to the HR team if you believe this was issued in error.\n</p>\n\n<p><br></p>\n\n<p>Regards,<br>\nHR Department<br>\n{{doc.company or \"\"}}</p>\n",
+ "message_type": "HTML",
+ "modified": "2025-06-20 18:53:37.429830",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Employee Penalty Alert",
+ "owner": "Administrator",
+ "recipients": [
+  {
+   "condition": ""
+  }
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "set_property_after_alert": "",
+ "subject": "Penalty Issued for {{reason}} on {{frappe.utils.format_date(doc.penalty_date,\"dd-MM-yyyy\")}}",
+ "value_changed": "employee"
+}
