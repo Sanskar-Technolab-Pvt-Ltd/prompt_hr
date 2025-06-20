@@ -1,13 +1,16 @@
-<p>This is a friendly reminder to complete the required activities in your Reporting Manager Checklist. These activities are important for ensuring a smooth onboarding process.</p>
+<p>This is a friendly reminder to complete the required activities in the {{ doc.doctype }} Form. These activities are important for ensuring a smooth onboarding process.</p>
 
-<p><b>New Joiner Details:</b></p>
+<p><b>New Joinee Details:</b></p>
 <ul>
-  <li><b>Applicant Name:</b> {{ doc.applicant_name }}</li>
+  <li><b>Applicant Name:</b> {{ doc.applicant_name or doc.custom_applicant_name }}</li>
   <li><b>Designation:</b> {{ doc.designation }}</li>
   <li><b>Department:</b> {{ doc.department }}</li>
-  <li><b>Work Location:</b> {{ doc.work_location }}</li>
+  {% if doc.work_location %}
+    <li><b>Work Location:</b> {{ doc.work_location }}</li>
+  {% endif %}
   <li><b>Company:</b> {{ doc.company }}</li>
 </ul>
+
 
 <p>Please complete the activity by the deadline to keep the onboarding on track.</p>
 
