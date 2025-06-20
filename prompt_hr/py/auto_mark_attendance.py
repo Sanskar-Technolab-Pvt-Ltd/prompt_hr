@@ -154,6 +154,7 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                                 day_end_time,
                                 grace_time_period_for_late_coming_for_indifoss,
                                 grace_time_for_insufficient_hours = grace_time_period_for_late_coming_for_indifoss,
+                                indifoss = 1
                             )
                     else:
                         print(f"\n\n prompt {prompt}  \n\n")
@@ -165,7 +166,8 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                             day_end_time,
                             grace_time_period_for_late_coming,
                             grace_time_for_insufficient_hours if prompt else 0,
-                            prompt = prompt
+                            prompt = prompt,
+                            indifoss = indifoss
                         )
         elif regularize_attendance:
             print(f"\n\n Attendance Regularization \n\n")
@@ -178,6 +180,7 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                             grace_time_period_for_late_coming,
                             grace_time_for_insufficient_hours if prompt else 0,
                             prompt = prompt,
+                            indifoss = indifoss,
                             regularize_attendance = regularize_attendance,
                             attendance_id = attendance_id,
                             regularize_start_time = regularize_start_time,
@@ -190,7 +193,7 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
             frappe.log_error("Error While Marking Attendance", frappe.get_traceback())
             throw(str(e))
             
-def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, day_start_time, day_end_time, grace_time_period_for_late_coming, grace_time_for_insufficient_hours=0, prompt=0, regularize_attendance=None, attendance_id=None,   regularize_start_time=None, regularize_end_time=None):
+def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, day_start_time, day_end_time, grace_time_period_for_late_coming, grace_time_for_insufficient_hours=0, prompt=0, indifoss=0, regularize_attendance=0, attendance_id=None,   regularize_start_time=None, regularize_end_time=None):
     
     assigned_shift = frappe.db.get_all("Shift Assignment", {"docstatus": 1, "status": "Active","employee": employee_data.get("name"), "start_date":["<=", mark_attendance_date]}, ["name","shift_type"], order_by="creation desc", limit=1)
 
@@ -257,13 +260,25 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
     in_datetime = None
     out_type_emp_checkin_id = None
     out_datetime = None
+    create_penalty = 0
     
     
     if not in_type_emp_checkin and not out_type_emp_checkin and not regularize_attendance:
-        print(f"\n\n No tinsadas \n\n")
         holiday_or_weekoff = is_holiday_or_weekoff(employee_data.get("name"), mark_attendance_date)
         
         if not holiday_or_weekoff.get("is_holiday") and not holiday_or_weekoff.get("is_weekoff"):
+            if indifoss:
+                print(f"\n\n No Attendance \n\n")
+                leave_type = frappe.db.get_value("Leave Type", {"is_lwp": 1}, "name")
+                
+                create_employee_penalty(
+                    employee_data.get("name"),
+                    mark_attendance_date,
+                    1,
+                    leave_type=leave_type,
+                    lwp_leave=1,
+                    for_no_attendance = 1
+                    )
             return 0            
         if holiday_or_weekoff.get("is_holiday"):
             return 0
@@ -361,9 +376,22 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
     attendance_type = None
     if attendance_request:
             attendance_type = attendance_request[0].get("reason")
+    
+    penalty_id = None
 
     if is_only_one_record:
         attendance_status = "Mispunch"
+        if indifoss:
+            leave_type = frappe.db.get_value("Leave Type", {"is_lwp": 1}, "name")            
+            penalty_id = create_employee_penalty(
+                    employee_data.get("name"),
+                    mark_attendance_date,
+                    1,
+                    leave_type=leave_type,
+                    lwp_leave=1,
+                    for_miss_punch = 1
+            )
+            attendance_status = "Absent"
         remarks = "Only single record found"
     
     if attendance_status in ["Half Day", "Absent"] and not apply_penalty and prompt:
@@ -390,9 +418,14 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
                     "custom_checkout_time" : out_datetime if out_type_emp_checkin else None,
                     "custom_remarks" : remarks,
                     "custom_employee_checkin" : in_type_emp_checkin_id if in_type_emp_checkin else None,
-                    "custom_employee_checkout" : out_type_emp_checkin_id if out_type_emp_checkin else None
-                    
-                })
+                    "custom_employee_checkout" : out_type_emp_checkin_id if out_type_emp_checkin else None,
+                                                            
+                },
+                employee_id=employee_data.get("name"),
+                indifoss=indifoss,
+                regularize_attendance=regularize_attendance,
+                attendance_date=mark_attendance_date
+                )
             else:
                 update_attendance(half_day_attendance.get("name"), {
                     "custom_type": attendance_type,
@@ -410,7 +443,12 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
                     "custom_employee_checkin" : in_type_emp_checkin_id if in_type_emp_checkin else None,
                     "custom_employee_checkout" : out_type_emp_checkin_id if out_type_emp_checkin else None
                     
-                })
+                },
+                employee_id=employee_data.get("name"),
+                indifoss=indifoss,
+                regularize_attendance=regularize_attendance,
+                attendance_date=mark_attendance_date
+                )
     else:
         print(f"\n Creating Attendance \n\n")
         create_attendance(
@@ -431,7 +469,11 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
             custom_checkout_time = out_datetime if out_type_emp_checkin else '',
             custom_remarks = remarks,
             custom_employee_checkin = in_type_emp_checkin_id if in_type_emp_checkin else None,
-            custom_employee_checkout = out_type_emp_checkin_id if out_type_emp_checkin else None
+            custom_employee_checkout = out_type_emp_checkin_id if out_type_emp_checkin else None,
+            custom_employee_penalty_id = penalty_id,
+            regularize_attendance=regularize_attendance,
+            prompt=prompt,
+            indifoss=indifoss
         )            
     return 1
 def is_holiday_or_weekoff(emp_id, mark_attendance_date):
@@ -524,7 +566,11 @@ def create_attendance(
     custom_checkout_time = '',
     custom_remarks = '',
     custom_employee_checkin = None,
-    custom_employee_checkout = None
+    custom_employee_checkout = None,
+    custom_employee_penalty_id = None,
+    regularize_attendance = 0,
+    prompt=0,
+    indifoss=0
     
 ):
     """Method to create attendance
@@ -550,19 +596,39 @@ def create_attendance(
     attendance_doc.custom_employee_checkin = custom_employee_checkin
     attendance_doc.custom_employee_checkout = custom_employee_checkout
     
+    attendance_doc.custom_employee_penalty_id = custom_employee_penalty_id
+    
     attendance_doc.insert(ignore_permissions=True)
+    
+    if indifoss and regularize_attendance:
+        emp_penalty_id = frappe.db.get_value("Employee Penalty", {"employee": employee, "attendance": attendance_doc.name}, "name")
+        if not emp_penalty_id:
+            emp_penalty_id = frappe.db.get_value("Employee Penalty", {"employee": employee, "penalty_date": attendance_date}, "name")
+        if emp_penalty_id:
+            frappe.delete_doc("Employee Penalty", emp_penalty_id, ignore_permissions=True)
+    if custom_employee_penalty_id:
+        frappe.db.set_value("Employee Penalty", custom_employee_penalty_id, "attendance", attendance_doc.name)
     attendance_doc.submit()
     frappe.db.commit()
 
 
-def update_attendance(attendance_id, update_values):
+def update_attendance(attendance_id, update_values, employee_id=None,indifoss = 0, regularize_attendance = 0, attendance_date=None):
     """Method to Update Attendance
     """
     # attendance_doc = frappe.get_doc("Attendance", attendance_id)
-    
+    print(f"\n\n updating attendance {regularize_attendance, employee_id, indifoss}\n\n")
     if update_values:
         for fieldname, values in update_values.items():
             frappe.db.set_value("Attendance", attendance_id, fieldname, values)
+    
+        if indifoss and regularize_attendance:
+            emp_penalty_id = frappe.db.get_value("Employee Penalty", {"employee": employee_id, "attendance": attendance_id}, "name")
+            if not emp_penalty_id:
+                emp_penalty_id = frappe.db.get_value("Employee Penalty", {"employee": employee_id, "penalty_date": attendance_date}, "name")
+            if emp_penalty_id:
+                frappe.db.set_value("Attendance", attendance_id, "custom_employee_penalty_id", '')
+                frappe.delete_doc("Employee Penalty", emp_penalty_id, ignore_permissions=True)
+    
     
     frappe.db.commit()
 #*-------------------------------------------------------------------------------------------------------------------------------
@@ -570,3 +636,35 @@ def update_attendance(attendance_id, update_values):
 
 
 
+def create_employee_penalty(
+    employee, 
+    penalty_date, 
+    deduct_leave, 
+    leave_type = None, 
+    lwp_leave = 0.0, 
+    for_no_attendance=0,
+    for_miss_punch=0
+    ):
+    "Method to Create Employee penalty and add an entry to leave ledger entry"
+    #* CREATING EMPLOYEE PENALTY
+    penalty_doc = frappe.new_doc("Employee Penalty")
+    penalty_doc.employee = employee
+    penalty_doc.penalty_date = penalty_date
+    penalty_doc.total_leave_penalty = deduct_leave
+
+    penalty_doc.deduct_leave_without_pay = lwp_leave
+    
+    
+        
+    if leave_type:
+        penalty_doc.leave_type = leave_type
+        
+    
+    if for_no_attendance:
+        penalty_doc.for_no_attendance = 1
+        penalty_doc.remarks = f"Penalty for No Attendance Marked on {penalty_date}"
+    
+    if for_miss_punch:
+        penalty_doc.remarks = f"Penalty for Miss punch Marked on {penalty_date}"
+    penalty_doc.insert(ignore_permissions=True)
+    return penalty_doc.name
