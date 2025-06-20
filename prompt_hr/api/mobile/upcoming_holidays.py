@@ -23,14 +23,14 @@ def get(name):
         employee = frappe.get_doc("Employee", name)
         
         # ? IF NOT HOLIDAYS
-        if not employee.holiday_list:
+        if not employee.custom_festival_holiday_list:
             frappe.throw(
                 f"Employee: {name} - Holiday List Does Not Exists!",
                 frappe.DoesNotExistError,
             )
         
         # ? GET HOLIDAYS  DOC
-        holiday_list = frappe.get_doc("Holiday List", employee.holiday_list)
+        holiday_list = frappe.get_doc("Festival Holiday List", employee.custom_festival_holiday_list)
         
         # ? IF NOT HOLIDAYS
         if not holiday_list:
@@ -49,8 +49,7 @@ def get(name):
         holidays = []
         for holiday in holiday_list.holidays:
             holiday_date = getdate(holiday.holiday_date)
-            if (month_first_date <= holiday_date <= month_last_date 
-                and not holiday.weekly_off):
+            if (month_first_date <= holiday_date <= month_last_date):
                 
                 # EXTRACT PLAIN TEXT FROM HTML DESCRIPTION
                 description_text = holiday.description
