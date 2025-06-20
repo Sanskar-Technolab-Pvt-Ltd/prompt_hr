@@ -654,18 +654,19 @@ def _process_local_commute_expense(
     """
     # Check if attachment is mandatory
     # ? GET IF ATTACHMENT IS REQUIRED BASED ON COMMUTE RULES
-    type_of_commute = exp.custom_type_of_vehicle
-    if type_of_commute == "Non-Public":
-        type_of_commute = "Non Public"
+    custom_mode_of_vehicle = exp.custom_mode_of_vehicle
+    if custom_mode_of_vehicle == "Non-Public":
+        custom_mode_of_vehicle = "Non Public"
     attach_required = frappe.db.get_value(
         "Local Commute Details",
         {
             "grade": employee_grade,
-            "mode_of_commute": exp.custom_mode_of_vehicle,
-            "type_of_commute": type_of_commute,
+            "mode_of_commute": custom_mode_of_vehicle,
+            "type_of_commute": exp.custom_type_of_vehicle,
         },
         "attachment_mandatory",
     )
+
 
     # ? THROW ERROR IF ATTACHMENT IS REQUIRED BUT NOT PROVIDED
     if attach_required and not exp.custom_attachments:
