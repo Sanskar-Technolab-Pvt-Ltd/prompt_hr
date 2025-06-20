@@ -21,6 +21,7 @@
   {
    "fieldname": "print_format_document",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Print Format Document",
    "options": "Print Format"
   },
@@ -37,7 +38,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-06-13 17:31:04.889018",
+ "modified": "2025-06-20 12:29:02.647705",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Print Format Selection",
