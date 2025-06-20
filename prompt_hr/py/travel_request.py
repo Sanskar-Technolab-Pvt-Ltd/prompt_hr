@@ -19,7 +19,6 @@ def attachment_validation(doc):
     )
 
     for row in doc.get("itinerary"):
-        print("Hii\n",row.get("custom_attachment"),mandatory_attachment_travel_modes)
         if row.get("custom_travel_mode") in mandatory_attachment_travel_modes and not row.get("custom_attachment"):
             frappe.throw(f"Attachment is Mandatory for Row: {row.get('idx')} in Travel Itinerary Table.")
 
