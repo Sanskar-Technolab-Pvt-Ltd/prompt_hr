@@ -107,8 +107,8 @@ def get(name):
             "bank_name": employee.bank_name,
             "bank_ac_no": employee.bank_ac_no,
             "ifsc_code": employee.ifsc_code,
-            "MICR Code": employee.micr_code,
-            "IBAN": employee.iban,
+            "micr_code": employee.micr_code,
+            "iban": employee.iban,
             "passport_number":employee.passport_number
         }
         
