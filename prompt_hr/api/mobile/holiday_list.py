@@ -1,5 +1,8 @@
 import frappe
+import re
 
+def remove_html_tags(text):
+    return re.sub('<.*?>', '', text)
 
 @frappe.whitelist()
 def get(company, employee, leave_type):
@@ -42,7 +45,7 @@ def get(company, employee, leave_type):
                 if leave_application:
                     if holiday.holiday_date in leave_application:
                         continue
-                label = f"{holiday.description or holiday.name} ({frappe.utils.format_date(holiday.holiday_date, 'dd-MM-yyyy')})"
+                    label = f"{remove_html_tags(holiday.description) or holiday.name} ({frappe.utils.format_date(holiday.holiday_date, 'dd-MM-yyyy')})"
                 options.append({"label": label, "value": label, "holiday_date": holiday.holiday_date})
     except Exception as e:
          # ? HANDLE ERRORS

@@ -149,3 +149,47 @@ def create(**args):
             "data": employee_checkin_doc,
         }
         
+        
+        
+@frappe.whitelist()
+def checking_log(
+    filters=None,
+    or_filters=None,
+    fields=["*"],
+    order_by="creation desc",  # Default to latest
+    limit_page_length=1,       # Default to 1 record
+    limit_start=0,
+):
+    try:
+        filters = frappe.parse_json(filters) if filters else []
+        or_filters = frappe.parse_json(or_filters) if or_filters else []
+        fields = frappe.parse_json(fields) if fields else ["*"]
+
+        # Fetch latest check-in
+        employee_checkin_list = frappe.get_list(
+            "Employee Checkin",
+            filters=filters,
+            or_filters=or_filters,
+            fields=fields,
+            order_by=order_by,
+            limit_page_length=int(limit_page_length),
+            limit_start=int(limit_start),
+        )
+
+
+    except Exception as e:
+        frappe.log_error("Error While Getting Employee Checkin List", str(e))
+        frappe.clear_messages()
+        frappe.local.response["message"] = {
+            "success": False,
+            "message": f"Error While Getting Employee Checkin List: {str(e)}",
+            "data": None,
+        }
+
+    else:
+        frappe.local.response["message"] = {
+            "success": True,
+            "message": "Latest Employee Checkin Loaded Successfully!",
+            "data": employee_checkin_list,
+        }
+        
