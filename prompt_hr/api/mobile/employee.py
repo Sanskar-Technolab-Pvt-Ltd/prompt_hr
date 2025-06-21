@@ -79,6 +79,7 @@ def get(name):
             "date_of_joining": employee.date_of_joining,
             "blood_group": employee.blood_group,
             "city": employee.custom_village_city
+            
         }
 
         company_info = {
@@ -87,7 +88,7 @@ def get(name):
             "designation": employee.designation,
             "branch": employee.branch,
             "grade": employee.grade,
-            "reports To": frappe.db.get_value("Employee", employee.reports_to, "employee_name") if employee.reports_to else "",
+            "reports_to": frappe.db.get_value("Employee", employee.reports_to, "employee_name") if employee.reports_to else "",
             "employment_type": employee.employment_type,
         }
 
@@ -106,8 +107,9 @@ def get(name):
             "bank_name": employee.bank_name,
             "bank_ac_no": employee.bank_ac_no,
             "ifsc_code": employee.ifsc_code,
-            "MICR Code": employee.micr_code,
-            "IBAN": employee.iban
+            "micr_code": employee.micr_code,
+            "iban": employee.iban,
+            "passport_number":employee.passport_number
         }
         
         settings = {

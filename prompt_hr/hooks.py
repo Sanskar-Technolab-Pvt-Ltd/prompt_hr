@@ -215,6 +215,7 @@ doc_events = {
     "Employee": {
         "on_update": "prompt_hr.py.employee.on_update",
         "validate": "prompt_hr.py.employee.validate",
+        "before_insert": "prompt_hr.py.employee.before_insert"
     },
     # "Probation Feedback Form": {
     #     "on_submit": "prompt_hr.custom_methods.add_probation_feedback_data_to_employee"
