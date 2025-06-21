@@ -11,7 +11,7 @@ from erpnext.setup.doctype.employee.employee import get_holiday_list_for_employe
 from hrms.hr.utils import get_holiday_dates_for_employee
 from hrms.hr.doctype.leave_application.leave_application import get_holidays
 
-# prompt_hr.api.mobile.leave_policy.get_number_of_leave_days
+# prompt_hr.api.mobile.total_leaves.get_number_of_leave_days
 @frappe.whitelist()
 def get(
     employee: str,
