@@ -67,9 +67,102 @@ def validate(doc, method):
     rows_to_notify = get_pending_activity_rows(doc)
     frappe.db.commit()
 
+    allocate_imprest_amount(doc)
+
     notify_users_for_pending_actions(rows_to_notify, company=doc.company)
 
     return "Emails enqueued successfully"
+
+
+# ? FUNCTION TO ALLOCATE IMPREST AMOUNT BASED ON COMPANY AND EMPLOYEE GRADE
+def allocate_imprest_amount(doc):
+    try:
+        allocation_flag = doc.get("custom_allocate_imprest_allocation")
+
+        if allocation_flag:
+            # ? GET IMPREST ALLOCATION DOCUMENT BASED ON COMPANY
+            imprest_doc = frappe.db.get_value(
+                "Imprest Allocation", {"company": doc.get("company")}, "name"
+            )
+
+            # ? GET IMPREST AMOUNT BASED ON GRADE AND PARENT DOCUMENT
+            imprest_amount = frappe.db.get_value(
+                "Imprest Details",
+                {"parent": imprest_doc, "grade": doc.get("employee_grade")},
+                "imprest_amount",
+            )
+
+            # ? IF IMPREST AMOUNT IS FOUND AND DIFFERENT, UPDATE IT
+            if (
+                imprest_amount
+                and imprest_amount != doc.get("custom_imprest_amount")
+                and doc.get("custom_imprest_amount") <= 0
+            ):
+                doc.custom_imprest_amount = imprest_amount
+
+            # ? ALWAYS TRY TO ADD THE ROW
+            add_accounts_user_row_for_imprest_allocation(doc)
+
+        else:
+            # ? ALLOCATION DISABLED: SET TO 0 AND REMOVE ROW
+            doc.custom_imprest_amount = 0
+
+            if doc.get("activities"):
+                print("🧹 Checking for Accounts User row to remove...")
+                doc.set(
+                    "activities",
+                    [
+                        row
+                        for row in doc.activities
+                        if not (
+                            row.get("role") == "Accounts User"
+                            and row.get("custom_checklist_record") == doc.name
+                        )
+                    ],
+                )
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Error in allocate_imprest_amount")
+        frappe.throw(
+            _(
+                "An error occurred while allocating imprest amount. Please contact the system administrator."
+            )
+        )
+
+
+# ? FUNCTION TO ADD ACCOUNTS USER ROW TO ACTIVITIES IF NOT EXISTS
+def add_accounts_user_row_for_imprest_allocation(doc):
+    try:
+
+        if doc.get("activities"):
+            for row in doc.activities:
+                print(
+                    f"Existing Activity Row — Role: {row.get('role')}, Checklist Record: {row.get('custom_checklist_record')}"
+                )
+
+            exists = any(
+                row.get("role") == "Accounts User"
+                and row.get("custom_checklist_record") == doc.name
+                for row in doc.activities
+            )
+
+            if not exists:
+                doc.append(
+                    "activities",
+                    {
+                        "activity_name": "Imprest Allocation",
+                        "custom_checklist_name": doc.doctype,
+                        "custom_checklist_record": doc.name,
+                        "role": "Accounts User",
+                        "duration": 0,
+                        "begin_on": 0,
+                    },
+                )
+    except Exception as e:
+        frappe.log_error(
+            frappe.get_traceback(),
+            "Error in add_accounts_user_row_for_imprest_allocation",
+        )
 
 
 # ? FILL FIRST ROW USER AND CHECKLIST RECORD IF EMPTY
@@ -246,6 +339,6 @@ def send_pending_action_email(row, notification_name, company):
         doctype=doc_type,
         docname=doc_name,
         button_label="View Details",
+        send_header_greeting=True,
     )
-
     frappe.msgprint("Notification email sent successfully.")
