@@ -26,8 +26,7 @@ def get(employee=None, company=None):
                 "parent": travel_budget,
                 "grade": grade,
             },
-            fields=["mode_of_travel"],
-            pluck="mode_of_travel",
+            fields=["mode_of_travel","attachment_mandatory"]
         )
 
     except Exception as e:

@@ -653,20 +653,27 @@ def _process_local_commute_expense(
     similar to food and lodging, plus monthly limit checks.
     """
     # Check if attachment is mandatory
+    # ? GET IF ATTACHMENT IS REQUIRED BASED ON COMMUTE RULES
+    custom_mode_of_vehicle = exp.custom_mode_of_vehicle
+    if custom_mode_of_vehicle == "Non-Public":
+        custom_mode_of_vehicle = "Non Public"
     attach_required = frappe.db.get_value(
         "Local Commute Details",
         {
             "grade": employee_grade,
-            "mode_of_commute": exp.custom_mode_of_vehicle,
+            "mode_of_commute": custom_mode_of_vehicle,
             "type_of_commute": exp.custom_type_of_vehicle,
         },
         "attachment_mandatory",
     )
 
+
+    # ? THROW ERROR IF ATTACHMENT IS REQUIRED BUT NOT PROVIDED
     if attach_required and not exp.custom_attachments:
         frappe.throw(
             f"Attachment required for Local Commute (Row #{idx}) as per commute rules."
         )
+
 
     # Calculate amount for non-public transport if not provided
     if exp.custom_mode_of_vehicle == COMMUTE_MODES["NON_PUBLIC"]:
