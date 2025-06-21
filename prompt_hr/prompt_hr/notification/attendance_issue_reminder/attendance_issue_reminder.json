@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-06-20 14:52:06.036147",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Attendance",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "<p>Dear <b>{{ doc.employee_name }}</b>,</p>\n\n<p>\n    This is to inform you that an <strong>{{ issue_type }}</strong> was detected in your attendance on\n    <strong>{{ frappe.utils.format_date(doc.attendance_date,\"dd-MM-yyyy\") or \"\" }}</strong>.\n</p>\n\n<p>\n    If you believe this is an error, please contact the HR department.\n</p>\n\n<p><br></p>\n\n<p>Regards,<br>\nHR Team<br>\n{{doc.company or \"\"}}</p>\n",
+ "message_type": "HTML",
+ "modified": "2025-06-20 18:53:44.415058",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Attendance Issue Reminder",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "Attendance Alert: {{ issue_type }} on {{frappe.utils.format_date( doc.attendance_date,\"dd-MM-yyyy\") }}"
+}
