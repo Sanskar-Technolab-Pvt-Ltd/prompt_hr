@@ -1,0 +1,16 @@
+<p>Dear <b>{{ doc.employee_name }}</b>,</p>
+
+<p>
+    This is to inform you that an <strong>{{ issue_type }}</strong> was detected in your attendance on
+    <strong>{{ frappe.utils.format_date(doc.attendance_date,"dd-MM-yyyy") or "" }}</strong>.
+</p>
+
+<p>
+    If you believe this is an error, please contact the HR department.
+</p>
+
+<p><br></p>
+
+<p>Regards,<br>
+HR Team<br>
+{{doc.company or ""}}</p>
