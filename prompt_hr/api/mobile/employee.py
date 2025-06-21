@@ -88,7 +88,7 @@ def get(name):
             "designation": employee.designation,
             "branch": employee.branch,
             "grade": employee.grade,
-            "reports To": frappe.db.get_value("Employee", employee.reports_to, "employee_name") if employee.reports_to else "",
+            "reports_to": frappe.db.get_value("Employee", employee.reports_to, "employee_name") if employee.reports_to else "",
             "employment_type": employee.employment_type,
         }
 
