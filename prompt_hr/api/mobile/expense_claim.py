@@ -14,19 +14,46 @@ def list(
     limit_start=0,
 ):
     try:
+        fields = frappe.parse_json(fields)
 
         # ? GET EXPENSE CLAIM LIST
         expense_claim_list = frappe.get_list(
             "Expense Claim",
             filters=filters,
             or_filters=or_filters,
-            fields=frappe.parse_json(fields),
+            fields=fields,
             order_by=order_by,
             limit_page_length=limit_page_length,
             limit_start=limit_start,
         )
-        
-        # ? GET TOTAL COUNT (manually count the names matching filters)
+
+        # ? FETCH CHILD TABLE DETAILS FOR EACH EXPENSE CLAIM
+        for claim in expense_claim_list:
+            claim_name = claim.get("name")
+            if claim_name:
+                expenses = frappe.get_all(
+                    "Expense Claim Detail",
+                    filters={"parent": claim_name},
+                    fields=[
+                        "expense_date",
+                        "expense_type",
+                        "description",
+                        "amount",
+                        "sanctioned_amount",
+                        "cost_center",
+                        "project",
+                        "custom_is_exception",
+                        "custom_km",
+                        "campaign",
+                        "custom_mode_of_vehicle",
+                        "custom_type_of_vehicle",
+                        "custom_for_metro_city",
+                        "custom_days"
+                    ]
+                )
+                claim["expenses"] = expenses
+
+        # ? GET TOTAL COUNT
         total_names = frappe.get_all(
             "Expense Claim",
             filters=filters,
@@ -34,9 +61,8 @@ def list(
             fields=["name"]
         )
         total_count = len(total_names)
-        
+
     except Exception as e:
-        # ? HANDLE ERRORS
         frappe.log_error("Error While Getting Expense Claim List", str(e))
         frappe.clear_messages()
         frappe.local.response["message"] = {
@@ -46,13 +72,13 @@ def list(
         }
 
     else:
-        # ? HANDLE SUCCESS
         frappe.local.response["message"] = {
             "success": True,
             "message": "Expense Claim List Loaded Successfully!",
             "data": expense_claim_list,
-            "count": total_count        
+            "count": total_count
         }
+
         
 
 
@@ -107,7 +133,7 @@ def create(**args):
         # ? DEFINE MANDATORY FIELDS
         mandatory_fields = {
             "employee": "Employee",
-            "expense_approver": "Expense Approver",
+            # "expense_approver": "Expense Approver",
             "custom_type": "Type",
             "approval_status": "Approval Status",
             "expenses" : "Expenses"
@@ -320,3 +346,57 @@ def get_vehicle_details(employee, company):
             "message": "Commute options fetched successfully!",
             "data": data,
         }         
+        
+        
+
+
+
+@frappe.whitelist()
+def field_visit_list(
+    filters=None,
+    or_filters=None,
+    fields=["*"],
+    order_by=None,
+    limit_page_length=0,
+    limit_start=0,
+):
+    try:
+
+        # ? GET EXPENSE CLAIM LIST
+        field_visit_list = frappe.get_list(
+            "Field Visit",
+            filters=filters,
+            or_filters=or_filters,
+            fields=frappe.parse_json(fields),
+            order_by=order_by,
+            limit_page_length=limit_page_length,
+            limit_start=limit_start,
+        )
+        
+        # ? GET TOTAL COUNT (manually count the names matching filters)
+        total_names = frappe.get_all(
+            "Field Visit",
+            filters=filters,
+            or_filters=or_filters,
+            fields=["name"]
+        )
+        total_count = len(total_names)
+        
+    except Exception as e:
+        # ? HANDLE ERRORS
+        frappe.log_error("Error While Getting Field Visit List", str(e))
+        frappe.clear_messages()
+        frappe.local.response["message"] = {
+            "success": False,
+            "message": f"Error While Getting Field Visit List: {str(e)}",
+            "data": None,
+        }
+
+    else:
+        # ? HANDLE SUCCESS
+        frappe.local.response["message"] = {
+            "success": True,
+            "message": "Field Visit List Loaded Successfully!",
+            "data": field_visit_list,
+            "count": total_count        
+        }        

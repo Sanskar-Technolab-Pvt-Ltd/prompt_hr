@@ -109,7 +109,7 @@ def create(**args):
         mandatory_fields = {
             "employee": "Employee",
             "posting_date": "Posting Date",
-            "currency": "Currency",
+            # "currency": "Currency",
             "purpose": "Purpose",
             "advance_amount": "Advance Amount"
         }

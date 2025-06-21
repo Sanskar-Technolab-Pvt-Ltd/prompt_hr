@@ -32,6 +32,26 @@ def get(**args):
 
         # ? RUN REPORT
         report_data = run("Employee Leave Balance", filters=filters)
+        result_data = report_data.get("result", [])
+        
+         # Process the data to include both leave types and employee details
+        formatted_data = []
+        current_leave_type = None
+        
+        for row in result_data:
+            if "leave_type" in row and "employee" not in row:
+                # This is a leave type header row
+                current_leave_type = row["leave_type"]
+            elif "employee" in row:
+                # This is an employee detail row
+                formatted_data.append({
+                    "leave_type": current_leave_type,
+                    "employee": row.get("employee"),
+                    "employee_name": row.get("employee_name"),
+                    "opening_balance": row.get("opening_balance"),
+                    "leaves_taken": row.get("leaves_taken"),
+                    "closing_balance": row.get("closing_balance")
+                })
 
     except Exception as e:
         frappe.log_error("Error Running Employee Leave Balance Report", str(e))
@@ -46,5 +66,5 @@ def get(**args):
         frappe.local.response["message"] = {
             "success": True,
             "message": "Employee Leave Balance Report Fetched Successfully!",
-            "data": report_data,
+            "data": formatted_data,
         }

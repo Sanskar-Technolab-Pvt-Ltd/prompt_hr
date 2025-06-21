@@ -25,6 +25,35 @@ def list(
             limit_start=limit_start,
         )
         
+        # ? FETCH CHILD TABLE DETAILS FOR EACH EXPENSE CLAIM
+        for req in travel_request_list:
+            req_name = req.get("name")
+            if req_name:
+                itinerary = frappe.get_all(
+                    "Travel Itinerary",
+                    filters={"parent": req_name},
+                     fields=[
+                        "travel_from",
+                        "travel_to",
+                        "mode_of_travel",
+                        "meal_preference",
+                        "travel_advance_required",
+                        "advance_amount",
+                        "departure_date",
+                        "arrival_date",
+                        "lodging_required",
+                        "preferred_area_for_lodging",
+                        "check_in_date",
+                        "check_out_date",
+                        "other_details",
+                        "custom_from_travel",
+                        "custom_to_travel",
+                        "custom_travel_mode",
+                        "custom_attachment"
+                    ]
+                )
+                req["itinerary"] = itinerary
+        
         # ? GET TOTAL COUNT (manually count the names matching filters)
         total_names = frappe.get_all(
             "Travel Request",
