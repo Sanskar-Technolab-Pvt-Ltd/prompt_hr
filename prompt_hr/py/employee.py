@@ -184,51 +184,76 @@ def create_welcome_status(user_id, company):
         )
 
 
-# ? HELPER FUNCTION TO LOG ERROR WITH 140-CHAR LIMIT
-def log(msg):
-    if len(msg) > 140:
-        msg = msg[:137] + "..."
-    frappe.log_error(title="Employee Profile Sync", message=msg)
-
-
 # ? FUNCTION TO CREATE/UPDATE EMPLOYEE PROFILE FROM EMPLOYEE DOC
 def create_or_update_employee_profile(doc):
     employee_id = doc.name
-    log(f"Syncing Employee Profile for Employee ID: {employee_id}")
 
     # ? FETCH OR CREATE EMPLOYEE PROFILE
     if frappe.db.exists("Employee Profile", {"employee": employee_id}):
-        log(f"Employee Profile exists for {employee_id}, fetching...")
         employee_profile = frappe.get_doc("Employee Profile", {"employee": employee_id})
     else:
-        log(f"No Employee Profile found for {employee_id}, creating new...")
         employee_profile = frappe.new_doc("Employee Profile")
         employee_profile.employee = employee_id
 
     # ? SYNC COMMON FIELDS
-    log("Syncing common fields...")
     for field in common_fields:
         value = doc.get(field)
         if value not in [None, "", [], {}]:
-            log(f"Setting common field '{field}' = {value}")
             employee_profile.set(field, value)
 
     # ? SYNC CUSTOM FIELDS
-    log("Syncing custom mapped fields...")
     for source_field, target_field in field_mapping.items():
         value = doc.get(source_field)
         if value not in [None, "", [], {}]:
-            log(f"Mapping field '{source_field}' -> '{target_field}' = {value}")
             employee_profile.set(target_field, value)
 
-    log(f"Saving Employee Profile for {employee_id}")
     employee_profile.save()
-    log(f"Employee Profile synced successfully for {employee_id}")
+
+
+# ? EMPLOYEE BEFORE INSERT HOOK
+def before_insert(doc, method):
+
+    # ? SET IMPREST ALLOCATION AMOUNT FROM EMPLOYEE ONBOARDING FORM
+    set_imprest_allocation_amount(doc)
+
+
+# ? FUNCTION TO SET IMPREST ALLOCATION AMOUNT FROM EMPLOYEE ONBOARDING FORM
+def set_imprest_allocation_amount(doc):
+    try:
+
+        # ? STEP 1: TRY TO FETCH BASED ON EMPLOYEE LINK
+        amount = frappe.db.get_value(
+            "Employee Onboarding", {"employee": doc.name}, "custom_imprest_amount"
+        )
+
+        # ? STEP 2: IF NO MATCH FOUND, TRY USING PHONE NUMBERS
+        if not amount:
+            phone_number = doc.get("cell_number") or doc.get("custom_work_mobile_no")
+
+            if phone_number:
+                amount = frappe.db.get_value(
+                    "Employee Onboarding",
+                    {"custom_phone_number": phone_number},
+                    "custom_imprest_amount",
+                )
+
+        # ? STEP 3: SET IF AMOUNT FOUND
+        if amount:
+            doc.custom_imprest_allocation_amount = amount
+
+    except Exception as e:
+        frappe.log_error(
+            frappe.get_traceback(), "Error in set_imprest_allocation_amount"
+        )
+        frappe.throw(
+            _(
+                "An error occurred while setting the imprest allocation amount. Please contact the system administrator."
+            )
+        )
 
 
 # ? CALLED ON EMPLOYEE UPDATE
 def on_update(doc, method):
-    log(f"on_update triggered for Employee: {doc.name}")
 
     # # ? SYNC EMPLOYEE PROFILE
     # create_or_update_employee_profile(doc)
@@ -237,14 +262,8 @@ def on_update(doc, method):
 
     # ? CREATE WELCOME PAGE IF NOT EXISTS
     if doc.user_id:
-        log(f"Employee has user_id: {doc.user_id}")
         if not frappe.db.exists("Welcome Page", {"user": doc.user_id}):
-            log(f"Welcome Page does not exist for {doc.user_id}, creating...")
             create_welcome_status(doc.user_id, doc.company)
-        else:
-            log(f"Welcome Page already exists for {doc.user_id}")
-    else:
-        log("No user_id set on Employee, skipping Welcome Page creation")
 
 
 def validate(doc, method):
@@ -828,7 +847,7 @@ def get_employee_changable_fields(emp_id):
         "DocField",
         filters={"parent": "Employee", "label": ["in", field_labels]},
         fields=["fieldname", "label", "fieldtype"],
-        ignore_permissions = True
+        ignore_permissions=True,
     )
 
     return fields
@@ -845,7 +864,7 @@ def get_employee_doctype_fields():
             filters={"parent": "Employee", "hidden": 0},
             fields=["label", "fieldname", "fieldtype"],
             order_by="idx asc",
-            ignore_permissions = True
+            ignore_permissions=True,
         )
 
         # ? ADD CUSTOM FIELDS FROM Employee DocType
@@ -854,7 +873,7 @@ def get_employee_doctype_fields():
             filters={"dt": "Employee", "hidden": 0},
             fields=["label", "fieldname", "fieldtype"],
             order_by="idx asc",
-            ignore_permissions = True
+            ignore_permissions=True,
         )
 
         # ? APPEND CUSTOM FIELDS TO THE FIELDS LIST
@@ -1231,21 +1250,18 @@ def handle_sales_person_operations_on_update(doc, method):
 def update_employee_status_for_company(company_abbr: str):
     # Fetch employees with a set relieving date and matching company
     company_name = frappe.db.get_value("Company", {"abbr": company_abbr}, "name")
-    
+
     if company_name:
         employees = frappe.get_all(
             "Employee",
-            filters={
-                "relieving_date": ["is", "set"],
-                "company": company_name
-            },
-            fields=["name", "relieving_date"]
+            filters={"relieving_date": ["is", "set"], "company": company_name},
+            fields=["name", "relieving_date"],
         )
         today = getdate()
 
         for employee in employees:
             relieving_date = getdate(employee.relieving_date)
-            
+
             # Update status if relieving date is today
             if today == relieving_date:
                 employee_doc = frappe.get_doc("Employee", employee.name)

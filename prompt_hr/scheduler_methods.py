@@ -1265,7 +1265,7 @@ def create_employee_penalty(
     
     if attendance_id:
         penalty_doc.attendance = attendance_id
-        
+        frappe.db.set_value("Attendance", attendance_id, "status", "Absent")
     if leave_type:
         penalty_doc.leave_type = leave_type
         
@@ -1282,7 +1282,8 @@ def create_employee_penalty(
         penalty_doc.for_no_attendance = 1
         penalty_doc.remarks = f"Penalty for No Attendance Marked on {penalty_date}"
     penalty_doc.insert(ignore_permissions=True)
-    
+    if attendance_id:
+        frappe.db.set_value("Attendance", attendance_id, "custom_employee_penalty_id", penalty_doc.name)
     #* CREATING LEAVE LEDGER ENTRY
     if not (is_lwp_for_late_entry or is_lwp_for_insufficient_hours or is_lwp_for_no_attendance) and earned_leave > 0:
         add_leave_ledger_entry(employee, leave_type, leave_allocation_id, leave_period_data, earned_leave)
