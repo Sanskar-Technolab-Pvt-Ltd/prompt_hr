@@ -268,3 +268,55 @@ def delete(name=None):
             "data": {"name": name},
         }
          
+         
+
+# ! prompt_hr.api.mobile.expense_claim.get_data_from_expense_claim_as_per_grade
+
+@frappe.whitelist()
+def get_vehicle_details(employee, company):
+    try:
+        # ? GET TRAVEL BUDGET FOR COMPANY
+        travel_budget = frappe.db.get_value("Travel Budget", {"company": company}, "name")
+        if not travel_budget:
+            frappe.throw(f"No Travel Budget found for company {company}", frappe.DoesNotExistError)
+
+        # ? GET EMPLOYEE GRADE
+        grade = frappe.db.get_value("Employee", employee, "grade")
+        if not grade:
+            frappe.throw(f"Employee grade not found for employee {employee}", frappe.DoesNotExistError)
+
+        # ? GET COMMUTE OPTIONS BASED ON GRADE AND TRAVEL BUDGET
+        commute_options = frappe.get_all(
+            "Local Commute Details",
+            filters={"parent": travel_budget, "grade": grade},
+            fields=["mode_of_commute", "type_of_commute","attachment_mandatory"],
+        )
+
+        # ? ORGANIZE BY MODE OF COMMUTE
+        data = {"Public": [], "Non Public": []}
+        for option in commute_options:
+            mode = option.mode_of_commute.strip().title()
+            if mode in data:
+                 data[mode].append({
+                    "type_of_vehicle": option.type_of_commute,
+                    "attachment_mandatory": option.attachment_mandatory
+                })
+                
+
+    except Exception as e:
+        # ? HANDLE ERRORS
+        frappe.log_error("Error While Fetching Commute Options", str(e))
+        frappe.clear_messages()
+        frappe.local.response["message"] = {
+            "success": False,
+            "message": str(e),
+            "data": None,
+        }
+
+    else:
+        # ? HANDLE SUCCESS
+        frappe.local.response["message"] = {
+            "success": True,
+            "message": "Commute options fetched successfully!",
+            "data": data,
+        }         
