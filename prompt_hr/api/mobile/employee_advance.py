@@ -11,7 +11,7 @@ from frappe.utils.file_manager import save_file
 def list(
     filters=None,
     or_filters=None,
-    fields=["*"],
+    fields=["name","employee","posting_date","company","status","purpose","advance_amount"],
     order_by=None,
     limit_page_length=0,
     limit_start=0,

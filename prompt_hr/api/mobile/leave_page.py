@@ -1,26 +1,21 @@
-
 import frappe
 from frappe.desk.query_report import run
 
-# ! prompt_hr.api.mobile.reports.employee_leave_balance.run
-# ? RUN EMPLOYEE LEAVE BALANCE REPORT
 @frappe.whitelist()
 def get(**args):
     try:
-        # ? DEFINE MANDATORY FIELDS
+        # Define mandatory fields
         mandatory_fields = {
             "from_date": "From Date",
             "to_date": "To Date",
-            # "company": "Company",
-            # "employee": "Employee"
         }
 
-        # ? CHECK MANDATORY FIELDS
+        # Check mandatory fields
         for field, field_name in mandatory_fields.items():
             if not args.get(field):
                 frappe.throw(f"Please Fill {field_name} Field!", frappe.MandatoryError)
 
-        # ? DEFAULT VALUES
+        # Set up filters
         filters = {
             "from_date": args.get("from_date"),
             "to_date": args.get("to_date"),
@@ -30,28 +25,41 @@ def get(**args):
             "consolidate_leave_types": int(args.get("consolidate_leave_types") or 1),
         }
 
-        # ? RUN REPORT
+        # Run report
         report_data = run("Employee Leave Balance", filters=filters)
         result_data = report_data.get("result", [])
         
-         # Process the data to include both leave types and employee details
+        # Process the data differently based on whether employee filter is applied
         formatted_data = []
-        current_leave_type = None
         
-        for row in result_data:
-            if "leave_type" in row and "employee" not in row:
-                # This is a leave type header row
-                current_leave_type = row["leave_type"]
-            elif "employee" in row:
-                # This is an employee detail row
-                formatted_data.append({
-                    "leave_type": current_leave_type,
-                    "employee": row.get("employee"),
-                    "employee_name": row.get("employee_name"),
-                    "opening_balance": row.get("opening_balance"),
-                    "leaves_taken": row.get("leaves_taken"),
-                    "closing_balance": row.get("closing_balance")
-                })
+        if args.get("employee"):
+            # When employee filter is applied, the structure is different
+            for row in result_data:
+                if isinstance(row, dict) and "employee" in row:
+                    formatted_data.append({
+                        "leave_type": row.get("leave_type"),
+                        "employee": row.get("employee"),
+                        "employee_name": row.get("employee_name"),
+                        "opening_balance": row.get("opening_balance"),
+                        "leaves_taken": row.get("leaves_taken"),
+                        "closing_balance": row.get("closing_balance")
+                    })
+        else:
+            # Original processing for non-filtered case
+            current_leave_type = None
+            for row in result_data:
+                if isinstance(row, dict):
+                    if "leave_type" in row and "employee" not in row:
+                        current_leave_type = row["leave_type"]
+                    elif "employee" in row:
+                        formatted_data.append({
+                            "leave_type": current_leave_type,
+                            "employee": row.get("employee"),
+                            "employee_name": row.get("employee_name"),
+                            "opening_balance": row.get("opening_balance"),
+                            "leaves_taken": row.get("leaves_taken"),
+                            "closing_balance": row.get("closing_balance")
+                        })
 
     except Exception as e:
         frappe.log_error("Error Running Employee Leave Balance Report", str(e))
@@ -61,7 +69,6 @@ def get(**args):
             "message": f"Error Running Report: {str(e)}",
             "data": None,
         }
-
     else:
         frappe.local.response["message"] = {
             "success": True,

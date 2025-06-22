@@ -7,7 +7,7 @@ import frappe
 def list(
     filters=None,
     or_filters=None,
-    fields=["*"],
+    fields=["name","employee","from_date","to_date","reason","custom_status"],
     order_by=None,
     limit_page_length=0,
     limit_start=0,
