@@ -7,7 +7,7 @@ from frappe.utils.file_manager import save_file
 def list(
     filters=None,
     or_filters=None,
-    fields=["*"],
+    fields=["name","employee","leave_type","from_date","to_date","status","total_leave_days","workflow_state"],
     order_by=None,
     limit_page_length=0,
     limit_start=0,

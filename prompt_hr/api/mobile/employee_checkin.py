@@ -7,7 +7,7 @@ import frappe
 def list(
     filters=None,
     or_filters=None,
-    fields=["*"],
+    fields=["name","employee","employee_name","log_type","time"],
     order_by=None,
     limit_page_length=0,
     limit_start=0,
@@ -155,7 +155,7 @@ def create(**args):
 def checking_log(
     filters=None,
     or_filters=None,
-    fields=["*"],
+    fields=["name","employee","employee_name","log_type","time"],
     order_by="creation desc",  # Default to latest
     limit_page_length=1,       # Default to 1 record
     limit_start=0,
