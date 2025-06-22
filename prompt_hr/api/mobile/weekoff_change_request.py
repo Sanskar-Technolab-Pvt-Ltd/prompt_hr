@@ -7,7 +7,7 @@ import frappe
 def list(
     filters=None,
     or_filters=None,
-    fields=["*"],
+    fields=["name","employee","status"],
     order_by=None,
     limit_page_length=0,
     limit_start=0,
@@ -24,6 +24,27 @@ def list(
             limit_page_length=limit_page_length,
             limit_start=limit_start,
         )
+         # ? FETCH ONLY FIRST IWEEKOFF DETIALS AND SPECIFIC FIELDS
+        for req in week_off_request_list:
+            req_name = req.get("name")
+            if req_name:
+                weekoff_details = frappe.get_all(
+                    "WeekOff Request Details",
+                    filters={"parent": req_name},
+                    fields=[
+                        "existing_weekoff_date",
+                        "existing_weekoff",
+                        "new_weekoff_date",
+                        "new_weekoff"
+                    ],
+                    order_by="idx asc" ,
+                    limit=1
+                )
+                
+                # Add weekoff_details fields directly to parent if exists
+                if weekoff_details:
+                    req.update(weekoff_details[0])
+                
         
         # ? GET TOTAL COUNT (manually count the names matching filters)
         total_names = frappe.get_all(
