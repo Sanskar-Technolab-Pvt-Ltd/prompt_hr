@@ -53,11 +53,11 @@
    "fieldtype": "Column Break"
   }
  ],
- "grid_page_length": 50,
+ "grid_page_length": 20,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-06-16 15:44:46.313002",
+ "modified": "2025-06-22 16:56:50.079820",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Adhoc Salary Adjustment",

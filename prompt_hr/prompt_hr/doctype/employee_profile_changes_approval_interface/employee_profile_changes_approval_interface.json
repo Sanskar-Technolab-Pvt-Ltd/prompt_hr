@@ -1,6 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "format:EMP-PRO-{employee}-{#####}",
  "creation": "2025-03-28 08:01:45.617373",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -82,10 +83,11 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-09 11:59:21.376305",
+ "modified": "2025-06-22 16:58:31.675168",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Profile Changes Approval Interface",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {

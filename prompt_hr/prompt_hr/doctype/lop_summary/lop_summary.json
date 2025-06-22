@@ -61,11 +61,11 @@
    "fieldtype": "Column Break"
   }
  ],
- "grid_page_length": 50,
+ "grid_page_length": 20,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-06-16 15:51:36.375284",
+ "modified": "2025-06-22 16:56:29.207850",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "LOP Summary",

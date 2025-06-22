@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "format:EP-PEN-{####}",
+ "autoname": "format:EMP-PEN-{employee}-{####}",
  "creation": "2025-05-23 10:57:01.339950",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -113,7 +113,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-26 19:11:15.409202",
+ "modified": "2025-06-22 17:01:22.651533",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Penalty",
@@ -133,6 +133,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []
