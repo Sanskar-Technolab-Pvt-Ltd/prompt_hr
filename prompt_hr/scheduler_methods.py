@@ -1,17 +1,15 @@
 import frappe
 
 import frappe.commands
-from frappe.utils import date_diff, today, add_to_date, getdate, get_datetime, add_months
+from frappe.utils import date_diff, today, add_to_date, getdate, get_datetime, add_months, add_days
 from prompt_hr.py.utils import fetch_company_name
-from prompt_hr.py.auto_mark_attendance import mark_attendance
+from prompt_hr.py.auto_mark_attendance import mark_attendance, is_holiday_or_weekoff
 from datetime import timedelta, datetime
 from prompt_hr.prompt_hr.doctype.exit_approval_process.exit_approval_process import (
     raise_exit_checklist,
     raise_exit_interview,
 )
-
-
-
+from datetime import datetime, timedelta
 
 
 @frappe.whitelist()
@@ -1026,8 +1024,7 @@ def penalize_prompt_employee():
                 
                 for emp_id in prompt_employee_list:                    
                     # * CALCULATING REMAINING LEAVE BALANCE FOR LATE ENTRY
-
-                    penalize_employee_for_late_entry_for_prompt(
+                    employee_scheduled_for_late_entry_penalty = penalize_employee_for_late_entry_for_prompt(
                                                                 emp_id,
                                                                 company_id.get("company_id"), 
                                                                 month_first_date, 
@@ -1039,13 +1036,17 @@ def penalize_prompt_employee():
                                                                 late_entry_leave_type,
                                                                 late_entry_deduct_leave)
                     
+                    # ? SEND NEXT DAY PENALTY ALERT FOR LATE ENTRY
+                    if employee_scheduled_for_late_entry_penalty:
+                        send_penalty_warnings(employee_scheduled_for_late_entry_penalty,"Late Entry")
+                    
                     holiday_list = emp_id.get("holiday_list")    
 
                     if holiday_list:
                         if frappe.db.get_all("Holiday", {"parenttype": "Holiday List", "parent": holiday_list, "holiday_date": daily_hours_attendance_date}, "name"):
                             continue
                     
-                    penalize_incomplete_day_for_prompt(
+                    employee_scheduled_for_incomplete_day_penalty = penalize_incomplete_day_for_prompt(
                         emp_id,
                         daily_hours_attendance_date,
                         expected_work_hours,
@@ -1055,9 +1056,13 @@ def penalize_prompt_employee():
                         insufficient_hours_deduct_leave,
                         company_id.get("company_id")
                     )
+
+                    # ? SEND NEXT DAY PENALTY ALERT FOR INCOMPLETE DAY
+                    if employee_scheduled_for_incomplete_day_penalty:
+                        send_penalty_warnings(employee_scheduled_for_incomplete_day_penalty,"Incomplete Day")
                     
                     
-                    penalization_for_no_attendance_for_prompt(
+                    employee_scheduled_for_no_attendance_penalty = penalization_for_no_attendance_for_prompt(
                         emp_id,
                         no_attendance_date,
                         leave_period_data,
@@ -1065,6 +1070,11 @@ def penalize_prompt_employee():
                         no_attendance_deduct_leave,
                         # company_id.get("company_id")
                     )
+
+                    # ? SEND NEXT DAY PENALTY ALERT FOR NO ATTENDANCE
+                    if employee_scheduled_for_no_attendance_penalty:
+                        send_penalty_warnings(employee_scheduled_for_no_attendance_penalty,"No Attendance")
+
     except Exception as e:
         frappe.log_error("Error in penalize_prompt_employee", frappe.get_traceback())
 @frappe.whitelist()
@@ -1079,12 +1089,9 @@ def penalize_employee_for_late_entry_for_prompt(emp_id, company_id, month_first_
         late_attendance_list = frappe.db.get_all("Attendance", {"docstatus": 1, "employee": emp_id.get("name"), "attendance_date": ["between", [month_first_date, month_last_date]], "late_entry": 1, "custom_apply_penalty": 1}, ["name", "attendance_date"], order_by="attendance_date asc")
         
         leave_allocation_id = None
-        
-        if not is_lwp_for_late_entry:
-                        
-            remaining_leave_balance_for_late_entry = get_remaining_leaves(late_entry_leave_type, emp_id.get("name"), company_id)
-            
-            
+        remaining_leave_balance_for_late_entry = get_remaining_leaves(late_entry_leave_type, emp_id.get("name"), company_id)
+
+        if not is_lwp_for_late_entry:            
                         
             if not remaining_leave_balance_for_late_entry > 0:
                 earned_leave = 0.0
@@ -1104,6 +1111,7 @@ def penalize_employee_for_late_entry_for_prompt(emp_id, company_id, month_first_
             lwp_leave = late_entry_deduct_leave
 
         if late_attendance_list:
+            employee_scheduled_for_penalty_tomorrow = None
             for attendance_id in late_attendance_list[allowed_late_entries:]:
                 
                 
@@ -1129,6 +1137,14 @@ def penalize_employee_for_late_entry_for_prompt(emp_id, company_id, month_first_
                             leave_allocation_id = leave_allocation_id,  
                             is_lwp_for_late_entry = is_lwp_for_late_entry,
                             for_late_coming=1)
+                
+                # ? RETURN EMPLOYEE NAME FOR NEXT-DAY PENALIZATION ALERT
+                if not (leave_application_exists or attendance_regularization_exists or employee_late_penalty_exists) and getdate(attendance_id.get("attendance_date")) == add_to_date(check_attendance_date,days=1):
+                    employee_scheduled_for_penalty_tomorrow  = emp_id.get("name")
+
+            return employee_scheduled_for_penalty_tomorrow
+
+        return None
 
     except Exception as e:
         frappe.log_error("Error in penalize_employee_for_late_entry", frappe.get_traceback())
@@ -1146,8 +1162,9 @@ def penalize_incomplete_day_for_prompt(emp, check_attendance_date, expected_work
         attendance_list = frappe.db.get_all("Attendance", {"docstatus": 1, "employee": emp.get("name"), "attendance_date": check_attendance_date, "working_hours": ["<",expected_work_hours], "custom_apply_penalty": 1}, ["name", "attendance_date"], order_by="attendance_date asc")
 
         if attendance_list:
+            employee_scheduled_for_penalty_tomorrow = None
+            remaining_leave_balance = get_remaining_leaves(daily_hours_leave_type, emp.get("name"), company_id)
             if not is_lwp_for_insufficient_hours:
-                remaining_leave_balance = get_remaining_leaves(daily_hours_leave_type, emp.get("name"), company_id)
                 
                 leave_allocation_id = None                                            
                                 
@@ -1195,10 +1212,15 @@ def penalize_incomplete_day_for_prompt(emp, check_attendance_date, expected_work
                                                 is_lwp_for_insufficient_hours = is_lwp_for_insufficient_hours, 
                                                 for_insufficient_hours=1
                                             )
-                        
-                        
-                        
-                            
+                
+                # ? RETURN EMPLOYEE NAME FOR NEXT-DAY PENALIZATION ALERT
+                if not (leave_application_exists or attendance_regularization_exists or employee_late_penalty_exists) and getdate(attendance.get("attendance_date")) == add_to_date(check_attendance_date,days=1):
+                    employee_scheduled_for_penalty_tomorrow  = emp.get("name")
+
+            return employee_scheduled_for_penalty_tomorrow
+
+        return None
+                                    
     except Exception as e:
         frappe.log_error("Error in penalize_incomplete_day scheduler", frappe.get_traceback())   
         
@@ -1210,13 +1232,36 @@ def penalization_for_no_attendance_for_prompt(emp, check_attendance_date, leave_
             return
         print("penalization_for_no_attendance_for_prompt",emp.get("name"))
         if not frappe.db.exists("Attendance", {"employee": emp.get("name"), "attendance_date": check_attendance_date, "docstatus": 1}):
-            
+            employee_scheduled_for_penalty_tomorrow = None
             leave_application_exists = frappe.db.exists("Leave Application", {"employee": emp.get("name"), "docstatus":1,"from_date": ["<=", check_attendance_date], "to_date": [">=", check_attendance_date]})
             
             attendance_regularization_exists = frappe.db.exists("Attendance Regularization", {"employee": emp.get("name"), "regularization_date": check_attendance_date}, "name")
             
             employee_penalty_exists = frappe.db.exists("Employee Penalty", {"employee": emp.get("name"), "penalty_date": check_attendance_date, "for_no_attendance": 1})
+            
+            # ? LOGIC FOR SEND REMINDER MAIL FOR PENALIZATION
+            next_day = add_days(check_attendance_date, 1)
 
+            # Check if leave exists on the next day
+            leave_application_exists_next_day = frappe.db.exists("Leave Application", {
+                "employee": emp.get("name"),
+                "docstatus": 1,
+                "from_date": ["<=", next_day],
+                "to_date": [">=", next_day]
+            })
+
+            # Check if attendance regularization exists on the next day
+            attendance_regularization_exists_next_day = frappe.db.exists("Attendance Regularization", {
+                "employee": emp.get("name"),
+                "regularization_date": next_day
+            }, "name")
+
+            # Check if penalty already applied for next day (for no attendance)
+            employee_penalty_exists_next_day = frappe.db.exists("Employee Penalty", {
+                "employee": emp.get("name"),
+                "penalty_date": next_day,
+                "for_no_attendance": 1
+            })
             
             if not (leave_application_exists or attendance_regularization_exists or employee_penalty_exists):
                 create_employee_penalty(
@@ -1230,8 +1275,16 @@ def penalization_for_no_attendance_for_prompt(emp, check_attendance_date, leave_
                                             is_lwp_for_no_attendance=1,
                                             for_no_attendance=1,                                            
                                     )
+            
+            # ? RETURN EMPLOYEE NAME FOR NEXT-DAY PENALIZATION ALERT
+            if not (leave_application_exists_next_day or attendance_regularization_exists_next_day or employee_penalty_exists_next_day):
+                employee_scheduled_for_penalty_tomorrow  = emp.get("name")
+
+            return employee_scheduled_for_penalty_tomorrow
+        
         else:
             print(f"\n\n Attendance Exists\n\n")     
+            return None
     except Exception as e:
         frappe.log_error("Error in penalization_for_no_attendance_for_prompt", frappe.get_traceback())
         
@@ -1282,8 +1335,55 @@ def create_employee_penalty(
         penalty_doc.for_no_attendance = 1
         penalty_doc.remarks = f"Penalty for No Attendance Marked on {penalty_date}"
     penalty_doc.insert(ignore_permissions=True)
+
+
+    # * Fetch PROMPT Company ID
+    company = fetch_company_name(prompt=1)
+    employee = frappe.get_doc("Employee", employee)
+    if company:
+        # * RUN ONLY FOR PROMPT
+        company_id = company.get("company_id")
+        if company_id and employee.company == company_id:
+            notification = frappe.get_doc("Notification", "Employee Penalty Alert")
+            if notification:
+                if not employee.user_id:
+                    frappe.log_error(f"User ID not set for Employee {employee.employee_name}")
+                    return
+                
+                # Fetch user email
+                user = frappe.get_doc("User", employee.user_id)
+                email_id = getattr(user, "email", None)
+                if not email_id:
+                    frappe.log_error(f"Email not found for User {employee.user_id}")
+                    return
+                # Render and send email
+                reason = ""
+                if (penalty_doc.for_late_coming):
+                    reason = "Late Entry"
+                elif (penalty_doc.for_insufficient_hours):
+                    reason = "Insufficient Working Hours"
+                elif(penalty_doc.for_no_attendance):
+                    reason = "No Attendance"
+                
+                subject = frappe.render_template(
+                    notification.subject,
+                    {"reason": reason, "doc":penalty_doc}
+                )
+                message = frappe.render_template(
+                    notification.message,
+                        {"reason": reason, "doc":penalty_doc}
+                    
+                )
+                frappe.sendmail(
+                    recipients=[email_id],
+                    subject=subject,
+                    message=message,
+                )
+
+
     if attendance_id:
         frappe.db.set_value("Attendance", attendance_id, "custom_employee_penalty_id", penalty_doc.name)
+
     #* CREATING LEAVE LEDGER ENTRY
     if not (is_lwp_for_late_entry or is_lwp_for_insufficient_hours or is_lwp_for_no_attendance) and earned_leave > 0:
         add_leave_ledger_entry(employee, leave_type, leave_allocation_id, leave_period_data, earned_leave)
@@ -1552,3 +1652,159 @@ def process_exit_approvals():
             )
 
     print("\n=== Scheduler Execution Complete ===\n")
+
+
+def send_penalty_warnings(emp_id, penalization_type):
+    try:
+        penalization_date = add_days(today(), 1)  # one day before penalization
+        notification = frappe.get_doc("Notification", "Alert For Penalization")
+        
+        # Fetch employee
+        employee = frappe.get_doc("Employee", emp_id)
+        if not employee.user_id:
+            frappe.log_error(f"User ID not set for Employee {emp_id}")
+            return
+        
+        # Fetch user email
+        user = frappe.get_doc("User", employee.user_id)
+        email_id = getattr(user, "email", None) or getattr(user, "email_id", None)
+        if not email_id:
+            frappe.log_error(f"Email not found for User {employee.user_id}")
+            return
+        
+        if notification:
+            # Render and send email
+            subject = frappe.render_template(
+                notification.subject,
+                {"employee_name": employee.employee_name}
+            )
+            message = frappe.render_template(
+                notification.message,
+                {
+                    "employee_name": employee.employee_name,
+                    "penalization_date": penalization_date,
+                    "penalization_type": penalization_type,
+                    "company": employee.company
+                }
+            )
+            frappe.sendmail(
+                recipients=[email_id],
+                subject=subject,
+                message=message,
+            )
+    except Exception as e:
+        frappe.log_error(f"Error in send_penalty_warnings: {str(e)}")
+
+
+def send_attendance_issue():
+    # * Set the date to check (1 day before today)
+    attendance_check_date = add_days(today(), -1)
+
+    # * Fetch PROMPT Company ID
+    company_id = fetch_company_name(prompt=1)
+    
+    # * Load the notification template
+    notification = frappe.get_doc("Notification", "Attendance Issue Reminder")
+
+    # ! Handle company fetch failure
+    if company_id.get("error"):
+        frappe.log_error("Error in penalize_employee_for_late_entry", frappe.get_traceback())
+        return
+
+    prompt_employee_list = []
+
+    # * Proceed if company_id exists
+    if company_id.get("company_id"):
+        prompt_employee_list = frappe.db.get_all(
+            "Employee",
+            filters={
+                "status": "Active",
+                "company": company_id.get("company_id")
+            },
+            fields=["name", "holiday_list", "user_id", "company"]
+        )
+
+        if prompt_employee_list:
+            for emp in prompt_employee_list:
+
+                # * Use date range for creation field, or use attendance_date if available
+                date_start = attendance_check_date + " 00:00:00"
+                date_end = (datetime.strptime(attendance_check_date, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d 00:00:00")
+
+                # * GET ATTENDANCE OF EMPLOYEE
+                attendance = frappe.get_all(
+                    "Attendance",
+                    filters=[
+                        ["employee", "=", emp.get("name")],
+                        ["creation", ">=", date_start],
+                        ["creation", "<", date_end],
+                        ["docstatus", "=", 1]
+                    ],
+                    fields=["*"],
+                    limit=1
+                )
+
+                # ? CASE 1: No attendance found
+                if not attendance:
+                    # * Check if it's a holiday or weekly off
+                    holiday_or_weekoff = is_holiday_or_weekoff(emp.get("name"), attendance_check_date)
+                    
+                    if holiday_or_weekoff.get("is_holiday"):
+                        continue  # ! Skip if it's a holiday
+                    
+                    employee_name = frappe.db.get_value("Employee", emp.get("name"), "employee_name")
+                    # * Render subject & message for "No Attendance"
+                    subject = frappe.render_template(
+                        notification.subject,
+                        {"issue_type": "No Attendance", "doc": {
+                            "employee_name": employee_name,
+                            "attendance_date": attendance_check_date
+                        }}
+                    )
+                    message = frappe.render_template(
+                        notification.message,
+                        {"issue_type": "No Attendance", "doc": {
+                            "employee_name": employee_name,
+                            "attendance_date": attendance_check_date,
+                            "company": emp.get("company")
+                        }}
+                    )
+
+                    if emp.user_id:
+                        frappe.sendmail(
+                            recipients=[emp.user_id],
+                            subject=subject,
+                            message=message,
+                        )
+
+                # ? CASE 2: Attendance found, check for issues
+                else:
+                    att = attendance[0]
+
+                    if att.status == "Mispunch" or att.late_entry or att.early_exit:
+                        # * Determine attendance issue type
+                        if att.status == "Mispunch":
+                            attendance_issue = "Attendance Mispunch"
+                        elif att.late_entry:
+                            attendance_issue = "Late Entry"
+                        elif att.early_exit:
+                            attendance_issue = "Early Exit"
+                        else:
+                            attendance_issue = "Attendnace MISMATCH"
+
+                        # * Render subject & message based on issue
+                        subject = frappe.render_template(
+                            notification.subject,
+                            {"issue_type": attendance_issue, "doc": att}
+                        )
+                        message = frappe.render_template(
+                            notification.message,
+                            {"issue_type": attendance_issue, "doc": att}
+                        )
+
+                        if emp.user_id:
+                            frappe.sendmail(
+                                recipients=[emp.user_id],
+                                subject=subject,
+                                message=message,
+                            )
