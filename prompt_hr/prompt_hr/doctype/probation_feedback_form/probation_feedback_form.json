@@ -18,8 +18,8 @@
   "reporting_manager",
   "evaluation_date",
   "hod",
-  "amended_from",
   "probation_feedback_for",
+  "amended_from",
   "probation_evaluation_section",
   "probation_feedback_prompt",
   "probation_feedback_indifoss",
@@ -120,29 +120,27 @@
    "search_index": 1
   },
   {
-   "depends_on": "employee",
    "fieldname": "probation_evaluation_section",
    "fieldtype": "Section Break",
    "label": "Probation Evaluation"
   },
   {
-   "depends_on": "eval:doc.company!='IndiFOSS Analytical Pvt Ltd'",
    "fieldname": "probation_feedback_prompt",
    "fieldtype": "Table",
-   "label": "Probation Feedback Prompt",
+   "label": "Probation Feedback",
    "options": "Probation Feedback Prompt"
   },
   {
-   "depends_on": "eval:doc.company=='IndiFOSS Analytical Pvt Ltd'",
    "fieldname": "probation_feedback_indifoss",
    "fieldtype": "Table",
+   "hidden": 1,
    "label": "Probation Feedback IndiFOSS",
    "options": "Probation Feedback IndiFOSS"
   },
   {
-   "depends_on": "eval:doc.company=='IndiFOSS Analytical Pvt Ltd'",
    "fieldname": "confirmation_details_section",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Confirmation Details"
   },
   {
@@ -171,9 +169,9 @@
    "precision": "1"
   },
   {
-   "depends_on": "eval:doc.company=='IndiFOSS Analytical Pvt Ltd'",
    "fieldname": "training_needs_section",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Training Needs"
   },
   {
@@ -199,7 +197,6 @@
    "mandatory_depends_on": "eval:doc.probation_status == \"Confirm\" && doc.company=='IndiFOSS Analytical Pvt Ltd';"
   },
   {
-   "depends_on": "eval: doc.company == \"Prompt Equipments PVT LTD\";",
    "fieldname": "probation_feedback_for",
    "fieldtype": "Select",
    "label": "Probation Feedback for",
@@ -231,7 +228,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-04-28 11:40:02.906261",
+ "modified": "2025-06-22 18:09:25.173977",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Probation Feedback Form",
@@ -252,6 +249,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []
