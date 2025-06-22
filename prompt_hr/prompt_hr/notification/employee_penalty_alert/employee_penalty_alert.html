@@ -1,0 +1,20 @@
+<p>{% if doc.employee %}
+{% set employee = frappe.get_doc("Employee", doc.employee) %}
+{% endif %}</p>
+
+<p>Dear <b>{{employee.employee_name or ""}}</b>,</p>
+
+<p>
+    A penalty has been issued for <strong>{{reason or ""}}</strong> on 
+    <strong>{{frappe.utils.format_date(doc.penalty_date,"dd-MM-yyyy") or ""}}</strong> as per company attendance policy.
+</p>
+
+<p>
+    Please check your attendance records and reach out to the HR team if you believe this was issued in error.
+</p>
+
+<p><br></p>
+
+<p>Regards,<br>
+HR Department<br>
+{{doc.company or ""}}</p>

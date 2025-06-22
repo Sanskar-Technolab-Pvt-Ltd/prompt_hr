@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-06-20 11:09:31.518109",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Attendance",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "<p>Dear <b>{{ employee_name }}</b>,</p>\n\n<p>\n    This is a reminder that you are scheduled for a \n    <strong>{{ penalization_type }}</strong> Penalization on \n    <strong>{{ frappe.format_date(penalization_date,\"dd-MM-yyyy\") }}</strong> due to policy violation.\n</p>\n\n<p>\n    Please take the necessary corrective action before the penalization is enforced.\n</p>\n\n<p>\n    If you have any queries or concerns, kindly contact the HR department.\n</p>\n\n<p><br></p>\n\n<p>Regards,<br>\nHR Team<br>\n{{ company }}</p>\n",
+ "message_type": "HTML",
+ "modified": "2025-06-20 18:53:51.169860",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Alert For Penalization",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "{{ employee_name }} - Upcoming Leave Penalization Alert"
+}
