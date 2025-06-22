@@ -6,7 +6,7 @@ import frappe
 def list(
     filters=None,
     or_filters=None,
-    fields=["*"],
+    fields=["name"],
     order_by=None,
     limit_page_length=0,
     limit_start=0,

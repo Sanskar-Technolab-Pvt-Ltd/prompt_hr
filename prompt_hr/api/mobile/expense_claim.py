@@ -8,7 +8,7 @@ from frappe.utils.file_manager import save_file
 def list(
     filters=None,
     or_filters=None,
-    fields=["*"],
+    fields=["name","employee","approval_status","custom_type","workflow_state"],
     order_by=None,
     limit_page_length=0,
     limit_start=0,
@@ -27,7 +27,7 @@ def list(
             limit_start=limit_start,
         )
 
-        # ? FETCH CHILD TABLE DETAILS FOR EACH EXPENSE CLAIM
+        # ? FETCH FIRST EXPENSE ITEM AND SPECIFIC FIELDS
         for claim in expense_claim_list:
             claim_name = claim.get("name")
             if claim_name:
@@ -37,21 +37,24 @@ def list(
                     fields=[
                         "expense_date",
                         "expense_type",
-                        "description",
                         "amount",
-                        "sanctioned_amount",
-                        "cost_center",
-                        "project",
-                        "custom_is_exception",
-                        "custom_km",
-                        "campaign",
-                        "custom_mode_of_vehicle",
-                        "custom_type_of_vehicle",
-                        "custom_for_metro_city",
-                        "custom_days"
-                    ]
+                        "idx"
+                    ],
+                    order_by="idx asc",
+                    limit=1  # Only get the first expense item
                 )
-                claim["expenses"] = expenses
+                
+                # Add expense fields directly to parent if exists
+                if expenses:
+                    claim.update({
+                        "expense_date": expenses[0].get("expense_date"),
+                        "expense_type": expenses[0].get("expense_type"),
+                        "amount": expenses[0].get("amount")
+                    })
+                
+                # Remove the expenses array since we've moved the fields to parent
+                if "expenses" in claim:
+                    del claim["expenses"]
 
         # ? GET TOTAL COUNT
         total_names = frappe.get_all(
@@ -78,11 +81,6 @@ def list(
             "data": expense_claim_list,
             "count": total_count
         }
-
-        
-
-
-
 
 # ! prompt_hr.api.mobile.expense_claim.get
 # ? GET EXPENSE CLAIM DETAIL

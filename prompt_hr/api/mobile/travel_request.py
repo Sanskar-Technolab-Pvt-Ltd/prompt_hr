@@ -1,5 +1,5 @@
 import frappe
-
+from frappe.utils.file_manager import save_file
 
 # ! prompt_hr.api.mobile.travel_request.list
 # ? GET TRAVEL REQUEST LIST
@@ -7,13 +7,12 @@ import frappe
 def list(
     filters=None,
     or_filters=None,
-    fields=["*"],
+    fields=["name","employee","travel_type","purpose_of_travel"],
     order_by=None,
     limit_page_length=0,
     limit_start=0,
 ):
     try:
-
         # ? GET Travel Request LIST
         travel_request_list = frappe.get_list(
             "Travel Request",
@@ -25,36 +24,32 @@ def list(
             limit_start=limit_start,
         )
         
-        # ? FETCH CHILD TABLE DETAILS FOR EACH EXPENSE CLAIM
+        # ? FETCH ONLY FIRST ITINERARY ITEM AND SPECIFIC FIELDS
         for req in travel_request_list:
             req_name = req.get("name")
             if req_name:
                 itinerary = frappe.get_all(
                     "Travel Itinerary",
                     filters={"parent": req_name},
-                     fields=[
-                        "travel_from",
-                        "travel_to",
-                        "mode_of_travel",
-                        "meal_preference",
-                        "travel_advance_required",
-                        "advance_amount",
-                        "departure_date",
-                        "arrival_date",
-                        "lodging_required",
-                        "preferred_area_for_lodging",
-                        "check_in_date",
-                        "check_out_date",
-                        "other_details",
+                    fields=[
                         "custom_from_travel",
                         "custom_to_travel",
-                        "custom_travel_mode",
-                        "custom_attachment"
-                    ]
+                        "departure_date",
+                        "arrival_date"
+                    ],
+                    order_by="idx asc" ,
+                    limit=1# Only get the first itinerary item
                 )
-                req["itinerary"] = itinerary
+                
+                # Add itinerary fields directly to parent if exists
+                if itinerary:
+                    req.update(itinerary[0])
+                
+                # Remove the itinerary array since we've moved the fields to parent
+                if "itinerary" in req:
+                    del req["itinerary"]
         
-        # ? GET TOTAL COUNT (manually count the names matching filters)
+        # ? GET TOTAL COUNT
         total_names = frappe.get_all(
             "Travel Request",
             filters=filters,
@@ -148,6 +143,8 @@ def create(**args):
         if args.get("itinerary"):
             args["itinerary"] = frappe.parse_json(args.get("itinerary"))
             
+      
+            
         # ? CREATE TRAVEL REQUEST DOC
         travel_request_doc = frappe.get_doc({
             "doctype": "Travel Request",
@@ -155,6 +152,18 @@ def create(**args):
         })
         travel_request_doc.insert()
         frappe.db.commit()
+        
+          # ? HANDLE MULTIPLE FILE UPLOADS
+        uploaded_files = frappe.request.files.getlist("file")
+        for uploaded_file in uploaded_files:
+            save_file(
+                uploaded_file.filename,
+                uploaded_file.stream.read(),
+                "Travel Request",
+                travel_request_doc.name,
+                is_private=0
+            )
+        frappe.db.commit()    
 
     except Exception as e:
         # ? HANDLE ERRORS
@@ -198,6 +207,18 @@ def update(**args):
 
         travel_request_doc.save()
         frappe.db.commit()
+        
+          # ? HANDLE MULTIPLE FILE UPLOADS
+        uploaded_files = frappe.request.files.getlist("file")
+        for uploaded_file in uploaded_files:
+            save_file(
+                uploaded_file.filename,
+                uploaded_file.stream.read(),
+                "Travel Request",
+                travel_request_doc.name,
+                is_private=0
+            )
+        frappe.db.commit() 
 
     except Exception as e:
         # ? HANDLE ERRORS
