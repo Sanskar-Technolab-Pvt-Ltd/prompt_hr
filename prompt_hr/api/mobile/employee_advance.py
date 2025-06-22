@@ -123,6 +123,17 @@ def create(**args):
             ):
                 frappe.throw(f"Please Fill {field_name} Field!", frappe.MandatoryError)
 
+        # ? FETCH GLOBAL DEFAULT CURRENCY IF NOT PROVIDED
+        currency = args.get("currency") or frappe.db.get_single_value("Global Defaults", "default_currency")
+        args["currency"] = currency
+        args["exchange_rate"] = 1.0
+
+        # ? CREATE EMPLOYEE ADVANCE DOC
+        employee_advance_doc = frappe.get_doc({
+            "doctype": "Employee Advance",
+            **args
+        })
+
         # ? CREATE EMPLOYEE ADVANCE DOC
         employee_advance_doc = frappe.get_doc({
             "doctype": "Employee Advance",
