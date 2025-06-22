@@ -34,12 +34,12 @@
    "label": "Attachment Mandatory?"
   }
  ],
- "grid_page_length": 50,
+ "grid_page_length": 20,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-06-12 12:46:32.444886",
- "modified_by": "malav@sanskartechnolab.com",
+ "modified": "2025-06-22 16:54:28.855279",
+ "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Travel Mode Table",
  "owner": "Administrator",
