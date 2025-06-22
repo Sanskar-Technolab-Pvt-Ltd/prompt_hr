@@ -88,3 +88,74 @@ def get(name):
             "message": "Attendance Loaded Successfully!",
             "data": attendance,
         }
+    
+import frappe
+from datetime import datetime
+from frappe.utils import get_first_day, get_last_day
+
+@frappe.whitelist()
+def attendance_calendar_list(
+    employee=None,
+    order_by=None,
+    limit_page_length=0,
+    limit_start=0,
+):
+    try:
+        if not employee:
+            frappe.throw("Employee is required")
+
+        # Get current month's start and end date
+        today = datetime.today()
+        month_start = get_first_day(today).strftime("%Y-%m-%d")
+        month_end = get_last_day(today).strftime("%Y-%m-%d")
+
+        # Filters: by employee name and current month
+        filters = {
+            "employee": employee,
+            "attendance_date": ["between", [month_start, month_end]]
+        }
+
+        # Fields to return
+        selected_fields = [
+            "attendance_date",
+            "employee_name",
+            "name",
+            "employee",
+            "status"
+        ]
+
+        # Fetch attendance list
+        attendance_list = frappe.get_list(
+            "Attendance",
+            filters=filters,
+            fields=selected_fields,
+            order_by=order_by,
+            limit_page_length=limit_page_length,
+            limit_start=limit_start,
+        )
+
+        # ? GET TOTAL COUNT (manually count the names matching filters)
+        total_names = frappe.get_all(
+            "Attendance",
+            filters=filters,
+            fields=["name"]
+        )
+        
+        total_count = len(total_names)
+
+    except Exception as e:
+        frappe.log_error("Error While Getting Attendance List", str(e))
+        frappe.clear_messages()
+        frappe.local.response["message"] = {
+            "success": False,
+            "message": f"Error While Getting Attendance List: {str(e)}",
+            "data": None,
+        }
+
+    else:
+        frappe.local.response["message"] = {
+            "success": True,
+            "message": "Attendance List Loaded Successfully!",
+            "data": attendance_list,
+            "count": total_count        
+        }
