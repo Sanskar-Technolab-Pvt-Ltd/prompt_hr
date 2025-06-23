@@ -42,6 +42,7 @@ def on_update(doc, method):
     Shares the document and sends notification emails for workflow updates.
     """
     expense_claim_and_travel_request_workflow_email(doc)
+    set_local_commute_expense_in_employee(doc.employee)
 
 
 def update_amount_in_marketing_planning(doc, method):
@@ -851,3 +852,53 @@ def get_approved_category_monthly_expense(
         frappe.throw(
             f"An error occurred while calculating approved monthly expenses: {e}"
         )
+
+# ? FUNCTION TO FETCH TOTAL APPROVED 'LOCAL COMMUTE' EXPENSES FOR THE CURRENT MONTH FOR A GIVEN EMPLOYEE
+def set_local_commute_expense_in_employee(employee):
+    try:
+        today_date = getdate(today())
+
+        # ? GET TOTAL APPROVED EXPENSES
+        monthly_expense = get_approved_category_monthly_expense(
+            employee, today_date, expense_type="Local Commute"
+        )
+
+        # ? UPDATE ONLY THE CURRENT MONTH'S EXPENSE IN THE EMPLOYEE RECORD
+        frappe.db.set_value("Employee", employee, "custom_local_commute_current_month_wallet_expense", monthly_expense)
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Error in set_local_commute_expense_in_employee")
+
+
+@frappe.whitelist()
+def get_local_commute_expense_in_expense_claim(employee):
+    try:
+        # ? GET CURRENT MONTH'S EXPENSE + GRADE FROM EMPLOYEE
+        fields = frappe.db.get_value(
+            "Employee",
+            employee,
+            ["custom_local_commute_current_month_wallet_expense", "grade"],
+            as_dict=True
+        )
+        if not fields:
+            return {}
+
+        # ? FETCH BUDGET FROM BUDGET ALLOCATION USING GRADE
+        budget = frappe.db.get_value(
+            "Budget Allocation",
+            {"grade": fields.get("grade")},
+            "local_commute_limit_monthly"
+        ) or 0
+
+        # ? CALCULATE REMAINING BUDGET
+        remaining = max(0, budget - (fields.get("custom_local_commute_current_month_wallet_expense") or 0))
+
+        return {
+            "monthly_expense": fields.custom_local_commute_current_month_wallet_expense or 0,
+            "monthly_budget": budget,
+            "remaining_budget": remaining
+        }
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Error in get_local_commute_expense_in_expense_claim")
+        return {}
