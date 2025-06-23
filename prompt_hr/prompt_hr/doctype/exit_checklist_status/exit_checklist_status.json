@@ -13,11 +13,13 @@
   {
    "fieldname": "department",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Department"
   },
   {
    "fieldname": "status",
    "fieldtype": "Select",
+   "in_list_view": 1,
    "label": "Status",
    "options": "\nPending\nPartially Completed\nCompleted"
   }
@@ -26,7 +28,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-06-20 11:32:42.777266",
+ "modified": "2025-06-23 16:45:27.905548",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Exit Checklist Status",
