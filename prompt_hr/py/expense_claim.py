@@ -1,4 +1,5 @@
 import frappe
+from frappe.auth import today
 from frappe.utils import cint, flt, getdate
 import frappe.workflow
 from prompt_hr.py.utils import (
@@ -31,6 +32,7 @@ def before_save(doc, method):
     Called before an Expense Claim is saved.
     Validates expenses against budget limits and checks for mandatory attachments.
     """
+    print(doc.expenses[0].get("custom_attachments"), "Hii\n\n\n")
     if doc.expenses:
         validate_attachments_compulsion(doc)
         get_expense_claim_exception(doc)
@@ -248,6 +250,7 @@ from collections import defaultdict
 import frappe
 from frappe.utils import flt, cint, getdate
 
+
 def get_expense_claim_exception(doc):
     """
     Flags exceptions in an Expense Claim document based on configured travel budget limits
@@ -323,11 +326,13 @@ def get_expense_claim_exception(doc):
         monthly_approved_totals = {}
         for year, month in unique_months:
             month_date = getdate(f"{year}-{month:02d}-01")
-            monthly_approved_totals[(year, month)] = get_approved_category_monthly_expense(
-                employee=doc.employee,
-                expense_date=month_date,
-                expense_type=EXPENSE_TYPES["LOCAL_COMMUTE"],
-                current_doc_name=doc.name,
+            monthly_approved_totals[(year, month)] = (
+                get_approved_category_monthly_expense(
+                    employee=doc.employee,
+                    expense_date=month_date,
+                    expense_type=EXPENSE_TYPES["LOCAL_COMMUTE"],
+                    current_doc_name=doc.name,
+                )
             )
 
         # Initialize daily totals for food, lodging, and local commute
@@ -370,7 +375,7 @@ def get_expense_claim_exception(doc):
                 doc.company,
                 daily_food_lodging_totals_by_type,
                 current_doc_daily_food_lodging_totals,
-                doc
+                doc,
             )
 
             if (
@@ -402,7 +407,7 @@ def _validate_and_process_expense(
     company,
     daily_food_lodging_totals_by_type,
     current_doc_daily_food_lodging_totals,
-    doc
+    doc,
 ):
     """
     Validates and processes an individual expense item within the claim.
@@ -431,7 +436,7 @@ def _validate_and_process_expense(
             expense_date,
             budget_row,
             daily_food_lodging_totals_by_type,
-            current_doc_daily_food_lodging_totals
+            current_doc_daily_food_lodging_totals,
         )
 
     elif exp.expense_type == EXPENSE_TYPES["LOCAL_COMMUTE"]:
@@ -461,7 +466,7 @@ def _validate_and_process_expense(
             current_doc_monthly_totals,
             employee_grade,
             company,
-            doc
+            doc,
         )
 
 
@@ -472,7 +477,7 @@ def _process_food_lodging_expense(
     expense_start_date,
     budget_row,
     approved_daily_food_lodging_totals_by_type,
-    current_doc_daily_food_lodging_totals
+    current_doc_daily_food_lodging_totals,
 ):
     """
     Processes validation for Food and Lodging expenses against their defined allowances.
@@ -492,11 +497,13 @@ def _process_food_lodging_expense(
     for i in range(days):
         current_day = expense_start_date + timedelta(days=i)
 
-        current_doc_daily_food_lodging_totals[current_day][exp.expense_type] += daily_per_item_amount
+        current_doc_daily_food_lodging_totals[current_day][
+            exp.expense_type
+        ] += daily_per_item_amount
 
         cumulative_daily_total = (
-            approved_daily_food_lodging_totals_by_type[current_day][exp.expense_type] +
-            current_doc_daily_food_lodging_totals[current_day][exp.expense_type]
+            approved_daily_food_lodging_totals_by_type[current_day][exp.expense_type]
+            + current_doc_daily_food_lodging_totals[current_day][exp.expense_type]
         )
 
         if cumulative_daily_total > flt(limit):
@@ -519,7 +526,13 @@ def _get_approved_food_lodging_daily_totals(
     filters = {
         "employee": employee,
         "approval_status": "Approved",
-        "posting_date": ["between", [getdate(from_date) - timedelta(days=30), getdate(to_date) + timedelta(days=30)]],
+        "posting_date": [
+            "between",
+            [
+                getdate(from_date) - timedelta(days=30),
+                getdate(to_date) + timedelta(days=30),
+            ],
+        ],
     }
     if current_doc_name:
         filters["name"] = ["!=", current_doc_name]
@@ -539,7 +552,13 @@ def _get_approved_food_lodging_daily_totals(
         filters={
             "parent": ["in", approved_claim_names],
             "expense_type": ["in", [EXPENSE_TYPES["FOOD"], EXPENSE_TYPES["LODGING"]]],
-            "expense_date": ["between", [getdate(from_date) - timedelta(days=30), getdate(to_date) + timedelta(days=30)]],
+            "expense_date": [
+                "between",
+                [
+                    getdate(from_date) - timedelta(days=30),
+                    getdate(to_date) + timedelta(days=30),
+                ],
+            ],
         },
         fields=[
             "parent",
@@ -566,7 +585,9 @@ def _get_approved_food_lodging_daily_totals(
         for i in range(days):
             current_day = start_date + timedelta(days=i)
             if getdate(from_date) <= current_day <= getdate(to_date):
-                approved_daily_totals_by_type[current_day][detail.expense_type] += per_day_amount
+                approved_daily_totals_by_type[current_day][
+                    detail.expense_type
+                ] += per_day_amount
 
     return approved_daily_totals_by_type
 
@@ -583,7 +604,13 @@ def _get_approved_local_commute_daily_totals(
     filters = {
         "employee": employee,
         "approval_status": "Approved",
-        "posting_date": ["between", [getdate(from_date) - timedelta(days=30), getdate(to_date) + timedelta(days=30)]],
+        "posting_date": [
+            "between",
+            [
+                getdate(from_date) - timedelta(days=30),
+                getdate(to_date) + timedelta(days=30),
+            ],
+        ],
     }
     if current_doc_name:
         filters["name"] = ["!=", current_doc_name]
@@ -603,7 +630,13 @@ def _get_approved_local_commute_daily_totals(
         filters={
             "parent": ["in", approved_claim_names],
             "expense_type": EXPENSE_TYPES["LOCAL_COMMUTE"],
-            "expense_date": ["between", [getdate(from_date) - timedelta(days=30), getdate(to_date) + timedelta(days=30)]],
+            "expense_date": [
+                "between",
+                [
+                    getdate(from_date) - timedelta(days=30),
+                    getdate(to_date) + timedelta(days=30),
+                ],
+            ],
         },
         fields=[
             "expense_date",
@@ -647,7 +680,7 @@ def _process_local_commute_expense(
     current_doc_monthly_totals,
     employee_grade,
     company,
-    doc
+    doc,
 ):
     """
     Processes validation for Local Commute expenses using daily allowance logic
@@ -668,13 +701,11 @@ def _process_local_commute_expense(
         "attachment_mandatory",
     )
 
-
     # ? THROW ERROR IF ATTACHMENT IS REQUIRED BUT NOT PROVIDED
     if attach_required and not exp.custom_attachments:
         frappe.throw(
             f"Attachment required for Local Commute (Row #{idx}) as per commute rules."
         )
-
 
     # Calculate amount for non-public transport if not provided
     if exp.custom_mode_of_vehicle == COMMUTE_MODES["NON_PUBLIC"]:
@@ -695,16 +726,16 @@ def _process_local_commute_expense(
     # Check daily limits using logic similar to food/lodging
     for i in range(days):
         current_day = expense_date + timedelta(days=i)
-        
+
         # Accumulate current document's expense for this day
         current_doc_daily_local_commute_totals[current_day] += daily_per_item_amount
-        
+
         # Calculate cumulative daily total
         cumulative_daily_total = (
-            daily_local_commute_totals[current_day] +
-            current_doc_daily_local_commute_totals[current_day]
+            daily_local_commute_totals[current_day]
+            + current_doc_daily_local_commute_totals[current_day]
         )
-        
+
         # Check if daily limit is exceeded
         if daily_limit and cumulative_daily_total > daily_limit:
             exceeded_daily = True
@@ -713,21 +744,26 @@ def _process_local_commute_expense(
     # Check monthly limit - simplified since no overlapping logic needed
     current_month_key = (expense_date.year, expense_date.month)
     current_doc_monthly_totals[current_month_key] += exp_amount
-    
+
     approved_monthly_total = monthly_approved_totals.get(current_month_key, 0)
-    cumulative_monthly_spend = approved_monthly_total + current_doc_monthly_totals[current_month_key]
-    
+    cumulative_monthly_spend = (
+        approved_monthly_total + current_doc_monthly_totals[current_month_key]
+    )
+
     doc.custom_local_commute_monthly_balance = monthly_limit - cumulative_monthly_spend
-    
+
     if monthly_limit and cumulative_monthly_spend > monthly_limit:
         exceeded_monthly = True
 
     # Flag as exception if any limit is exceeded
     if exceeded_daily or exceeded_monthly:
-        if not exp.custom_attachments and company == get_indifoss_company_name().get("company_name"):
+        if (not exp.custom_attachments) and company == get_indifoss_company_name().get(
+            "company_name"
+        ):
             frappe.throw(
-                f"Row #{idx}: Attachment is required as the expense exceeds limits."
+                f"Row #{exp.get('idx')}: Attachment is required as the expense exceeds limits."
             )
+
         exp.custom_is_exception = 1
 
 
@@ -817,7 +853,10 @@ def get_approved_category_monthly_expense(
         next_month = month_start + relativedelta(months=1)
         month_end = next_month - timedelta(days=1)
 
-        filters = {"employee": employee, "approval_status": "Approved"}
+        filters = {
+            "employee": employee,
+            "approval_status": ["in", ["Draft", "Approved"]],
+        }
         if current_doc_name:
             filters["name"] = ["!=", current_doc_name]
 
@@ -825,7 +864,6 @@ def get_approved_category_monthly_expense(
             doctype="Expense Claim",
             filters=filters,
             pluck="name",
-            limit_page_length="UNLIMITED",
         )
 
         if not all_approved_expense_claims:
@@ -839,7 +877,6 @@ def get_approved_category_monthly_expense(
                 "expense_date": ["between", [month_start, month_end]],
             },
             fields=["sanctioned_amount"],
-            limit_page_length="UNLIMITED",
         )
 
         total_sanctioned_amount = sum(
@@ -853,6 +890,7 @@ def get_approved_category_monthly_expense(
             f"An error occurred while calculating approved monthly expenses: {e}"
         )
 
+
 # ? FUNCTION TO FETCH TOTAL APPROVED 'LOCAL COMMUTE' EXPENSES FOR THE CURRENT MONTH FOR A GIVEN EMPLOYEE
 def set_local_commute_expense_in_employee(employee):
     try:
@@ -864,10 +902,17 @@ def set_local_commute_expense_in_employee(employee):
         )
 
         # ? UPDATE ONLY THE CURRENT MONTH'S EXPENSE IN THE EMPLOYEE RECORD
-        frappe.db.set_value("Employee", employee, "custom_local_commute_current_month_wallet_expense", monthly_expense)
+        frappe.db.set_value(
+            "Employee",
+            employee,
+            "custom_local_commute_current_month_wallet_expense",
+            monthly_expense,
+        )
 
     except Exception as e:
-        frappe.log_error(frappe.get_traceback(), "Error in set_local_commute_expense_in_employee")
+        frappe.log_error(
+            frappe.get_traceback(), "Error in set_local_commute_expense_in_employee"
+        )
 
 
 @frappe.whitelist()
@@ -878,27 +923,38 @@ def get_local_commute_expense_in_expense_claim(employee):
             "Employee",
             employee,
             ["custom_local_commute_current_month_wallet_expense", "grade"],
-            as_dict=True
+            as_dict=True,
         )
         if not fields:
             return {}
 
         # ? FETCH BUDGET FROM BUDGET ALLOCATION USING GRADE
-        budget = frappe.db.get_value(
-            "Budget Allocation",
-            {"grade": fields.get("grade")},
-            "local_commute_limit_monthly"
-        ) or 0
+        budget = (
+            frappe.db.get_value(
+                "Budget Allocation",
+                {"grade": fields.get("grade")},
+                "local_commute_limit_monthly",
+            )
+            or 0
+        )
 
         # ? CALCULATE REMAINING BUDGET
-        remaining = max(0, budget - (fields.get("custom_local_commute_current_month_wallet_expense") or 0))
+        remaining = max(
+            0,
+            budget
+            - (fields.get("custom_local_commute_current_month_wallet_expense") or 0),
+        )
 
         return {
-            "monthly_expense": fields.custom_local_commute_current_month_wallet_expense or 0,
+            "monthly_expense": fields.custom_local_commute_current_month_wallet_expense
+            or 0,
             "monthly_budget": budget,
-            "remaining_budget": remaining
+            "remaining_budget": remaining,
         }
 
     except Exception as e:
-        frappe.log_error(frappe.get_traceback(), "Error in get_local_commute_expense_in_expense_claim")
+        frappe.log_error(
+            frappe.get_traceback(),
+            "Error in get_local_commute_expense_in_expense_claim",
+        )
         return {}
