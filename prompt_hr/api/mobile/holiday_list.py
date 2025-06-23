@@ -45,8 +45,8 @@ def get(company, employee, leave_type):
                 if leave_application:
                     if holiday.holiday_date in leave_application:
                         continue
-                    label = f"{remove_html_tags(holiday.description) or holiday.name} ({frappe.utils.format_date(holiday.holiday_date, 'dd-MM-yyyy')})"
-                    options.append({"label": label, "value": label, "holiday_date": holiday.holiday_date})
+                label = f"{remove_html_tags(holiday.description) or holiday.name} ({frappe.utils.format_date(holiday.holiday_date, 'dd-MM-yyyy')})"
+                options.append({"label": label, "value": label, "holiday_date": holiday.holiday_date})
     except Exception as e:
          # ? HANDLE ERRORS
         frappe.log_error("Error While Getting Holiday List", str(e))
