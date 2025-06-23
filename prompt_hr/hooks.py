@@ -276,7 +276,8 @@ doc_events = {
     },
     "Full and Final Statement": {
         "on_update": "prompt_hr.py.full_and_final_statement.on_update",
-        "before_submit": "prompt_hr.py.full_and_final_statement.before_submit"
+        "before_submit": "prompt_hr.py.full_and_final_statement.before_submit",
+        "before_insert": "prompt_hr.py.full_and_final_statement.before_insert",
     },
     "Travel Request": {
         "on_update": "prompt_hr.py.travel_request.on_update",
