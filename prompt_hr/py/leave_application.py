@@ -616,6 +616,14 @@ def custom_get_number_of_leave_days(
                 if doc_json:
                     doc = json.loads(doc_json)
                     custom_half_day_time = doc.get("custom_half_day_time")
+    else:
+        if half_day is None:
+            doc_json = frappe.form_dict.get("doc")
+            if doc_json:
+                doc = json.loads(doc_json)
+                custom_half_day_time = doc.get("custom_half_day_time")
+                half_day_date = doc.get("half_day_date")
+                half_day = doc.get("half_day")
 
     if not holiday_list:
         holiday_list = get_holiday_list_for_employee(employee)
