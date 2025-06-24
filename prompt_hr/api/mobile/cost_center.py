@@ -43,11 +43,12 @@ def list(
         )
 
         # Get total count
-        total_names = frappe.get_all(
+        total_names = frappe.get_list(
             "Cost Center",
             filters=combined_filters,
             or_filters=or_filters,
-            fields=["name"]
+            fields=["name"],
+            ignore_permissions=False
         )
         total_count = len(total_names)
 
