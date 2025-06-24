@@ -346,11 +346,9 @@ scheduler_events = {
 # Overriding Methods
 # ------------------------------
 #
-# override_whitelisted_methods = {
-# "frappe.desk.doctype.event.event.get_events": "prompt_hr.event.get_events"
-# "frappe.model.workflow.get_transitions": "prompt_hr.overrides.workflow_override.custom_get_transitions",
-# "frappe.model.workflow.apply_workflow": "prompt_hr.overrides.workflow_override.custom_apply_workflow"
-# }
+override_whitelisted_methods = {
+"hrms.hr.doctype.leave_application.leave_application.get_holidays": "prompt_hr.py.leave_application.get_holidays"
+}
 #
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,

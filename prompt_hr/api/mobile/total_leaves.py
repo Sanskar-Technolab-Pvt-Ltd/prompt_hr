@@ -26,13 +26,35 @@ def get(
 
     try:
         """Returns number of leave days between 2 dates considering half-day, holidays, and sandwich rules"""
-        if not custom_half_day_time:
-            doc_json = frappe.form_dict.get("doc")
-            if doc_json:
-                doc = json.loads(doc_json)
-                custom_half_day_time = doc.get("custom_half_day_time")
-                half_day = doc.get("half_day")
-                half_day_date = doc.get("half_day_date")
+        # if not custom_half_day_time:
+        #     doc_json = frappe.form_dict.get("doc")
+        #     if doc_json:
+        #         doc = json.loads(doc_json)
+        #         custom_half_day_time = doc.get("custom_half_day_time")
+        #         half_day = doc.get("half_day")
+        #         half_day_date = doc.get("half_day_date")
+
+        if (half_day or half_day_date) and not custom_half_day_time:
+            leave_app = frappe.get_all(
+                "Leave Application",
+                filters={
+                    "employee": employee,
+                    "from_date": from_date,
+                    "to_date": to_date,
+                    "half_day": 1,
+                    "docstatus": 1
+                },
+                fields=["name", "custom_half_day_time", "half_day", "half_day_date"],
+                limit=1,
+            )
+            if leave_app:
+                custom_half_day_time = leave_app[0].custom_half_day_time
+            else:
+                if not custom_half_day_time:
+                    doc_json = frappe.form_dict.get("doc")
+                    if doc_json:
+                        doc = json.loads(doc_json)
+                        custom_half_day_time = doc.get("custom_half_day_time")
 
         if not holiday_list:
             holiday_list = get_holiday_list_for_employee(employee)
