@@ -50,11 +50,12 @@ def list(
                     del req["itinerary"]
         
         # ? GET TOTAL COUNT
-        total_names = frappe.get_all(
+        total_names = frappe.get_list(
             "Travel Request",
             filters=filters,
             or_filters=or_filters,
-            fields=["name"]
+            fields=["name"],
+            ignore_permissions=False
         )
         total_count = len(total_names)
 
