@@ -50,7 +50,7 @@ class FestivalHolidayList(Document):
 
 				print(f"\n Something updated  {holiday_lists}\n")
 
-				final_date_list = [{"date":getdate(row.holiday_date), "description": row.description, "weekly_off": row.weekly_off} for row in self.holidays]
+				final_date_list = [{"date":getdate(row.holiday_date), "description": row.description, "weekly_off": row.weekly_off, "custom_is_optional_festival_leave": row.custom_is_optional_festival_leave} for row in self.holidays]
     
 				start_date = getdate(self.from_date)
 				end_date = getdate(self.to_date)
@@ -90,7 +90,7 @@ class FestivalHolidayList(Document):
 									reference_date += timedelta(days=7)
                 
 						for holiday in final_date_list:
-							holiday_list_doc.append("holidays", {"description": holiday.get("description"),"holiday_date": holiday.get("date"), "weekly_off": holiday.get("weekly_off")})
+							holiday_list_doc.append("holidays", {"description": holiday.get("description"),"holiday_date": holiday.get("date"), "weekly_off": holiday.get("weekly_off"), "custom_is_optional_festival_leave":holiday.get("custom_is_optional_festival_leave")})
 
 						
 						
