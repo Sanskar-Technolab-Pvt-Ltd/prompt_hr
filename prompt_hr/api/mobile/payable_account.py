@@ -46,11 +46,12 @@ def list(
         )
 
         # Count total
-        total_names = frappe.get_all(
+        total_names = frappe.get_list(
             "Account",
             filters=combined_filters,
             or_filters=or_filters,
-            fields=["name"]
+            fields=["name"],
+            ignore_permissions=False
         )
         total_count = len(total_names)
 

@@ -25,11 +25,12 @@ def list(
         )
         
         # ? GET TOTAL COUNT (manually count the names matching filters)
-        total_names = frappe.get_all(
+        total_names = frappe.get_list(
             "Attendance",
             filters=filters,
             or_filters=or_filters,
-            fields=["name"]
+            fields=["name"],
+            ignore_permissions=False
         )
         
         total_count = len(total_names)
@@ -112,7 +113,8 @@ def attendance_calendar_list(
         # Filters: by employee name and current month
         filters = {
             "employee": employee,
-            "attendance_date": ["between", [month_start, month_end]]
+            "attendance_date": ["between", [month_start, month_end]],
+            "docstatus":1
         }
 
         # Fields to return
@@ -135,10 +137,11 @@ def attendance_calendar_list(
         )
 
         # ? GET TOTAL COUNT (manually count the names matching filters)
-        total_names = frappe.get_all(
+        total_names = frappe.get_list(
             "Attendance",
             filters=filters,
-            fields=["name"]
+            fields=["name"],
+            ignore_permissions=False
         )
         
         total_count = len(total_names)

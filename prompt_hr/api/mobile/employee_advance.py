@@ -30,11 +30,12 @@ def list(
         )
         
         # ? GET TOTAL COUNT (manually count the names matching filters)
-        total_names = frappe.get_all(
+        total_names = frappe.get_list(
             "Employee Advance",
             filters=filters,
             or_filters=or_filters,
-            fields=["name"]
+            fields=["name"],
+            ignore_permissions=False
         )
         total_count = len(total_names)
         
@@ -288,11 +289,12 @@ def mode_of_payment_list(
         )
         
         # ? GET TOTAL COUNT (manually count the names matching filters)
-        total_names = frappe.get_all(
+        total_names = frappe.get_list(
             "Mode of Payment",
             filters=filters,
             or_filters=or_filters,
-            fields=["name"]
+            fields=["name"],
+            ignore_permissions=False
         )
         total_count = len(total_names)
         
