@@ -113,9 +113,41 @@ def before_submit(doc, method):
             frappe.delete_doc("Leave Ledger Entry", entry_name)
 
 def on_submit(doc,method=None):
+
+    if doc.custom_leave_status == "Approved" and doc.workflow_state == "Extension Rejected":
+        entry = frappe.get_all(
+            "Leave Ledger Entry",
+            filters={"transaction_name": doc.name, "docstatus": 1},
+            order_by="creation desc",
+            limit=1
+        )
+        if entry:
+            entry_name = entry[0].name
+            entry_doc = frappe.get_doc("Leave Ledger Entry", entry_name)
+            entry_doc.db_set("docstatus", 2)
+            frappe.delete_doc("Leave Ledger Entry", entry_name)
+            # Cancel and delete Attendance records for this leave period
+            attendance = frappe.get_all(
+                "Attendance",
+                filters={
+                    "employee": doc.employee,
+                    "attendance_date": ["between", [doc.from_date, doc.to_date]],
+                    "docstatus": ["<", 2],
+                    "status": ["in", ["On Leave", "Half Day"]]
+                },
+                pluck="name"
+            )
+            for name in attendance:
+                att_doc = frappe.get_doc("Attendance", name)
+                att_doc.cancel()
+                frappe.delete_doc("Attendance", name)
+
+        # Refresh any linked views or dashboards
+        doc.publish_update()
+
     # * Get company abbreviation
     company_abbr = frappe.get_value("Company", doc.company, "abbr")
-    print(company_abbr)
+
     # * For PROMPT Company Logic
     if company_abbr == frappe.db.get_single_value("HR Settings", "custom_prompt_abbr"):
         leave_type = frappe.get_doc("Leave Type", doc.leave_type)
@@ -563,14 +595,36 @@ def custom_get_number_of_leave_days(
     custom_half_day_time: str | None = None
 ) -> float:
     """Returns number of leave days between 2 dates considering half-day, holidays, and sandwich rules"""
-    if not custom_half_day_time:
-        doc_json = frappe.form_dict.get("doc")
-        if doc_json:
-            doc = json.loads(doc_json)
-            custom_half_day_time = doc.get("custom_half_day_time")
-            half_day = doc.get("half_day")
-            half_day_date = doc.get("half_day_date")
-    
+    if (half_day or half_day_date) and not custom_half_day_time:
+        leave_app = frappe.get_all(
+            "Leave Application",
+            filters={
+                "employee": employee,
+                "from_date": from_date,
+                "to_date": to_date,
+                "half_day": 1,
+                "docstatus": 1
+            },
+            fields=["name", "custom_half_day_time", "half_day", "half_day_date"],
+            limit=1,
+        )
+        if leave_app:
+            custom_half_day_time = leave_app[0].custom_half_day_time
+        else:
+            if not custom_half_day_time:
+                doc_json = frappe.form_dict.get("doc")
+                if doc_json:
+                    doc = json.loads(doc_json)
+                    custom_half_day_time = doc.get("custom_half_day_time")
+    else:
+        if half_day is None:
+            doc_json = frappe.form_dict.get("doc")
+            if doc_json:
+                doc = json.loads(doc_json)
+                custom_half_day_time = doc.get("custom_half_day_time")
+                half_day_date = doc.get("half_day_date")
+                half_day = doc.get("half_day")
+
     if not holiday_list:
         holiday_list = get_holiday_list_for_employee(employee)
 
@@ -1006,3 +1060,31 @@ def leave_extension_allowed(leave_type, employee):
 
     # If leave extension is not enabled for this Leave Type, return False
     return False
+
+
+
+# ? MODIFIED GET HOLIDAYS FUNCTION TO EXCLUDE OPTIONAL FESTIVAL LEAVE
+@frappe.whitelist()
+def get_holidays(employee, from_date, to_date, holiday_list=None):
+    """
+    Returns the count of non-optional holidays between two dates for a given employee.
+    Optional holidays (custom_is_optional_festival_leave = 1) are excluded.
+    """
+    # * Step 1: Fetch holiday list if not provided
+    if not holiday_list:
+        holiday_list = get_holiday_list_for_employee(employee)
+
+    # * Step 2: Execute SQL query to count holidays (excluding optional festival leaves)
+    holiday_count = frappe.db.sql(
+        """
+        SELECT COUNT(DISTINCT h1.holiday_date)
+        FROM `tabHoliday` h1
+        INNER JOIN `tabHoliday List` h2 ON h1.parent = h2.name
+        WHERE h1.holiday_date BETWEEN %s AND %s
+        AND h2.name = %s
+        AND IFNULL(h1.custom_is_optional_festival_leave, 0) = 0
+        """,
+        (from_date, to_date, holiday_list),
+    )[0][0]
+
+    return holiday_count

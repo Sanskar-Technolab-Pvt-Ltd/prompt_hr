@@ -308,6 +308,7 @@ def create_holiday_list(doc):
                 "date": getdate(row.holiday_date),
                 "description": row.description,
                 "weekly_off": row.weekly_off,
+                "custom_is_optional_festival_leave": row.custom_is_optional_festival_leave
             }
             for row in festival_holiday_list_doc.get("holidays")
         ]
@@ -364,6 +365,7 @@ def create_holiday_list(doc):
                         "description": holiday.get("description"),
                         "holiday_date": holiday.get("date"),
                         "weekly_off": holiday.get("weekly_off"),
+                        "custom_is_optional_festival_leave": holiday.get("custom_is_optional_festival_leave")
                     },
                 )
 
