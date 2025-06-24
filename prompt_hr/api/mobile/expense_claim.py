@@ -8,7 +8,7 @@ from frappe.utils.file_manager import save_file
 def list(
     filters=None,
     or_filters=None,
-    fields=["name","employee","approval_status","custom_type","workflow_state"],
+    fields=["name","employee","employee_name","approval_status","custom_type","workflow_state"],
     order_by=None,
     limit_page_length=0,
     limit_start=0,
@@ -16,7 +16,15 @@ def list(
     try:
         fields = frappe.parse_json(fields)
 
-        # ? GET EXPENSE CLAIM LIST
+        # Ensure employee is included in the fields
+        if "employee" not in fields:
+            fields.append("employee")
+
+        # Get current user's employee ID
+        current_user = frappe.session.user
+        current_employee = frappe.get_value("Employee", {"user_id": current_user}, "name")
+
+        # Get all expense claims
         expense_claim_list = frappe.get_list(
             "Expense Claim",
             filters=filters,
@@ -27,8 +35,20 @@ def list(
             limit_start=limit_start,
         )
 
-        # ? FETCH FIRST EXPENSE ITEM AND SPECIFIC FIELDS
         for claim in expense_claim_list:
+            claim_employee = claim.get("employee")
+
+            # Tagging logic
+            if claim_employee == current_employee:
+                claim["request"] = "My Request"
+            else:
+                reports_to = frappe.get_value("Employee", claim_employee, "reports_to")
+                if reports_to == current_employee:
+                    claim["request"] = "Team Request"
+                else:
+                    claim["request"] = "Other"
+
+            # Fetch the first expense item
             claim_name = claim.get("name")
             if claim_name:
                 expenses = frappe.get_all(
@@ -41,27 +61,25 @@ def list(
                         "idx"
                     ],
                     order_by="idx asc",
-                    limit=1  # Only get the first expense item
+                    limit=1
                 )
-                
-                # Add expense fields directly to parent if exists
+
                 if expenses:
                     claim.update({
                         "expense_date": expenses[0].get("expense_date"),
                         "expense_type": expenses[0].get("expense_type"),
                         "amount": expenses[0].get("amount")
                     })
-                
-                # Remove the expenses array since we've moved the fields to parent
-                if "expenses" in claim:
-                    del claim["expenses"]
+        
 
+        
         # ? GET TOTAL COUNT
-        total_names = frappe.get_all(
+        total_names = frappe.get_list(
             "Expense Claim",
             filters=filters,
             or_filters=or_filters,
-            fields=["name"]
+            fields=["name"],
+            ignore_permissions=False  # Ensures count respects user permissions
         )
         total_count = len(total_names)
 
@@ -372,11 +390,12 @@ def field_visit_list(
         )
         
         # ? GET TOTAL COUNT (manually count the names matching filters)
-        total_names = frappe.get_all(
+        total_names = frappe.get_list(
             "Field Visit",
             filters=filters,
             or_filters=or_filters,
-            fields=["name"]
+            fields=["name"],
+            ignore_permissions=False
         )
         total_count = len(total_names)
         

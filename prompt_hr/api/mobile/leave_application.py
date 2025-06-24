@@ -18,7 +18,7 @@ def list(
         parsed_fields = frappe.parse_json(fields)
 
         # Ensure required fields are included
-        required_fields = ["employee", "owner"]
+        required_fields = ["employee"]
         for field in required_fields:
             if field not in parsed_fields:
                 parsed_fields.append(field)
@@ -31,28 +31,36 @@ def list(
             "Leave Application",
             filters=filters,
             or_filters=or_filters,
-            fields=parsed_fields,
+            fields=parsed_fields, 
             order_by=order_by,
             limit_page_length=limit_page_length,
             limit_start=limit_start,
         )
 
-        # Tag each record as Self or Team
         leave_application_list = []
+
         for entry in leave_application_list_raw:
-            if entry.get("employee") == current_employee or entry.get("owner") == current_user:
+            leave_employee = entry.get("employee")
+
+            if leave_employee == current_employee:
                 entry["request"] = "My Request"
             else:
-                entry["request"] = "Team Request"
+                # Fetch reports_to for the employee in this leave application
+                reports_to = frappe.get_value("Employee", leave_employee, "reports_to")
+                if reports_to == current_employee:
+                    entry["request"] = "Team Request"
+                else:
+                    entry["request"] = "Other"
             leave_application_list.append(entry)
 
-        
-        # ? GET TOTAL COUNT (manually count the names matching filters)
-        total_names = frappe.get_all(
+
+        # ? GET TOTAL COUNT
+        total_names = frappe.get_list(
             "Leave Application",
             filters=filters,
             or_filters=or_filters,
-            fields=["name"]
+            fields=["name"],
+            ignore_permissions=False
         )
         total_count = len(total_names)
         
@@ -299,11 +307,12 @@ def leave_type_list(
         )
         
         # ? GET TOTAL COUNT (manually count the names matching filters)
-        total_names = frappe.get_all(
+        total_names = frappe.get_list(
             "Leave Type",
             filters=filters,
             or_filters=or_filters,
-            fields=["name"]
+            fields=["name"],
+            ignore_permissions=False
         )
         total_count = len(total_names)
         
