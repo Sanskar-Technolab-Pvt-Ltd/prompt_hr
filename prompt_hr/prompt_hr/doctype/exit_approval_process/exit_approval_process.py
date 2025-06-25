@@ -251,6 +251,6 @@ def send_exit_interview_notification(employee, exit_interview_name=None):
         docname=exit_interview_name,
         recipients=[user_id],
         notification_name="Exit Questionnaire Mail To Employee",
-        button_link=frappe.utils.get_url() + "/exit-questionnaire/new",
+        button_link=frappe.utils.get_url() + "/login?redirect-to=/candidate-portal/new#login"
     )
     return {"status": "success", "message": _("Exit Interview email sent.")}

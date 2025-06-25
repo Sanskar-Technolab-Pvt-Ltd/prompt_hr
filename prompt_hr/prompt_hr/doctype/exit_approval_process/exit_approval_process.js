@@ -64,11 +64,10 @@ function add_raise_exit_checklist_button(frm) {
                         message: res.message,
                         indicator: res.status === "success" ? "green" : (res.status === "info" ? "blue" : "red")
                     });
-                    if(res.status === "success") {
+
                     setTimeout(() => {
                         window.location.reload();
-                    }, 3000);
-                }
+                    }, 2000);
                 }
             }
         });
