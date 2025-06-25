@@ -437,6 +437,7 @@ def _validate_and_process_expense(
             budget_row,
             daily_food_lodging_totals_by_type,
             current_doc_daily_food_lodging_totals,
+            company
         )
 
     elif exp.expense_type == EXPENSE_TYPES["LOCAL_COMMUTE"]:
@@ -478,6 +479,7 @@ def _process_food_lodging_expense(
     budget_row,
     approved_daily_food_lodging_totals_by_type,
     current_doc_daily_food_lodging_totals,
+    company
 ):
     """
     Processes validation for Food and Lodging expenses against their defined allowances.
@@ -511,6 +513,12 @@ def _process_food_lodging_expense(
             break
 
     if exceeded_any_day:
+        if (not exp.custom_attachments) and company == get_indifoss_company_name().get(
+            "company_name"
+        ):
+            frappe.throw(
+                f"Row #{exp.get('idx')}: Attachment is required as the expense exceeds limits."
+            )
         exp.custom_is_exception = 1
 
 
