@@ -9,30 +9,16 @@
   "employee_name",
   "reports_to",
   "date_of_joining",
+  "company",
   "column_break_ktcw",
   "designation",
   "crm_user_id",
   "department",
   "relieving_date",
-  "section_break_zrcw",
-  "webmail",
-  "git",
-  "bts",
-  "crm",
-  "customer_handover_given_to",
-  "transfer_of_zoho_crm_id",
-  "deactivate_user_in_pdp",
-  "column_break_ozta",
-  "webmail_forwardtransfer_to",
-  "git_forwardtransfer_to",
-  "bts_forwardtransfer_to",
-  "crm_forwardtransfer_to",
-  "customer_forwardtransfer_to",
-  "zoho_crm_id_forwardtransfer_to",
-  "deactivate_user_in_pdp_forwardtransfer_to",
+  "section_break_nzqc",
+  "it",
   "section_break_xqaa",
-  "test_link",
-  "test_link_forwardtransfer_to",
+  "engineering",
   "production_app_server",
   "db_server",
   "filled_by",
@@ -88,120 +74,8 @@
    "options": "Department"
   },
   {
-   "fieldname": "section_break_zrcw",
-   "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "webmail",
-   "fieldtype": "Select",
-   "label": "Webmail",
-   "options": "\nDelete\nHold Till\nForward/Transfer To"
-  },
-  {
-   "fieldname": "column_break_ozta",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "git",
-   "fieldtype": "Select",
-   "label": "GIT",
-   "options": "\nDelete\nHold Till\nForward/Transfer To"
-  },
-  {
-   "fieldname": "bts",
-   "fieldtype": "Select",
-   "label": "BTS",
-   "options": "\nDelete\nHold Till\nForward/Transfer To"
-  },
-  {
-   "fieldname": "crm",
-   "fieldtype": "Select",
-   "label": "CRM",
-   "options": "\nDelete\nHold Till\nForward/Transfer To"
-  },
-  {
-   "fieldname": "customer_handover_given_to",
-   "fieldtype": "Select",
-   "label": "Customer Handover Given To",
-   "options": "\nDelete\nHold Till\nForward/Transfer To"
-  },
-  {
-   "fieldname": "transfer_of_zoho_crm_id",
-   "fieldtype": "Select",
-   "label": "Transfer of Zoho CRM ID",
-   "options": "\nDelete\nHold Till\nForward/Transfer To"
-  },
-  {
-   "fieldname": "deactivate_user_in_pdp",
-   "fieldtype": "Select",
-   "label": "Deactivate User in PDP",
-   "options": "\nDelete\nHold Till\nForward/Transfer To"
-  },
-  {
-   "depends_on": "eval:doc.webmail == \"Forward/Transfer To\"",
-   "fieldname": "webmail_forwardtransfer_to",
-   "fieldtype": "Link",
-   "label": "Webmail Forward/Transfer To",
-   "options": "Employee"
-  },
-  {
-   "depends_on": "eval:doc.git == \"Forward/Transfer To\"",
-   "fieldname": "git_forwardtransfer_to",
-   "fieldtype": "Link",
-   "label": "GIT Forward/Transfer To",
-   "options": "Employee"
-  },
-  {
-   "depends_on": "eval:doc.bts == \"Forward/Transfer To\"",
-   "fieldname": "bts_forwardtransfer_to",
-   "fieldtype": "Link",
-   "label": "BTS Forward/Transfer To",
-   "options": "Employee"
-  },
-  {
-   "depends_on": "eval:doc.customer_handover_given_to == \"Forward/Transfer To\"",
-   "fieldname": "customer_forwardtransfer_to",
-   "fieldtype": "Link",
-   "label": "Customer Forward/Transfer To",
-   "options": "Employee"
-  },
-  {
-   "depends_on": "eval:doc.deactivate_user_in_pdp == \"Forward/Transfer To\"",
-   "fieldname": "deactivate_user_in_pdp_forwardtransfer_to",
-   "fieldtype": "Link",
-   "label": "Deactivate User in PDP Forward/Transfer To",
-   "options": "Employee"
-  },
-  {
-   "depends_on": "eval:doc.crm == \"Forward/Transfer To\"",
-   "fieldname": "crm_forwardtransfer_to",
-   "fieldtype": "Link",
-   "label": "CRM Forward/Transfer To",
-   "options": "Employee"
-  },
-  {
-   "depends_on": "eval:doc.transfer_of_zoho_crm_id == \"Forward/Transfer To\"",
-   "fieldname": "zoho_crm_id_forwardtransfer_to",
-   "fieldtype": "Link",
-   "label": "Zoho CRM ID Forward/Transfer To",
-   "options": "Employee"
-  },
-  {
    "fieldname": "section_break_xqaa",
    "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "test_link",
-   "fieldtype": "Select",
-   "label": "Test Link",
-   "options": "\nDelete\nHold Till\nForward/Transfer To"
-  },
-  {
-   "depends_on": "eval:doc.test_link == \"Forward/Transfer To\"",
-   "fieldname": "test_link_forwardtransfer_to",
-   "fieldtype": "Link",
-   "label": "Test Link Forward/Transfer To",
-   "options": "Employee"
   },
   {
    "fieldname": "production_app_server",
@@ -229,12 +103,35 @@
    "fieldname": "relieving_date",
    "fieldtype": "Date",
    "label": "Last Working Date"
+  },
+  {
+   "fetch_from": "employee.company",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "section_break_nzqc",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "it",
+   "fieldtype": "Table",
+   "label": "IT",
+   "options": "IT Asset Clearance"
+  },
+  {
+   "fieldname": "engineering",
+   "fieldtype": "Table",
+   "label": "Engineering",
+   "options": "IT Asset Clearance"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-06-04 20:04:06.017359",
+ "modified": "2025-06-25 15:32:10.430938",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "IT Exit Checklist",
@@ -249,6 +146,30 @@
    "read": 1,
    "report": 1,
    "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR User",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
    "share": 1,
    "write": 1
   }
