@@ -108,9 +108,6 @@ def set_imprest_allocation_amount(doc):
 # ? CALLED ON EMPLOYEE UPDATE
 def on_update(doc, method):
 
-    # # ? SYNC EMPLOYEE PROFILE
-    # create_or_update_employee_profile(doc)
-
     handle_sales_person_operations_on_update(doc, method)
 
     # ? CREATE WELCOME PAGE IF NOT EXISTS
@@ -322,7 +319,7 @@ def send_confirmation_letter(name):
         "fcontent": pdf_content,
     }
 
-    # ? Send the email
+    # ? SEND THE EMAIL
     if email:
         frappe.sendmail(
             recipients=email,
@@ -519,6 +516,13 @@ def create_employee_details_change_request(
         existing_value = frappe.db.get_value(
             "Employee", {"name": employee_id, "status": "Active"}, field_name
         )
+
+        if len(new_value) < 1:
+            return {
+                "status": 0,
+                "message": "New value cannot be empty.",
+                "data": None,
+            }
 
         if existing_value == new_value:
             return {"status": 0, "message": "No changes detected.", "data": None}
