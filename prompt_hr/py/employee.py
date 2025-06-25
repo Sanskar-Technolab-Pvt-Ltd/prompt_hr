@@ -12,6 +12,7 @@ from dateutil import relativedelta
 from frappe import _
 from prompt_hr.py.utils import get_prompt_company_name, get_indifoss_company_name
 
+
 # ? FUNCTION TO CREATE WELCOME PAGE RECORD FOR GIVEN USER
 def create_welcome_status(user_id, company):
     try:
@@ -60,6 +61,7 @@ def create_welcome_status(user_id, company):
             title="Welcome Page Creation Error",
             message=f"Error creating Welcome Page for user {user_id}: {str(e)}\n{traceback.format_exc()}",
         )
+
 
 # ? EMPLOYEE BEFORE INSERT HOOK
 def before_insert(doc, method):
@@ -159,7 +161,7 @@ def create_holiday_list(doc):
                 "date": getdate(row.holiday_date),
                 "description": row.description,
                 "weekly_off": row.weekly_off,
-                "custom_is_optional_festival_leave": row.custom_is_optional_festival_leave
+                "custom_is_optional_festival_leave": row.custom_is_optional_festival_leave,
             }
             for row in festival_holiday_list_doc.get("holidays")
         ]
@@ -216,7 +218,9 @@ def create_holiday_list(doc):
                         "description": holiday.get("description"),
                         "holiday_date": holiday.get("date"),
                         "weekly_off": holiday.get("weekly_off"),
-                        "custom_is_optional_festival_leave": holiday.get("custom_is_optional_festival_leave")
+                        "custom_is_optional_festival_leave": holiday.get(
+                            "custom_is_optional_festival_leave"
+                        ),
                     },
                 )
 
