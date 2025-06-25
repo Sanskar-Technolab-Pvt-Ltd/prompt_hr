@@ -13,10 +13,6 @@ def sync_welcome_page_data_to_employee_docs(user_id, fields_to_update):
         # ? UPDATE EMPLOYEE
         frappe.db.set_value("Employee", employee, fields_to_update)
 
-        # ? UPDATE EMPLOYEE PROFILE
-        employee_profile = frappe.db.get_value("Employee Profile", {"employee": employee}, "name")
-        if employee_profile:
-            frappe.db.set_value("Employee Profile", employee_profile, fields_to_update)
 
     except Exception as e:
         frappe.log_error(
@@ -27,7 +23,7 @@ def sync_welcome_page_data_to_employee_docs(user_id, fields_to_update):
 # ? WELCOME PAGE CLASS
 class WelcomePage(Document):
 
-    # ? ON UPDATE SYNC TO EMPLOYEE + EMPLOYEE PROFILE
+    # ? ON UPDATE SYNC TO EMPLOYEE
     def on_update(self):
         fields_to_update = {}
 
