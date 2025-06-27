@@ -20,10 +20,7 @@ class EmployeeProfileChangesApprovalInterface(Document):
                 self.changes_applicable_date = nowdate()
                 self.save(ignore_permissions=True)
 
-            self.apply_changes_to_employee()
-
-        # ? HANDLE REJECTION LOGIC
-     
+            self.apply_changes_to_employee()     
 
     # ? UPDATE EMPLOYEE MASTER WITH APPROVED CHANGES
     def apply_changes_to_employee(self):
