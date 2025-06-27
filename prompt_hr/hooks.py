@@ -234,6 +234,7 @@ doc_events = {
         "after_insert": "prompt_hr.py.attendance_request.notify_reporting_manager",
         "validate": [
             "prompt_hr.py.attendance_request.notify_reporting_manager",
+            "prompt_hr.py.attendance_request.validate",
             "prompt_hr.py.attendance_request.is_valid_for_partial_day",
         ],
         "before_submit": "prompt_hr.py.attendance_request.before_submit",
