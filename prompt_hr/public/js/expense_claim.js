@@ -233,57 +233,60 @@ function set_local_commute_monthly_expense(frm) {
     }
 
     frappe.call({
-        method: "prompt_hr.py.expense_claim.get_local_commute_expense_in_expense_claim",
-        args: { employee: frm.doc.employee },
-        callback: (res) => {
-            const data = res.message;
-            let html = "";
+    method: "prompt_hr.py.expense_claim.get_local_commute_expense_in_expense_claim",
+    args: { employee: frm.doc.employee },
+    callback: (res) => {
+        const data = res.message;
+        let html = "";
 
-            if (!data) {
-                html = `
-                    <div style="padding: 16px; background: #fff3cd; border: 1px solid #ffeeba; border-radius: 8px; color: #856404;">
-                        <strong>Commute budget details are not available for this employee.</strong><br>
-                        Please ensure the employee has a configured Local Commute budget.
+        if (!data) {
+            html = `
+                <div style="padding: 16px; background: #fff3cd; border: 1px solid #ffeeba; border-radius: 8px; color: #856404;">
+                    <strong>Commute budget details are not available for this employee.</strong><br>
+                    Please ensure the employee has a configured Local Commute budget.
+                </div>
+            `;
+        } else {
+            const budget = parseFloat(data.monthly_budget) || 0;
+            const spent = parseFloat(data.monthly_expense) || 0;
+            const remaining = parseFloat(data.remaining_budget) || 0;
+            const utilization = budget > 0 ? Math.round((spent / budget) * 100) : 0;
+
+            const statusColor = utilization >= 90
+                ? "#e03131"  // Red
+                : utilization >= 80
+                ? "#f08c00"  // Amber
+                : "#2f9e44"; // Green
+
+            html = `
+                <div style="padding: 14px; background: #f9fafb; border: 1px solid #d1d5db; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); font-size: 14px;">
+                    <h3 style="margin-top: 0; margin-bottom: 12px; color: #333; font-size: 16px;">Local Commute Budget Details</h3>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <strong>Monthly Budget</strong>
+                        <span style="color: #0b7285; font-size: 14px; font-weight: bold;">
+                            ${budget > 0 ? `₹${budget.toLocaleString('en-IN')}` : "On Actuals"}
+                        </span>
                     </div>
-                `;
-            } else {
-                const budget = parseFloat(data.monthly_budget) || 0;
-                const spent = parseFloat(data.monthly_expense) || 0;
-                const remaining = parseFloat(data.remaining_budget) || 0;
-                const utilization = budget > 0 ? Math.round((spent / budget) * 100) : 0;
-
-                const statusColor = utilization >= 90
-                    ? "#e03131"  // Red
-                    : utilization >= 80
-                    ? "#f08c00"  // Amber
-                    : "#2f9e44"; // Green
-
-                html = `
-                    <div style="padding: 14px; background: #f9fafb; border: 1px solid #d1d5db; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); font-size: 14px;">
-                        <h3 style="margin-top: 0; margin-bottom: 12px; color: #333; font-size: 16px;">Local Commute Budget Details</h3>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                            <strong>Monthly Budget</strong>
-                            <span style="color: #0b7285; font-size: 14px; font-weight: bold;">₹${budget.toLocaleString('en-IN')}</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                            <strong>Amount Spent</strong>
-                            <span style="color: #e03131; font-size: 14px; font-weight: bold;">₹${spent.toLocaleString('en-IN')}</span>
-                        </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <strong>Amount Spent This Month</strong>
+                        <span style="color: #e03131; font-size: 14px; font-weight: bold;">₹${spent.toLocaleString('en-IN')}</span>
+                    </div>
+                    ${budget > 0 ? `
                         <div style="display: flex; justify-content: space-between;">
                             <strong>Remaining Budget</strong>
                             <span style="color: #2f9e44; font-size: 14px; font-weight: bold;">₹${remaining.toLocaleString('en-IN')}</span>
-                        </div>
-                
-                    </div>
-                `;
-            }
-
-            frm.set_df_property("custom_local_commute_budget_details", "options", html);
-            frm.refresh_field("custom_local_commute_budget_details");
-        },
-        error: (err) => {
-            frappe.msgprint(("Error fetching commute budget details."));
-            console.error(err);
+                        </div>` : ``}
+                </div>
+            `;
         }
-    });
+
+        frm.set_df_property("custom_local_commute_budget_details", "options", html);
+        frm.refresh_field("custom_local_commute_budget_details");
+    },
+    error: (err) => {
+        frappe.msgprint("Error fetching commute budget details.");
+        console.error(err);
+    }
+});
+
 }
