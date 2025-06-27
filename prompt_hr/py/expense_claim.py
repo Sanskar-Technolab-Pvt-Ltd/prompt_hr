@@ -508,7 +508,7 @@ def _process_food_lodging_expense(
             + current_doc_daily_food_lodging_totals[current_day][exp.expense_type]
         )
 
-        if cumulative_daily_total > flt(limit):
+        if cumulative_daily_total > flt(limit) and limit>0:
             exceeded_any_day = True
             break
 
