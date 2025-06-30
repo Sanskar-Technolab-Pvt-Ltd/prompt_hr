@@ -45,6 +45,13 @@ def login(email, password):
                 frappe.DoesNotExistError,
             )
 
+        # Get default company: user default, then global fallback
+        company = frappe.defaults.get_user_default("Company")
+        if not company:
+            company = frappe.db.get_single_value("Global Defaults", "default_company")
+
+
+            
     except frappe.DoesNotExistError as e:
         # ? HANDLE DOES NOT EXIST ERROR
         frappe.log_error("API Login DoesNotExistError", str(e))
@@ -81,6 +88,7 @@ def login(email, password):
                 "user_roles":user_roles,
                 "employee": employee,
                 "sales_person": sales_person,
+                "company":company
             },
         }
 
