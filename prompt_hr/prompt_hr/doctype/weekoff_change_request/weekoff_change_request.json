@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "format:WOCR-{#####}",
+ "autoname": "format:WOCR-{employee}-{#####}",
  "creation": "2025-04-29 06:54:30.493271",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -61,7 +61,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-28 12:04:08.759001",
+ "modified": "2025-06-22 16:59:46.624341",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "WeekOff Change Request",
@@ -81,6 +81,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []

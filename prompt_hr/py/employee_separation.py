@@ -1,5 +1,9 @@
 import frappe
-from prompt_hr.py.utils import send_notification_email, get_prompt_company_name, get_indifoss_company_name
+from prompt_hr.py.utils import (
+    send_notification_email,
+    get_prompt_company_name,
+    get_indifoss_company_name,
+)
 
 
 # ? BEFORE SAVE HOOK
@@ -56,7 +60,7 @@ def create_new_it_exit_checklist(employee_id):
             "department",
             "date_of_joining",
             "relieving_date",
-            "company"
+            "company",
         ]
         values = frappe.db.get_value("Employee", employee_id, fields, as_dict=True)
 
@@ -74,29 +78,25 @@ def create_new_it_exit_checklist(employee_id):
         checklist.relieving_date = values.relieving_date
         checklist.company = values.company
 
-        # ? ONLY FOR INDIFOSS COMPANY
-        if values.company == get_indifoss_company_name():
-            # ? FETCH ALL CLEARANCE ITEMS
-            clearance_items = frappe.get_all(
-                "Clearance Item",
-                fields=["clearance_item", "table_name"]
-            )
+        # ? FETCH ALL CLEARANCE ITEMS
+        clearance_items = frappe.get_all(
+            "Exit Clearance Item", fields=["clearance_item", "table_name"]
+        )
 
-            # ? GROUP ITEMS BY TABLE NAME
-            table_map = {}
-            for item in clearance_items:
-                table = item.table_name
-                if table not in table_map:
-                    table_map[table] = []
-                table_map[table].append(item.clearance_item)
+        # ? GROUP ITEMS BY TABLE NAME
+        table_map = {}
+        for item in clearance_items:
+            table = item.table_name
+            if table not in table_map:
+                table_map[table] = []
+            table_map[table].append(item.clearance_item)
 
-            # ? ADD ITEMS TO THEIR RESPECTIVE CHILD TABLES
-            for table_name, items in table_map.items():
-                for item_name in items:
-                    checklist.append(table_name, {
-                        "clearance_item": item_name,
-                        "status": "Pending"
-                    })
+        # ? ADD ITEMS TO THEIR RESPECTIVE CHILD TABLES
+        for table_name, items in table_map.items():
+            for item_name in items:
+                checklist.append(
+                    table_name, {"clearance_item": item_name, "status": ""}
+                )
 
         checklist.insert(ignore_permissions=True)
         frappe.msgprint(f"Created IT Exit Checklist: {checklist.name}")
@@ -106,8 +106,9 @@ def create_new_it_exit_checklist(employee_id):
         frappe.log_error(
             f"Failed to create IT Exit Checklist: {e}", "Checklist Creation Error"
         )
-        frappe.throw("Unable to create IT Exit Checklist. Please check Employee details.")
-
+        frappe.throw(
+            "Unable to create IT Exit Checklist. Please check Employee details."
+        )
 
 
 # ? FUNCTION TO SEND EMAIL TO USER OR ROLE FOR ANY EXIT CHECKLIST

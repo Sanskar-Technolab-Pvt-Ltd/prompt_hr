@@ -237,3 +237,38 @@ def before_submit(doc, method=None):
             # No gratuity record exists; prevent submission
             frappe.throw("Gratuity must be created and submitted before Full and Final Statement submission.")
     
+
+# ? HOOK: BEFORE INSERT FOR FULL AND FINAL STATEMENT
+def before_insert(doc, method):
+    doc.set(
+        "custom_exit_checklist_status",
+        get_sorted_exit_checklist_status_from_employee(doc.employee)
+    )
+
+
+# ? FUNCTION TO GET SORTED CHECKLIST STATUS FROM EMPLOYEE
+def get_sorted_exit_checklist_status_from_employee(employee):
+    if not employee:
+        return []
+
+    # ? Fetch existing checklist rows from Employee
+    employee_rows = frappe.get_all(
+        "Exit Checklist Status",
+        filters={"parenttype": "Employee", "parent": employee},
+        fields=["department", "status"]
+    )
+
+    # ? Hardcoded alphabetical department order
+    department_order = [
+        "IT",
+        "Engineering"
+    ]
+
+    # ? Convert fetched rows to a map
+    status_map = {row["department"]: row["status"] for row in employee_rows}
+
+    # ? Return sorted checklist rows (fallback to 'Pending')
+    return [
+        {"department": dept, "status": status_map.get(dept, "Pending")}
+        for dept in department_order
+    ]

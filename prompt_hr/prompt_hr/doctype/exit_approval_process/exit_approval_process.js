@@ -48,6 +48,8 @@ function update_notice_period_days(frm) {
 // ? ADD THE "RAISE EXIT CHECKLIST" BUTTON
 function add_raise_exit_checklist_button(frm) {
     frm.add_custom_button('Raise Employee Separation', function () {
+        frappe.dom.freeze("Creating Employee Separation...");
+
         frappe.call({
             method: 'prompt_hr.prompt_hr.doctype.exit_approval_process.exit_approval_process.raise_exit_checklist',
             args: {
@@ -56,20 +58,24 @@ function add_raise_exit_checklist_button(frm) {
                 exit_approval_process: frm.doc.name
             },
             callback: function (r) {
+                frappe.dom.unfreeze();
+
                 if (r.message) {
                     const res = r.message;
 
-                    // ? SHOW ALERT AND RELOAD AFTER 3s
                     frappe.show_alert({
                         message: res.message,
                         indicator: res.status === "success" ? "green" : (res.status === "info" ? "blue" : "red")
                     });
-                    if(res.status === "success") {
+
                     setTimeout(() => {
                         window.location.reload();
-                    }, 3000);
+                    }, 2000);
                 }
-                }
+            },
+            error: function () {
+                frappe.dom.unfreeze();
+                frappe.msgprint("Something went wrong while raising Employee Separation.");
             }
         });
     });
@@ -78,6 +84,8 @@ function add_raise_exit_checklist_button(frm) {
 // ? FUNCTION TO ADD THE "RAISE EXIT INTERVIEW QUESTIONNAIRE" BUTTON
 function add_raise_exit_interview_button(frm) {
     frm.add_custom_button('Raise Exit Interview Questionnaire', function () {
+        frappe.dom.freeze("Creating Exit Interview Questionnaire...");
+
         frappe.call({
             method: 'prompt_hr.prompt_hr.doctype.exit_approval_process.exit_approval_process.raise_exit_interview',
             args: {
@@ -86,21 +94,25 @@ function add_raise_exit_interview_button(frm) {
                 exit_approval_process: frm.doc.name
             },
             callback: function (r) {
+                frappe.dom.unfreeze();
+
                 if (r.message) {
                     const res = r.message;
 
-                    // ? SHOW ALERT AND RELOAD AFTER 3s
                     frappe.show_alert({
                         message: res.message,
                         indicator: res.status === "success" ? "green" : (res.status === "info" ? "blue" : "red")
                     });
 
-                    if(res.status === "success") {
                     setTimeout(() => {
-                        window.location.reload();
-                    }, 3000);
+                            window.location.reload();
+                        }, 3000);
+                    
                 }
-                }
+            },
+            error: function () {
+                frappe.dom.unfreeze();
+                frappe.msgprint("Something went wrong while raising Exit Interview Questionnaire.");
             }
         });
     });

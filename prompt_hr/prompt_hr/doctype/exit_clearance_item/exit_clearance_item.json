@@ -1,45 +1,35 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "field:name1",
- "creation": "2025-04-18 06:26:34.529644",
+ "autoname": "field:clearance_item",
+ "creation": "2025-06-23 15:04:34.401721",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "name1",
-  "select_weeklyoff",
-  "company"
+  "clearance_item",
+  "table_name"
  ],
  "fields": [
   {
-   "fieldname": "name1",
+   "fieldname": "clearance_item",
    "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Name",
-   "reqd": 1,
+   "label": "Clearance Item",
    "unique": 1
   },
   {
-   "fieldname": "select_weeklyoff",
-   "fieldtype": "Table MultiSelect",
-   "label": "Select WeeklyOff",
-   "options": "WeekOff Multiselect",
-   "reqd": 1
-  },
-  {
-   "fieldname": "company",
-   "fieldtype": "Link",
-   "label": "Company",
-   "options": "Company"
+   "fieldname": "table_name",
+   "fieldtype": "Select",
+   "label": "Table Name",
+   "options": "\nit\nengineering"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-06-22 16:53:44.768288",
+ "modified": "2025-06-23 16:32:22.451821",
  "modified_by": "Administrator",
  "module": "Prompt HR",
- "name": "WeeklyOff Type",
+ "name": "Exit Clearance Item",
  "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
@@ -57,7 +47,6 @@
   }
  ],
  "row_format": "Dynamic",
- "search_fields": "name1",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []

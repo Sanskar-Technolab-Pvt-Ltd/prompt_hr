@@ -234,6 +234,7 @@ doc_events = {
         "after_insert": "prompt_hr.py.attendance_request.notify_reporting_manager",
         "validate": [
             "prompt_hr.py.attendance_request.notify_reporting_manager",
+            "prompt_hr.py.attendance_request.validate",
             "prompt_hr.py.attendance_request.is_valid_for_partial_day",
         ],
         "before_submit": "prompt_hr.py.attendance_request.before_submit",
@@ -276,7 +277,8 @@ doc_events = {
     },
     "Full and Final Statement": {
         "on_update": "prompt_hr.py.full_and_final_statement.on_update",
-        "before_submit": "prompt_hr.py.full_and_final_statement.before_submit"
+        "before_submit": "prompt_hr.py.full_and_final_statement.before_submit",
+        "before_insert": "prompt_hr.py.full_and_final_statement.before_insert",
     },
     "Travel Request": {
         "on_update": "prompt_hr.py.travel_request.on_update",
@@ -292,6 +294,7 @@ doc_events = {
     },
     "Salary Structure Assignment": {
         "on_submit": "prompt_hr.py.salary_structure_assignment.update_employee_ctc",
+        "before_save": "prompt_hr.py.salary_structure_assignment.update_arrear_details",
     },
     "Appointment Letter": {
         "before_save": "prompt_hr.py.appointment_letter.before_save",
@@ -345,11 +348,9 @@ scheduler_events = {
 # Overriding Methods
 # ------------------------------
 #
-# override_whitelisted_methods = {
-# "frappe.desk.doctype.event.event.get_events": "prompt_hr.event.get_events"
-# "frappe.model.workflow.get_transitions": "prompt_hr.overrides.workflow_override.custom_get_transitions",
-# "frappe.model.workflow.apply_workflow": "prompt_hr.overrides.workflow_override.custom_apply_workflow"
-# }
+override_whitelisted_methods = {
+"hrms.hr.doctype.leave_application.leave_application.get_holidays": "prompt_hr.py.leave_application.get_holidays"
+}
 #
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,
