@@ -164,10 +164,15 @@ override_doctype_class = {
     # "ToDo": "custom_app.overrides.CustomToDo"
     "Interview": "prompt_hr.overrides.interview_override.CustomInterview",
     "Job Offer": "prompt_hr.overrides.job_offer_override.CustomJobOffer",
-    "Leave Application": "prompt_hr.overrides.leave_application_override.CustomLeaveApplication",
+    "Attendance Request": "prompt_hr.overrides.attendance_request_override.CustomAttendanceRequest",
+    "Salary Slip": "prompt_hr.overrides.salary_slip_override.CustomSalarySlip",
+    "Attendance": "prompt_hr.overrides.attendance_override.CustomAttendance",
+    "Leave Policy Assignment": "prompt_hr.overrides.leave_policy_assignment_override.CustomLeavePolicyAssignment",
+    "Payroll Entry": "prompt_hr.overrides.payroll_entry_override.CustomPayrollEntry",
     "Leave Encashment": "prompt_hr.overrides.leave_encashment_override.CustomLeaveEncashment",
     "Leave Allocation": "prompt_hr.overrides.leave_allocation_override.CustomLeaveAllocation",
     "Full and Final Statement": "prompt_hr.overrides.full_and_final_statement_override.CustomFullAndFinalStatement",
+    "Job Requisition": "prompt_hr.overrides.job_requisition_override.CustomJobRequisition"
 }
 
 # Document Events
@@ -237,9 +242,7 @@ doc_events = {
     "Additional Salary": {
         "before_save": "prompt_hr.py.additional_salary.before_save"
     },
-    "Leave Encashment":{
-        "before_save": "prompt_hr.py.leave_encashment.before_save",
-    },
+    "Additional Salary": {"before_save": "prompt_hr.py.additional_salary.before_save"},
     "Compensatory Leave Request": {
         "before_save": "prompt_hr.py.compensatory_leave_request.before_save",
         "on_cancel": "prompt_hr.py.compensatory_leave_request.on_cancel",
@@ -330,11 +333,14 @@ scheduler_events = {
 # Overriding Methods
 # ------------------------------
 #
-# override_whitelisted_methods = {
-	# "frappe.desk.doctype.event.event.get_events": "prompt_hr.event.get_events"
-    # "frappe.model.workflow.get_transitions": "prompt_hr.overrides.workflow_override.custom_get_transitions",
-    # "frappe.model.workflow.apply_workflow": "prompt_hr.overrides.workflow_override.custom_apply_workflow"
-# }
+override_whitelisted_methods = {
+"hrms.hr.doctype.leave_application.leave_application.get_holidays": "prompt_hr.py.leave_application.get_holidays",
+"hrms.hr.doctype.interview.interview.get_expected_skill_set": "prompt_hr.py.overrides.get_expected_skill_set",
+"hrms.hr.doctype.interview_feedback.interview_feedback.get_applicable_interviewers": "prompt_hr.py.overrides.get_applicable_interviewers",
+"hrms.hr.doctype.leave_application.leave_application.get_leave_details" : "prompt_hr.py.overrides.get_leave_details",
+"hrms.hr.doctype.leave_application.leave_application.get_number_of_leave_days": "prompt_hr.py.leave_application.custom_get_number_of_leave_days",
+"frappe.model.workflow.get_transitions": "prompt_hr.overrides.workflow_override.custom_get_transitions",
+}
 #
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,

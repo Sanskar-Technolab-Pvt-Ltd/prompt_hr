@@ -283,6 +283,40 @@ def custom_get_number_of_leave_days(
     custom_half_day_time: str | None = None
 ) -> float:
     """Returns number of leave days between 2 dates considering half-day, holidays, and sandwich rules"""
+    print("sandwich Rule")
+    if (half_day or half_day_date) and not custom_half_day_time:
+        leave_app = frappe.get_all(
+            "Leave Application",
+            filters={
+                "employee": employee,
+                "from_date": from_date,
+                "to_date": to_date,
+                "half_day": 1,
+                "docstatus": 1
+            },
+            fields=["name", "custom_half_day_time", "half_day", "half_day_date"],
+            limit=1,
+        )
+        if leave_app:
+            custom_half_day_time = leave_app[0].custom_half_day_time
+        else:
+            if not custom_half_day_time:
+                doc_json = frappe.form_dict.get("doc")
+                if doc_json:
+                    doc = json.loads(doc_json)
+                    custom_half_day_time = doc.get("custom_half_day_time")
+    else:
+        if half_day is None:
+            doc_json = frappe.form_dict.get("doc")
+            if doc_json:
+                doc = json.loads(doc_json)
+                custom_half_day_time = doc.get("custom_half_day_time")
+                half_day_date = doc.get("half_day_date")
+                half_day = doc.get("half_day")
+
+    if not holiday_list:
+        holiday_list = get_holiday_list_for_employee(employee)
+
     number_of_days = 0
     if cint(half_day) == 1:
         if getdate(from_date) == getdate(to_date):
@@ -590,56 +624,6 @@ def get_all_holidays(from_date, to_date, holiday_list_name, half_day_date=None):
         )
     ]
 
-@frappe.whitelist()
-def custom_get_leave_details(employee, date, for_salary_slip=False):
-	allocation_records = get_leave_allocation_records(employee, date)
-	leave_allocation = {}
-	precision = cint(frappe.db.get_single_value("System Settings", "float_precision")) or 2
-	for d in allocation_records:
-		allocation = allocation_records.get(d, frappe._dict())
-
-		to_date = date if for_salary_slip else allocation.to_date
-
-		remaining_leaves = get_leave_balance_on(
-			employee,
-			d,
-			date,
-			to_date=to_date,
-			consider_all_leaves_in_the_allocation_period=False if for_salary_slip else True,
-		)
-
-		leave_ledger_entry = frappe.get_all(
-			"Leave Ledger Entry",
-			filters={
-				"employee": employee,
-				"leave_type": allocation.leave_type,
-				"docstatus": 1,
-				"from_date": ["<=", date],
-				"leaves": [">", 0],
-			},
-			fields=["name", "leaves"]
-		)
-
-		total_leaves = sum([flt(d.leaves) for d in leave_ledger_entry])
-		leaves_taken = get_leaves_for_period(employee, d, allocation.from_date, to_date) * -1
-		leaves_pending = get_leaves_pending_approval_for_period(employee, d, allocation.from_date, to_date)
-		expired_leaves = total_leaves - (remaining_leaves + leaves_taken)
-
-		leave_allocation[d] = {
-			"total_leaves": flt(total_leaves),
-			"expired_leaves": flt(expired_leaves, precision) if expired_leaves > 0 else 0,
-			"leaves_taken": flt(leaves_taken, precision),
-			"leaves_pending_approval": flt(leaves_pending, precision),
-			"remaining_leaves": flt(remaining_leaves, precision),
-		}
-
-	lwp = frappe.get_list("Leave Type", filters={"is_lwp": 1}, pluck="name")
-
-	return {
-		"leave_allocation": leave_allocation,
-		"leave_approver": get_leave_approver(employee),
-		"lwps": lwp,
-	}
 
 def custom_get_allocated_and_expired_leaves(
 	from_date: str, to_date: str, employee: str, leave_type: str
