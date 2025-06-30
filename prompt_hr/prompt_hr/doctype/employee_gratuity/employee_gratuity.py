@@ -54,10 +54,11 @@ class EmployeeGratuity(Document):
                 fields=["salary_component", "amount"]
             )
             for comp in salary_components:
-                if comp.salary_component in ["Basic Salary", "Dearness Allowance"]:
+                salary_component = frappe.get_doc("Salary Component", comp.salary_component)
+                if salary_component.custom_salary_component_type == "Basic Salary" or salary_component.custom_salary_component_type == "Dearness Allowance":
                     total_earning += comp.amount
 
-        # For Indifoss companies: Sum Basic + DA from Salary Detail
+        # For Indifoss companies: Basic Salary from Salary Detail
         elif company_abbr and company_abbr == indifoss_abbr:
             salary_components = frappe.get_all(
                 "Salary Detail",
@@ -65,8 +66,10 @@ class EmployeeGratuity(Document):
                 fields=["salary_component", "amount"]
             )
             for comp in salary_components:
-                if comp.salary_component == "Basic + DA":
+                salary_component = frappe.get_doc("Salary Component", comp.salary_component)
+                if salary_component.custom_salary_component_type == "Basic Salary":
                     total_earning += comp.amount
+                    break
 
         self.last_drawn_salary = total_earning
 

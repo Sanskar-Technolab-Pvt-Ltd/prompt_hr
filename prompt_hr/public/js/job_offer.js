@@ -116,45 +116,46 @@ function acceptChangesButton(frm) {
     }, 'Candidate Portal');
 }
 
-// ? CALL BACKEND TO RELEASE OR RESEND OFFER LETTER
-function release_offer_letter(frm, is_resend) {
-    let notification_name = "Job Application";
+// ? FUNCTION TO RELEASE OR RESEND OFFER LETTER TO CANDIDATE
+function release_offer_letter(frm, is_resend = false) {
 
-    if (is_resend) {
-        notification_name = "Resend Job Offer";
-    }
+    // ? CHOOSE NOTIFICATION TEMPLATE BASED ON ACTION
+    const notification_name = is_resend ? "Resend Job Offer" : "Job Application";
 
+    // ? MAKE BACKEND CALL TO RELEASE OFFER
     frappe.call({
         method: "prompt_hr.py.job_offer.release_offer_letter",
         args: {
             doctype: frm.doctype,
             docname: frm.doc.name,
-            is_resend: is_resend,
-            notification_name: notification_name
+            is_resend,
+            notification_name
         },
         callback: function (r) {
-            if (r.exc) {
+            console.log(r)
+            if (r.exc || r.message?.status === "error") {
                 frappe.msgprint({
                     title: "Error",
-                    message: "⚠️ Something went wrong while processing the offer.",
+                    message: r.message?.message || "⚠️ Something went wrong while processing the offer.",
                     indicator: "red"
                 });
                 return;
             }
 
-            // ? UPDATE FLAG IF FIRST TIME
+            
+
+            // ? MARK AS SENT ONLY IF IT’S A FIRST-TIME RELEASE
             if (!is_resend) {
                 frm.set_value("custom_offer_letter_sent", 1).then(() => {
                     frm.save_or_update();
                 });
             }
 
-            frappe.msgprint({
-                title: "Success",
-                message: `Offer Letter ${is_resend ? "Resent" : "Released"}!`,
-                indicator: "green"
-            });
-
+            frappe.show_alert({
+            message: 'Offer Letter sent successfully!',
+            indicator: 'green'
+            }, 5);
+            
         },
         error: function (err) {
             frappe.msgprint({
@@ -166,6 +167,7 @@ function release_offer_letter(frm, is_resend) {
         }
     });
 }
+
 
 // ? CREATE INVITE FOR DOCUMENT COLLECTION BUTTON
 function createInviteButton(frm) {

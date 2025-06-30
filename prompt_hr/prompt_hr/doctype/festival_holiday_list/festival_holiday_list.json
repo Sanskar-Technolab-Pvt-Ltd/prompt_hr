@@ -1,15 +1,16 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "field:festival_holiday_list_name",
+ "autoname": "format:festival_holiday_list_name-{##}",
  "creation": "2025-04-28 19:18:30.947240",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
   "festival_holiday_list_name",
-  "state",
   "from_date",
   "to_date",
+  "column_break_qctq",
+  "state",
   "company",
   "festival_holidays_section",
   "holidays"
@@ -18,12 +19,12 @@
   {
    "fieldname": "festival_holiday_list_name",
    "fieldtype": "Data",
-   "label": "Festival Holiday List Name",
-   "unique": 1
+   "label": "Festival Holiday List Name"
   },
   {
    "fieldname": "state",
    "fieldtype": "Select",
+   "in_list_view": 1,
    "label": "State",
    "options": "\nAndaman and Nicobar Islands\nAndhra Pradesh\nArunachal Pradesh\nAssam\nBihar\nChandigarh\nChhattisgarh\nDadra and Nagar Haveli and Daman and Diu\nDelhi\nGoa\nGujarat\nHaryana\nHimachal Pradesh\nJammu and Kashmir\nJharkhand\nKarnataka\nKerala\nLadakh\nLakshadweep Islands\nMadhya Pradesh\nMaharashtra\nManipur\nMeghalaya\nMizoram\nNagaland\nOdisha\nOther Countries\nOther Territory\nPuducherry\nPunjab\nRajasthan\nSikkim\nTamil Nadu\nTelangana\nTripura\nUttar Pradesh\nUttarakhand\nWest Bengal"
   },
@@ -51,18 +52,23 @@
   {
    "fieldname": "company",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Company",
    "options": "Company"
+  },
+  {
+   "fieldname": "column_break_qctq",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-28 13:14:21.212371",
+ "modified": "2025-06-01 18:35:11.836027",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Festival Holiday List",
- "naming_rule": "By fieldname",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {
@@ -78,7 +84,10 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
+ "show_title_field_in_link": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "title_field": "festival_holiday_list_name"
 }

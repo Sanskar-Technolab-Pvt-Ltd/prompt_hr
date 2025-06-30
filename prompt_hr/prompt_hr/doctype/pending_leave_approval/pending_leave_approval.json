@@ -59,11 +59,11 @@
    "label": "To Date"
   }
  ],
- "grid_page_length": 50,
+ "grid_page_length": 20,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-05-06 20:00:16.050329",
+ "modified": "2025-06-22 16:56:16.107210",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Pending Leave Approval",

@@ -27,9 +27,10 @@ app_license = "mit"
 # include js, css files in header of desk.html
 # app_include_css = "/assets/prompt_hr/css/prompt_hr.css"
 app_include_js = [
-                    "assets/prompt_hr/js/welcome_page_check.js",
-                    "assets/prompt_hr/js/frappe/form/workflow.js",
-                ]
+    "assets/prompt_hr/js/welcome_page_check.js",
+    "assets/prompt_hr/js/utils.js",
+    "assets/prompt_hr/js/frappe/form/workflow.js",
+]
 
 
 # include js, css files in header of web template
@@ -52,9 +53,9 @@ doctype_js = {
     "Job Offer": "public/js/job_offer.js",
     "Job Requisition": "public/js/job_requisition.js",
     "Job Opening": "public/js/job_opening.js",
-    'Employee': 'public/js/employee.js',
+    "Employee": "public/js/employee.js",
     "Job Applicant": "public/js/job_applicant.js",
-    'Appointment Letter': 'public/js/appointment_letter.js',
+    "Appointment Letter": "public/js/appointment_letter.js",
     "Interview": "public/js/interview.js",
     "Interview Feedback": "public/js/interview_feedback.js",
     "Interview Round": "public/js/interview_round.js",
@@ -67,11 +68,16 @@ doctype_js = {
     "Expense Claim": "public/js/expense_claim.js",
     "Full and Final Statement": "public/js/full_and_final_statement.js",
     "Loan Application": "public/js/loan_application.js",
+    "Exit Interview": "public/js/exit_interview.js",
+    "Travel Request": "public/js/travel_request.js",
+    "Leave Allocation": "public/js/leave_allocation.js",
+    "Leave Policy Assignment": "public/js/leave_policy_assignment.js"
 
 }
 
 doctype_list_js = {
     "Job Applicant": "public/js/job_applicant_list.js",
+    "Attendance": "public/js/attendance_list.js"
 }
 
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -185,14 +191,15 @@ doc_events = {
         "after_insert": "prompt_hr.py.employee_onboarding.after_insert",
     },
     "Job Requisition": {
-        "validate": [                        
-                        "prompt_hr.py.job_requisition.add_or_update_custom_last_updated_by",
-                        "prompt_hr.py.job_requisition.set_requested_by",
-                    ],        
-        "on_update": [ "prompt_hr.py.job_requisition.on_update", 
-                        "prompt_hr.py.job_requisition.notify_approver",
-                    ],
-        # "after_insert": "prompt_hr.py.job_requisition.after_insert",        
+        "validate": [
+            "prompt_hr.py.job_requisition.add_or_update_custom_last_updated_by",
+            "prompt_hr.py.job_requisition.set_requested_by",
+        ],
+        "on_update": [
+            "prompt_hr.py.job_requisition.on_update",
+            "prompt_hr.py.job_requisition.notify_approver",
+        ],
+        # "after_insert": "prompt_hr.py.job_requisition.after_insert",
     },
     "Job Applicant": {
         "after_insert": "prompt_hr.py.job_applicant.after_insert",
@@ -212,32 +219,36 @@ doc_events = {
     "Employee": {
         "on_update": "prompt_hr.py.employee.on_update",
         "validate": "prompt_hr.py.employee.validate",
+        "before_insert": "prompt_hr.py.employee.before_insert"
     },
     # "Probation Feedback Form": {
     #     "on_submit": "prompt_hr.custom_methods.add_probation_feedback_data_to_employee"
     # },
     "LMS Quiz Submission": {
-        "validate":"prompt_hr.py.lms_quiz_submission.update_status"
+        "validate": "prompt_hr.py.lms_quiz_submission.update_status"
     },
     "Interview Feedback": {
         "on_submit": "prompt_hr.py.interview_feedback.on_submit",
         "on_update": "prompt_hr.py.interview_feedback.on_update",
     },
-    
-    
     # "User": {
     #     "after_insert": "prompt_hr.py.welcome_status.after_insert"
     # },
     "Attendance Request": {
         "after_insert": "prompt_hr.py.attendance_request.notify_reporting_manager",
-        "validate": "prompt_hr.py.attendance_request.notify_reporting_manager",
-        "before_submit": "prompt_hr.py.attendance_request.before_submit"
+        "validate": [
+            "prompt_hr.py.attendance_request.notify_reporting_manager",
+            "prompt_hr.py.attendance_request.validate",
+            "prompt_hr.py.attendance_request.is_valid_for_partial_day",
+        ],
+        "before_submit": "prompt_hr.py.attendance_request.before_submit",
     },
     "Payroll Entry": {
-        "before_save": "prompt_hr.py.payroll_entry.before_save",
+        "on_update": "prompt_hr.py.payroll_entry.on_update",
     },
-    "Leave Allocation":{
-        "before_validate": "prompt_hr.py.leave_allocation.before_validate"
+    "Leave Allocation": {
+        "before_validate": "prompt_hr.py.leave_allocation.before_validate",
+        "before_submit": "prompt_hr.py.leave_allocation.before_submit"
     },
     "Additional Salary": {
         "before_save": "prompt_hr.py.additional_salary.before_save"
@@ -246,65 +257,61 @@ doc_events = {
     "Compensatory Leave Request": {
         "before_save": "prompt_hr.py.compensatory_leave_request.before_save",
         "on_cancel": "prompt_hr.py.compensatory_leave_request.on_cancel",
-        "on_update": "prompt_hr.py.compensatory_leave_request.on_update"
+        "on_update": "prompt_hr.py.compensatory_leave_request.on_update",
     },
-    "Additional Salary": {
-        "before_save": "prompt_hr.py.additional_salary.before_save"
-    },
-    "Job Opening": {
-        "before_insert": "prompt_hr.py.job_opening.before_insert"
-    },
+    "Additional Salary": {"before_save": "prompt_hr.py.additional_salary.before_save"},
+    "Job Opening": {"before_insert": "prompt_hr.py.job_opening.before_insert"},
     "Leave Application": {
         "on_update": "prompt_hr.py.leave_application.on_update",
         "on_cancel": "prompt_hr.py.leave_application.on_cancel",
         "before_save": "prompt_hr.py.leave_application.before_save",
+        "before_insert": "prompt_hr.py.leave_application.before_insert",
+        "before_validate": "prompt_hr.py.leave_application.before_validate",
+        "before_submit": "prompt_hr.py.leave_application.before_submit",
+        "on_submit": "prompt_hr.py.leave_application.on_submit"
     },
-    "Expense Claim":{ 
+    "Expense Claim": {
+        "before_save": "prompt_hr.py.expense_claim.before_save",
         "on_update": "prompt_hr.py.expense_claim.on_update",
         "before_submit": "prompt_hr.py.expense_claim.before_submit",
-        "on_cancel": "prompt_hr.py.expense_claim.update_amount_in_marketing_planning"
+        "on_cancel": "prompt_hr.py.expense_claim.update_amount_in_marketing_planning",
     },
     "Employee Tax Exemption Declaration": {
         "before_save": "prompt_hr.py.income_tax_computation.before_save"
     },
     "Full and Final Statement": {
-        "on_update": "prompt_hr.py.full_and_final_statetment.on_update",
+        "on_update": "prompt_hr.py.full_and_final_statement.on_update",
+        "before_submit": "prompt_hr.py.full_and_final_statement.before_submit",
+        "before_insert": "prompt_hr.py.full_and_final_statement.before_insert",
     },
-
     "Travel Request": {
         "on_update": "prompt_hr.py.travel_request.on_update",
+        "before_save":"prompt_hr.py.travel_request.before_save"
     },
-
     "Loan Application": {
         "on_update": "prompt_hr.py.loan_application.on_update",
         "on_cancel": "prompt_hr.py.loan_application.on_cancel",
     },
-
     "Salary Slip": {
         "on_submit": "prompt_hr.py.salary_slip.loan_repayment_amount",
         "on_update": "prompt_hr.py.salary_slip.update_loan_principal_amount",
     },
-
     "Salary Structure Assignment": {
         "on_submit": "prompt_hr.py.salary_structure_assignment.update_employee_ctc",
+        "before_save": "prompt_hr.py.salary_structure_assignment.update_arrear_details",
     },
-
     "Appointment Letter": {
         "before_save": "prompt_hr.py.appointment_letter.before_save",
     },
-
     "Appraisal": {
         "before_save": "prompt_hr.py.appraisal_letter.before_save",
     },
-
-    "Leave Policy Assignment": {
-        "on_submit": "prompt_hr.py.leave_policy_assignment.on_submit",
-    },
-
     "Leave Type": {
         "on_update": "prompt_hr.py.leave_type.on_update",
     },
-
+    "Employee Separation": {
+        "before_save": "prompt_hr.py.employee_separation.before_save"
+    },
 }
 
 
@@ -312,16 +319,28 @@ doc_events = {
 # ---------------
 
 scheduler_events = {
+    "cron": {
+        "50 23 * * *": [
+            "prompt_hr.py.employee.update_employee_status_for_prompt_company"
+        ],
+        "0 20 * * *": [
+            "prompt_hr.py.employee.update_employee_status_for_indifoss_company"
+        ],
+        "0 8 * * *":[
+            "prompt_hr.scheduler_methods.send_attendance_issue"
+        ]
+    },
     "daily": [
         "prompt_hr.py.employee_changes_approval.daily_check_employee_changes_approval",
-        "prompt_hr.py.compensatory_leave_request.expire_compensatory_leave_after_confirmation"
+        "prompt_hr.py.compensatory_leave_request.expire_compensatory_leave_after_confirmation",
         # "prompt_hr.scheduler_methods.create_probation_feedback_form",
         # "prompt_hr.scheduler_methods.create_confirmation_evaluation_form_for_prompt",
         # "prompt_hr.scheduler_methods.inform_employee_for_confirmation_process",
         # "prompt_hr.scheduler_methods.validate_employee_holiday_list",
         # "prompt_hr.scheduler_methods.assign_checkin_role",
         # "prompt_hr.scheduler_methods.validate_employee_holiday_list",
-        # "prompt_hr.scheduler_methods.validate_employee_holiday_list", 						        
+        # "prompt_hr.scheduler_methods.validate_employee_holiday_list",
+        "prompt_hr.scheduler_methods.process_exit_approvals"
     ],
 }
 
@@ -407,7 +426,6 @@ override_whitelisted_methods = {
 # }
 
 fixtures = [
-
     # {
     #     "dt": "Kanban Board",
     #     "filters": [
@@ -420,60 +438,58 @@ fixtures = [
     #         ]
     #     ],
     # },
-
-# {"dt":"Notification","filters":[
-#     [
-#         "module","in",[
-#             "Prompt HR"
-#         ]
-#     ]
-# ]},
-# {"dt":"Custom Field","filters":[
-#     [
-#         "module","in",[
-#             "Prompt HR"
-#         ]
-#     ]
-# ]},
-# {"dt":"Property Setter","filters":[
-#     [
-#         "module","in",[
-#             "Prompt HR"
-#         ]
-#     ]
-# ]},
-# {"dt":"Client Script","filters":[
-#     [
-#         "module","in",[
-#             "Prompt HR"
-#         ]
-#     ]
-# ]},
-# {"dt":"Server Script","filters":[
-#     [
-#         "module","in",[
-#             "Prompt HR"
-#         ]
-#     ]
-# ]},
-# {"dt":"Print Format","filters":[
-#     [
-#         "module","in",[
-#             "Prompt HR"
-#         ]
-#     ]
-# ]},
-# {
-#     "dt":"Role", "filters": [["name", "in", ["Job Requisition", "Head of Department", "Managing Director"]]]
-# },
-# {
-#     "dt":"Workflow", "filters": [["name", "in", ["Job Requisition", "Compensatory Leave Request", "Leave Application", "Loan Application"]]]
-# },
-# {
-#     "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled", "Confirmed", "Approved by HR", "Rejected by HR", "Approved by BU Head", "Rejected by BU Head"]]]
-# },
-# {
-#     "dt":"Workflow Action Master", "filters": [["name", "in", ["Confirm"]]]
-# }
-
+    # {"dt":"Notification","filters":[
+    #     [
+    #         "module","in",[
+    #             "Prompt HR"
+    #         ]
+    #     ]
+    # ]},
+    # {"dt":"Custom Field","filters":[
+    #     [
+    #         "module","in",[
+    #             "Prompt HR"
+    #         ]
+    #     ]
+    # ]},
+    # {"dt":"Property Setter","filters":[
+    #     [
+    #         "module","in",[
+    #             "Prompt HR"
+    #         ]
+    #     ]
+    # ]},
+    # {"dt":"Client Script","filters":[
+    #     [
+    #         "module","in",[
+    #             "Prompt HR"
+    #         ]
+    #     ]
+    # ]},
+    # {"dt":"Server Script","filters":[
+    #     [
+    #         "module","in",[
+    #             "Prompt HR"
+    #         ]
+    #     ]
+    # ]},
+    # {"dt":"Print Format","filters":[
+    #     [
+    #         "module","in",[
+    #             "Prompt HR"
+    #         ]
+    #     ]
+    # ]},
+    # {
+    #     "dt":"Role", "filters": [["name", "in", ["Job Requisition", "Head of Department", "Managing Director"]]]
+    # },
+    # {
+    #     "dt":"Workflow", "filters": [["name", "in", ["Job Requisition","Expense Claim", "Compensatory Leave Request", "Leave Application", "Loan Application"]]]
+    # },
+    # {
+    #     "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled", "Confirmed", "Approved by HR", "Rejected by HR", "Approved by BU Head", "Rejected by BU Head", "Extension Approved", "Extension Confirmed", "Extension Rejected", "Extension Requested"]]]
+    # },
+    # {
+    #     "dt":"Workflow Action Master", "filters": [["name", "in", ["Confirm"]]]
+    # }
 ]

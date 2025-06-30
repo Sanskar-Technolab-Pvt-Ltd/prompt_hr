@@ -55,6 +55,11 @@ def execute(filters=None):
             },
             fields=["*"]
         )
+        penalty_records = frappe.get_all("Employee Penalty", filters={
+                "employee": emp.name,
+                "penalty_date": ["between", [from_date, to_date]],
+            },
+            fields=["*"])
 
         summary = {
             "present": 0,
@@ -68,6 +73,13 @@ def execute(filters=None):
             "holiday": 0,
             "worked_on_offs": 0
         }
+
+        if penalty_records:
+            for penalty_record in penalty_records:
+                if penalty_record.deduct_earned_leave:
+                    summary["penalized_paid"] += penalty_record.deduct_earned_leave
+                if penalty_record.deduct_leave_without_pay:
+                    summary["penalized_unpaid"] += penalty_record.deduct_leave_without_pay
 
         for record in attendance_records:
             status = (record.status or "").lower().strip()
@@ -84,23 +96,10 @@ def execute(filters=None):
             elif status == "on leave":
                 if record.leave_type:
                     leave_type_doc = frappe.get_doc("Leave Type", record.leave_type)
-
-                    if record.leave_application:
-                        leave_application = frappe.get_doc("Leave Application", record.leave_application)
-
-                        if leave_application.custom_is_penalty_leave and leave_type_doc.is_lwp:
-                            summary["penalized_unpaid"] += 1
-                        elif leave_application.custom_is_penalty_leave and not leave_type_doc.is_lwp:
-                            summary["penalized_paid"] += 1
-                        elif not leave_application.custom_is_penalty_leave and leave_type_doc.is_lwp:
-                            summary["unpaid_leave"] += 1
-                        elif not leave_application.custom_is_penalty_leave and not leave_type_doc.is_lwp:
-                            summary["paid_leave"] += 1
+                    if leave_type_doc.is_lwp:
+                        summary["unpaid_leave"] += 1
                     else:
-                        if leave_type_doc.is_lwp:
-                            summary["unpaid_leave"] += 1
-                        else:
-                            summary["paid_leave"] += 1
+                        summary["paid_leave"] += 1
 
         holiday_dates = frappe.get_all(
             "Holiday",
@@ -123,7 +122,7 @@ def execute(filters=None):
             "sub_department": emp.custom_subdepartment,
             "location": emp.custom_work_location,
             "cost_center": emp.payroll_cost_center,
-            "reports_to": emp.reports_to,
+            "reports_to": emp.reports_to or "",
             **summary
         }
 

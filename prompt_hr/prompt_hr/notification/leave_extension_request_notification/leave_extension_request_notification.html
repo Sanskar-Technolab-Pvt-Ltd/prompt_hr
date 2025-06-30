@@ -1,0 +1,14 @@
+Dear Reporting Manager,<br><br>
+
+A leave extension request has been submitted and requires your attention. Please find the details below:<br><br>
+
+- <b>Employee Name:</b> {{ doc.employee_name }}<br>
+- <b>Employee ID:</b> {{ doc.employee }}<br>
+- <b>Leave Type:</b> {{ doc.leave_type }}<br>
+- <b>New Leave Period:</b> {{ frappe.utils.format_date(doc.from_date,"dd-MM-yyyy") }} to {{frappe.utils.format_date(doc.to_date,"dd-MM-yyyy") }}<br>
+- <b>Leave Application Link:</b> <a href="{{ frappe.utils.get_url() }}/app/{{ doc.doctype|lower|replace(' ', '-') }}/{{ doc.name }}">View Request</a><br><br>
+
+You are kindly requested to review this application and take the necessary action at your earliest convenience.<br><br>
+
+Thank you,<br>
+HR System

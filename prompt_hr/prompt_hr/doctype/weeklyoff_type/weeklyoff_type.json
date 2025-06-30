@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "format:WOFF-TYPE-{##}",
+ "autoname": "field:name1",
  "creation": "2025-04-18 06:26:34.529644",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -16,7 +16,8 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Name",
-   "reqd": 1
+   "reqd": 1,
+   "unique": 1
   },
   {
    "fieldname": "select_weeklyoff",
@@ -35,11 +36,11 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-28 15:36:39.656055",
+ "modified": "2025-06-22 16:53:44.768288",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "WeeklyOff Type",
- "naming_rule": "Expression",
+ "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
   {
@@ -55,6 +56,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "search_fields": "name1",
  "sort_field": "modified",
  "sort_order": "DESC",

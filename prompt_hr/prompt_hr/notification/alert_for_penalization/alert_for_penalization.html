@@ -1,0 +1,21 @@
+<p>Dear <b>{{ employee_name }}</b>,</p>
+
+<p>
+    This is a reminder that you are scheduled for a 
+    <strong>{{ penalization_type }}</strong> Penalization on 
+    <strong>{{ frappe.format_date(penalization_date,"dd-MM-yyyy") }}</strong> due to policy violation.
+</p>
+
+<p>
+    Please take the necessary corrective action before the penalization is enforced.
+</p>
+
+<p>
+    If you have any queries or concerns, kindly contact the HR department.
+</p>
+
+<p><br></p>
+
+<p>Regards,<br>
+HR Team<br>
+{{ company }}</p>

@@ -1,0 +1,53 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:clearance_item",
+ "creation": "2025-06-23 15:04:34.401721",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "clearance_item",
+  "table_name"
+ ],
+ "fields": [
+  {
+   "fieldname": "clearance_item",
+   "fieldtype": "Data",
+   "label": "Clearance Item",
+   "unique": 1
+  },
+  {
+   "fieldname": "table_name",
+   "fieldtype": "Select",
+   "label": "Table Name",
+   "options": "\nit\nengineering"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-06-23 16:32:22.451821",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Exit Clearance Item",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

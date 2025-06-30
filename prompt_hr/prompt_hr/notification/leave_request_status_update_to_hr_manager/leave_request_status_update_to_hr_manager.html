@@ -1,18 +1,18 @@
 Dear HR Manager,<br><br>
 
 The Reporting Manager {{ manager }} has <b>{{ doc.workflow_state }}</b> a {{ doc.leave_type }} request. Please find the details below:<br><br>
-
+{% set employee = frappe.get_doc("Employee",doc.employee) %}
 <b>Employee Details:</b><br>
 - <b>Name:</b> {{ doc.employee_name }}<br>
-- <b>Employee ID:</b> {{ doc.employee_number }}<br>
+- <b>Employee ID:</b> {{ employee.employee_number }}<br>
 <br>
 
 <b>Leave Details:</b><br>
 - <b>Leave Type:</b> {{ doc.leave_type }}<br>
 {% if doc.doctype == "Compensatory Leave Request" %}
-- <b>Compensatory Work Period:</b> {{ doc.work_from_date }} to {{ doc.work_end_date }}<br>
+- <b>Compensatory Work Period:</b> {{frappe.utils.format_date(doc.work_from_date,"dd-MM-yyyy") }} to {{ frappe.utils.format_date(doc.work_end_date,"dd-MM-yyyy") }}<br>
 {% else %}
-- <b>Leave Period:</b> {{ doc.from_date }} to {{ doc.to_date }}<br>
+- <b>Leave Period:</b> {{ frappe.utils.format_date(doc.from_date, "dd-MM-yyyy") }} to {{ frappe.utils.format_date(doc.to_date, "dd-MM-yyyy") }}<br>
 {% endif %}
 - <b>Current Status:</b> {{ doc.workflow_state }}<br>
 <br>

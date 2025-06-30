@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-05-29 17:04:05.271333",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Leave Application",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "Dear {{ doc.employee_name }},<br><br>\n\nYour leave extension request has been <b>{{ doc.workflow_state.split(\" \")[1] }}</b> by your HR Manager. Please find the details below:<br><br>\n\n<b>Leave Extension Details:</b><br>\n- <b>Leave Type:</b> {{ doc.leave_type }}<br>\n- <b>New Leave Period:</b> {{ frappe.utils.format_date(doc.from_date,\"dd-MM-yyyy\") }} to {{ frappe.utils.format_date(doc.to_date,\"dd-MM-yyyy\") }}<br>\n- <b>Status:</b> {{ doc.workflow_state.split(\" \")[1] }}<br>\n\n<b>Request Link:</b> <a href=\"{{ frappe.utils.get_url() }}/app/leave-application/{{ doc.name }}\">View Your Request</a><br><br>\n\nIf you have any questions or require further clarification, please contact the HR department.<br><br>\n\nThank you,<br>\nHR Team\n",
+ "message_type": "HTML",
+ "modified": "2025-06-02 13:08:11.864213",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Leave Extension Confirmation",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 0,
+ "send_to_all_assignees": 0,
+ "subject": "Leave Extension Confirmed"
+}
