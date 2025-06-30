@@ -7,7 +7,7 @@ from prompt_hr.py.leave_allocation import check_carry_forward_criteria
 
 class CustomLeaveAllocation(LeaveAllocation):
     @frappe.whitelist()
-    def custom_set_total_leaves_allocated(self):
+    def set_total_leaves_allocated(self):
         self.unused_leaves = flt(
             get_carry_forwarded_leaves(self.employee, self.leave_type, self.from_date, self.carry_forward),
             self.precision("unused_leaves"),

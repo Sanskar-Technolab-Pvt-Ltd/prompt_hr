@@ -51,7 +51,7 @@ class CustomLeaveEncashment(LeaveEncashment):
         if encashment_settings.max_encashable_leaves:
             frappe.msgprint(
                 _("Maximum encashable leaves for {0} are {1}").format(
-                    leave_form_link, bold(max_encashable_leave)
+                    leave_form_link, bold(encashment_settings.max_encashable_leaves)
                 ),
                 title=_("Encashment Limit Applied"),
             )
@@ -66,3 +66,8 @@ class CustomLeaveEncashment(LeaveEncashment):
             frappe.throw(_("Please set 'Encashment Salary Days' in HR Settings."))
 
         self.encashment_amount = (self.encashment_days * gross_salary) / cint(encashment_salary_days)
+
+
+    def before_save(self):
+        if cint(self.actual_encashable_days) == 0:
+            frappe.throw(_("Encashment failed: You have zero encashable days available."))

@@ -4,16 +4,21 @@ from hrms.hr.doctype.full_and_final_statement.full_and_final_statement import Fu
 class CustomFullAndFinalStatement(FullandFinalStatement):
     @frappe.whitelist()
     def get_payable_component(doc):
-        """
-        Get the list of components to be added to the payables table
-        """
-        components = super().get_payable_component()
-        components.insert(0, "Notice Period Recovery")
+            """
+            Get the list of components to be added to the payables table
+            """
+            components = super().get_payable_component()
+            components.insert(0, "Notice Period Recovery")
 
-        if "Bonus" in components:
-            components.remove("Bonus")
-        return components
+            if "Bonus" in components:
+                components.remove("Bonus")
+
+            if "Gratuity" in components:
+                components.remove("Gratuity")
+            
+            return components
     
+
     @frappe.whitelist()
     def create_component_row(doc, components, component_type):
         """
@@ -44,7 +49,7 @@ class CustomFullAndFinalStatement(FullandFinalStatement):
                 expense_claim_docs = frappe.get_all(
                     "Expense Claim",
                     fields=["name", "total_claimed_amount"],
-                    filters={"docstatus": 1, "employee": doc.employee, "status": "Unpaid"},
+                    filters={"docstatus": ["!=", 2], "employee": doc.employee, "status": ["in",["Unpaid","Draft"]], "workflow_state": ["in",["Sent to Accounting Team","Expense Claim Submitted"]]},
                 )
                 if expense_claim_docs:
                     for expense_claim in expense_claim_docs:
@@ -58,23 +63,6 @@ class CustomFullAndFinalStatement(FullandFinalStatement):
                                 "amount": expense_claim.total_claimed_amount,
                             },
                         )
-            elif component == "Gratuity":
-                gratuity_doc = frappe.get_all(
-                    "Employee Gratuity",
-                    fields=["name", "gratuity_amount"],
-                    filters={"docstatus": 1, "employee": doc.employee},
-                ) 
-                if gratuity_doc:
-                    doc.append(
-                        component_type,
-                        {
-                            "status": "Unsettled",
-                            "component": component,
-                            "reference_document_type": "Employee Gratuity",
-                            "reference_document": gratuity_doc[0].name,
-                            "amount": gratuity_doc[0].gratuity_amount,
-                        },
-                    )
             elif component == "Leave Encashment":
                 leave_encashment_docs = frappe.get_all(
                     "Leave Encashment",
@@ -96,7 +84,7 @@ class CustomFullAndFinalStatement(FullandFinalStatement):
             elif component == "Employee Advance":
                 employee_advance_docs = frappe.get_all(
                     "Employee Advance",
-                    fields=["name", "pending_amount"],
+                    fields=["name", "advance_amount"],
                     filters={"docstatus": 1, "employee": doc.employee, "status": "Unpaid"},
                 )
                 if employee_advance_docs:
@@ -108,7 +96,7 @@ class CustomFullAndFinalStatement(FullandFinalStatement):
                                 "component": component,
                                 "reference_document_type": "Employee Advance",
                                 "reference_document": employee_advance_doc.name,
-                                "amount": employee_advance_doc.pending_amount,
+                                "amount": employee_advance_doc.advance_amount,
                             },
                         )
             elif component == "Loan":
@@ -164,7 +152,6 @@ class CustomFullAndFinalStatement(FullandFinalStatement):
 
             else:
                 super().create_component_row([component], component_type)
-
 
     @frappe.whitelist()
     def get_receivable_component(doc):
