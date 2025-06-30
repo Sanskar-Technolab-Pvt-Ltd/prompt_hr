@@ -153,6 +153,17 @@ def create_employee_separation(employee, company, exit_approval_process):
 # ? RAISE EXIT INTERVIEW OR SCHEDULE IT
 @frappe.whitelist()
 def raise_exit_interview(employee, company, exit_approval_process):
+    if existing := frappe.db.get_value("Exit Interview", {"employee": employee}):
+        frappe.db.set_value(
+            "Exit Approval Process",
+            exit_approval_process,
+            "exit_interview",
+            existing,
+        )
+        return {
+            "status": "info",
+            "message": _("Exit Interview record already exists."),
+        }
     doc = frappe.get_doc("Exit Approval Process", exit_approval_process)
     today_date = getdate(today())
     notif_date = doc.custom_exit_questionnaire_notification_date
@@ -251,6 +262,6 @@ def send_exit_interview_notification(employee, exit_interview_name=None):
         docname=exit_interview_name,
         recipients=[user_id],
         notification_name="Exit Questionnaire Mail To Employee",
-        button_link=frappe.utils.get_url() + "/exit-questionnaire/new",
+        button_link=frappe.utils.get_url() + "/login?redirect-to=/candidate-portal/new#login"
     )
     return {"status": "success", "message": _("Exit Interview email sent.")}

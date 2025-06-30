@@ -5,5 +5,5 @@
 from frappe.tests.utils import FrappeTestCase
 
 
-class TestEmployeeProfile(FrappeTestCase):
+class TestExitClearanceItem(FrappeTestCase):
 	pass

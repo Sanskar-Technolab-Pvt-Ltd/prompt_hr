@@ -71,11 +71,11 @@
    "label": "Local Commute Limit (Monthly)"
   }
  ],
- "grid_page_length": 50,
+ "grid_page_length": 20,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-06-13 13:38:01.232748",
+ "modified": "2025-06-22 16:54:17.818046",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Budget Allocation",
