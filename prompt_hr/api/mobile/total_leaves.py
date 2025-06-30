@@ -80,13 +80,15 @@ def get(
         else:
             number_of_days = date_diff(to_date, from_date) + 1
 
-        if not frappe.db.get_value("Leave Type", leave_type, "include_holiday"):
-            number_of_days = flt(number_of_days) - flt(
-                get_holidays(employee, from_date, to_date, holiday_list=holiday_list)
-            )
+
+
 
         # Sandwich Rule Extension
         leave_type_doc = frappe.get_doc("Leave Type", leave_type)
+        if not leave_type_doc.include_holiday and not leave_type_doc.custom_is_optional_festival_holiday_leave:
+            number_of_days = flt(number_of_days) - flt(
+                get_holidays(employee, from_date, to_date, holiday_list=holiday_list)
+            )
 
         if any(
             [
