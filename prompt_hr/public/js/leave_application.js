@@ -68,7 +68,6 @@ frappe.ui.form.on("Leave Application", {
 												to_date: d.get_value("extend_to"),
 												half_day: frm.doc.half_day,
 												half_day_date: frm.doc.half_day_date,
-												custom_half_day_time: frm.doc.custom_half_day_time
 											},
 											callback: function(r) {
 												console.log(r)

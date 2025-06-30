@@ -336,7 +336,7 @@ def on_update(doc, method):
         else:
             doc.db_set("custom_extension_status", "Rejected")
             doc.db_set("to_date", doc.custom_original_to_date)
-            total_leaves = custom_get_number_of_leave_days(doc.employee, doc.leave_type, doc.from_date, doc.custom_original_to_date, doc.half_day, doc.half_day_date, doc.custom_half_day_time)
+            total_leaves = custom_get_number_of_leave_days(doc.employee, doc.leave_type, doc.from_date, doc.custom_original_to_date, doc.half_day, doc.half_day_date)
             doc.db_set("total_leave_days", total_leaves)
             doc.db_set("docstatus",0)
 
