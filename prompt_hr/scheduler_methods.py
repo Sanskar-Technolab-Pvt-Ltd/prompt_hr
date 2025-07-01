@@ -1808,3 +1808,56 @@ def send_attendance_issue():
                                 subject=subject,
                                 message=message,
                             )
+                            
+# ! DAILY SCHEDULER TO HANDLE ATTENDANCE REQUEST RITUALS
+@frappe.whitelist()
+def daily_attendance_request_rituals():
+
+    all_employees = frappe.get_all(
+        "Employee",
+        filters={"status": "Active"},
+        fields=["name", "custom_attendance_capture_scheme"],
+    )
+
+    # ? ATTENDANCE CAPTURE SCHEME MAP BASED ON WORK MODE
+    attendance_capture_scheme_map = {
+        "Work From Home": "Web Checkin-Checkout",
+        "On Duty": "Mobile Clockin-Clockout"
+    }
+
+    # ? CREATE EMPLOYEE HASHMAP FOR QUICK ACCESS (NAME AS KEY AND SCHEME AS VALUE)
+    employee_map = {emp.name: emp.custom_attendance_capture_scheme for emp in all_employees}
+
+    all_attendance_requests = frappe.get_all(
+        "Attendance Request",
+        filters={
+            "docstatus": 1,
+            "custom_status": "Approved",
+            "employee": ["in", list(employee_map.keys())],
+            "from_date": ["<=", today()],
+            "to_date": [">=", today()],
+        },
+        fields=["name", "employee", "reason"],
+    )
+
+    attendance_request_hashmap = {}
+    for request in all_attendance_requests:
+        employee_name = request.employee
+        if employee_name not in attendance_request_hashmap:
+            attendance_request_hashmap[employee_name] = []
+        attendance_request_hashmap[employee_name].append(request)
+    
+    for employee, scheme in employee_map.items():
+        attendance_request = attendance_request_hashmap.get(employee) 
+        if attendance_request:
+            reason = attendance_request[0].get("reason")
+            scheme = attendance_capture_scheme_map.get(reason)
+            if employee_map.get(employee) != scheme:
+                # ? UPDATE EMPLOYEE SCHEME IF IT DOES NOT MATCH
+                frappe.db.set_value("Employee", employee, "custom_attendance_capture_scheme", scheme)
+                frappe.db.commit()
+        
+        elif not attendance_request and scheme in ["Mobile Clockin-Clockout", "Web Checkin-Checkout"]:
+            # ? IF NO ATTENDANCE REQUEST EXISTS FOR THE EMPLOYEE, SET THE SCHEME TO BIOMETRIC
+            frappe.db.set_value("Employee", employee, "custom_attendance_capture_scheme", "Biometric")
+            frappe.db.commit()
