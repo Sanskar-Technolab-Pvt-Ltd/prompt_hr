@@ -19,6 +19,8 @@ def login(email, password):
         employee = (
             frappe.db.get_value("Employee", {"user_id": user.name}, "name") or None
         )
+        
+        work_location = None
         if employee:
             emp_doc = frappe.get_doc("Employee", employee)
             work_location = emp_doc.get("custom_work_location")
