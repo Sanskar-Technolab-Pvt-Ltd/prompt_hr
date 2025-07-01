@@ -6,6 +6,9 @@ import frappe
 @frappe.whitelist(allow_guest=1)
 def login(email, password):
     try:
+        # ? INITIALIZE VARIABLES
+        work_location = None
+        
         # ? SETUP THE LOGIN MANAGER
         login_manager = frappe.auth.LoginManager()
         login_manager.authenticate(user=email, pwd=password)
@@ -20,10 +23,15 @@ def login(email, password):
             frappe.db.get_value("Employee", {"user_id": user.name}, "name") or None
         )
         
-        work_location = None
         if employee:
             emp_doc = frappe.get_doc("Employee", employee)
             work_location = emp_doc.get("custom_work_location")
+        else:
+            frappe.throw(
+                "Employee record not found for the user. Please contact HR or system administrator.",
+                frappe.DoesNotExistError,
+            )
+                    
 
         sales_person = sales_person = (
             frappe.db.get_value("Sales Person", {"employee": employee}, "name")
