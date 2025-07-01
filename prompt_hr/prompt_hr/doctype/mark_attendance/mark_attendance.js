@@ -18,8 +18,24 @@ frappe.ui.form.on("Mark Attendance", {
             args: {
                 "attendance_date": frm.doc.attendance_date,
                 "company": frm.doc.company,
+            },
+            callback: function (r) {
+                if (!r.exc) {
+                    frappe.msgprint({
+                        title: __("Success"),
+                        message: r.message || "Attendance marked successfully!",
+                        indicator: "green"
+                    });
+                } else {
+                    frappe.msgprint({
+                        title: __("Error"),
+                        message: "An error occurred while marking attendance.",
+                        indicator: "red"
+                    });
+                }
             }
-        })
+        });
+
         
     }
 
