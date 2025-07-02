@@ -119,11 +119,22 @@ def append_pending_leave_approvals(doc):
     open_leave_applications = frappe.db.get_all(
         "Leave Application",
         filters={
+            "docstatus": ["!=", 2],
             "workflow_state": ["in", ["Approved", "Pending"]],
             "employee": ["in", eligible_employee_ids],
             "from_date": ["between", [doc.start_date, doc.end_date]],
+            "status" : ["in", ["Open", "Approved"]]
         },
-        fields=["employee", "from_date", "to_date", "status", "name"],
+        fields=["employee", "from_date", "to_date", "status", "name", "workflow_state"],
+    )
+    # * Clear existing entries before appending
+    frappe.db.delete(
+        "Pending Leave Approval",
+        {
+            "parent": doc.name,
+            "parenttype": doc.doctype,
+            "parentfield": "custom_pending_leave_approval",
+        },
     )
 
     # ? APPEND PENDING LEAVE APPLICATION DETAILS IN TABLE
@@ -132,7 +143,7 @@ def append_pending_leave_approvals(doc):
     for leave_application in open_leave_applications:
         employee = leave_application["employee"]
         leave_app_name = leave_application["name"]
-        status = leave_application["status"]
+        status = leave_application["workflow_state"]
 
         # * Fetch employee name from Employee master
         employee_name = frappe.db.get_value("Employee", employee, "employee_name")
@@ -159,7 +170,7 @@ def append_pending_leave_approvals(doc):
                     "employee_name": employee_name,
                     "from_date": leave_application["from_date"],
                     "to_date": leave_application["to_date"],
-                    "status": status if status == "Approved" else "Open",
+                    "status": status,
                     "leave_application": leave_app_name,
                 },
             )
@@ -175,7 +186,7 @@ def append_pending_leave_approvals(doc):
                     "employee_name": employee_name,
                     "from_date": leave_application["from_date"],
                     "to_date": leave_application["to_date"],
-                    "status": status if status == "Approved" else "Open",
+                    "status": status,
                     "leave_application": leave_app_name,
                 }
             ).insert(ignore_permissions=True)
