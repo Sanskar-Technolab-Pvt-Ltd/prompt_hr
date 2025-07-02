@@ -335,7 +335,8 @@ scheduler_events = {
         "prompt_hr.scheduler_methods.validate_employee_holiday_list",
         "prompt_hr.scheduler_methods.assign_checkin_role",
         "prompt_hr.scheduler_methods.process_exit_approvals",
-        "prompt_hr.scheduler_methods.daily_attendance_request_rituals"
+        "prompt_hr.scheduler_methods.daily_attendance_request_rituals",
+        "prompt_hr.scheduler_methods.penalize_prompt_employee"
     ],
 }
 
