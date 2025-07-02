@@ -37,15 +37,21 @@ def on_cancel(doc, method):
 
 def before_save(doc, method):
     if hasattr(doc, '_original_date'):  
-        doc.set("from_date", doc._original_date)  
-        doc.total_leave_days = custom_get_number_of_leave_days(
-				doc.employee,
-				doc.leave_type,
-				doc.from_date,
-				doc.to_date,
-				doc.half_day,
-				doc.half_day_date,
-		)
+        doc.set("from_date", doc._original_date)
+        if hasattr(doc, '_half_day'):
+                doc.set("half_day", 1)
+                if hasattr(doc, "_half_day_date"):
+                    doc.set("half_day_date", doc._half_day_date) 
+    doc.total_leave_days = custom_get_number_of_leave_days(
+            doc.employee,
+            doc.leave_type,
+            doc.from_date,
+            doc.to_date,
+            doc.half_day,
+            doc.half_day_date,
+            None,
+            doc.custom_half_day_time
+    )
     employee_doc = frappe.get_doc("Employee", doc.employee)
     reporting_manager = None
     if employee_doc.reports_to:
@@ -53,6 +59,7 @@ def before_save(doc, method):
     leave_type_doc = frappe.get_doc("Leave Type", doc.leave_type)
     if reporting_manager and reporting_manager.user_id:
         doc.db_set("leave_approver", reporting_manager.user_id)
+        doc.db_set("leave_approver_name", reporting_manager.employee_name)
     if employee_doc.resignation_letter_date:
         if not leave_type_doc.custom_allow_for_employees_who_are_on_notice_period:
             if frappe.utils.getdate(doc.to_date) >= employee_doc.resignation_letter_date:
@@ -70,13 +77,22 @@ def before_insert(doc, method):
 
 def before_validate(doc, method=None):
     if doc.custom_leave_status == "Confirmed":
-        doc._original_date = doc.get("from_date")  
-        doc.set("from_date", frappe.utils.add_days(doc.custom_original_to_date,1))  
+        doc._original_date = doc.get("from_date")
+        if doc.half_day:
+            doc._half_day = doc.half_day
+            if doc.half_day_date:
+                doc._half_day_date = doc.half_day_date
+        doc.set("from_date", frappe.utils.add_days(doc.custom_original_to_date,1))
+        doc.set("half_day", 0)
 
 def before_submit(doc, method):
     if doc.custom_leave_status == "Confirmed":
         if hasattr(doc, '_original_date'):  
-            doc.set("from_date", doc._original_date)  
+            doc.set("from_date", doc._original_date)
+            if hasattr(doc, '_half_day'):
+                doc.set("half_day", 1)
+                if hasattr(doc, "_half_day_date"):
+                    doc.set("half_day_date", doc._half_day_date)
             doc.total_leave_days = custom_get_number_of_leave_days(
                     doc.employee,
                     doc.leave_type,
@@ -84,6 +100,8 @@ def before_submit(doc, method):
                     doc.to_date,
                     doc.half_day,
                     doc.half_day_date,
+                    None,
+                    doc.custom_half_day_time
             )
             entry = frappe.get_all(
                 "Leave Ledger Entry",
@@ -336,9 +354,10 @@ def on_update(doc, method):
         else:
             doc.db_set("custom_extension_status", "Rejected")
             doc.db_set("to_date", doc.custom_original_to_date)
-            total_leaves = custom_get_number_of_leave_days(doc.employee, doc.leave_type, doc.from_date, doc.custom_original_to_date, doc.half_day, doc.half_day_date, doc.custom_half_day_time)
+            total_leaves = custom_get_number_of_leave_days(doc.employee, doc.leave_type, doc.from_date, doc.custom_original_to_date, doc.half_day, doc.half_day_date)
             doc.db_set("total_leave_days", total_leaves)
-            doc.db_set("docstatus",0)
+            if doc.custom_leave_status == "Approved":
+                doc.db_set("docstatus",0)
 
         if employee_notification:
             # Notify the employee regarding the approval/rejection of their leave extension.
@@ -367,7 +386,7 @@ def on_update(doc, method):
                 reference_doctype=doc.doctype,
                 reference_name=doc.name,
             )
-            
+
 @frappe.whitelist()
 def extend_leave_application(leave_application, extend_to):
     leave_application = frappe.get_doc("Leave Application", leave_application)
@@ -391,7 +410,7 @@ def extend_leave_application(leave_application, extend_to):
         leave_application.db_set("docstatus", cur_docstatus)
         leave_application.db_set("workflow_state", cur_workflow_state)
         raise e
-    
+
 @frappe.whitelist()
 def get_optional_festival_holiday_leave_list(company, employee, leave_type):
     # Validate input
@@ -603,7 +622,7 @@ def custom_get_number_of_leave_days(
                 "from_date": from_date,
                 "to_date": to_date,
                 "half_day": 1,
-                "docstatus": 1
+                "docstatus": ["!=", 2]
             },
             fields=["name", "custom_half_day_time", "half_day", "half_day_date"],
             limit=1,
@@ -616,6 +635,22 @@ def custom_get_number_of_leave_days(
                 if doc_json:
                     doc = json.loads(doc_json)
                     custom_half_day_time = doc.get("custom_half_day_time")
+                else:
+                    leave_app = frappe.get_all(
+                        "Leave Application",
+                        filters={
+                            "employee": employee,
+                            "from_date": from_date,
+                            "half_day": 1,
+                            "docstatus": ["!=", "2"],
+                        },
+                        fields=["name", "custom_half_day_time", "half_day", "half_day_date"],
+                        limit=1,
+                    )
+                    if leave_app:
+                        half_day = leave_app[0].half_day
+                        half_day_date = leave_app[0].half_day_date
+                        custom_half_day_time = leave_app[0].custom_half_day_time
     else:
         if half_day is None:
             doc_json = frappe.form_dict.get("doc")
@@ -624,6 +659,22 @@ def custom_get_number_of_leave_days(
                 custom_half_day_time = doc.get("custom_half_day_time")
                 half_day_date = doc.get("half_day_date")
                 half_day = doc.get("half_day")
+            else:
+                leave_app = frappe.get_all(
+                    "Leave Application",
+                    filters={
+                        "employee": employee,
+                        "from_date": from_date,
+                        "half_day": 1,
+                        "docstatus": ["!=", "2"],
+                    },
+                    fields=["name", "custom_half_day_time", "half_day", "half_day_date"],
+                    limit=1,
+                )
+                if leave_app:
+                    half_day = leave_app[0].half_day
+                    half_day_date = leave_app[0].half_day_date
+                    custom_half_day_time = leave_app[0].custom_half_day_time
 
     if not holiday_list:
         holiday_list = get_holiday_list_for_employee(employee)
@@ -643,7 +694,7 @@ def custom_get_number_of_leave_days(
         number_of_days = flt(number_of_days) - flt(
             get_holidays(employee, from_date, to_date, holiday_list=holiday_list)
         )
-    
+
     # Sandwich Rule Extension
     leave_type_doc = frappe.get_doc("Leave Type", leave_type)
 
@@ -1060,7 +1111,6 @@ def leave_extension_allowed(leave_type, employee):
 
     # If leave extension is not enabled for this Leave Type, return False
     return False
-
 
 
 # ? MODIFIED GET HOLIDAYS FUNCTION TO EXCLUDE OPTIONAL FESTIVAL LEAVE
