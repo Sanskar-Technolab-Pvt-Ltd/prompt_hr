@@ -173,11 +173,6 @@ def notify_users(doc, checklist):
 
     # ? FETCH RECIPIENTS (ACTIVITY USERS/ROLES)
     recipients = set()
-    valid_users = {
-        e.user_id
-        for e in frappe.get_all("Employee", {"company": doc.company}, ["user_id"])
-        if e.user_id
-    }
 
     role_users = {act.user for act in doc.activities if act.user} | {
         u.parent
@@ -189,7 +184,7 @@ def notify_users(doc, checklist):
     recipients |= {
         u.email
         for u in frappe.get_all(
-            "User", {"name": ["in", list(role_users & valid_users)]}, ["email"]
+            "User", {"name": ["in", list(role_users)]}, ["email"]
         )
         if u.email
     }
