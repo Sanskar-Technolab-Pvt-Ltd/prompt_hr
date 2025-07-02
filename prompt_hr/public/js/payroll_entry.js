@@ -68,6 +68,9 @@ frappe.ui.form.on("Payroll Entry", {
         });
         
     },
+    before_save: (frm) => {
+        frm.set_value('custom_pending_leave_approval', []);
+    }
 });
 
 // ? FUNCTION TO EMPTY BRANCH FIELD IF FORM IS NEW
