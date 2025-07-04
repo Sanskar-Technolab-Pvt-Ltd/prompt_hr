@@ -685,6 +685,7 @@ def penalize_employee_for_late_entry_for_indifoss():
     try:
         allowed_late_entries = frappe.db.get_single_value("HR Settings", "custom_late_coming_allowed_per_month_for_indifoss")
         late_entry_leave_type = frappe.db.get_single_value("HR Settings", "custom_leave_type_for_indifoss")
+        late_coming_allowed_per_month_for_prompt = frappe.db.get_single_value("HR Settings", "custom_late_coming_allowed_per_month_for_prompt")
         late_entry_leave_deduction = frappe.db.get_single_value("HR Settings", "custom_deduction_of_leave_for_indifoss")
         is_lwp_for_late_entry = 1 if frappe.db.get_single_value("HR Settings", "custom_deduct_leave_penalty_for_indifoss") == "Deduct leave without pay" else 0
         
@@ -752,7 +753,7 @@ def penalize_employee_for_late_entry_for_indifoss():
                     late_attendance_list = frappe.db.get_all("Attendance", {"docstatus": 1, "employee": emp_id.get("name"), "attendance_date": ["between", [month_first_date, month_last_date]], "late_entry":1, "custom_apply_penalty": 1}, ["name", "attendance_date"], order_by="attendance_date asc")
                 
                     if late_attendance_list:
-                        for attendance_id in late_attendance_list[allowed_late_entries:]:
+                        for idx, attendance_id in enumerate(late_attendance_list[allowed_late_entries:]):
                             
                             leave_application_exists = frappe.db.exists("Leave Application", {"employee": emp_id.get("name"), "docstatus": 1,"from_date": ["<=",attendance_id.get("attendance_date")], "to_date": [">=",attendance_id.get("attendance_date")]})
                             
@@ -760,7 +761,7 @@ def penalize_employee_for_late_entry_for_indifoss():
                             
                             employee_late_penalty_exists = frappe.db.exists("Employee Penalty", {"employee": emp_id.get("name"), "attendance": attendance_id.get("name"), "for_late_coming": 1})
                             
-                            if not (leave_application_exists or attendance_regularization_exists or employee_late_penalty_exists):
+                            if not (leave_application_exists or attendance_regularization_exists or employee_late_penalty_exists and (idx+1) > late_coming_allowed_per_month_for_prompt):
                                 create_employee_penalty(
                                                             emp_id.get("name"), 
                                                             attendance_id.get("attendance_date"), 
