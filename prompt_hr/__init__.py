@@ -4,16 +4,22 @@ __version__ = "0.0.1"
 import frappe
 import hrms.hr.utils
 import hrms.hr.report.employee_leave_balance.employee_leave_balance as leave_balance_report
+import hrms.hr.doctype.interview_feedback.interview_feedback as interview_feedback_module
 from frappe.model import workflow
-from prompt_hr.overrides.workflow_override import custom_has_approval_access
+import hrms.hr.doctype.leave_application.leave_application as leave_application_module
+from prompt_hr.overrides.workflow_override import custom_has_approval_access, custom_get_transitions
 from prompt_hr.py.leave_application import custom_update_previous_leave_allocation, custom_check_effective_date, custom_get_allocated_and_expired_leaves
 from hrms.payroll.doctype.payroll_entry import payroll_entry 
 from prompt_hr.py.salary_slip_overriden_methods import custom_create_salary_slips_for_employees
 from prompt_hr.py.leave_type import custom_get_earned_leaves
+from prompt_hr.py.overrides import get_applicable_interviewers
 
 
 # Override original function
 workflow.has_approval_access = custom_has_approval_access
+workflow.get_transitions = custom_get_transitions
+interview_feedback_module.get_applicable_interviewers = get_applicable_interviewers,
+leave_application_module.get_number_of_leave_days = custom_get_number_of_leave_days
 hrms.hr.utils.check_effective_date = custom_check_effective_date
 hrms.hr.utils.update_previous_leave_allocation = custom_update_previous_leave_allocation
 leave_balance_report.get_allocated_and_expired_leaves = custom_get_allocated_and_expired_leaves 

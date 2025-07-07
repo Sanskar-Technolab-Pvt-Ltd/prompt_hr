@@ -355,10 +355,7 @@ scheduler_events = {
 override_whitelisted_methods = {
 "hrms.hr.doctype.leave_application.leave_application.get_holidays": "prompt_hr.py.leave_application.get_holidays",
 "hrms.hr.doctype.interview.interview.get_expected_skill_set": "prompt_hr.py.overrides.get_expected_skill_set",
-"hrms.hr.doctype.interview_feedback.interview_feedback.get_applicable_interviewers": "prompt_hr.py.overrides.get_applicable_interviewers",
 "hrms.hr.doctype.leave_application.leave_application.get_leave_details" : "prompt_hr.py.overrides.get_leave_details",
-"hrms.hr.doctype.leave_application.leave_application.get_number_of_leave_days": "prompt_hr.py.leave_application.custom_get_number_of_leave_days",
-"frappe.model.workflow.get_transitions": "prompt_hr.overrides.workflow_override.custom_get_transitions",
 }
 #
 # each overriding function accepts a `data` argument;
