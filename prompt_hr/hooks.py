@@ -333,14 +333,14 @@ scheduler_events = {
     "daily": [
         "prompt_hr.py.employee_changes_approval.daily_check_employee_changes_approval",
         "prompt_hr.py.compensatory_leave_request.expire_compensatory_leave_after_confirmation",
-        # "prompt_hr.scheduler_methods.create_probation_feedback_form",
-        # "prompt_hr.scheduler_methods.create_confirmation_evaluation_form_for_prompt",
-        # "prompt_hr.scheduler_methods.inform_employee_for_confirmation_process",
-        # "prompt_hr.scheduler_methods.validate_employee_holiday_list",
-        # "prompt_hr.scheduler_methods.assign_checkin_role",
-        # "prompt_hr.scheduler_methods.validate_employee_holiday_list",
-        # "prompt_hr.scheduler_methods.validate_employee_holiday_list",
-        "prompt_hr.scheduler_methods.process_exit_approvals"
+        "prompt_hr.scheduler_methods.create_probation_feedback_form",
+        "prompt_hr.scheduler_methods.create_confirmation_evaluation_form_for_prompt",
+        "prompt_hr.scheduler_methods.inform_employee_for_confirmation_process",
+        "prompt_hr.scheduler_methods.validate_employee_holiday_list",
+        "prompt_hr.scheduler_methods.assign_checkin_role",
+        "prompt_hr.scheduler_methods.process_exit_approvals",
+        "prompt_hr.scheduler_methods.daily_attendance_request_rituals",
+        "prompt_hr.scheduler_methods.penalize_prompt_employee"
     ],
 }
 
@@ -481,7 +481,7 @@ fixtures = [
     #     "dt":"Role", "filters": [["name", "in", ["Job Requisition", "Head of Department", "Managing Director"]]]
     # },
     # {
-    #     "dt":"Workflow", "filters": [["name", "in", ["Job Requisition","Expense Claim", "Compensatory Leave Request", "Leave Application", "Loan Application"]]]
+    #     "dt":"Workflow", "filters": [["name", "in", ["Job Requisition", "Expense Claim", "Compensatory Leave Request", "Leave Application", "Loan Application", "Travel Request"]]]
     # },
     # {
     #     "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled", "Confirmed", "Approved by HR", "Rejected by HR", "Approved by BU Head", "Rejected by BU Head", "Extension Approved", "Extension Confirmed", "Extension Rejected", "Extension Requested"]]]

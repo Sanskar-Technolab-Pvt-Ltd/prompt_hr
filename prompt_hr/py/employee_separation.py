@@ -31,6 +31,7 @@ def create_or_link_checklists_and_notify(doc):
                 elif not existing_checklist:
                     # ? CREATE NEW CHECKLIST
                     checklist = create_new_it_exit_checklist(employee_id)
+                    notify_users(doc, checklist)
                     row.custom_checklist_record = checklist.name
 
             # ? SEND EMAIL IF RAISED AND NOT YET SENT
@@ -82,7 +83,6 @@ def create_new_it_exit_checklist(employee_id):
         clearance_items = frappe.get_all(
             "Exit Clearance Item", fields=["clearance_item", "table_name"]
         )
-
         # ? GROUP ITEMS BY TABLE NAME
         table_map = {}
         for item in clearance_items:
@@ -90,14 +90,12 @@ def create_new_it_exit_checklist(employee_id):
             if table not in table_map:
                 table_map[table] = []
             table_map[table].append(item.clearance_item)
-
         # ? ADD ITEMS TO THEIR RESPECTIVE CHILD TABLES
         for table_name, items in table_map.items():
             for item_name in items:
                 checklist.append(
                     table_name, {"clearance_item": item_name, "status": ""}
                 )
-
         checklist.insert(ignore_permissions=True)
         frappe.msgprint(f"Created IT Exit Checklist: {checklist.name}")
         return checklist
@@ -170,3 +168,30 @@ def send_pending_action_email_for_exit(row, checklist_name, company):
             f"Failed to send checklist email: {e}", "Checklist Email Error"
         )
         frappe.throw("Unable to send checklist notification.")
+
+def notify_users(doc, checklist):
+
+    # ? FETCH RECIPIENTS (ACTIVITY USERS/ROLES)
+    recipients = set()
+
+    role_users = {act.user for act in doc.activities if act.user} | {
+        u.parent
+        for act in doc.activities
+        if act.role
+        for u in frappe.get_all("Has Role", {"role": act.role}, ["parent"])
+    }
+
+    recipients |= {
+        u.email
+        for u in frappe.get_all(
+            "User", {"name": ["in", list(role_users)]}, ["email"]
+        )
+        if u.email
+    }
+
+    send_notification_email(
+        doctype="IT Exit Checklist",
+        docname=checklist.name,
+        recipients=list(recipients),
+        notification_name="Employee Separation Notification",
+    )

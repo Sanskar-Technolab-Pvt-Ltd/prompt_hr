@@ -42,7 +42,7 @@ def get(
                     "from_date": from_date,
                     "to_date": to_date,
                     "half_day": 1,
-                    "docstatus": 1
+                    "docstatus": ["!=", 2]
                 },
                 fields=["name", "custom_half_day_time", "half_day", "half_day_date"],
                 limit=1,
@@ -55,6 +55,22 @@ def get(
                     if doc_json:
                         doc = json.loads(doc_json)
                         custom_half_day_time = doc.get("custom_half_day_time")
+                    else:
+                        leave_app = frappe.get_all(
+                            "Leave Application",
+                            filters={
+                                "employee": employee,
+                                "from_date": from_date,
+                                "half_day": 1,
+                                "docstatus": ["!=", "2"],
+                            },
+                            fields=["name", "custom_half_day_time", "half_day", "half_day_date"],
+                            limit=1,
+                        )
+                        if leave_app:
+                            half_day = leave_app[0].half_day
+                            half_day_date = leave_app[0].half_day_date
+                            custom_half_day_time = leave_app[0].custom_half_day_time
         else:
             if half_day is None:
                 doc_json = frappe.form_dict.get("doc")
@@ -63,6 +79,22 @@ def get(
                     custom_half_day_time = doc.get("custom_half_day_time")
                     half_day_date = doc.get("half_day_date")
                     half_day = doc.get("half_day")
+                else:
+                    leave_app = frappe.get_all(
+                        "Leave Application",
+                        filters={
+                            "employee": employee,
+                            "from_date": from_date,
+                            "half_day": 1,
+                            "docstatus": ["!=", "2"],
+                        },
+                        fields=["name", "custom_half_day_time", "half_day", "half_day_date"],
+                        limit=1,
+                    )
+                    if leave_app:
+                        half_day = leave_app[0].half_day
+                        half_day_date = leave_app[0].half_day_date
+                        custom_half_day_time = leave_app[0].custom_half_day_time
 
         if not holiday_list:
             holiday_list = get_holiday_list_for_employee(employee)
@@ -80,13 +112,15 @@ def get(
         else:
             number_of_days = date_diff(to_date, from_date) + 1
 
-        if not frappe.db.get_value("Leave Type", leave_type, "include_holiday"):
-            number_of_days = flt(number_of_days) - flt(
-                get_holidays(employee, from_date, to_date, holiday_list=holiday_list)
-            )
+
+
 
         # Sandwich Rule Extension
         leave_type_doc = frappe.get_doc("Leave Type", leave_type)
+        if not leave_type_doc.include_holiday and not leave_type_doc.custom_is_optional_festival_holiday_leave:
+            number_of_days = flt(number_of_days) - flt(
+                get_holidays(employee, from_date, to_date, holiday_list=holiday_list)
+            )
 
         if any(
             [

@@ -685,6 +685,7 @@ def penalize_employee_for_late_entry_for_indifoss():
     try:
         allowed_late_entries = frappe.db.get_single_value("HR Settings", "custom_late_coming_allowed_per_month_for_indifoss")
         late_entry_leave_type = frappe.db.get_single_value("HR Settings", "custom_leave_type_for_indifoss")
+        late_coming_allowed_per_month_for_prompt = frappe.db.get_single_value("HR Settings", "custom_late_coming_allowed_per_month_for_prompt")
         late_entry_leave_deduction = frappe.db.get_single_value("HR Settings", "custom_deduction_of_leave_for_indifoss")
         is_lwp_for_late_entry = 1 if frappe.db.get_single_value("HR Settings", "custom_deduct_leave_penalty_for_indifoss") == "Deduct leave without pay" else 0
         
@@ -752,7 +753,7 @@ def penalize_employee_for_late_entry_for_indifoss():
                     late_attendance_list = frappe.db.get_all("Attendance", {"docstatus": 1, "employee": emp_id.get("name"), "attendance_date": ["between", [month_first_date, month_last_date]], "late_entry":1, "custom_apply_penalty": 1}, ["name", "attendance_date"], order_by="attendance_date asc")
                 
                     if late_attendance_list:
-                        for attendance_id in late_attendance_list[allowed_late_entries:]:
+                        for idx, attendance_id in enumerate(late_attendance_list[allowed_late_entries:]):
                             
                             leave_application_exists = frappe.db.exists("Leave Application", {"employee": emp_id.get("name"), "docstatus": 1,"from_date": ["<=",attendance_id.get("attendance_date")], "to_date": [">=",attendance_id.get("attendance_date")]})
                             
@@ -760,7 +761,7 @@ def penalize_employee_for_late_entry_for_indifoss():
                             
                             employee_late_penalty_exists = frappe.db.exists("Employee Penalty", {"employee": emp_id.get("name"), "attendance": attendance_id.get("name"), "for_late_coming": 1})
                             
-                            if not (leave_application_exists or attendance_regularization_exists or employee_late_penalty_exists):
+                            if not (leave_application_exists or attendance_regularization_exists or employee_late_penalty_exists and (idx+1) > late_coming_allowed_per_month_for_prompt):
                                 create_employee_penalty(
                                                             emp_id.get("name"), 
                                                             attendance_id.get("attendance_date"), 
@@ -1808,3 +1809,56 @@ def send_attendance_issue():
                                 subject=subject,
                                 message=message,
                             )
+                            
+# ! DAILY SCHEDULER TO HANDLE ATTENDANCE REQUEST RITUALS
+@frappe.whitelist()
+def daily_attendance_request_rituals():
+
+    all_employees = frappe.get_all(
+        "Employee",
+        filters={"status": "Active"},
+        fields=["name", "custom_attendance_capture_scheme"],
+    )
+
+    # ? ATTENDANCE CAPTURE SCHEME MAP BASED ON WORK MODE
+    attendance_capture_scheme_map = {
+        "Work From Home": "Web Checkin-Checkout",
+        "On Duty": "Mobile Clockin-Clockout"
+    }
+
+    # ? CREATE EMPLOYEE HASHMAP FOR QUICK ACCESS (NAME AS KEY AND SCHEME AS VALUE)
+    employee_map = {emp.name: emp.custom_attendance_capture_scheme for emp in all_employees}
+
+    all_attendance_requests = frappe.get_all(
+        "Attendance Request",
+        filters={
+            "docstatus": 1,
+            "custom_status": "Approved",
+            "employee": ["in", list(employee_map.keys())],
+            "from_date": ["<=", today()],
+            "to_date": [">=", today()],
+        },
+        fields=["name", "employee", "reason"],
+    )
+
+    attendance_request_hashmap = {}
+    for request in all_attendance_requests:
+        employee_name = request.employee
+        if employee_name not in attendance_request_hashmap:
+            attendance_request_hashmap[employee_name] = []
+        attendance_request_hashmap[employee_name].append(request)
+    
+    for employee, scheme in employee_map.items():
+        attendance_request = attendance_request_hashmap.get(employee) 
+        if attendance_request:
+            reason = attendance_request[0].get("reason")
+            scheme = attendance_capture_scheme_map.get(reason)
+            if employee_map.get(employee) != scheme:
+                # ? UPDATE EMPLOYEE SCHEME IF IT DOES NOT MATCH
+                frappe.db.set_value("Employee", employee, "custom_attendance_capture_scheme", scheme)
+                frappe.db.commit()
+        
+        elif not attendance_request and scheme in ["Mobile Clockin-Clockout", "Web Checkin-Checkout"]:
+            # ? IF NO ATTENDANCE REQUEST EXISTS FOR THE EMPLOYEE, SET THE SCHEME TO BIOMETRIC
+            frappe.db.set_value("Employee", employee, "custom_attendance_capture_scheme", "Biometric")
+            frappe.db.commit()
