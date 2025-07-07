@@ -13,6 +13,7 @@ from hrms.payroll.doctype.payroll_entry import payroll_entry
 from prompt_hr.py.salary_slip_overriden_methods import custom_create_salary_slips_for_employees
 from prompt_hr.py.leave_type import custom_get_earned_leaves
 from prompt_hr.py.overrides import get_applicable_interviewers
+from prompt_hr.py.leave_application import custom_get_number_of_leave_days
 
 
 # Override original function
