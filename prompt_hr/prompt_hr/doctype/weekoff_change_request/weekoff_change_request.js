@@ -24,6 +24,11 @@ frappe.ui.form.on("WeekOff Change Request", {
     },
 	refresh(frm) {
 
+        if (frm.doc.status === "Approved") {
+			// ! DISABLE FORM AFTER APPROVED
+			frm.disable_form();
+		}
+
         const user = frappe.session.user
         if (frm.doc.employee) {
             frappe.call({

@@ -83,6 +83,13 @@ class AttendanceRegularization(Document):
 												)
 					self.employee_notified = 1
 
+	def on_update(self):
+		# Validate permission: Only Reporting Manager can modify the status
+		is_reporting_manager = check_user_is_reporting_manager(
+			user_id=frappe.session.user,
+			requesting_employee_id=self.employee
+		).get("is_rh")
 
+		if not is_reporting_manager and self.status and self.has_value_changed("status"):
+			frappe.throw("You are not permitted to update the status. Please contact the Reporting Manager.")
 
-		
