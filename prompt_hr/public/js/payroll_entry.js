@@ -21,7 +21,8 @@ frappe.ui.form.on("Payroll Entry", {
     refresh: (frm) => {
         // ? REMOVE AUTO BRANCH ADDITION DATA
         empty_branch_field_if_form_is_new(frm);
-        
+        frm.get_field('custom_lop_summary').grid.cannot_add_rows = true;
+        frm.refresh_field('custom_lop_summary');
         // ? ADD CUSTOM BUTTONS FOR LEAVE ACTIONS
         frm.add_custom_button(
             __("Approve Leave"),
@@ -35,14 +36,6 @@ frappe.ui.form.on("Payroll Entry", {
             __("Reject Leave"),
             function () {
                 handle_leave_action(frm, "reject");
-            },
-            __("Manage Leave Requests")
-        );
-
-        frm.add_custom_button(
-            __("Confirm Leave"),
-            function () {
-                handle_leave_action(frm, "confirm");
             },
             __("Manage Leave Requests")
         );
@@ -82,7 +75,7 @@ function empty_branch_field_if_form_is_new(frm) {
     }
 }
 
-// ? FUNCTION TO HANDLE LEAVE ACTIONS (APPROVE, REJECT, CONFIRM)
+// ? FUNCTION TO HANDLE LEAVE ACTIONS (APPROVE, REJECT)
 function handle_leave_action(frm, action) {
     // * Filter selected rows from the Pending Leave Approval child table
     const selected = frm.doc.custom_pending_leave_approval.filter(row => row.__checked);
@@ -110,7 +103,6 @@ function handle_leave_action(frm, action) {
                 const actionPastTense = {
                     approve: "approved",
                     reject: "rejected",
-                    confirm: "confirmed"
                 };
                 const pastTense = actionPastTense[action] || `${action}ed`;
 

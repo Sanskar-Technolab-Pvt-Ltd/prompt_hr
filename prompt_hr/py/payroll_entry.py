@@ -1,4 +1,5 @@
 import frappe
+from frappe.utils import cint
 from dateutil.relativedelta import relativedelta
 
 
@@ -120,10 +121,10 @@ def append_pending_leave_approvals(doc):
         "Leave Application",
         filters={
             "docstatus": ["!=", 2],
-            "workflow_state": ["in", ["Approved", "Pending"]],
+            "workflow_state": ["in", ["Pending"]],
             "employee": ["in", eligible_employee_ids],
             "from_date": ["between", [doc.start_date, doc.end_date]],
-            "status" : ["in", ["Open", "Approved"]]
+            "status" : ["in", ["Open"]]
         },
         fields=["employee", "from_date", "to_date", "status", "name", "workflow_state"],
     )
@@ -215,7 +216,7 @@ def get_eligible_employees(name):
 @frappe.whitelist()
 def handle_leave_action(docname, doctype, action, leaves):
     # ! Validate action
-    if action not in ("approve", "reject", "confirm"):
+    if action not in ("approve", "reject"):
         frappe.throw("Invalid action")
 
     # * Parse JSON string to list
@@ -230,16 +231,17 @@ def handle_leave_action(docname, doctype, action, leaves):
         row = frappe.get_doc("Leave Application", rowname)
 
         # ? Skip if already in desired workflow state
-        if action == "approve" and row.workflow_state in ("Approved", "Confirmed"):
+        if action == "approve" and row.workflow_state in ("Approved"):
             continue
         elif action == "reject" and row.workflow_state == "Rejected":
-            continue
-        elif action == "confirm" and row.workflow_state == "Confirmed":
             continue
 
         # * Apply workflow changes
         if action == "approve":
             row.workflow_state = "Approved"
+            # * Submit if draft
+            if row.docstatus == 0:
+                row.submit()
 
         elif action == "reject":
             row.workflow_state = "Rejected"
@@ -247,9 +249,6 @@ def handle_leave_action(docname, doctype, action, leaves):
             if row.docstatus == 0:
                 row.submit()
 
-        elif action == "confirm":
-            row.workflow_state = "Confirmed"
-            row.submit()
 
         # * Save leave application with updated state
         row.save(ignore_permissions=True)
@@ -499,7 +498,8 @@ def append_lop_summary(doc, method=None):
             filters={
                 "employee": emp_id,
                 "from_date": ["between", [doc.start_date, doc.end_date]],
-                "workflow_state": "Confirmed",
+                "docstatus": "1",
+                "status": "Approved",
                 "leave_type": ["in", leave_type_names],
             },
             fields=["total_leave_days"],
@@ -507,25 +507,31 @@ def append_lop_summary(doc, method=None):
         # * Sum all actual LWP days
         actual_lwp = sum(l.total_leave_days for l in lwp_leaves)
 
-        # * Append to in-memory child table for UI
-        doc.append(
-            "custom_lop_summary",
-            {
-                "employee": emp_id,
-                "penalty_leave_days": penalty_days,
-                "actual_lop": actual_lwp,
-            },
-        )
+        # ? ADD ACTUAL LWP AND PENALTY DAYS TO CALCULATE TOTAL PENALTY
+        total_lop = actual_lwp + penalty_days
 
-        # ! Optional: Insert to DB (for backend or reports)
-        frappe.get_doc(
-            {
-                "doctype": "LOP Summary",
-                "parent": doc.name,
-                "parenttype": doc.doctype,
-                "parentfield": "custom_lop_summary",
-                "employee": emp_id,
-                "penalty_leave_days": penalty_days,
-                "actual_lop": actual_lwp,
-            }
-        ).insert(ignore_permissions=True)
+        if total_lop > 0:
+            # * Append to in-memory child table for UI
+            doc.append(
+                "custom_lop_summary",
+                {
+                    "employee": emp_id,
+                    "penalty_leave_days": penalty_days,
+                    "actual_lop": actual_lwp,
+                    "total_lop": total_lop
+                },
+            )
+
+            # ! Optional: Insert to DB (for backend or reports)
+            frappe.get_doc(
+                {
+                    "doctype": "LOP Summary",
+                    "parent": doc.name,
+                    "parenttype": doc.doctype,
+                    "parentfield": "custom_lop_summary",
+                    "employee": emp_id,
+                    "penalty_leave_days": penalty_days,
+                    "actual_lop": actual_lwp,
+                    "total_lop": total_lop
+                }
+            ).insert(ignore_permissions=True)
