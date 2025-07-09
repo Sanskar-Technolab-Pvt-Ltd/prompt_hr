@@ -59,6 +59,8 @@ frappe.ui.form.on("Payroll Entry", {
                 }
             };
         });
+
+        set_lop_month_options_for_all_rows(frm)
         
     },
     before_save: (frm) => {
@@ -121,37 +123,69 @@ function handle_leave_action(frm, action) {
 frappe.ui.form.on("LOP Reversal Details", {
     employee: function(frm, cdt, cdn) {
         const row = locals[cdt][cdn];
-        if (row.employee) {
-            let date_obj = frappe.datetime.str_to_obj(frm.doc.start_date);
+        const child_table_field = "custom_lop_reversal_details";
+        const month_field = "lop_month";
+        const actual_lop_days_field = "actual_lop_days";
 
-            date_obj.setMonth(date_obj.getMonth() - 1);
+        if (row.employee && frm.doc.start_date) {
+            let field = frm.fields_dict[child_table_field].grid.get_docfield(month_field);
+            let options = field.options ? field.options.split('\n') : [];
+            let default_month = options.length ? options[options.length - 1] : "";
 
-            // Format to "Month-YYYY" (e.g., March-2025 if start_date is April 2025)
-            let formatted_date = date_obj.toLocaleDateString('en-US', {
-                month: 'long',
-                year: 'numeric'
-            }).replace(' ', '-');
+            // Set the default value for lop_month
+            frappe.model.set_value(cdt, cdn, month_field, default_month);
+        } else {
+            // Reset fields if required values are missing
+            frappe.model.set_value(cdt, cdn, month_field, "");
+            frappe.model.set_value(cdt, cdn, actual_lop_days_field, 0);
+            frappe.model.set_value(cdt, cdn, "lop_reversal_days", 0)
+        }
+    },
 
-            frappe.model.set_value(cdt, cdn, "lop_month", formatted_date);
+    lop_month: function(frm, cdt, cdn) {
+        const actual_lop_days_field = "actual_lop_days";
+        const row = locals[cdt][cdn];
+        console.log(row)
+        if(row){
             frappe.call({
                 method: "prompt_hr.py.payroll_entry.get_actual_lop_days",
                 args: {
                     employee: row.employee,
-                    start_date: frm.doc.start_date
+                    start_date: row.lop_month
                 },
                 callback: function(r) {
-                    if (r.message) {
-                        frappe.model.set_value(cdt, cdn, "actual_lop_days", r.message);
-                    } else {
-                        frappe.model.set_value(cdt, cdn, "actual_lop_days", 0);
-                    }
+                    frappe.model.set_value(cdt, cdn, actual_lop_days_field, r.message || 0);
                 }
             });
         }
-        else {
-            frappe.model.set_value(cdt, cdn, "lop_month", "");
-            frappe.model.set_value(cdt, cdn, "actual_lop_days", 0);
+    },
+
+    lop_reversal_days: function(frm, cdt, cdn) {
+        const row = locals[cdt][cdn];
+        let lop_reversal_days = row.lop_reversal_days ? row.lop_reversal_days : 0;
+        let actual_lop_days = row.actual_lop_days ? row.actual_lop_days : 0;
+
+        if(lop_reversal_days > actual_lop_days){
+            frappe.throw("LOP Reversal Days cannot be greater than Actual LOP Days.");
         }
     }
+});
+
+function set_lop_month_options_for_all_rows(frm) {
+    const child_table_field = "custom_lop_reversal_details";
+    const month_field = "lop_month";
+
+    if (frm.doc.start_date) {
+        let start_date = frappe.datetime.str_to_obj(frm.doc.start_date);
+        let selected_month_index = start_date.getMonth();
+        let selected_year = start_date.getFullYear();
+        let options = [];
+        for (let i = 0; i < selected_month_index; i++) {
+            let month_name = moment().month(i).format('MMMM');
+            options.push(`${month_name}-${selected_year}`);
+        }
+        frm.fields_dict[child_table_field].grid.update_docfield_property(
+            month_field, "options", options.join("\n")
+        );
     }
-)
+}
