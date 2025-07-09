@@ -4,6 +4,17 @@ from hrms.payroll.doctype.payroll_entry.payroll_entry import PayrollEntry, get_e
 
 class CustomPayrollEntry(PayrollEntry):
 
+    def before_save(self):
+        for row in self.custom_lop_reversal_details:
+            actual_lop_days = row.actual_lop_days if row.actual_lop_days else 0
+            lop_reversal_days = row.lop_reversal_days if row.lop_reversal_days else 0
+            if lop_reversal_days > actual_lop_days:
+                frappe.throw(
+                    _("Row {0}: LOP Reversal Days ({1}) cannot be greater than Actual LOP Days ({2}).").format(
+                        row.idx, lop_reversal_days, actual_lop_days
+                    )
+                )
+
     def on_submit(self):
         super().on_submit()
 
