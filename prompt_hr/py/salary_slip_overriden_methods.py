@@ -1,5 +1,6 @@
 import frappe
 from frappe import _
+from collections import defaultdict
 from hrms.payroll.doctype.payroll_entry.payroll_entry import log_payroll_failure, get_existing_salary_slips
 
 def custom_create_salary_slips_for_employees(employees, args, publish_progress=True):
@@ -31,7 +32,11 @@ def custom_create_salary_slips_for_employees(employees, args, publish_progress=T
 
 		salary_slips_exist_for = get_existing_salary_slips(employees, args)
 		count = 0
-		lop_days_map = {emp.employee: emp.lop_reversal_days for emp in payroll_entry.custom_lop_reversal_details}
+
+		lop_days_map = defaultdict(float)
+
+		for emp in payroll_entry.custom_lop_reversal_details:
+			lop_days_map[emp.employee] += emp.lop_reversal_days or 0
 
 		# * Remove employees for whom salary slips already exist or are restricted
 		employees = list(set(employees) - set(salary_slips_exist_for) - set(restricted_employee))
