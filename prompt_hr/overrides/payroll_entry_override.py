@@ -5,15 +5,31 @@ from hrms.payroll.doctype.payroll_entry.payroll_entry import PayrollEntry, get_e
 class CustomPayrollEntry(PayrollEntry):
 
     def before_save(self):
+        # ? Track seen combinations of (employee, lop_month)
+        seen = set()
+
         for row in self.custom_lop_reversal_details:
-            actual_lop_days = row.actual_lop_days if row.actual_lop_days else 0
-            lop_reversal_days = row.lop_reversal_days if row.lop_reversal_days else 0
+            # * Ensure default values if None
+            actual_lop_days = row.actual_lop_days or 0
+            lop_reversal_days = row.lop_reversal_days or 0
+
+            # ! Check if LOP Reversal Days exceed Actual LOP Days
             if lop_reversal_days > actual_lop_days:
                 frappe.throw(
                     _("Row {0}: LOP Reversal Days ({1}) cannot be greater than Actual LOP Days ({2}).").format(
                         row.idx, lop_reversal_days, actual_lop_days
                     )
                 )
+
+            # ! Check for duplicate Employee + Month
+            key = (row.employee, row.lop_month)
+            if key in seen:
+                frappe.throw(
+                    _("Row {0}: Duplicate combination of Employee '{1}' and LOP Month '{2}' is not allowed.").format(
+                        row.idx, row.employee, row.lop_month
+                    )
+                )
+            seen.add(key)
 
     def on_submit(self):
         super().on_submit()
