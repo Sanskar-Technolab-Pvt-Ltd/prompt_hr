@@ -16,9 +16,12 @@ from hrms.hr.doctype.leave_application.leave_application import (
 
 @frappe.whitelist()
 def get_expected_skill_set(interview_round):
-	return frappe.get_all(
-		"Expected Skill Set", filters={"parent": interview_round}, fields=["skill","custom_skill_type","custom_rating_scale"], order_by="idx"
-	)
+    return frappe.get_all(
+        "Expected Skill Set",
+        filters={"parent": interview_round},
+        fields=["skill", "custom_skill_type", "custom_rating_scale"],
+        order_by="idx"
+    )
 
 @frappe.whitelist()
 def get_applicable_interviewers(interview: str) -> List[str]:
