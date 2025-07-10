@@ -178,7 +178,8 @@ override_doctype_class = {
     "Leave Encashment": "prompt_hr.overrides.leave_encashment_override.CustomLeaveEncashment",
     "Leave Allocation": "prompt_hr.overrides.leave_allocation_override.CustomLeaveAllocation",
     "Full and Final Statement": "prompt_hr.overrides.full_and_final_statement_override.CustomFullAndFinalStatement",
-    "Job Requisition": "prompt_hr.overrides.job_requisition_override.CustomJobRequisition"
+    "Job Requisition": "prompt_hr.overrides.job_requisition_override.CustomJobRequisition",
+    "Compensatory Leave Request": "prompt_hr.overrides.compensatory_leave_request_override.CustomCompensatoryLeaveRequest"
 }
 
 # Document Events
@@ -254,10 +255,8 @@ doc_events = {
         "before_save": "prompt_hr.py.additional_salary.before_save"
     },
     "Additional Salary": {"before_save": "prompt_hr.py.additional_salary.before_save"},
-    "Compensatory Leave Request": {
-        "before_save": "prompt_hr.py.compensatory_leave_request.before_save",
-        "on_cancel": "prompt_hr.py.compensatory_leave_request.on_cancel",
-        "on_update": "prompt_hr.py.compensatory_leave_request.on_update",
+    "Leave Encashment": {
+        "before_save": "prompt_hr.py.leave_encashment.before_save",
     },
     "Additional Salary": {"before_save": "prompt_hr.py.additional_salary.before_save"},
     "Job Opening": {"before_insert": "prompt_hr.py.job_opening.before_insert"},
@@ -481,7 +480,7 @@ fixtures = [
     #     "dt":"Role", "filters": [["name", "in", ["Job Requisition", "Head of Department", "Managing Director"]]]
     # },
     # {
-    #     "dt":"Workflow", "filters": [["name", "in", ["Job Requisition", "Expense Claim", "Compensatory Leave Request", "Leave Application", "Loan Application", "Travel Request"]]]
+    #     "dt":"Workflow", "filters": [["name", "in", ["Job Requisition","Loan Application", "Compensatory Leave Request", "Leave Application", "Expense Claim", "Travel Request"]]]
     # },
     # {
     #     "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled", "Confirmed", "Approved by HR", "Rejected by HR", "Approved by BU Head", "Rejected by BU Head", "Extension Approved", "Extension Confirmed", "Extension Rejected", "Extension Requested"]]]

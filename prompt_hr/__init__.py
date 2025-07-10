@@ -12,6 +12,10 @@ from prompt_hr.py.leave_application import custom_update_previous_leave_allocati
 from hrms.payroll.doctype.payroll_entry import payroll_entry 
 from prompt_hr.py.salary_slip_overriden_methods import custom_create_salary_slips_for_employees
 from prompt_hr.py.leave_type import custom_get_earned_leaves
+import hrms.payroll.doctype.payroll_entry.payroll_entry as PayrollEntryModule
+from prompt_hr.overrides.payroll_entry_override import custom_set_filter_conditions
+
+PayrollEntryModule.set_filter_conditions = custom_set_filter_conditions
 from prompt_hr.py.overrides import get_applicable_interviewers
 from prompt_hr.py.leave_application import custom_get_number_of_leave_days
 

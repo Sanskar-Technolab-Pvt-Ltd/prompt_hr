@@ -26,7 +26,7 @@ frappe.ui.form.on("Leave Application", {
 				employee: frm.doc.employee || '',
 			},
 			callback: function (r) {
-				if (r.message && (frm.doc.workflow_state == 'Approved' || frm.doc.workflow_state == 'Confirmed') && (!frm.doc.custom_extension_status || frm.doc.custom_extension_status == "")) {
+				if (r.message && (frm.doc.workflow_state == 'Approved') && (!frm.doc.custom_extension_status || frm.doc.custom_extension_status == "")) {
 				frm.add_custom_button(__('Extend Leave'), function() {
 					let d = new frappe.ui.Dialog({
 						title: 'Extend Leave',
