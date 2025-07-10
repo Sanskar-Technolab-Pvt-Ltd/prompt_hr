@@ -23,6 +23,79 @@ frappe.ui.form.on("Payroll Entry", {
         empty_branch_field_if_form_is_new(frm);
         frm.get_field('custom_lop_summary').grid.cannot_add_rows = true;
         frm.refresh_field('custom_lop_summary');
+
+        if(frm.doc.docstatus === 0) {
+            frm.add_custom_button(__('Data Import'), function() {
+                let dialog = new frappe.ui.Dialog({
+                    title: 'Import Adhoc Salary Details',
+                    fields: [
+                        {
+                            label: 'CSV File',
+                            fieldname: 'csv_file',
+                            fieldtype: 'Attach',
+                            reqd: 1
+                        }
+                    ],
+                    primary_action_label: 'Import',
+                    primary_action(values) {
+                        if (!values.csv_file) {
+                            frappe.msgprint('Please upload a CSV file.');
+                            return;
+                        }
+                        // Fetch file content using frappe.call
+                        frappe.call({
+                            method: "frappe.client.get_value",
+                            args: {
+                                doctype: "File",
+                                filters: { file_url: values.csv_file },
+                                fieldname: "file_url"
+                            },
+                            callback: function(r) {
+                                if (r.message && r.message.file_url) {
+                                    const file_url = r.message.file_url;
+                                    
+                                    frappe.call({
+                                        method: "prompt_hr.py.payroll_entry.import_adhoc_salary_details",
+                                        args: {
+                                            payroll_entry: frm.doc.name,
+                                            file_url: file_url
+                                        },
+                                        freeze: true,
+                                        callback: function(r) {
+                                            dialog.hide();
+                                            frm.reload_doc();
+                                        }
+                                    });
+                                            
+                                }
+                            }
+                        });
+                    }
+                });
+
+                // Add Download Template button
+                dialog.$wrapper
+                    .find('.modal-footer')
+                    .prepend(
+                        `<button class="btn btn-secondary btn-download-template" style="margin-right: 8px;">
+                            Download Template
+                        </button>`
+                    );
+
+                // Handle Download Template click
+                dialog.$wrapper.find('.btn-download-template').on('click', function() {
+                    if (!frm.doc.name) {
+                        frappe.msgprint("Please save the Payroll Entry first.");
+                        return;
+                    }
+                    window.open(
+                        `/api/method/prompt_hr.py.payroll_entry.download_adhoc_salary_template?payroll_entry=${frm.doc.name}`
+                    );
+                });
+
+                dialog.show();
+            });
+        }
         // ? ADD CUSTOM BUTTONS FOR LEAVE ACTIONS
         frm.add_custom_button(
             __("Approve Leave"),
