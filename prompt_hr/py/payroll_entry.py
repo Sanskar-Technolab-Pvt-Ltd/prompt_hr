@@ -1,7 +1,12 @@
 import frappe
 from frappe.utils import cint
 from dateutil.relativedelta import relativedelta
-
+import csv
+import io
+from frappe.utils.xlsxutils import make_xlsx, read_xlsx_file_from_attached_file
+from frappe.utils.response import build_response
+from frappe import _
+from frappe.utils.file_manager import get_file
 
 # ? ON UPDATE CONTROLLER METHOD
 # ! prompt_hr.py.payroll_entry.before_save
@@ -535,3 +540,80 @@ def append_lop_summary(doc, method=None):
                     "total_lop": total_lop
                 }
             ).insert(ignore_permissions=True)
+
+
+@frappe.whitelist()
+def download_adhoc_salary_template(payroll_entry):
+    """
+    Returns a CSV template with Employee and Employee Name pre-filled for the given Payroll Entry.
+    """
+    # Get all employees in the Payroll Entry's employee list
+    doc = frappe.get_doc("Payroll Entry", payroll_entry)
+    employees = [(employee.employee, employee.employee_name) for employee in doc.employees]
+
+    # Prepare data for Excel
+    data = [["Employee", "Employee Name", "Salary Component", "Amount"]]
+    for emp_id, emp_name in employees:
+        data.append([emp_id, emp_name, "", ""])
+
+    # Create Excel file using Frappe utility
+    xlsx_file = make_xlsx(data, "Adhoc Salary Details Template")
+    xlsx_file.seek(0)
+
+    frappe.local.response.filename = "Adhoc Salary Details Template.xlsx"
+    frappe.local.response.filecontent = xlsx_file.read()
+    frappe.local.response.type = "download"
+    return build_response("download")
+
+
+@frappe.whitelist()
+def import_adhoc_salary_details(payroll_entry, file_url):
+    """
+    Import child table records into custom_adhoc_salary_details for the given Payroll Entry.
+    filedata: CSV file content as string (from client)
+    """
+    # Get Payroll Entry doc
+    doc = frappe.get_doc("Payroll Entry", payroll_entry)
+    errors = []
+    added = 0
+    rows = read_xlsx_file_from_attached_file(file_url)
+    if not rows:
+        frappe.throw(_("No file data received."))
+    # Skip header row
+    for i, row in enumerate(rows[1:], start=2):
+        if len(row) < 4:
+            errors.append(f"Row {i}: Not enough columns")
+            continue
+        emp, emp_name, salary_component, amount = row[:4]
+        if not emp or not emp_name or not salary_component or not amount:
+            errors.append(f"Row {i}: Missing required field(s)")
+            continue
+
+        if not frappe.db.exists("Employee", emp):
+            errors.append(f"Row {i}: Employee {emp} does not exist")
+            continue
+
+        if not frappe.db.exists("Salary Component", salary_component):
+            errors.append(f"Row {i}: Salary Component {salary_component} does not exist")
+            continue
+
+        try:
+            amt = float(amount)
+        except Exception:
+            errors.append(f"Row {i}: Invalid amount")
+            continue
+
+        doc.append("custom_adhoc_salary_details", {
+            "employee": emp,
+            "employee_name": emp_name,
+            "salary_component": salary_component,
+            "amount": amt
+        })
+        added += 1
+
+    if errors:
+        frappe.throw(_("Import failed with errors:<br>") + "<br>".join(errors))
+
+    doc.save()
+    frappe.msgprint(_(f"Successfully imported {added} records into Adhoc Salary Details."))
+    return {"added": added}
