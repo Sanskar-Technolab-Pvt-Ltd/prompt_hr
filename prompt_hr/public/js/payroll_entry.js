@@ -30,16 +30,16 @@ frappe.ui.form.on("Payroll Entry", {
                     title: 'Import Adhoc Salary Details',
                     fields: [
                         {
-                            label: 'CSV File',
-                            fieldname: 'csv_file',
+                            label: 'Upload Excel File',
+                            fieldname: 'excel_file',
                             fieldtype: 'Attach',
                             reqd: 1
                         }
                     ],
                     primary_action_label: 'Import',
                     primary_action(values) {
-                        if (!values.csv_file) {
-                            frappe.msgprint('Please upload a CSV file.');
+                        if (!values.excel_file) {
+                            frappe.msgprint('Please upload a Excel file.');
                             return;
                         }
                         // Fetch file content using frappe.call
@@ -47,7 +47,7 @@ frappe.ui.form.on("Payroll Entry", {
                             method: "frappe.client.get_value",
                             args: {
                                 doctype: "File",
-                                filters: { file_url: values.csv_file },
+                                filters: { file_url: values.excel_file },
                                 fieldname: "file_url"
                             },
                             callback: function(r) {
@@ -57,7 +57,7 @@ frappe.ui.form.on("Payroll Entry", {
                                     frappe.call({
                                         method: "prompt_hr.py.payroll_entry.import_adhoc_salary_details",
                                         args: {
-                                            payroll_entry: frm.doc.name,
+                                            payroll_entry_id: frm.doc.name,
                                             file_url: file_url
                                         },
                                         freeze: true,
@@ -89,12 +89,12 @@ frappe.ui.form.on("Payroll Entry", {
                         return;
                     }
                     window.open(
-                        `/api/method/prompt_hr.py.payroll_entry.download_adhoc_salary_template?payroll_entry=${frm.doc.name}`
+                        `/api/method/prompt_hr.py.payroll_entry.download_adhoc_salary_template?payroll_entry_id=${frm.doc.name}`
                     );
                 });
 
                 dialog.show();
-            });
+            }).addClass("btn-primary");
         }
         // ? ADD CUSTOM BUTTONS FOR LEAVE ACTIONS
         frm.add_custom_button(

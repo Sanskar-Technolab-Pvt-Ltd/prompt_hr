@@ -30,6 +30,36 @@ class CustomPayrollEntry(PayrollEntry):
                     )
                 )
             seen.add(key)
+        
+        # ? VALIDATE ADHOC SALARY DETAILS BEFORE SAVE
+        if self.custom_adhoc_salary_details:
+            adhoc_salary_pair = set()
+            for row in self.custom_adhoc_salary_details:
+
+                # ! Ensure mandatory fields are filled if the row exists
+                if not row.employee or not row.salary_component:
+                    frappe.throw(
+                        _("Row {0}: 'Employee' and 'Salary Component' are required fields.").format(row.idx)
+                    )
+
+                # * Assign a default of 0 if amount is None
+                amount = row.amount or 0
+
+                # ! Prevent records with zero amount
+                if amount == 0:
+                    frappe.throw(
+                        _("{0}: Amount cannot be zero.").format(row.salary_component)
+                    )
+
+                # ! Check for duplicate Employee + Salary Component
+                key = (row.employee, row.salary_component)
+                if key in adhoc_salary_pair:
+                    frappe.throw(
+                        _("Row {0}: Duplicate combination of Employee '{1}' and Salary Component '{2}' is not allowed.").format(
+                            row.idx, row.employee, row.salary_component
+                        )
+                    )
+                adhoc_salary_pair.add(key)
 
     def on_submit(self):
         super().on_submit()
