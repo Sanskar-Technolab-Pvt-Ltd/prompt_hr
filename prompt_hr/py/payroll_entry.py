@@ -1,12 +1,10 @@
 import frappe
 from frappe.utils import cint
 from dateutil.relativedelta import relativedelta
-import csv
-import io
 from frappe.utils.xlsxutils import make_xlsx, read_xlsx_file_from_attached_file
 from frappe.utils.response import build_response
 from frappe import _
-from frappe.utils.file_manager import get_file
+
 
 # ? ON UPDATE CONTROLLER METHOD
 # ! prompt_hr.py.payroll_entry.before_save
@@ -543,77 +541,154 @@ def append_lop_summary(doc, method=None):
 
 
 @frappe.whitelist()
-def download_adhoc_salary_template(payroll_entry):
-    """
-    Returns a CSV template with Employee and Employee Name pre-filled for the given Payroll Entry.
-    """
-    # Get all employees in the Payroll Entry's employee list
-    doc = frappe.get_doc("Payroll Entry", payroll_entry)
-    employees = [(employee.employee, employee.employee_name) for employee in doc.employees]
+def download_adhoc_salary_template(payroll_entry_id):
+    # * Fetch the Payroll Entry document
+    payroll_entry = frappe.get_doc("Payroll Entry", payroll_entry_id)
 
-    # Prepare data for Excel
-    data = [["Employee", "Employee Name", "Salary Component", "Amount"]]
-    for emp_id, emp_name in employees:
-        data.append([emp_id, emp_name, "", ""])
+    # * Get the list of employees in this Payroll Entry
+    employee_list = [(emp.employee, emp.employee_name) for emp in payroll_entry.employees]
 
-    # Create Excel file using Frappe utility
-    xlsx_file = make_xlsx(data, "Adhoc Salary Details Template")
+    # * Prepare Excel header
+    excel_data = [["Employee", "Employee Name", "Salary Component", "Amount"]]
+
+    # * Add existing adhoc salary details if they exist
+    if payroll_entry.custom_adhoc_salary_details:
+        for detail in payroll_entry.custom_adhoc_salary_details:
+            excel_data.append([
+                detail.employee,
+                detail.employee_name,
+                detail.salary_component,
+                detail.amount
+            ])
+    else:
+        # * Otherwise, generate empty rows for manual entry
+        for emp_id, emp_name in employee_list:
+            excel_data.append([emp_id, emp_name, "", ""])
+
+    # * Generate the XLSX file from the data
+    xlsx_file = make_xlsx(excel_data, "Adhoc Salary Details Template")
     xlsx_file.seek(0)
 
+    # * Set response for file download
     frappe.local.response.filename = "Adhoc Salary Details Template.xlsx"
     frappe.local.response.filecontent = xlsx_file.read()
     frappe.local.response.type = "download"
+
     return build_response("download")
 
 
 @frappe.whitelist()
-def import_adhoc_salary_details(payroll_entry, file_url):
-    """
-    Import child table records into custom_adhoc_salary_details for the given Payroll Entry.
-    filedata: CSV file content as string (from client)
-    """
-    # Get Payroll Entry doc
-    doc = frappe.get_doc("Payroll Entry", payroll_entry)
-    errors = []
-    added = 0
+def import_adhoc_salary_details(payroll_entry_id, file_url):
+    # * Fetch the Payroll Entry document
+    payroll_entry = frappe.get_doc("Payroll Entry", payroll_entry_id)
+
+    # * Prepare trackers for success & errors
+    import_errors = []
+    records_added = 0
+    update_count = 0
+    payroll_employee_ids = [emp.employee for emp in payroll_entry.employees]
+
+    # * Read rows from the uploaded Excel file
     rows = read_xlsx_file_from_attached_file(file_url)
+
     if not rows:
-        frappe.throw(_("No file data received."))
-    # Skip header row
-    for i, row in enumerate(rows[1:], start=2):
+        # ! No data found in file
+        frappe.throw(_("No data found in the uploaded file. Please check and try again."))
+
+    # * Skip header row and process each line
+    for row_index, row in enumerate(rows[1:], start=2):
         if len(row) < 4:
-            errors.append(f"Row {i}: Not enough columns")
-            continue
-        emp, emp_name, salary_component, amount = row[:4]
-        if not emp or not emp_name or not salary_component or not amount:
-            errors.append(f"Row {i}: Missing required field(s)")
+            # ! Row is incomplete
+            import_errors.append(f"Row {row_index}: Missing required columns")
             continue
 
-        if not frappe.db.exists("Employee", emp):
-            errors.append(f"Row {i}: Employee {emp} does not exist")
+        employee_id, employee_name, salary_component_name, salary_amount = row[:4]
+
+        # * Check for required values and list what’s missing
+        missing_fields = []
+
+        if not employee_id:
+            missing_fields.append("Employee ID")
+        if not employee_name:
+            missing_fields.append("Employee Name")
+        if not salary_component_name:
+            missing_fields.append("Salary Component")
+        if not salary_amount:
+            missing_fields.append("Amount")
+
+        if missing_fields:
+            # ! One or more required fields are missing — show which ones
+            import_errors.append(
+                f"Row {row_index}: Missing required field(s): {', '.join(missing_fields)}"
+            )
             continue
 
-        if not frappe.db.exists("Salary Component", salary_component):
-            errors.append(f"Row {i}: Salary Component {salary_component} does not exist")
+        # * Ensure employee is in the current Payroll Entry
+        if employee_id not in payroll_employee_ids:
+            # ! Employee not valid for this payroll
+            import_errors.append(f"Row {row_index}: Employee {employee_id} is not part of this payroll entry")
             continue
 
+        # * Validate Salary Component
+        if not frappe.db.exists("Salary Component", salary_component_name):
+            # ! Salary Component missing
+            import_errors.append(f"Row {row_index}: Salary Component '{salary_component_name}' does not exist")
+            continue
+
+        # * Validate amount is a float
         try:
-            amt = float(amount)
+            salary_amount = float(salary_amount)
         except Exception:
-            errors.append(f"Row {i}: Invalid amount")
+            # ! Amount is invalid
+            import_errors.append(f"Row {row_index}: Invalid amount '{salary_amount}'")
             continue
 
-        doc.append("custom_adhoc_salary_details", {
-            "employee": emp,
-            "employee_name": emp_name,
-            "salary_component": salary_component,
-            "amount": amt
-        })
-        added += 1
+        # * Check if this salary detail already exists to update
+        record_updated = False
+        for existing in payroll_entry.custom_adhoc_salary_details:
+            if existing.employee == employee_id and existing.salary_component == salary_component_name:
+                if existing.amount != salary_amount:
+                    update_count += 1
 
-    if errors:
-        frappe.throw(_("Import failed with errors:<br>") + "<br>".join(errors))
+                existing.amount = salary_amount
+                record_updated = True
+                break
+            elif existing.employee == employee_id and not existing.salary_component:
+                existing.salary_component = salary_component_name
+                existing.amount = salary_amount
+                record_updated = True
+                update_count += 1
+                break
 
-    doc.save()
-    frappe.msgprint(_(f"Successfully imported {added} records into Adhoc Salary Details."))
-    return {"added": added}
+        # * Append new entry if no match found
+        if not record_updated:
+            payroll_entry.append("custom_adhoc_salary_details", {
+                "employee": employee_id,
+                "employee_name": employee_name,
+                "salary_component": salary_component_name,
+                "amount": salary_amount
+            })
+            records_added += 1
+
+    # * If there were errors, show them to the user
+    if import_errors:
+        # ! Data import failed
+        frappe.throw(_("Import failed due to the following issues:<br>") + "<br>".join(import_errors))
+
+    # * Save the Payroll Entry with the new details
+    payroll_entry.save()
+
+    if records_added or update_count:
+        message = "Import completed successfully."
+
+        if records_added:
+            message += f"<br>{records_added} new record(s) were added."
+
+        if update_count:
+            message += f"<br>{update_count} existing record(s) were updated."
+    else:
+        message = "No changes were made. The file may not contain any new or updated data."
+
+    frappe.msgprint(_(message))
+
+    return {"added": records_added}

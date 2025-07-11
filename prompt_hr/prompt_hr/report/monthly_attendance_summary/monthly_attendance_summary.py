@@ -90,7 +90,37 @@ def execute(filters: Filters | None = None) -> tuple:
 					"width": 150,
 			},
 		)
-	
+	else:
+		columns.append(
+			{
+					"label": _("Total Working Days"),
+					"fieldname": "total_working_days",
+					"fieldtype": "Float",
+					"width": 150,
+			},
+		)
+		columns.append(
+			{
+					"label": _("Total LOP Days"),
+					"fieldname": "total_lop_days",
+					"fieldtype": "Float",
+					"width": 150,
+			},
+		)
+		columns.append(
+			{
+					"label": _("Total Payment Days"),
+					"fieldname": "total_payment_days",
+					"fieldtype": "Float",
+					"width": 150,
+			},
+		)
+	# * Apply width increase: 50 for all, 100 for 'employee'
+	columns = increase_column_widths(
+		columns,
+		default_increment=50,
+		special_cases={"employee": 150}
+	)
 	data = get_data(filters, attendance_map_with_leave_types)
 
 	if not data:
@@ -195,16 +225,76 @@ def get_attendance_status_for_detailed_view(
 	employee: str, filters: Filters, employee_attendance: dict, holidays: list
 ) -> list[dict]:
 
+	# ? CALCULATE TOTAL DAYS IN THE SELECTED MONTH
 	total_days = get_total_days_in_month(filters)
 	row = {}
 	status_map = get_status_map()
 
+	# ? INITIALIZE WORKING DAYS, LOSS OF PAY (LOP) DAYS, AND PAYMENT DAYS
+	total_working_days = 0
+	total_lop_days = 0
+	total_payment_days = 0
+	year = cint(filters.year)
+	month = cint(filters.month)
+
+	# * GET FIRST AND LAST DATE OF THE MONTH
+	start_date = date(year, month, 1)
+	end_date = date(year, month, monthrange(year, month)[1])
+
+	# ? DETERMINE WHETHER TO INCLUDE HOLIDAYS IN TOTAL WORKING DAYS
+	include_holiday = frappe.db.get_single_value("Payroll Settings", "include_holidays_in_total_working_days")
+	if include_holiday:
+		total_working_days = total_days
+	else:
+		# ! THROW ERROR IF HOLIDAYS LIST IS MISSING
+		if not holidays:
+			frappe.throw(
+				_("Please set default holidays list for company {}").format(filters.company),
+				title=_("Missing Default Holidays List"),
+			)
+		total_working_days = total_days - len(holidays)
+
+	# ? FETCH ATTENDANCE RECORDS FOR EMPLOYEE IN THE SPECIFIED MONTH
+	attendance_record = frappe.get_all(
+		"Attendance",
+		fields=["name", "leave_type", "status"],
+		filters={
+			"employee": employee,
+			"company": filters.company,
+			"docstatus": 1,
+			"attendance_date": ["between", [start_date, end_date]],
+		},
+	)
+
+	# ? LOOP THROUGH ATTENDANCE RECORDS TO CALCULATE LOP DAYS
+	if attendance_record:
+		for record in attendance_record:
+			if record.leave_type:
+				leave_type = frappe.get_doc("Leave Type", record.leave_type)
+				if leave_type.is_lwp:
+					if record.status == "Half Day":
+						total_lop_days += 0.5  # * ADD HALF DAY FOR HALF-DAY LEAVE
+					else:
+						total_lop_days += 1  # * ADD FULL DAY FOR FULL-DAY LEAVE
+	
+	# ? BUILD DAILY STATUS MAP USING ABBREVIATIONS
 	for day in range(1, total_days + 1):
 		status = employee_attendance.get(day)
 		if status is None and holidays:
 			status = get_holiday_status(day, holidays)
 		abbr = status_map.get(status, "")
 		row[cstr(day)] = abbr
+
+	# ? CALCULATE PAYMENT DAYS BASED ON WORKING DAYS AND LOP DAYS
+	if total_lop_days > total_working_days:
+		total_payment_days = 0  # ! LOP EXCEEDS WORKING DAYS, ZERO PAYMENT DAYS
+	else:
+		total_payment_days = total_working_days - total_lop_days
+
+	# * FINAL SUMMARY FIELDS
+	row["total_working_days"] =  total_working_days
+	row["total_lop_days"] = total_lop_days
+	row["total_payment_days"] = total_payment_days
 
 	return [row]
 
@@ -321,3 +411,18 @@ def get_attendance_status_for_summarized_view(employee: str, filters: Filters, h
 		"total_holidays": total_holidays,
 		"unmarked_days": total_unmarked_days,
 	}
+
+# * Increase all column widths by a given increment, with special cases
+def increase_column_widths(columns, default_increment=50, special_cases=None):
+    if special_cases is None:
+        special_cases = {}
+
+    for col in columns:
+        fieldname = col.get("fieldname", "")
+        current_width = col.get("width", 100)
+
+        # * Use custom increment if it's a special case
+        increment = special_cases.get(fieldname, default_increment)
+        col["width"] = current_width + increment
+
+    return columns
