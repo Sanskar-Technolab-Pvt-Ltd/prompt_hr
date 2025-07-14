@@ -6,7 +6,7 @@ frappe.ui.form.on("Attendance Regularization", {
         const user = frappe.session.user
         if (frm.doc.employee) {
             frappe.call({
-                "method": "prompt_hr.py.utils.check_user_is_reporting_manager",
+                "method": "prompt_hr.py.utils.is_user_reporting_manager_or_hr",
                 "args": {
                     user_id: user,
                     requesting_employee_id: frm.doc.employee

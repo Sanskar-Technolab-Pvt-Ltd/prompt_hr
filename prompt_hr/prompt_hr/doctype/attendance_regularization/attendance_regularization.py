@@ -3,7 +3,7 @@
 
 import frappe
 from frappe.model.document import Document
-from prompt_hr.py.utils import check_user_is_reporting_manager, send_notification_email
+from prompt_hr.py.utils import send_notification_email, is_user_reporting_manager_or_hr
 from frappe.utils import get_datetime, time_diff_in_hours
 from prompt_hr.py.auto_mark_attendance import mark_attendance
 
@@ -12,7 +12,7 @@ class AttendanceRegularization(Document):
 	
 	def validate(self):
 		
-		is_rh = check_user_is_reporting_manager(user_id=frappe.session.user, requesting_employee_id=self.employee)
+		is_rh = is_user_reporting_manager_or_hr(user_id=frappe.session.user, requesting_employee_id=self.employee)
 		if is_rh:
 			if self.status == "Approved" :
 				

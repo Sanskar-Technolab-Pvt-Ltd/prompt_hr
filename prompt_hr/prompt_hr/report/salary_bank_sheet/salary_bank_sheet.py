@@ -7,7 +7,7 @@ import calendar
 
 def execute(filters=None):
     columns = [
-        {"label": "Empno.", "fieldtype": "Data", "fieldname": "employee_number", "width": 100},
+        {"label": "Empno.", "fieldtype": "Link", "fieldname": "employee","options":'Employee', "width": 100},
         {"label": "Name", "fieldtype": "Data", "fieldname": "employee_name", "width": 180},
         {"label": "Department", "fieldtype": "Data", "fieldname": "department", "width": 120},
         {"label": "Payment Mode", "fieldtype": "Data", "fieldname": "payment_mode", "width": 120},
@@ -41,12 +41,12 @@ def execute(filters=None):
     for slip in salary_slips:
         employee = frappe.get_doc("Employee", slip.employee)
         data.append({
-            "employee": employee.employee_number,
+            "employee": employee.name,
             "employee_name": employee.employee_name,
             "department": employee.department,
             "payment_mode": slip.mode_of_payment,
             "bank_name": slip.bank_name,
-            "ifsc_code": "NA",
+            "ifsc_code": employee.ifsc_code,
             "bank_account_no": slip.bank_account_no,
             "payment_for": "Salary",
             "amount": slip.net_pay,
