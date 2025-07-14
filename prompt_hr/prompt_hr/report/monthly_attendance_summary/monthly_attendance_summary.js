@@ -71,7 +71,44 @@ frappe.query_reports["Monthly Attendance Summary"] = {
 			default: 0,
 		},
 	],
-	onload: function () {
+	onload: function (report) {
+		// "Pending Leaves" button
+        report.page.add_inner_button(
+            __("Pending Leaves"),
+            function() {
+                let month = report.get_filter_value('month');
+                if (!month) {
+                    frappe.msgprint(__('Please select a month.'));
+                    return;
+                }
+
+                frappe.set_route('query-report', 'Pending Leave Approval', {
+                    month: report.get_filter_value('month'),
+                    workflow_state: "Pending",
+					status: "Open"
+                });
+            },
+            __("Pending Requests")
+			
+        );
+
+        // "Pending Attendance Regularization" button
+        report.page.add_inner_button(
+            __("Pending Attendance Regularization"),
+            function() {
+                let month = report.get_filter_value('month');
+				console.log(month)
+                if (!month) {
+                    frappe.msgprint(__('Please select a month.'));
+                    return;
+                }
+                frappe.set_route('query-report', 'Pending Regularization Request', {
+					month: report.get_filter_value('month'),
+                    status: "Pending"
+                });
+            },
+            __("Pending Requests")
+        );
 		return frappe.call({
 			method: "hrms.hr.report.monthly_attendance_sheet.monthly_attendance_sheet.get_attendance_years",
 			callback: function (r) {
