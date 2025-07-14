@@ -1,5 +1,8 @@
-Dear {{ role }},<br><br>
+Dear {{ manager }},<br><br>
 {% set employee =  frappe.get_doc("Employee", doc.employee) %}
+{% if employee.company %}
+{% set company = employee.company %}
+{% endif %}
 {% if doc.doctype == "Compensatory Leave Request" %}
 A compensatory leave request has been submitted and requires your attention. Please find the details below:<br><br>
 {% else %}
@@ -20,4 +23,5 @@ A leave application has been submitted and requires your attention. Please find 
 You are kindly requested to review this application and take the necessary action at your earliest convenience.<br><br>
 
 Thank you,<br>
-HR System
+HR Manager, <br>
+{{company or ""}}

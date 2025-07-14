@@ -22,8 +22,8 @@ def get(company, employee, leave_type):
                 "Leave Application",
                 filters={"employee": employee, "leave_type": leave_type},
                 or_filters = {
-                    "workflow_state": "Confirmed",
-                    "custom_leave_status": "Confirmed",
+                    "workflow_state": "Approved",
+                    "custom_leave_status": "Approved",
                 },
                 fields=["from_date"],
                 pluck="from_date"

@@ -397,6 +397,37 @@ def check_user_is_reporting_manager(user_id, requesting_employee_id):
         frappe.log_error("Error while Verifying User", frappe.get_traceback())
         return {"error": 1, "message": f"{str(e)}"}
 
+@frappe.whitelist()
+def is_user_reporting_manager_or_hr(user_id, requesting_employee_id):
+    """Method to check if the current user is the employee's Reporting Manager or has HR roles"""
+
+    try:
+        # * REUSE EXISTING FUNCTION TO CHECK REPORTING MANAGER LOGIC
+        rh_check = check_user_is_reporting_manager(user_id, requesting_employee_id)
+
+        # ? IF USER IS REPORTING MANAGER, RETURN SUCCESS
+        if rh_check.get("is_rh") == 1:
+            return {"error": 0, "is_rh": 1}
+
+        # ? CHECK IF THE USER HAS HR ROLES
+        has_hr_role = frappe.db.exists({
+            "doctype": "Has Role",
+            "parent": user_id,
+            "role": ["in", ["HR User", "HR Manager"]]
+        })
+
+        # * IF HR ROLE FOUND, GRANT ACCESS
+        if has_hr_role:
+            return {"error": 0, "is_rh": 1}
+
+        # ? OTHERWISE, NOT AUTHORIZED
+        return {"error": 0, "is_rh": 0}
+
+    except Exception as e:
+        # ! LOG ERROR IF SOMETHING GOES WRONG
+        frappe.log_error("Error while Verifying User HR Role or RH Status", frappe.get_traceback())
+        return {"error": 1, "message": f"{str(e)}"}
+
 
 @frappe.whitelist()
 def fetch_company_name(indifoss=0, prompt=0):

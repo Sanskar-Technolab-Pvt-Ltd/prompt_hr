@@ -23,6 +23,10 @@ from prompt_hr.py import job_requisition_overriden_class
 from hrms.hr.doctype.full_and_final_statement.full_and_final_statement import FullandFinalStatement
 from prompt_hr.py import full_and_final_statement
 from prompt_hr.py.leave_type import custom_get_earned_leaves
+import hrms.payroll.doctype.payroll_entry.payroll_entry as PayrollEntryModule
+from prompt_hr.overrides.payroll_entry_override import custom_set_filter_conditions
+
+PayrollEntryModule.set_filter_conditions = custom_set_filter_conditions
 
 @frappe.whitelist()
 def custom_get_applicable_interviewers(interview: str) -> List[str]:
