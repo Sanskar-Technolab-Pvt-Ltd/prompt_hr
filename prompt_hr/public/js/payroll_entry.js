@@ -19,6 +19,18 @@ frappe.ui.form.on('Pending FnF Details', {
 
 frappe.ui.form.on("Payroll Entry", {
     refresh: (frm) => {
+
+
+        // frm.page.btn_submit_salary_slip.on('click', function () { 
+        //     console.log("Sned MAIL");
+        //     // frappe.confirm(
+        //     //     function () {
+        //     //         console.log("Send    MAIL")
+        //     //     }
+        //     // )
+        // })
+
+
         // ? REMOVE AUTO BRANCH ADDITION DATA
         empty_branch_field_if_form_is_new(frm);
         send_salary_slip(frm)
@@ -139,7 +151,23 @@ frappe.ui.form.on("Payroll Entry", {
     },
     before_save: (frm) => {
         frm.set_value('custom_pending_leave_approval', []);
-    }
+    },
+    add_context_buttons: function (frm) {
+		if (
+			frm.doc.salary_slips_submitted ||
+			(frm.doc.__onload && frm.doc.__onload.submitted_ss)
+		) {
+			frm.events.add_bank_entry_button(frm);
+		} else if (frm.doc.salary_slips_created && frm.doc.status !== "Queued") {
+			frm.add_custom_button(__("Submit Salary Slip"), function () {
+				custom_submit_salary_slip(frm);
+			}).addClass("btn-primary");
+		} else if (!frm.doc.salary_slips_created && frm.doc.status === "Failed") {
+			frm.add_custom_button(__("Create Salary Slips"), function () {
+				frm.trigger("create_salary_slips");
+			}).addClass("btn-primary");
+		}
+	},
 });
 
 // ? FUNCTION TO EMPTY BRANCH FIELD IF FORM IS NEW
@@ -279,3 +307,34 @@ function send_salary_slip(frm) {
         });
     });
 }
+
+
+
+const custom_submit_salary_slip = function (frm) {
+	frappe.confirm(
+		__(
+			"This will submit Salary Slips and create accrual Journal Entry. Do you want to proceed?",
+        ),
+		function () {
+			frappe.call({
+				method: "submit_salary_slips",
+				args: {},
+				doc: frm.doc,
+				freeze: true,
+				freeze_message: __("Submitting Salary Slips and creating Journal Entry..."),
+            });
+            frappe.call({
+                method: "prompt_hr.py.payroll_entry.send_payroll_entry",
+                args: {
+                    payroll_entry_id: frm.doc.name
+                }
+            })
+
+		},
+		function () {
+			if (frappe.dom.freeze_count) {
+				frappe.dom.unfreeze();
+			}
+		},
+	);
+};
