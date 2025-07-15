@@ -740,3 +740,24 @@ def send_salary_sleep_to_employee(payroll_entry_id):
     except Exception as e:
         frappe.log_error("Error while sending salary slips", frappe.get_traceback())
         frappe.throw(_("Error while sending salary slips: {0}").format(str(e)))
+        
+        
+
+@frappe.whitelist()
+def send_payroll_entry(payroll_entry_id):
+    try:
+        account_user_users = frappe.db.get_all("Has Role", {"role": "Accounts User", "parenttype": "User", "parent": ["not in", ["Administrator"]]}, ["parent"])
+        print(f"\n\n {account_user_users} \n\n")
+        if account_user_users:
+            account_user_emails = [user.get("parent") for user in account_user_users]
+            payroll_entry_link = frappe.utils.get_url_to_form("Payroll Entry", payroll_entry_id)
+
+            frappe.sendmail(
+                recipients=account_user_emails,
+                subject="Payroll Entry Notification",
+                message=f"A new Payroll Entry has been created. You can view it here: {payroll_entry_link}"
+            )
+
+    except Exception as e:
+        frappe.log_error("Error while sending Payroll Entry notification", frappe.get_traceback())
+        frappe.throw(_("Error while sending Payroll Entry notification: {0}").format(str(e)))
