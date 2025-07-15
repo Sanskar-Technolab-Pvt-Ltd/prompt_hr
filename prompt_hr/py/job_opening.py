@@ -56,7 +56,7 @@ def send_job_opening_notification(
         employees = frappe.get_all(
             "Employee",
             filters=filters,
-            fields=["name", "date_of_joining", "personal_email", "user_id"],
+            fields=["name", "date_of_joining", "prefered_email", "user_id"],
         ) 
 
         print(f"Eligible Employees\n\n\n: {employees}")
@@ -78,7 +78,7 @@ def send_job_opening_notification(
             if role_months < float(min_tenure_in_current_role):
                 continue
             if emp.user_id:
-                eligible_emails.append(emp.user_id)
+                eligible_emails.append(emp.get("prefered_email"))
 
         # ? SEND NOTIFICATION IF ANYONE IS ELIGIBLE
         if eligible_emails:
