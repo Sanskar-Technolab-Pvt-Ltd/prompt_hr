@@ -1265,10 +1265,24 @@ def penalization_for_no_attendance_for_prompt(emp, check_attendance_date, leave_
             })
             
             if not (leave_application_exists or attendance_regularization_exists or employee_penalty_exists):
+                # ? CREATING ATTENDANCE WITH STATUS ABSENT FOR NO ATTENDANCE PENALIZATION
+                att = frappe.get_doc({
+                    "doctype": "Attendance",
+                    "employee": emp.get("name"),
+                    "attendance_date": check_attendance_date,
+                    "status": "Absent",
+                    "custom_apply_penalty":1,
+                    "company": emp.get("company"),
+                    "docstatus": 0,
+                })
+                att.insert(ignore_permissions=True)
+                att.submit()
+                frappe.db.commit()
                 create_employee_penalty(
                                             emp.get("name"),
                                             check_attendance_date,
                                             no_attendance_deduct_leave,
+                                            attendance_id=att.name,
                                             leave_type=no_attendance_leave_type,
                                             leave_period_data=leave_period_data,
                                             earned_leave= 0.0,
@@ -1276,18 +1290,6 @@ def penalization_for_no_attendance_for_prompt(emp, check_attendance_date, leave_
                                             is_lwp_for_no_attendance=1,
                                             for_no_attendance=1,                                            
                                     )
-            # ? CREATING ATTENDANCE WITH STATUS ABSENT FOR NO ATTENDANCE PENALIZATION
-                att = frappe.get_doc({
-                "doctype": "Attendance",
-                "employee": emp.get("name"),
-                "attendance_date": check_attendance_date,
-                "status": "Absent",
-                "company": emp.get("company"),
-                "docstatus": 0,
-            })
-            att.insert(ignore_permissions=True)
-            att.submit()
-            frappe.db.commit()
             # ? RETURN EMPLOYEE NAME FOR NEXT-DAY PENALIZATION ALERT
             if not (leave_application_exists_next_day or attendance_regularization_exists_next_day or employee_penalty_exists_next_day):
                 employee_scheduled_for_penalty_tomorrow  = emp.get("name")
