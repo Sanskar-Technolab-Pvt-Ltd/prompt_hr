@@ -209,21 +209,20 @@ frappe.ui.form.on("Interview", {
     },
     custom_work_location: function (frm) {
         frappe.call({
-    method: "frappe.contacts.doctype.address.address.get_address_display",
-    args: {
-        address_dict: frm.doc.custom_work_location // or any address name
-    },
-    callback: function (r) {
-        if (r.message) {
-            console.log(r)
-            // Show the address HTML wherever you want
-            frm.set_value('custom_work_location_address', r.message);
-            frm.refresh_field('custom_work_location_address');
-        }
-    }
-});
-
+            method: "frappe.contacts.doctype.address.address.get_address_display",
+            args: {
+                address_dict: frm.doc.custom_work_location
             },
+            callback: function (r) {
+                if (r.message) {
+                    // Convert HTML <br> to line breaks
+                    let formatted = r.message.replace(/<br\s*\/?>/gi, '\n');
+                    frm.set_value('custom_work_location_address', formatted);
+                    frm.refresh_field('custom_work_location_address');
+                }
+            }
+        });
+    },
     add_custom_buttons: async function (frm) {
         // ?  CALL THE ORIGINAL FUNCTION IF IT EXISTS
         if (typeof original_add_custom_buttons === "function") {
