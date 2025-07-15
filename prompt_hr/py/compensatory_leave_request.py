@@ -1,7 +1,7 @@
 import frappe
+from hrms.hr.utils import create_additional_leave_ledger_entry
 from frappe import _
 from frappe.utils import getdate, flt, add_days, date_diff
-from hrms.hr.utils import create_additional_leave_ledger_entry
 
 @frappe.whitelist()
 def expire_compensatory_leave_after_confirmation():
@@ -32,7 +32,6 @@ def expire_compensatory_leave_after_confirmation():
         if getdate(expiry_date) == getdate():
             # Get the original leave allocation linked to the request
             leave_allocation = frappe.get_doc("Leave Allocation", alloc.leave_allocation)
-            print(leave_allocation.name)
             # Fetch leave applications made under this allocation
             leaves_taken = frappe.get_all(
                 "Leave Application",
@@ -40,7 +39,7 @@ def expire_compensatory_leave_after_confirmation():
                     "employee": alloc.employee,
                     "leave_type": alloc.leave_type,
                     "docstatus": 1,
-                    "from_date": [">=", leave_allocation.from_date],
+                    "from_date": [">=", add_days(alloc.work_end_date,1)],
                     "to_date": ["<=", leave_allocation.to_date]
                 },
                 fields=["*"]
