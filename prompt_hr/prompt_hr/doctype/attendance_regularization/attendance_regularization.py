@@ -4,8 +4,9 @@
 import frappe
 from frappe.model.document import Document
 from prompt_hr.py.utils import send_notification_email, is_user_reporting_manager_or_hr
-from frappe.utils import get_datetime, time_diff_in_hours
+from frappe.utils import get_datetime, getdate
 from prompt_hr.py.auto_mark_attendance import mark_attendance
+from frappe.utils import get_datetime, add_days
 
 
 class AttendanceRegularization(Document):
@@ -83,6 +84,20 @@ class AttendanceRegularization(Document):
 												)
 					self.employee_notified = 1
 
+	def before_save(self):
+		doc_before_save = self.get_doc_before_save()
+		attendance_regularization_limit = int(frappe.db.get_single_value("HR Settings", "custom_allowed_to_raise_regularizations_for_past_days_for_prompt") or 0)
+		limit_date = add_days(frappe.utils.getdate(), -attendance_regularization_limit)
 
+		# ? CHECK IF REGULARIZATION DATE CHANGED
+		if getdate(self.regularization_date) != getdate(doc_before_save.regularization_date):
+			# ! VALIDATE IF REGULARIZATION DATE IS WITHIN THE LIMIT
+			if get_datetime(self.regularization_date).date() < limit_date:
+				frappe.throw(f"Attendance Regularization cannot be raised for past dates more than {attendance_regularization_limit} days.")
 
-		
+		# ? CHECK IF ATTENDANCE FIELD CHANGED
+		if self.attendance != doc_before_save.attendance and self.attendance:
+			attendance_doc = frappe.get_doc("Attendance", self.attendance)
+			# ! VALIDATE IF ATTENDANCE DATE IS WITHIN THE LIMIT
+			if attendance_doc.attendance_date < limit_date:
+				frappe.throw(f"Attendance Regularization cannot be raised for past dates more than {attendance_regularization_limit} days.")
