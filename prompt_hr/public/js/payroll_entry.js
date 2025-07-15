@@ -21,6 +21,7 @@ frappe.ui.form.on("Payroll Entry", {
     refresh: (frm) => {
         // ? REMOVE AUTO BRANCH ADDITION DATA
         empty_branch_field_if_form_is_new(frm);
+        send_salary_slip(frm)
         frm.get_field('custom_lop_summary').grid.cannot_add_rows = true;
         frm.refresh_field('custom_lop_summary');
 
@@ -261,4 +262,20 @@ function set_lop_month_options_for_all_rows(frm) {
             month_field, "options", options.join("\n")
         );
     }
+}
+
+
+// ? FUNCTION TO ADD CUSTOM BUTTON FOR GENERATING AND SENDING SALARY SLIP PDF
+function send_salary_slip(frm) {
+    frm.add_custom_button(__('Generate Salary Slip PDF'), function() {
+        frappe.call({
+            method: 'prompt_hr.py.payroll_entry.send_salary_sleep_to_employee',
+            args: {
+                payroll_entry_id: frm.doc.name
+            },
+            callback: function(r) {
+                frappe.msgprint(__('Salary Slip PDF has been generated and sending to the employees will be sent shortly.'));
+            }
+        });
+    });
 }
