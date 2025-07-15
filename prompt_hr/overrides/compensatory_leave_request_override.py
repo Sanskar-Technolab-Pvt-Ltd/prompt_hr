@@ -67,6 +67,7 @@ class CustomCompensatoryLeaveRequest(CompensatoryLeaveRequest):
                     )
 
             elif self.workflow_state == "Approved":
+                self.db_set("custom_approved_date", getdate())
                 employee_notification = frappe.get_doc("Notification", "Leave Request Response By Reporting Manager")
                 if employee_notification:
                     subject = frappe.render_template(employee_notification.subject, {"doc":self,"manager":reporting_manager_name,"request_type":"Compensatory Leave Request"})
