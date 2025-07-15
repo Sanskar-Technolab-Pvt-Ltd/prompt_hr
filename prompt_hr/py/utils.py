@@ -4,6 +4,10 @@ import hashlib
 import json
 import traceback
 from frappe import _
+from frappe.utils import add_days, date_diff, flt, get_link_to_form, month_diff
+from hrms.hr.utils import get_salary_assignments
+from hrms.payroll.doctype.salary_structure.salary_structure import make_salary_slip
+from hrms.regional.india.utils import calculate_hra_exemption, get_component_pay, get_end_date_for_assignment, has_hra_component
 
 
 # ? FUNCTION TO GENERATE HMAC HASH FROM INPUT USING SITE SECRET
@@ -818,3 +822,96 @@ def get_hod_email(employee_id):
             f"Error fetching HOD email: {str(e)}\n{traceback.format_exc()}"
         )
         return None
+    
+
+
+# HRA calculation override
+def calculate_annual_eligible_hra_exemption(doc):
+	basic_component, hra_component, da_component = frappe.db.get_value(
+		"Company", doc.company, ["basic_component", "hra_component", "custom_dearness_allowance"]
+	)
+
+	if not (basic_component and hra_component):
+		frappe.throw(
+			_("Please set Basic and HRA component in Company {0}").format(
+				get_link_to_form("Company", doc.company)
+			)
+		)
+
+	annual_exemption = monthly_exemption = hra_amount = basic_amount = 0
+
+	if hra_component and basic_component:
+		assignments = get_salary_assignments(doc.employee, doc.payroll_period)
+
+		if not assignments and doc.docstatus == 1:
+			frappe.throw(_("Salary Structure must be submitted before submission of {0}").format(doc.doctype))
+
+		period_start_date = frappe.db.get_value("Payroll Period", doc.payroll_period, "start_date")
+
+		assignment_dates = []
+		for assignment in assignments:
+			# if assignment is before payroll period, use period start date to get the correct days
+			assignment.from_date = max(assignment.from_date, period_start_date)
+			assignment_dates.append(assignment.from_date)
+
+		for idx, assignment in enumerate(assignments):
+			if has_hra_component(assignment.salary_structure, hra_component):
+				basic_salary_amt, hra_salary_amt, da_amt = get_component_amt_from_salary_slip(
+					doc.employee,
+					assignment.salary_structure,
+					basic_component,
+					hra_component,
+					da_component,
+					assignment.from_date,
+				)
+				to_date = get_end_date_for_assignment(assignment_dates, idx, doc.payroll_period)
+
+				frequency = frappe.get_value(
+					"Salary Structure", assignment.salary_structure, "payroll_frequency"
+				)
+				basic_amount += get_component_pay(frequency, basic_salary_amt + da_amt, assignment.from_date, to_date)
+				hra_amount += get_component_pay(frequency, hra_salary_amt, assignment.from_date, to_date)
+
+		if hra_amount:
+			if doc.monthly_house_rent:
+				annual_exemption = calculate_hra_exemption(
+					assignment.salary_structure,
+					basic_amount,
+					hra_amount,
+					doc.monthly_house_rent,
+					doc.rented_in_metro_city,
+				)
+				if annual_exemption > 0:
+					monthly_exemption = annual_exemption / 12
+				else:
+					annual_exemption = 0
+
+	return frappe._dict(
+		{
+			"hra_amount": hra_amount,
+			"annual_exemption": annual_exemption,
+			"monthly_exemption": monthly_exemption,
+		}
+	)
+
+def get_component_amt_from_salary_slip(employee, salary_structure, basic_component, hra_component, da_component, from_date):
+
+	salary_slip = make_salary_slip(
+		salary_structure,
+		employee=employee,
+		for_preview=1,
+		ignore_permissions=True,
+		posting_date=from_date,
+	)
+
+	basic_amt, hra_amt, da_amt = 0, 0, 0
+	for earning in salary_slip.earnings:
+		if earning.salary_component == basic_component:
+			basic_amt = earning.amount
+		elif earning.salary_component == hra_component:
+			hra_amt = earning.amount
+		elif earning.salary_component == da_component:
+			da_amt = earning.amount
+		if basic_amt and hra_amt and da_amt:
+			return basic_amt, hra_amt, da_amt
+	return basic_amt, hra_amt, da_amt
