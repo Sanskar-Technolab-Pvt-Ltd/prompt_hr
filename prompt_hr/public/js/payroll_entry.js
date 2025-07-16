@@ -19,17 +19,20 @@ frappe.ui.form.on('Pending FnF Details', {
 
 frappe.ui.form.on("Payroll Entry", {
     refresh: (frm) => {
+        // ? CODE TO REMOVE ADD ROW BUTTON FORM THE EXISTING WITHHOLDING SALARY CHILD TABLE
+        frm.set_df_property('custom_pending_withholding_salary', 'cannot_add_rows', true);
 
-
-        // frm.page.btn_submit_salary_slip.on('click', function () { 
-        //     console.log("Sned MAIL");
-        //     // frappe.confirm(
-        //     //     function () {
-        //     //         console.log("Send    MAIL")
-        //     //     }
-        //     // )
-        // })
-
+        // ? CODE TO APPLY FILTERS TO EMPLOYEE FIELD IN SALARY WITHHOLDING DETAILS CHILD TABLE BASED ON EMPLOYEES IN EMPLOYEE DETAILS 
+        employee_ids = (frm.doc.employees || []).map(row => row.employee).filter(Boolean);
+        if (employee_ids) {
+            frm.set_query("employee", "custom_salary_withholding_details", function (doc, cdt, cdn) {
+                return {
+                    "filters": {
+                        "name": ["in", employee_ids]
+                    },
+                };
+            });
+        }
 
         // ? REMOVE AUTO BRANCH ADDITION DATA
         empty_branch_field_if_form_is_new(frm);
