@@ -89,6 +89,17 @@ def append_exit_employees(doc):
             }
         ).insert(ignore_permissions=True)
 
+def on_submit(doc, method):
+    if doc.custom_salary_withholding_details:
+        for withholding in doc.custom_salary_withholding_details:
+            if not frappe.db.exists("Employee Salary Withholding", {"employee": withholding.employee, "from_date": withholding.from_date, "to_date": withholding.to_date}):
+                frappe.get_doc({
+                    "doctype": "Employee Salary Withholding",
+                    "employee": withholding.employee,
+                    "from_date": withholding.from_date,
+                    "to_date": withholding.to_date,
+                    "withholding_type": withholding.withholding_type
+                }).insert(ignore_permissions=True)
 
 # ? METHOD TO SET NEW JOINEE COUNT
 # ! prompt_hr.py.payroll_entry.set_new_joinee_count
@@ -747,7 +758,6 @@ def send_salary_sleep_to_employee(payroll_entry_id):
 def send_payroll_entry(payroll_entry_id):
     try:
         account_user_users = frappe.db.get_all("Has Role", {"role": "Accounts User", "parenttype": "User", "parent": ["not in", ["Administrator"]]}, ["parent"])
-        print(f"\n\n {account_user_users} \n\n")
         if account_user_users:
             account_user_emails = [user.get("parent") for user in account_user_users]
             payroll_entry_link = frappe.utils.get_url_to_form("Payroll Entry", payroll_entry_id)
