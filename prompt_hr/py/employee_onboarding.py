@@ -71,7 +71,25 @@ def validate(doc, method):
 
     notify_users_for_pending_actions(rows_to_notify, company=doc.company)
 
+    # ? SET DEFAULT COMPANY HOLIDAY LIST
+    set_default_company_holdiay_list(doc)
+
     return "Emails enqueued successfully"
+
+# ? FUNCTION TO SET DEFAULT COMPANY HOLIDAY LIST
+def set_default_company_holdiay_list(doc):
+    if not doc.holiday_list:
+        company_holiday_list = frappe.get_value(
+            "Company", doc.company, "default_holiday_list"
+        )
+        if company_holiday_list:
+            doc.company_holiday_list = company_holiday_list
+        else:
+            frappe.throw(
+                f"No holiday list found for company {doc.company}",
+                title="Holiday List Not Found",
+            )
+
 
 
 # ? FUNCTION TO ALLOCATE IMPREST AMOUNT BASED ON COMPANY AND EMPLOYEE GRADE
