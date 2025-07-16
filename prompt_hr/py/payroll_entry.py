@@ -701,9 +701,7 @@ def import_adhoc_salary_details(payroll_entry_id, file_url):
 def send_salary_sleep_to_employee(payroll_entry_id):
     try:
         salary_slip_info_list = frappe.db.get_all("Salary Slip", {"docstatus": 1, "payroll_entry": payroll_entry_id}, ['name', 'employee'])
-        print(salary_slip_info_list)
         print_format_info = frappe.db.get_all("Print Format Selection", {"parenttype":"HR Settings", "parentfield": "custom_print_format_table_prompt", "document": "Salary Slip"}, ["print_format_document", "letter_head"], limit=1)
-        print(print_format_info)
         print_format_id = print_format_info[0].get("print_format_document") if print_format_info else None
         letter_head = print_format_info[0].get("letter_head") if print_format_info else None
 
