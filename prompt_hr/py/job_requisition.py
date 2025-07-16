@@ -88,23 +88,24 @@ def notify_approver(doc, method):
                 
                 if by_roles :
                     for role in by_roles:
-                        
-                        
-                            
                         user_list = frappe.db.get_all("Has Role", {"parenttype": "User", "role": role}, "parent as user")
-                        
-                        
-                        for user in user_list:                              
+
+                        for user in user_list:
+                            user_id = None 
+
                             if frappe.db.exists("Employee", {"status": "Active", "company": doc.company, "user_id": user.get("user")}):
                                 if role == "Head of Department":
                                     hod_emp = frappe.db.get_value("Department", doc.department, "custom_department_head")
                                     if hod_emp:
                                         hod_user = frappe.db.get_value("Employee", hod_emp, "user_id")
-                                        user_id = hod_user
+                                        if hod_user:
+                                            user_id = hod_user
                                 else:
                                     user_id = user.get("user")
-                                    if user_id and (user_id not in user_emails and user_id != "Administrator"):
-                                        user_emails.append(user_id)
+
+                                
+                                if user_id and (user_id not in user_emails and user_id != "Administrator"):
+                                    user_emails.append(user_id)
 
                 if user_emails:
                     if is_insert:
