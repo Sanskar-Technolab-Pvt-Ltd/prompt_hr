@@ -4,6 +4,7 @@ from dateutil.relativedelta import relativedelta
 from frappe.utils.xlsxutils import make_xlsx, read_xlsx_file_from_attached_file
 from frappe.utils.response import build_response
 from frappe import _
+import traceback
 
 
 # ? ON UPDATE CONTROLLER METHOD
@@ -692,3 +693,69 @@ def import_adhoc_salary_details(payroll_entry_id, file_url):
     frappe.msgprint(_(message))
 
     return {"added": records_added}
+
+
+@frappe.whitelist()
+# * METHOD TO FETCH AND SEND SALARY SLEEP TO EMPLOYEE
+# ! prompt_hr.py.payroll_entry.send_salary_sleep_to_employee
+def send_salary_sleep_to_employee(payroll_entry_id):
+    try:
+        salary_slip_info_list = frappe.db.get_all("Salary Slip", {"docstatus": 1, "payroll_entry": payroll_entry_id}, ['name', 'employee'])
+        print_format_info = frappe.db.get_all("Print Format Selection", {"parenttype":"HR Settings", "parentfield": "custom_print_format_table_prompt", "document": "Salary Slip"}, ["print_format_document", "letter_head"], limit=1)
+        print_format_id = print_format_info[0].get("print_format_document") if print_format_info else None
+        letter_head = print_format_info[0].get("letter_head") if print_format_info else None
+
+        if salary_slip_info_list:
+            for salary_slip_info in salary_slip_info_list:
+                attachments = []
+                preferred_email = frappe.db.get_value("Employee", salary_slip_info.employee, "prefered_email")
+                if not preferred_email:
+                    preferred_email = frappe.db.get_value("Employee", salary_slip_info.employee, "user_id")
+                try:
+                    # ? GENERATE PDF USING FRAPPE'S BUILT-IN PDF GENERATION
+                    pdf_content = frappe.get_print(
+                        doctype="Salary Slip",
+                        name= salary_slip_info.name,
+                        print_format=print_format_id,
+                        letterhead=letter_head,
+                        as_pdf=True,
+                    )
+                    # ? CREATE ATTACHMENT DICTIONARY
+                    attachment_name = f"Salary Slip_{salary_slip_info.name}_{print_format_id}.pdf"
+                    attachments.append({"fname": attachment_name, "fcontent": pdf_content})
+
+                except Exception as pdf_error:
+                    frappe.log_error(
+                        title="PDF Generation Error",
+                        message=f"Failed to generate PDF attachment: {str(pdf_error)}\n{traceback.format_exc()}",
+                    )
+                frappe.sendmail(
+                recipients=[preferred_email],
+                subject="Salary Slip",
+                message="Please find attached your salary slip.",
+                attachments=attachments if attachments else None,
+            )
+    except Exception as e:
+        frappe.log_error("Error while sending salary slips", frappe.get_traceback())
+        frappe.throw(_("Error while sending salary slips: {0}").format(str(e)))
+        
+        
+
+@frappe.whitelist()
+def send_payroll_entry(payroll_entry_id):
+    try:
+        account_user_users = frappe.db.get_all("Has Role", {"role": "Accounts User", "parenttype": "User", "parent": ["not in", ["Administrator"]]}, ["parent"])
+        print(f"\n\n {account_user_users} \n\n")
+        if account_user_users:
+            account_user_emails = [user.get("parent") for user in account_user_users]
+            payroll_entry_link = frappe.utils.get_url_to_form("Payroll Entry", payroll_entry_id)
+
+            frappe.sendmail(
+                recipients=account_user_emails,
+                subject="Payroll Entry Notification",
+                message=f"A new Payroll Entry has been created. You can view it here: {payroll_entry_link}"
+            )
+
+    except Exception as e:
+        frappe.log_error("Error while sending Payroll Entry notification", frappe.get_traceback())
+        frappe.throw(_("Error while sending Payroll Entry notification: {0}").format(str(e)))

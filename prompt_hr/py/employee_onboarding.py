@@ -90,7 +90,6 @@ def set_default_company_holdiay_list(doc):
                 title="Holiday List Not Found",
             )
 
-
 # ? FUNCTION TO ALLOCATE IMPREST AMOUNT BASED ON COMPANY AND EMPLOYEE GRADE
 def allocate_imprest_amount(doc):
     try:
