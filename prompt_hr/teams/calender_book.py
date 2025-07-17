@@ -71,8 +71,14 @@ def teams_calender_book(docname):
                 </a>
             </p>
             """
+            
+        if interview_doc.custom_work_location_address:
+            html_content += f"<p>Address : {interview_doc.custom_work_location_address}</p>"
 
-        html_content += """
+        if interview_doc.custom_description:
+            html_content += f"<p>{interview_doc.custom_description}</p>"
+            
+        html_content += f"""
             <p>We look forward to your participation.</p>
             <p>Best regards,<br/>Prompt</p>
         </div>
