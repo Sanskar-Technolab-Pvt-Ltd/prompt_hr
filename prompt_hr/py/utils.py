@@ -853,7 +853,7 @@ def calculate_annual_eligible_hra_exemption(doc):
 			# if assignment is before payroll period, use period start date to get the correct days
 			assignment.from_date = max(assignment.from_date, period_start_date)
 			assignment_dates.append(assignment.from_date)
-
+  
 		for idx, assignment in enumerate(assignments):
 			if has_hra_component(assignment.salary_structure, hra_component):
 				basic_salary_amt, hra_salary_amt, da_amt = get_component_amt_from_salary_slip(
