@@ -1,6 +1,8 @@
 import frappe
 from frappe.utils import cint
 from dateutil.relativedelta import relativedelta
+from datetime import datetime
+from frappe.utils import getdate
 from frappe.utils.xlsxutils import make_xlsx, read_xlsx_file_from_attached_file
 from frappe.utils.response import build_response
 from frappe import _
@@ -424,26 +426,22 @@ def append_employees_with_incomplete_bank_details(doc):
 
 @frappe.whitelist()
 def get_actual_lop_days(employee, start_date):
-    if isinstance(start_date, str):
-        start_date = frappe.utils.getdate(start_date)
-
-    # Calculate the first and last day of the previous month
-    previous_month_start = (
-        start_date.replace(day=1) - relativedelta(months=1)
-    ).replace(day=1)
-    previous_month_end = (
-        previous_month_start.replace(day=1)
-        + relativedelta(months=1)
-        - relativedelta(days=1)
-    )
-
+    clean_month_str = start_date.strip().replace("-", " ")
+    parsed_date = datetime.strptime(clean_month_str.strip(), "%B %Y")
+    
+    # * First day of the month
+    first_day = getdate(parsed_date.replace(day=1))
+    
+    # * Last day of the month
+    last_day = getdate((parsed_date + relativedelta(months=1)).replace(day=1) - relativedelta(days=1))
+    
     # * Fetch salary slip of Last Month
     last_month_salary_slip = frappe.get_all(
         "Salary Slip",
         filters={
             "employee": employee,
-            "start_date": [">=", previous_month_start],
-            "end_date": ["<=", previous_month_end],
+            "start_date": [">=", first_day],
+            "end_date": ["<=", last_day],
             "docstatus": 1,
         },
         fields=["start_date", "leave_without_pay"],
