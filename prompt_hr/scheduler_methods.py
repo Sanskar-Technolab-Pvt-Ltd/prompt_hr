@@ -783,9 +783,9 @@ def penalize_prompt_employee():
                     
                     holiday_list = emp_id.get("holiday_list")    
 
-                    if holiday_list:
-                        if frappe.db.get_all("Holiday", {"parenttype": "Holiday List", "parent": holiday_list, "holiday_date": daily_hours_attendance_date}, "name"):
-                            continue
+                    # if holiday_list:
+                    #     if frappe.db.get_all("Holiday", {"parenttype": "Holiday List", "parent": holiday_list, "holiday_date": daily_hours_attendance_date}, "name"):
+                    #         continue
                     
                     employee_scheduled_for_incomplete_day_penalty = penalize_incomplete_day_for_prompt(
                         emp_id,
@@ -797,6 +797,13 @@ def penalize_prompt_employee():
                         insufficient_hours_deduct_leave,
                         company_id.get("company_id")
                     )
+
+                    # ? CREATING EMPLOYEE ENTRY FOR ATTENDANCE STATUS MISPUNCH
+                    args = {
+                        "employee": emp_id,
+                        "company": company_id.get("company_id"),
+                    }
+                    penalize_employee_for_attendance_mispunch_prompt(args)
 
                     # ? SEND NEXT DAY PENALTY ALERT FOR INCOMPLETE DAY
                     if employee_scheduled_for_incomplete_day_penalty:
@@ -1060,7 +1067,8 @@ def create_employee_penalty(
     is_lwp_for_no_attendance = 0,
     for_late_coming=0, 
     for_insufficient_hours=0,
-    for_no_attendance=0    
+    for_no_attendance=0,    
+    for_mispunch=0
     ):
     "Method to Create Employee penalty and add an entry to leave ledger entry"
     #* CREATING EMPLOYEE PENALTY
@@ -1090,6 +1098,11 @@ def create_employee_penalty(
     if for_no_attendance:
         penalty_doc.for_no_attendance = 1
         penalty_doc.remarks = f"Penalty for No Attendance Marked on {penalty_date}"
+    
+    if for_mispunch:
+        penalty_doc.for_mispunch = 1
+        penalty_doc.remarks = f"Penalty for Mispunch on {penalty_date}"
+
     penalty_doc.insert(ignore_permissions=True)
 
 
@@ -1617,3 +1630,75 @@ def daily_attendance_request_rituals():
             # ? IF NO ATTENDANCE REQUEST EXISTS FOR THE EMPLOYEE, SET THE SCHEME TO BIOMETRIC
             frappe.db.set_value("Employee", employee, "custom_attendance_capture_scheme", "Biometric")
             frappe.db.commit()
+
+
+'''
+# ! THIS WILL CREATE EMPLOYEE PENALTY EVEN IF EMPLOYEE PENALTY IS MARKED 0, IT WILL CHECK IF THE ATTENDANCE STATUS IS 'MISPUNCH'
+# ? DAILY SCHEDULER TO PENALIZE EMPLOYEES FOR ATTENDANCE MISPUNCH,
+# ? FETCHING ALL THE ATTENDANCES WITH STATUS AS MISPUNCH OF THE APPLICABLE DATE (TODAY'S DATE - BUFFER DAYS FROM HR SETTINGS)
+'''
+def penalize_employee_for_attendance_mispunch_prompt(args):
+    emp = args.get("employee")
+    print(f"[DEBUG] Processing penalty for employee: {emp}")
+
+    buffer_days_for_mispunch_penalty = frappe.db.get_single_value("HR Settings", "custom_buffer_days_for_mispunch_penalty")
+    print(f"[DEBUG] Buffer days fetched: {buffer_days_for_mispunch_penalty}")
+
+    if not buffer_days_for_mispunch_penalty:
+        print("[DEBUG] No buffer days configured. Exiting.")
+        return
+
+    attendace_date = add_days(today(), -int(buffer_days_for_mispunch_penalty))
+    attendace_date = getdate(attendace_date)
+    print(f"[DEBUG] Applicable attendance date: {attendace_date}")
+    filters = {
+                "employee": "HR-EMP-00002",  # ! REPLACE WITH EMP IF NEEDED
+                "status": "Mispunch",
+                "attendance_date": str(attendace_date),
+                "docstatus": 1
+            }
+
+    try:
+        # Get MISPUNCH attendances
+        attendance_list = frappe.get_all(
+            "Attendance",
+            filters=filters,
+            fields=["name", "attendance_date"]
+        )
+        print(f"[DEBUG] Attendance list fetched: {attendance_list}, {filters}")
+        print(f"[DEBUG] Found {len(attendance_list)} mispunch attendance(s): {[i.name for i in attendance_list]}")
+
+        if attendance_list:
+            # Check penalty criteria
+            if not check_employee_penalty_criteria(emp, "For Attendance Mispunch"):
+                print("[DEBUG] Employee does not meet penalty criteria. Skipping.")
+                return
+
+            existing_penalty = frappe.db.exists(
+                "Employee Penalty",
+                {
+                    "employee": "HR-EMP-00002",  # Replace with emp if needed
+                    "attendance": ["in", [i.name for i in attendance_list]],
+                    "for_mispunch": 1
+                }
+            )
+            print(f"[DEBUG] Existing penalty check: {'Found' if existing_penalty else 'Not found'}")
+
+            if existing_penalty:
+                print("[DEBUG] Penalty already exists. Skipping creation.")
+                return
+
+            print("[DEBUG] Creating employee penalty...")
+            create_employee_penalty(
+                employee=emp,
+                penalty_date=attendace_date,
+                deduct_leave=0.0,
+                attendance_id=[i.name for i in attendance_list],
+                for_mispunch=1,
+            )
+            print("[DEBUG] Penalty successfully created.")
+
+    except Exception as e:
+        frappe.log_error(f"Error in penalize_employee_for_attendance_mispunch_prompt: {str(e)}")
+        print(f"[ERROR] Exception occurred: {str(e)}")
+

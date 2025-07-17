@@ -19,6 +19,7 @@
   "for_late_coming",
   "for_insufficient_hours",
   "for_no_attendance",
+  "for_mispunch",
   "section_break_ixto",
   "remarks"
  ],
@@ -108,12 +109,18 @@
    "fieldname": "for_no_attendance",
    "fieldtype": "Check",
    "label": "For no attendance"
+  },
+  {
+   "default": "0",
+   "fieldname": "for_mispunch",
+   "fieldtype": "Check",
+   "label": "For Mispunch"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-06-22 17:01:22.651533",
+ "modified": "2025-07-10 10:03:07.988080",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Penalty",
