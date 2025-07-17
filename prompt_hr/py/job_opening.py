@@ -56,7 +56,7 @@ def send_job_opening_notification(
         employees = frappe.get_all(
             "Employee",
             filters=filters,
-            fields=["name", "date_of_joining", "personal_email", "user_id"],
+            fields=["name", "date_of_joining", "prefered_email", "user_id"],
         ) 
 
         print(f"Eligible Employees\n\n\n: {employees}")
@@ -78,7 +78,7 @@ def send_job_opening_notification(
             if role_months < float(min_tenure_in_current_role):
                 continue
             if emp.user_id:
-                eligible_emails.append(emp.user_id)
+                eligible_emails.append(emp.get("prefered_email"))
 
         # ? SEND NOTIFICATION IF ANYONE IS ELIGIBLE
         if eligible_emails:
@@ -381,3 +381,61 @@ def get_permission_query_conditions(user):
                 AND `tabDocShare`.user = {frappe.db.escape(user)}
             )"""
         )
+
+# ? CALLED FROM FORM VIEW TO FETCH DASHBOARD SUMMARY
+@frappe.whitelist()
+def get_job_applicant_summary(job_opening):
+	"""
+	FETCHES JOB APPLICANT STATUS SUMMARY FOR A GIVEN JOB OPENING.
+	RETURNS A DICT WITH COUNT OF APPLICANTS IN EACH STAGE.
+	"""
+	try:
+		# * FETCH THE JOB OPENING DOCUMENT
+		job_opening_doc = frappe.get_doc("Job Opening", job_opening)
+		if not job_opening_doc:
+			frappe.throw(f"Job Opening {job_opening} not found.")
+
+		# * FETCH ALL JOB APPLICANTS LINKED TO THE JOB OPENING
+		job_applicants = frappe.get_all(
+			"Job Applicant",
+			filters={"job_title": job_opening},
+			fields=["name", "applicant_name", "status"]
+		)
+
+		# * INITIALIZE STATUS-WISE COUNTERS
+		job_applicant_summary = frappe._dict({
+			"Open": 0,
+			"Hold": 0,
+			"Shortlisted": 0,
+			"In Interview Stage": 0,
+			"Offer Given": 0,
+			"Offer Accepted": 0
+		})
+
+		# * LOOP THROUGH EACH APPLICANT AND UPDATE COUNT BASED ON STATUS
+		for applicant in job_applicants:
+			status = applicant.status
+
+			if status == "Open":
+				job_applicant_summary["Open"] += 1
+			elif status == "Hold":
+				job_applicant_summary["Hold"] += 1
+			elif status in ["Shortlisted by Interviewer", "Shortlisted by HR"]:
+				job_applicant_summary["Shortlisted"] += 1
+			elif status in ["Interview in Progress", "Final Interview Selected"]:
+				job_applicant_summary["In Interview Stage"] += 1
+			elif status == "Job Offer Given":
+				job_applicant_summary["Offer Given"] += 1
+			elif status == "Job Offer Accepted":
+				job_applicant_summary["Offer Accepted"] += 1
+
+		# * RETURN THE FINAL SUMMARY TO CLIENT
+		return {"data": job_applicant_summary}
+
+	except Exception as e:
+		# ! LOG THE ERROR IF SOMETHING FAILS
+		frappe.log_error(
+			title="JOB APPLICANT SUMMARY ERROR",
+			message=f"ERROR FETCHING JOB APPLICANT SUMMARY FOR {job_opening}: {str(e)}\n{traceback.format_exc()}"
+		)
+		frappe.throw(f"An error occurred while fetching job applicant summary: {str(e)}")

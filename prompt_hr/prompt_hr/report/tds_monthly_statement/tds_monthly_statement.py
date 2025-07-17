@@ -7,7 +7,7 @@ import calendar
 
 def execute(filters=None):
     columns = [
-        {"label": "Employee Number", "fieldname": "employee_number", "fieldtype": "Data", "width": 120},
+        {"label": "Employee Number", "fieldname": "employee", "fieldtype": "Link","options":"Employee", "width": 120},
         {"label": "Employee Name", "fieldname": "employee_name", "fieldtype": "Data", "width": 180},
         {"label": "PAN Number", "fieldname": "pan_number", "fieldtype": "Data", "width": 120},
         {"label": "Income Tax", "fieldname": "income_tax", "fieldtype": "Currency", "width": 100},
@@ -42,14 +42,34 @@ def execute(filters=None):
         # Fetch PAN Number from Employee if not in Salary Slip
         employee = frappe.get_doc("Employee", slip.employee)
         pan_number = frappe.db.get_value("Employee", slip.employee, "pan_number")
+
+        salary_details = frappe.get_all(
+            "Salary Detail",
+            filters={"parent": slip.name},
+            fields=["salary_component", "amount"],
+
+        )
+        income_tax = 0
+        surcharge = 0
+        cess = 0
+        for detail in salary_details:
+            salary_comp = frappe.get_doc("Salary Component", detail.salary_component)
+            if salary_comp.custom_salary_component_type == "Income Tax":
+                income_tax += detail.amount
+            elif salary_comp.custom_salary_component_type == "Surcharge":
+                surcharge += detail.amount
+            elif salary_comp.custom_salary_component_type == "Cess":
+                cess += detail.amount
+
+        total_tax = income_tax + surcharge + cess
         data.append({
-            "employee_number": employee.employee_number,
+            "employee": employee.name,
             "employee_name": employee.employee_name,
             "pan_number": pan_number,
-            "income_tax": 0,
-            "surcharge": 0,
-            "cess": 0,
-            "total_tax": 0,
+            "income_tax": income_tax,
+            "surcharge": surcharge,
+            "cess": cess,
+            "total_tax": total_tax,
         })
 
     return columns, data

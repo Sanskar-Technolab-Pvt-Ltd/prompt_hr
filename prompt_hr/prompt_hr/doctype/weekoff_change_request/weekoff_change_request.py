@@ -3,7 +3,7 @@
 
 import frappe
 from frappe import _, throw
-from frappe.utils import getdate, today
+from frappe.utils import getdate, today, formatdate
 from frappe.model.document import Document
 from prompt_hr.py.utils import send_notification_email, check_user_is_reporting_manager
 
@@ -42,7 +42,7 @@ class WeekOffChangeRequest(Document):
 							if not row.existing_weekoff:
 								row.existing_weekoff = day_name
 							elif row.existing_weekoff and row.existing_weekoff.lower() != day_name.lower():
-								throw("Please Set Correct Existing weekoff Day as per the date")
+								throw(f"The date {formatdate(row.existing_weekoff_date, 'dd-mm-yyyy')} does not exist in the holiday list for this employee.")
 
 						if row.new_weekoff_date:
 							day_name = get_day_name(row.new_weekoff_date)

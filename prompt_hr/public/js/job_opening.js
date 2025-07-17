@@ -6,7 +6,7 @@ frappe.ui.form.on("Job Opening", {
 
         // ? FUNCTION TO APPLY FILTER ON JOB REQUISITION WITH STATUS == "FINAL APPROVAL"
         applyJobRequisitionFilter(frm)
-
+        frm.events.make_dashboard(frm);
         const current_user = frappe.session.user;
         let hide_notify_buttons = false;
         let show_confirm_button = false;
@@ -132,6 +132,64 @@ frappe.ui.form.on("Job Opening", {
             }
         }, 100);
     },
+
+    // ? CALLED ON FORM LOAD/REFRESH TO SHOW JOB APPLICANT SUMMARY DASHBOARD
+    make_dashboard: function (frm) {
+        // * FETCH DASHBOARD SUMMARY VIA WHITELISTED PYTHON METHOD
+        frappe.call({
+            method: "prompt_hr.py.job_opening.get_job_applicant_summary",
+            args: {
+                job_opening: frm.doc.name,
+            },
+            callback: function (r) {
+                if (r.message) {
+                    // ! Remove previous dashboard section if exists
+                    $("div").remove(".form-dashboard-section.custom");
+
+                    // * Extract offer-related data
+                    const summary = r.message.data;
+
+                    // * Begin building the HTML block
+                    let html = `
+                        <div class="form-dashboard-section custom mt-2 mb-3">
+                            <div class="row font-weight-bold pb-2" style="border-bottom: 2px solid #dee2e6;">
+                    `;
+
+                    const labels = Object.keys(summary);
+
+                    // * Render headers with vertical borders
+                    labels.forEach((label, index) => {
+                        html += `
+                            <div class="col text-center" style="
+                                border-right: ${index < labels.length - 1 ? '1px solid #dee2e6' : 'none'};
+                            ">
+                                ${frappe.utils.escape_html(label)}
+                            </div>
+                        `;
+                    });
+
+                    html += `</div><div class="row pt-2">`;
+
+                    // * Render values, converting to string to retain 0s
+                    labels.forEach((label, index) => {
+                        html += `
+                            <div class="col text-center" style="
+                                border-right: ${index < labels.length - 1 ? '1px solid #dee2e6' : 'none'};
+                            ">
+                                ${frappe.utils.escape_html(String(summary[label]))}
+                            </div>
+                        `;
+                    });
+
+                    html += `</div></div>`;
+
+                    // * Add section to dashboard
+                    frm.dashboard.add_section(html, __("Job Opening Summary"));
+                }
+            }
+        });
+    },
+
 
     company: function (frm) {
         frm.set_value("custom_referral_bonus_policy", "");

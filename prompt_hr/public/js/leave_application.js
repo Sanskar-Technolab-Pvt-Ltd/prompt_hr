@@ -26,7 +26,7 @@ frappe.ui.form.on("Leave Application", {
 				employee: frm.doc.employee || '',
 			},
 			callback: function (r) {
-				if (r.message && (frm.doc.workflow_state == 'Approved' || frm.doc.workflow_state == 'Confirmed') && (!frm.doc.custom_extension_status || frm.doc.custom_extension_status == "")) {
+				if (r.message && (frm.doc.workflow_state == 'Approved') && (!frm.doc.custom_extension_status || frm.doc.custom_extension_status == "")) {
 				frm.add_custom_button(__('Extend Leave'), function() {
 					let d = new frappe.ui.Dialog({
 						title: 'Extend Leave',
@@ -66,9 +66,7 @@ frappe.ui.form.on("Leave Application", {
 												leave_type: frm.doc.leave_type,
 												from_date: frappe.datetime.add_days(frm.doc.to_date, 1),
 												to_date: d.get_value("extend_to"),
-												half_day: frm.doc.half_day,
-												half_day_date: frm.doc.half_day_date,
-												custom_half_day_time: frm.doc.custom_half_day_time
+												half_day: 0,
 											},
 											callback: function(r) {
 												console.log(r)
@@ -122,7 +120,7 @@ frappe.ui.form.on("Leave Application", {
     calculate_total_days: function (frm) {
 		if (frm.doc.from_date && frm.doc.to_date && frm.doc.employee && frm.doc.leave_type) {
 			return frappe.call({
-				method: "hrms.hr.doctype.leave_application.leave_application.get_number_of_leave_days",
+				method: "prompt_hr.py.leave_application.custom_get_number_of_leave_days",
 				args: {
 					employee: frm.doc.employee,
 					leave_type: frm.doc.leave_type,
@@ -130,7 +128,7 @@ frappe.ui.form.on("Leave Application", {
 					to_date: frm.doc.to_date,
 					half_day: frm.doc.half_day,
 					half_day_date: frm.doc.half_day_date,
-                    custom_half_day_time: frm.doc.custom_half_day_time
+					custom_half_day_time: frm.doc.custom_half_day_time
 				},
 				callback: function (r) {
 					if (r && r.message) {
