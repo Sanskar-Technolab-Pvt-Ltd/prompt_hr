@@ -346,6 +346,7 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
         
         late_entry = late_entry_and_apply_penalty.get("is_late_entry")
         apply_penalty = late_entry_and_apply_penalty.get("apply_penalty")
+        late_entry_with_grace_period = late_entry_and_apply_penalty.get("is_late_entry_with_grace_period")
         
         if not is_half_day:
             shift_end_datetime = get_datetime(out_datetime.date()) + shift_end_time
@@ -413,6 +414,7 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
                     "late_entry": late_entry,
                     "early_exit": is_early_exit,
                     "custom_apply_penalty": apply_penalty,
+                    "custom_late_entry_with_grace_period": late_entry_with_grace_period,
                     "in_time" : in_datetime if in_type_emp_checkin or regularize_start_time else None,
                     "out_time" : out_datetime if out_type_emp_checkin or regularize_end_time else None,
                     "custom_checkin_time" : in_datetime if in_type_emp_checkin else None,
@@ -434,6 +436,7 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
                     "working_hours": final_working_hours,
                     "custom_overtime": ot_duration,
                     "late_entry": late_entry,
+                    "custom_late_entry_with_grace_period": late_entry_with_grace_period,
                     "early_exit": is_early_exit,
                     "custom_apply_penalty": apply_penalty,
                     "in_time" : in_datetime if in_type_emp_checkin else None,
@@ -461,6 +464,7 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
             working_hours=final_working_hours,
             custom_overtime = ot_duration,
             late_entry = late_entry,
+            custom_late_entry_with_grace_period =late_entry_with_grace_period,
             early_exit = is_early_exit,
             custom_apply_penalty = apply_penalty,
             shift = shift_type,
@@ -549,8 +553,8 @@ def is_late_entry(employee_in_datetime, shift_start_time, grace_time , is_half_d
         shift_start_datetime = shift_start_time
     time_diff = employee_in_datetime - shift_start_datetime
     late_minutes = int(time_diff.total_seconds() // 60)
-    
-    return {"is_late_entry": 1 if late_minutes > 0 else 0, "apply_penalty": 1 if late_minutes > grace_time else 0}
+    # ? ADD LATE MINUTES WITH GRACE TIME TO CHECK IF THE EMPLOYEE IS LATE ENTRY ONLY OR LATE ENTRY WITH PENALTY
+    return {"is_late_entry": 1 if late_minutes > grace_time else 0, "apply_penalty": 1 if late_minutes > grace_time else 0, "is_late_entry_with_grace_period": 1 if late_minutes > 0 else 0}
     
 
 def create_attendance(
@@ -562,6 +566,7 @@ def create_attendance(
     working_hours = 0.0,
     custom_overtime= 0.0,
     late_entry = 0,
+    custom_late_entry_with_grace_period = 0,
     early_exit = 0,
     custom_apply_penalty = 0,
     shift = '',
@@ -590,6 +595,7 @@ def create_attendance(
     attendance_doc.working_hours = working_hours
     attendance_doc.custom_overtime = custom_overtime
     attendance_doc.late_entry = late_entry
+    attendance_doc.custom_late_entry_with_grace_period = custom_late_entry_with_grace_period
     attendance_doc.early_exit = early_exit
     attendance_doc.custom_apply_penalty = custom_apply_penalty
     attendance_doc.shift = shift
