@@ -87,7 +87,7 @@ class AttendanceRegularization(Document):
 	def before_save(self):
 
 		if self.get("status") in ["Approved", "Rejected"]:
-			pass
+			return
 
 		attendance_regularization_limit = int(frappe.db.get_single_value("HR Settings", "custom_allowed_to_raise_regularizations_for_past_days_for_prompt") or 0)
 		limit_date = add_days(frappe.utils.getdate(), -attendance_regularization_limit)
