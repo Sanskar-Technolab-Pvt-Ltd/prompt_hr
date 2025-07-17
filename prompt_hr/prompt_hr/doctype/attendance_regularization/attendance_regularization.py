@@ -85,18 +85,19 @@ class AttendanceRegularization(Document):
 					self.employee_notified = 1
 
 	def before_save(self):
-		doc_before_save = self.get_doc_before_save()
+
+		if self.get("status") in ["Approved", "Rejected"]:
+			pass
+
 		attendance_regularization_limit = int(frappe.db.get_single_value("HR Settings", "custom_allowed_to_raise_regularizations_for_past_days_for_prompt") or 0)
 		limit_date = add_days(frappe.utils.getdate(), -attendance_regularization_limit)
 
-		# ? CHECK IF REGULARIZATION DATE CHANGED
-		if getdate(self.regularization_date) != getdate(doc_before_save.regularization_date):
-			# ! VALIDATE IF REGULARIZATION DATE IS WITHIN THE LIMIT
-			if get_datetime(self.regularization_date).date() < limit_date:
-				frappe.throw(f"Attendance Regularization cannot be raised for past dates more than {attendance_regularization_limit} days.")
+		
+		# ! VALIDATE IF REGULARIZATION DATE IS WITHIN THE LIMIT
+		if get_datetime(self.regularization_date).date() < limit_date:
+			frappe.throw(f"Attendance Regularization cannot be raised for past dates more than {attendance_regularization_limit} days.")
 
-		# ? CHECK IF ATTENDANCE FIELD CHANGED
-		if self.attendance != doc_before_save.attendance and self.attendance:
+		if self.get("attendance"):
 			attendance_doc = frappe.get_doc("Attendance", self.attendance)
 			# ! VALIDATE IF ATTENDANCE DATE IS WITHIN THE LIMIT
 			if attendance_doc.attendance_date < limit_date:
