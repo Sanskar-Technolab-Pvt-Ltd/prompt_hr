@@ -95,7 +95,7 @@
   "icon": "",
   "modified": "2025-05-21 12:09:27.948591",
   "name": "Rejected by BU Head",
-  "style": "",
+  "style": "Danger",
   "workflow_state_name": "Rejected by BU Head"
  },
  {
@@ -104,7 +104,7 @@
   "icon": "",
   "modified": "2025-05-21 12:10:06.245889",
   "name": "Approved by BU Head",
-  "style": "",
+  "style": "Success",
   "workflow_state_name": "Approved by BU Head"
  },
  {
