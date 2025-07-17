@@ -20,3 +20,20 @@ class CustomAttendance(Attendance):
             leave_application = frappe.get_doc("Leave Application", self.leave_application)
             if leave_application.custom_half_day_time:
                 self.db_set("custom_half_day_time", leave_application.custom_half_day_time)
+
+    def before_update_after_submit(doc, method=None):
+        # ! ONLY HR MANAGER CAN MODIFY STATUS AFTER DOCUMENT IS SUBMITTED
+        if doc.docstatus == 1:
+            user = frappe.session.user
+            # ? CHECK IF THE USER HAS HR ROLES
+            has_hr_manager_role = frappe.db.exists({
+                "doctype": "Has Role",
+                "parent": user,
+                "role": ["in", ["HR Manager"]]
+            })
+            if not has_hr_manager_role:
+                previous_status = frappe.db.get_value(doc.doctype, doc.name, "status")
+                if previous_status != doc.status:
+                    frappe.throw(
+                        "Only HR Manager can modify the status of the attendance."
+                    )
