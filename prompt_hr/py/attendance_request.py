@@ -37,13 +37,10 @@ def before_submit(doc, event):
 
 
 def validate(doc, event):
-    print("fsdbsfdbsfdhbjh")
     try:
         old_status = frappe.db.get_value(
             "Attendance Request", doc.name, "custom_status"
         )
-
-        print(f"Old Status: {old_status}, New Status: {doc.custom_status}\n\n\n")
 
         # Send additional notification only if status has changed
         if doc.custom_status != old_status and doc.custom_status in [
@@ -54,7 +51,6 @@ def validate(doc, event):
                 "Employee", doc.employee, "prefered_email"
             )
             if employee_mail:
-                print(f"Sending notification to {employee_mail} for status change")
                 send_notification_email(
                     recipients=[employee_mail],
                     notification_name="Attendance Request Status Changed",

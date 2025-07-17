@@ -109,37 +109,8 @@ def create_employee_separation(employee, company, exit_approval_process):
         for act in activities:
             doc.append("activities", act)
 
-    # ? FETCH RECIPIENTS (HR + ACTIVITY USERS/ROLES)
-    recipients = set(get_hr_managers_by_company(company))
-    valid_users = {
-        e.user_id
-        for e in frappe.get_all("Employee", {"company": company}, ["user_id"])
-        if e.user_id
-    }
-
-    role_users = {act.user for act in doc.activities if act.user} | {
-        u.parent
-        for act in doc.activities
-        if act.role
-        for u in frappe.get_all("Has Role", {"role": act.role}, ["parent"])
-    }
-
-    recipients |= {
-        u.email
-        for u in frappe.get_all(
-            "User", {"name": ["in", list(role_users & valid_users)]}, ["email"]
-        )
-        if u.email
-    }
-
     doc.insert(ignore_permissions=True)
     frappe.db.commit()
-    send_notification_email(
-        doctype="Employee Separation",
-        docname=doc.name,
-        recipients=list(recipients),
-        notification_name="Employee Separation Notification",
-    )
     frappe.db.set_value(
         "Exit Approval Process", exit_approval_process, "employee_separation", doc.name
     )
@@ -262,6 +233,7 @@ def send_exit_interview_notification(employee, exit_interview_name=None):
         docname=exit_interview_name,
         recipients=[user_id],
         notification_name="Exit Questionnaire Mail To Employee",
-        button_link=frappe.utils.get_url() + "/login?redirect-to=/candidate-portal/new#login"
+        button_link=frappe.utils.get_url()
+        + "/login?redirect-to=/exit-questionnaire/new#login",
     )
     return {"status": "success", "message": _("Exit Interview email sent.")}

@@ -13,7 +13,7 @@ def execute(filters=None):
     year = int(get_datetime().year)
     # Define the report columns
     columns = [
-        {"label": "Employee Number", "fieldname": "employee_number", "fieldtype": "Data", "width": 150},
+        {"label": "Employee Number", "fieldname": "employee", "fieldtype": "Link","options":"Employee", "width": 150},
         {"label": "Employee Name", "fieldname": "employee_name", "fieldtype": "Data", "width": 200},
         {"label": "State", "fieldname": "state", "fieldtype": "Data", "width": 120},
         {"label": "Registered Location", "fieldname": "registered_location", "fieldtype": "Data", "width": 180},
@@ -36,20 +36,34 @@ def execute(filters=None):
     # Fetch Salary Slips
     salary_slips = frappe.get_all(
         "Salary Slip",
-        fields=["employee", "employee_name", "gross_pay", "total_income_tax"],
+        fields=["employee", "employee_name", "gross_pay", "name"],
         filters=salary_slip_filters
     )
 
     data = []
     for slip in salary_slips:
         employee = frappe.get_doc("Employee", slip.employee)
+        salary_details = frappe.get_all(
+            "Salary Detail",
+            filters={"parent": slip.name},
+            fields=["salary_component", "amount"],
+
+        )
+        tax = 0
+        for detail in salary_details:
+            salary_comp = frappe.get_doc("Salary Component", detail.salary_component)
+            print(salary_comp)
+            if salary_comp.custom_salary_component_type == "Professional Tax":
+                tax += detail.amount
+        work_location = frappe.db.get_value("Employee", employee.name, "custom_work_location")
+        work_location_name = frappe.db.get_value("Address", work_location, "address_title") if work_location else "N/A"
         row = {
-            "employee_number": employee.employee_number,
+            "employee": employee.name,
             "employee_name": slip.employee_name,
             "state": employee.get("custom_permanent_state"),
-            "registered_location": employee.get("custom_work_location"),
+            "registered_location":work_location_name,
             "gross_amount": slip.gross_pay or 0.0,
-            "tax_amount": slip.total_income_tax
+            "tax_amount": tax
         }
         data.append(row)
 

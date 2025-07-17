@@ -10,9 +10,9 @@
  "event": "Custom",
  "idx": 0,
  "is_standard": 1,
- "message": "Dear {{ doc.employee_name }},<br><br>\n\nYour leave extension request has been <b>{{ doc.workflow_state.split(\" \")[1] }}</b> by your Reporting manager. Please find the details below:<br><br>\n\n<b>Request Summary:</b><br>\n- <b>Leave Type:</b> {{ doc.leave_type }}<br>\n- <b>Status:</b> {{ doc.workflow_state.split(\" \")[1] }}<br>\n- <b>View Request:</b> <a href=\"{{ frappe.utils.get_url() }}/app/{{ doc.doctype|lower|replace(' ', '-') }}/{{ doc.name }}\">Click here</a><br><br>\n\nIf you have any questions regarding this decision, please reach out to your reporting manager or the HR team.<br><br>\n\nThank you,<br>\nHR System",
+ "message": "Dear {{ doc.employee_name }},<br><br>\n\nYour leave extension request has been <b>{{ doc.workflow_state.split(\" \")[1] }}</b> by your Reporting manager {{manager}}. Please find the details below:<br><br>\n\n<b>Request Summary:</b><br>\n- <b>Leave Type:</b> {{ doc.leave_type }}<br>\n- <b>Status:</b> {{ doc.workflow_state.split(\" \")[1] }}<br>\n- <b>View Request:</b> <a href=\"{{ frappe.utils.get_url() }}/app/{{ doc.doctype|lower|replace(' ', '-') }}/{{ doc.name }}\">Click here</a><br><br>\n\nIf you have any questions regarding this decision, please reach out to {{manager or \"Reporting Manager\"}}.<br><br>\n\nThank you,<br>\nHR Manager,<br>\n{{doc.company}}",
  "message_type": "HTML",
- "modified": "2025-05-29 19:12:31.046198",
+ "modified": "2025-07-09 12:35:07.480905",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Leave Extension Request Response By Reporting Manager",
@@ -20,7 +20,7 @@
  "recipients": [
   {}
  ],
- "send_system_notification": 0,
+ "send_system_notification": 1,
  "send_to_all_assignees": 0,
- "subject": "Leave Extension Request {{ doc.workflow_state.split(\" \")[1] }} by Reporting Manager"
+ "subject": "Leave Extension Request {{ doc.workflow_state.split(\" \")[1] }} by {{manager}}"
 }

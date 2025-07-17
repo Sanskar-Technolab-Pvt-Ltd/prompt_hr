@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "format:festival_holiday_list_name-{##}",
+ "autoname": "field:festival_holiday_list_name",
  "creation": "2025-04-28 19:18:30.947240",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -19,7 +19,8 @@
   {
    "fieldname": "festival_holiday_list_name",
    "fieldtype": "Data",
-   "label": "Festival Holiday List Name"
+   "label": "Festival Holiday List Name",
+   "unique": 1
   },
   {
    "fieldname": "state",
@@ -64,11 +65,11 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-06-01 18:35:11.836027",
+ "modified": "2025-07-01 10:56:57.855522",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Festival Holiday List",
- "naming_rule": "Expression",
+ "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
   {

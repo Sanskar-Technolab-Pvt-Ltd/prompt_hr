@@ -23,6 +23,14 @@ from prompt_hr.py import job_requisition_overriden_class
 from hrms.hr.doctype.full_and_final_statement.full_and_final_statement import FullandFinalStatement
 from prompt_hr.py import full_and_final_statement
 from prompt_hr.py.leave_type import custom_get_earned_leaves
+import hrms.payroll.doctype.payroll_entry.payroll_entry as PayrollEntryModule
+from prompt_hr.overrides.payroll_entry_override import custom_set_filter_conditions
+
+PayrollEntryModule.set_filter_conditions = custom_set_filter_conditions
+from prompt_hr.py.utils import calculate_annual_eligible_hra_exemption, get_component_amt_from_salary_slip
+import hrms.regional.india.utils as hra_override
+hra_override.calculate_annual_eligible_hra_exemption = calculate_annual_eligible_hra_exemption
+hra_override.get_component_amt_from_salary_slip = get_component_amt_from_salary_slip
 
 @frappe.whitelist()
 def custom_get_applicable_interviewers(interview: str) -> List[str]:
