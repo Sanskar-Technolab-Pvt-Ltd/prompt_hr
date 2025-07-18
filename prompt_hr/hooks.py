@@ -287,6 +287,8 @@ doc_events = {
     "Salary Slip": {
         "on_submit": "prompt_hr.py.salary_slip.loan_repayment_amount",
         "on_update": "prompt_hr.py.salary_slip.update_loan_principal_amount",
+        "on_cancel": "prompt_hr.py.salary_slip.cancel_loan_repayment_amount",
+        "before_validate": "prompt_hr.py.salary_slip.before_validate",
     },
     "Salary Structure Assignment": {
         "on_submit": "prompt_hr.py.salary_structure_assignment.update_employee_ctc",
