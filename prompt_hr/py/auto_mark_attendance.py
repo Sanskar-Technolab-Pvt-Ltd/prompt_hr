@@ -86,7 +86,7 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
 
                 if not employee_list:
                     throw("No Employees Found")
-
+            grace_time_period_for_late_coming = 0
             if prompt:
                 grace_time_period_for_late_coming = frappe.db.get_single_value("HR Settings", "custom_grace_time_period_for_late_coming_for_prompt") or 0
                 grace_time_for_insufficient_hours = frappe.db.get_single_value("HR Settings", "custom_daily_hours_criteria_for_penalty_for_prompt") or 0
@@ -261,6 +261,7 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
     out_type_emp_checkin_id = None
     out_datetime = None
     create_penalty = 0
+    late_entry_with_grace_period = 0
     
     
     if not in_type_emp_checkin and not out_type_emp_checkin and not regularize_attendance:

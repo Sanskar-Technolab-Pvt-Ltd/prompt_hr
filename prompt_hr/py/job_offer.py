@@ -68,8 +68,14 @@ def accept_changes(
 
 @frappe.whitelist()
 def sync_candidate_portal_from_job_offer(job_offer):
+    """
+    SYNC CANDIDATE PORTAL ENTRY BASED ON JOB OFFER
+    This method is triggered from Job Offer submission/update.
+    It creates or updates Candidate Portal entry and enqueues PDF generation.
+    """
+
     try:
-        # ? IF NAME PASSED, GET NECESSARY FIELDS
+        # ! CONVERT TO DICT IF JOB OFFER NAME IS PASSED
         if isinstance(job_offer, str):
             job_offer_fields = frappe.db.get_value(
                 "Job Offer",
@@ -79,80 +85,105 @@ def sync_candidate_portal_from_job_offer(job_offer):
             )
             if not job_offer_fields:
                 frappe.throw("Job Offer not found.")
-
             job_offer = job_offer_fields
 
-        # ? VALIDATE JOB APPLICANT
+        print(">>> Job Offer object:", job_offer)
+
+        # ! CHECK JOB APPLICANT EXISTS
         if not job_offer.get("job_applicant"):
             frappe.throw("Job Applicant not linked in Job Offer.")
 
-        # ? GET JOB APPLICANT EMAIL
-        email = frappe.db.get_value(
-            "Job Applicant", job_offer.get("job_applicant"), "email_id"
-        )
+        # ! GET APPLICANT EMAIL
+        email = frappe.db.get_value("Job Applicant", job_offer.get("job_applicant"), "email_id")
         if not email:
             frappe.throw("Email ID not found for Job Applicant.")
 
-        # ? CREATE OR UPDATE CANDIDATE PORTAL
-        portal_name = frappe.db.get_value(
-            "Candidate Portal", {"applicant_email": email}, "name"
-        )
+        # ! CREATE OR UPDATE CANDIDATE PORTAL
+        portal_name = frappe.db.get_value("Candidate Portal", {"applicant_email": email}, "name")
+        portal = frappe.get_doc("Candidate Portal", portal_name) if portal_name else frappe.new_doc("Candidate Portal")
 
-        portal = (
-            frappe.get_doc("Candidate Portal", portal_name)
-            if portal_name
-            else frappe.new_doc("Candidate Portal")
-        )
+        portal.update({
+            "applicant_email": email,
+            "job_offer": job_offer.get("name"),
+            "offer_date": job_offer.get("offer_date"),
+            "expected_date_of_joining": job_offer.get("custom_expected_date_of_joining"),
+            "offer_acceptance": job_offer.get("status"),
+        })
 
-        portal.update(
-            {
-                "applicant_email": email,
-                "job_offer": job_offer.get("name"),
-                "offer_date": job_offer.get("offer_date"),
-                "expected_date_of_joining": job_offer.get("custom_expected_date_of_joining"),
-                "offer_acceptance": job_offer.get("status"),
-            }
-        )
+        print(">>> Candidate Portal prepared:", portal.as_dict())
 
-        # ? ATTACH OFFER LETTER PDF
-        try:
-            print_format = frappe.db.get_value(
-                "Print Format", {"doc_type": "Job Offer", "disabled": 0}, "name"
-            )
-            pdf_file = frappe.attach_print(
-                "Job Offer",
-                job_offer.get("name"),
-                print_format=print_format,
-                print_letterhead=True,
-            )
-            file_doc = frappe.get_doc(
-                {
-                    "doctype": "File",
-                    "file_name": f"Job Offer - {job_offer.get('name')}.pdf",
-                    "content": pdf_file.get("fcontent"),
-                    "is_private": 1,
-                    "attached_to_doctype": "Job Offer",
-                    "attached_to_name": job_offer.get("name"),
-                }
-            ).insert()
-            portal.offer_letter = f"http://192.168.2.111:8007{file_doc.file_url}"
-        except Exception:
-            frappe.log_error(frappe.get_traceback(), "Offer Letter PDF Error")
-
-        (
+        # ! SAVE BEFORE GENERATING PDF
+        if portal_name:
             portal.save(ignore_permissions=True)
-            if portal_name
-            else portal.insert(ignore_permissions=True)
-        )
-        frappe.db.commit()
-        frappe.msgprint("Candidate Portal updated from Job Offer.")
+        else:
+            portal.insert(ignore_permissions=True)
 
+        frappe.db.commit()
+
+        # ! ENQUEUE BACKGROUND PDF ATTACHMENT
+        frappe.enqueue(
+            method="prompt_hr.py.job_offer.generate_offer_letter_pdf",
+            job_offer_name=job_offer.get("name"),
+            portal_name=portal.name,
+            queue='default',
+            now=False,
+        )
+
+        frappe.msgprint("Candidate Portal updated from Job Offer.")
         return portal.name
 
     except Exception as e:
-        frappe.log_error(f"Failed to sync Candidate Portal: {e}")
+        frappe.log_error(frappe.get_traceback(), "❌ sync_candidate_portal_from_job_offer Error")
         frappe.throw("Something went wrong while syncing Candidate Portal.")
 
+def generate_offer_letter_pdf(job_offer_name, portal_name):
+    """
+    BACKGROUND TASK: Generate PDF for Job Offer and attach to Candidate Portal
+    Called via frappe.enqueue in sync_candidate_portal_from_job_offer
+    """
+    try:
+        print(f">>> [PDF] Generating for Job Offer: {job_offer_name}, Portal: {portal_name}")
+
+        # ! LOAD DOCS
+        job_offer = frappe.get_doc("Job Offer", job_offer_name)
+        portal = frappe.get_doc("Candidate Portal", portal_name)
+
+        # ! GET PRINT FORMAT
+        print_format = frappe.db.get_value(
+            "Print Format", {"doc_type": "Job Offer", "disabled": 0}, "name"
+        )
+
+        print(f">>> [PDF] Using print format: {print_format}")
+
+        # ! GENERATE PDF
+        pdf_file = frappe.attach_print(
+            "Job Offer",
+            job_offer.name,
+            print_format=print_format,
+            print_letterhead=True,
+        )
+
+        # ! SAVE FILE IN SYSTEM
+        file_doc = frappe.get_doc({
+            "doctype": "File",
+            "file_name": f"Job Offer - {job_offer.name}.pdf",
+            "content": pdf_file.get("fcontent"),
+            "is_private": 1,
+            "attached_to_doctype": "Job Offer",
+            "attached_to_name": job_offer.name,
+        }).insert()
+
+        # ! SET OFFER LETTER LINK
+        from frappe.utils import get_url
+        portal.offer_letter = get_url(file_doc.file_url)
+        portal.save(ignore_permissions=True)
+        frappe.db.commit()
+
+        print(f">>> [PDF] PDF attached and portal updated: {portal.offer_letter}")
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "generate_offer_letter_pdf Error")
+        print(">>> [PDF] Error occurred during PDF generation. Check error logs.")
 
 
 # ? ENSURE CANDIDATE PORTAL EXISTS FOR JOB OFFER
