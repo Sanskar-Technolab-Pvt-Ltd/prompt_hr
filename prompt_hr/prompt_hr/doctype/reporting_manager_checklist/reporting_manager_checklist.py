@@ -10,8 +10,8 @@ class ReportingManagerChecklist(Document):
     # ? FUNCTION TRIGGERED AFTER DOCUMENT IS SAVED
     def on_update(self):
 
-       # ? SKIP RUNNING ON FIRST SAVE (CREATION)
-        if self.flags.in_insert:
+        # ! DO NOT RUN THIS LOGIC IF DOCUMENT IS BEING CREATED FOR THE FIRST TIME
+        if self.is_new():
             return
 
         update_employee_onboarding_row(self)
