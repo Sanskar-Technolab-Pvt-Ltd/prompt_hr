@@ -291,6 +291,7 @@ doc_events = {
     "Salary Structure Assignment": {
         "on_submit": "prompt_hr.py.salary_structure_assignment.update_employee_ctc",
         "before_save": "prompt_hr.py.salary_structure_assignment.update_arrear_details",
+        "on_cancel": "prompt_hr.py.salary_structure_assignment.on_cancel",
     },
     "Appointment Letter": {
         "before_save": "prompt_hr.py.appointment_letter.before_save",
