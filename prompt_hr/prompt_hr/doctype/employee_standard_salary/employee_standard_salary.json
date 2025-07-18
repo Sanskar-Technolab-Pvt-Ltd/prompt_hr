@@ -10,13 +10,16 @@
   "employee",
   "employee_name",
   "company",
+  "annual_performance_incentive",
   "column_break_ahci",
   "salary_structure_assignment",
   "salary_structure",
   "monthly_salary",
+  "annual_loyalty_bonus",
   "salary_breakup_section",
   "earnings",
-  "deductions"
+  "deductions",
+  "employer_contribution"
  ],
  "fields": [
   {
@@ -83,12 +86,31 @@
    "label": "Deductions",
    "options": "Salary Detail",
    "read_only": 1
+  },
+  {
+   "fetch_from": "salary_structure_assignment.custom_annual_performance_incentive",
+   "fieldname": "annual_performance_incentive",
+   "fieldtype": "Currency",
+   "label": "Annual Performance Incentive"
+  },
+  {
+   "fetch_from": "salary_structure_assignment.custom_annual_loyalty_bonus",
+   "fieldname": "annual_loyalty_bonus",
+   "fieldtype": "Currency",
+   "label": "Annual Loyalty Bonus"
+  },
+  {
+   "fieldname": "employer_contribution",
+   "fieldtype": "Table",
+   "label": "Employer Contribution",
+   "options": "Salary Detail",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-24 15:30:36.969202",
+ "modified": "2025-07-18 11:24:59.595869",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Standard Salary",
