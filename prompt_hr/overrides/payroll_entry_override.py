@@ -61,7 +61,8 @@ class CustomPayrollEntry(PayrollEntry):
                         )
                     )
                 adhoc_salary_pair.add(key)
-
+        
+        self.link_payroll_entry_to_salary_slips()
     def on_submit(self):
         super().on_submit()
 
@@ -89,7 +90,22 @@ class CustomPayrollEntry(PayrollEntry):
                 # Save current doc with updated employee list
                 self.save(ignore_permissions=True)
 
-
+    def link_payroll_entry_to_salary_slips(self):
+        """
+        Link the Payroll Entry to Salary Slips created for employees.
+        This method is called after salary slips are created.
+        """
+        
+        if self.custom_pending_withholding_salary:
+            for row in self.custom_pending_withholding_salary:
+                if row.release_salary:
+                    
+                    if frappe.db.exists("Salary Slip", {"employee": row.get("employee"), "start_date": [">=", row.get("from_date")], "end_date": ["<=", row.get("to_date")]}):
+                        salary_slips_id = frappe.db.get_all("Salary Slip", {"employee": row.get("employee"), "start_date": [">=", row.get("from_date")], "end_date": ["<=", row.get("to_date")]}, "name")
+                        if salary_slips_id:
+                            for slip in salary_slips_id:
+                                frappe.db.set_value("Salary Slip", slip.name, "payroll_entry", self.name)
+                    
     @frappe.whitelist()
     def fill_employee_details(self):
         # * Get PROMPT abbreviation from HR Settings
@@ -160,6 +176,19 @@ class CustomPayrollEntry(PayrollEntry):
         self.number_of_employees = len(self.employees)
         self.update_employees_with_withheld_salaries()
 
+        if employees:
+            for emp in employees:
+                if frappe.db.exists("Employee Salary Withholding", {"employee": emp.get('employee'), "is_salary_released": 0}):
+                    doc_id = frappe.db.get_value("Employee Salary Withholding", {"employee": emp.get("employee"), "is_salary_released": 0}, "name")
+                    withholding_doc = frappe.get_doc("Employee Salary Withholding", doc_id)
+                    
+                    self.append("custom_pending_withholding_salary", {
+                        "employee": withholding_doc.get("employee"),
+                        "from_date": withholding_doc.get("from_date"),
+                        "to_date": withholding_doc.get("to_date"),                        
+                    })
+
+            
         return self.get_employees_with_unmarked_attendance()
 
     @frappe.whitelist()
@@ -175,8 +204,13 @@ class CustomPayrollEntry(PayrollEntry):
                 emp.employee for emp in self.custom_salary_withholding_details if (self.start_date <= emp.from_date <= self.end_date and self.start_date <= emp.to_date <= self.end_date) and emp.withholding_type == "Hold Salary Processing"
             ]
         
-            
-        employees = [emp.employee for emp in self.employees if not_create_slips and emp.employee not in not_create_slips]
+        
+        if self.custom_pending_withholding_salary:
+            not_create_slips += [
+                emp.employee for emp in self.custom_pending_withholding_salary if not emp.process_salary 
+            ]
+        
+        employees = [emp.employee for emp in self.employees if emp.employee not in not_create_slips] 
 
         if employees:
             args = frappe._dict(
