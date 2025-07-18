@@ -31,6 +31,14 @@ from prompt_hr.py.utils import calculate_annual_eligible_hra_exemption, get_comp
 import hrms.regional.india.utils as hra_override
 hra_override.calculate_annual_eligible_hra_exemption = calculate_annual_eligible_hra_exemption
 hra_override.get_component_amt_from_salary_slip = get_component_amt_from_salary_slip
+import lending.loan_management.doctype.loan_repayment.loan_repayment as LoanRepayment
+import hrms.payroll.doctype.salary_slip.salary_slip_loan_utils as LoanUtils
+from prompt_hr.py.loan_application import custom_get_accrued_interest_entries, custom_process_loan_interest_accruals,custom_make_accrual_interest_entry_for_term_loans
+
+LoanRepayment.get_accrued_interest_entries = custom_get_accrued_interest_entries
+
+LoanUtils.process_loan_interest_accruals = custom_process_loan_interest_accruals
+
 
 @frappe.whitelist()
 def custom_get_applicable_interviewers(interview: str) -> List[str]:
@@ -68,6 +76,40 @@ interview_feedback_module.get_applicable_interviewers = custom_get_applicable_in
 
 workflow.has_approval_access = custom_has_approval_access
 workflow.get_transitions = custom_get_transitions
+
+from lending.loan_management.doctype.loan_interest_accrual.loan_interest_accrual import (
+	make_accrual_interest_entry_for_demand_loans,
+)
+
+from lending.loan_management.doctype.process_loan_interest_accrual.process_loan_interest_accrual import ProcessLoanInterestAccrual
+def custom_on_submit(self):
+    open_loans = []
+
+    if self.loan:
+        loan_doc = frappe.get_doc("Loan", self.loan)
+        if loan_doc:
+            open_loans.append(loan_doc)
+
+    if (not self.loan or not loan_doc.is_term_loan) and self.process_type != "Term Loans":
+        make_accrual_interest_entry_for_demand_loans(
+            self.posting_date,
+            self.name,
+            open_loans=open_loans,
+            loan_product=self.loan_product,
+            accrual_type=self.accrual_type,
+        )
+
+    if (not self.loan or loan_doc.is_term_loan) and self.process_type != "Demand Loans":
+        custom_make_accrual_interest_entry_for_term_loans(
+            self.posting_date,
+            self.name,
+            term_loan=self.loan,
+            loan_product=self.loan_product,
+            accrual_type=self.accrual_type,
+        )
+
+ProcessLoanInterestAccrual.on_submit = custom_on_submit
+
 
 @frappe.whitelist()
 
