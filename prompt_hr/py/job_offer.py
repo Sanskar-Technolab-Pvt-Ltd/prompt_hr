@@ -182,7 +182,7 @@ def generate_offer_letter_pdf(job_offer_name, portal_name):
         print(f">>> [PDF] PDF attached and portal updated: {portal.offer_letter}")
 
     except Exception as e:
-        frappe.log_error(frappe.get_traceback(), "❌ generate_offer_letter_pdf Error")
+        frappe.log_error(frappe.get_traceback(), "generate_offer_letter_pdf Error")
         print(">>> [PDF] Error occurred during PDF generation. Check error logs.")
 
 
