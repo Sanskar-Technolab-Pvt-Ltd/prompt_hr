@@ -122,9 +122,7 @@ def loan_repayment_amount(salary_slip_doc, method):
                         )
 
                         is_schedule_updated = 1
-                        previous_outstanding_balance = loan_document.get(
-                            "total_payment"
-                        ) - loan_document.get("total_amount_paid")
+                        previous_outstanding_balance = repayment_entry["balance_loan_amount"] + remaining_adjustment_amount
 
                 # * Handle remaining amount adjustment for subsequent entries
                 elif is_schedule_updated == 1:
@@ -283,36 +281,17 @@ def cancel_loan_repayment_amount(salary_slip_doc, method):
                             )
                             previous_outstanding_balance = repayment_entry["balance_loan_amount"] - remaining_adjustment_amount
                         elif loan_product_doc.custom_remaining_installment_adjustment_type == "Adjust Installment Amount":
-                            if remaining_loan_amount:
-                                remaining_entries = len(repayment_entries) - repayment_entries.index(repayment_entry)
-                                if remaining_entries:
-                                    adjust_principal_amount = remaining_loan_amount/remaining_entries
-                                    previous_outstanding_balance = remaining_loan_amount - adjust_principal_amount
-
-                                    frappe.db.set_value(
-                                        "Repayment Schedule",
-                                        repayment_entry["name"],
-                                        {
-                                            "total_payment": adjust_principal_amount,
-                                            "principal_amount": adjust_principal_amount,
-                                            "balance_loan_amount": previous_outstanding_balance,
-                                            "is_accrued": 0
-                                        },
-                                    )
-                                else:
-                                    previous_outstanding_balance = repayment_entry["balance_loan_amount"] - remaining_adjustment_amount
-                            else:
-                                frappe.db.set_value(
-                                    "Repayment Schedule",
-                                    repayment_entry["name"],
-                                    {
-                                        "total_payment": repayment_schedule.get("monthly_repayment_amount"),
-                                        "principal_amount": repayment_schedule.get("monthly_repayment_amount"),
-                                        "balance_loan_amount": repayment_entry["balance_loan_amount"] - remaining_adjustment_amount,
-                                        "is_accrued": 0
-                                    },
-                                )
-                                previous_outstanding_balance = repayment_entry["balance_loan_amount"] - remaining_adjustment_amount
+                            frappe.db.set_value(
+                                "Repayment Schedule",
+                                repayment_entry["name"],
+                                {
+                                    "total_payment": repayment_schedule.get("monthly_repayment_amount"),
+                                    "principal_amount": repayment_schedule.get("monthly_repayment_amount"),
+                                    "balance_loan_amount": repayment_entry["balance_loan_amount"] - remaining_adjustment_amount,
+                                    "is_accrued": 0
+                                },
+                            )
+                            previous_outstanding_balance = repayment_entry["balance_loan_amount"] - remaining_adjustment_amount
 
                         is_schedule_updated = 1
 
