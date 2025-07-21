@@ -19,6 +19,10 @@ class EmployeeStandardSalary(Document):
             frappe.throw("Employee Standard Salary already exists for this employee")
 
     def before_save(self):
+        # ? TOTAL GROSS PAY, DEDUCTIONS and NET PAY
+        total_gross_pay = 0
+        total_net_pay = 0
+        total_deductions = 0
         # ? Ensure required fields are present
         if not (self.employee and self.salary_structure_assignment):
             return
@@ -65,6 +69,7 @@ class EmployeeStandardSalary(Document):
                 self.append("earnings", component)
                 # * Prepare data for evaluation
                 self.data, self.default_data = self.get_data_for_eval()
+                total_gross_pay += component.get("amount")
 
         # * Add deductions
         for row in self._salary_structure_doc.get("deductions", []):
@@ -73,6 +78,7 @@ class EmployeeStandardSalary(Document):
                 self.append("deductions", component)
                 # * Prepare data for evaluation
                 self.data, self.default_data = self.get_data_for_eval()
+                total_deductions +=component.get("amount")
 
         # * Add Employer Contributions
         for row in self._salary_structure_doc.get("custom_employer_contribution", []):
@@ -81,6 +87,12 @@ class EmployeeStandardSalary(Document):
                 self.append("employer_contribution", component)
                 # * Prepare data for evaluation
                 self.data, self.default_data = self.get_data_for_eval()
+                total_gross_pay +=component.get("amount")
+
+
+        self.total_gross_pay = total_gross_pay
+        self.total_deductions = total_deductions
+        self.total_net_pay = total_gross_pay - total_deductions
 
     def get_data_for_eval(self):
         # * Create merged dict for salary component evaluation
