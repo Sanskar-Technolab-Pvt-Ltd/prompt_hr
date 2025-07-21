@@ -482,5 +482,16 @@ fixtures = [
     # },
     # {
     #     "dt":"Workflow Action Master", "filters": [["name", "in", ["Confirm"]]]
+    # },
+    # {
+    #     "doctype": "Type of Document",
+    #     "filters": {
+    #         "name": ["in", [
+    #             "Proof of Work Experience",
+    #             "Proof of Identity",
+    #             "Proof of Address",
+    #             "Proof of Qualification"
+    #         ]]
+    #     }
     # }
 ]
