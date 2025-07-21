@@ -36,7 +36,6 @@ frappe.ui.form.on("Payroll Entry", {
 
         // ? REMOVE AUTO BRANCH ADDITION DATA
         empty_branch_field_if_form_is_new(frm);
-        send_salary_slip(frm)
         frm.get_field('custom_lop_summary').grid.cannot_add_rows = true;
         frm.refresh_field('custom_lop_summary');
 
@@ -170,6 +169,21 @@ frappe.ui.form.on("Payroll Entry", {
 				frm.trigger("create_salary_slips");
 			}).addClass("btn-primary");
 		}
+    },
+    
+    add_bank_entry_button: function (frm) {
+		frm.call("has_bank_entries").then((r) => {
+            if (!r.message.has_bank_entries) {
+                send_salary_slip(frm)
+				frm.add_custom_button(__("Make Bank Entry"), function () {
+					make_bank_entry(frm);
+				}).addClass("btn-primary");
+			} else if (!r.message.has_bank_entries_for_withheld_salaries) {
+				frm.add_custom_button(__("Release Withheld Salaries"), function () {
+					make_bank_entry(frm, (for_withheld_salaries = 1));
+				}).addClass("btn-primary");
+			}
+		});
 	},
 });
 
@@ -298,16 +312,105 @@ function set_lop_month_options_for_all_rows(frm) {
 
 // ? FUNCTION TO ADD CUSTOM BUTTON FOR GENERATING AND SENDING SALARY SLIP PDF
 function send_salary_slip(frm) {
-    frm.add_custom_button(__('Generate Salary Slip PDF'), function() {
-        frappe.call({
-            method: 'prompt_hr.py.payroll_entry.send_salary_sleep_to_employee',
-            args: {
-                payroll_entry_id: frm.doc.name
-            },
-            callback: function(r) {
-                frappe.msgprint(__('Salary Slip PDF has been generated and sending to the employees will be sent shortly.'));
+    frm.add_custom_button(__('Generate Salary Slip PDF'), function () {
+        
+        let d = new frappe.ui.Dialog({
+            title: 'Select Employees',
+            fields: [
+                {
+                    label: 'Employee',
+                    fieldname: 'employee',
+                    fieldtype: 'Link',
+                    options: 'Employee',
+                    onchange: function() {
+                        let employee = d.get_value('employee');
+                        if (employee) {
+
+                            const grid = d.fields_dict.employee_table.grid;
+                            const data = grid.get_data();
+
+                            if (data.some(r => r.employee === employee)) {
+                                frappe.msgprint(__('Employee already added!'));
+                                d.set_value('employee', '');
+                                return;
+                            }
+                            grid.add_new_row();
+
+                            const row_doc = grid.get_data()[grid.get_data().length - 1];
+                            row_doc.employee = employee;
+                            grid.refresh();
+
+                            d.set_value('employee', '');
+                        }
+                    }
+                },
+                {
+                    label: 'Company Email',
+                    fieldname: 'company_email',
+                    fieldtype: 'Check',                    
+                },
+                {
+                    label: 'Personal Email',
+                    fieldname: 'personal_email',
+                    fieldtype: 'Check',                    
+                },
+                {
+                    label: 'Selected Employees',
+                    fieldname: 'employee_table',
+                    fieldtype: 'Table',
+                    cannot_add_rows: true,
+                    // cannot_delete_rows: true,
+                    fields: [
+                        {
+                            fieldname: 'employee',
+                            fieldtype: 'Link',
+                            options: 'Employee',
+                            label: 'Employee',
+                            in_list_view: 1,
+                            // read_only: 1
+                        },
+                    ]
+                }
+            ],
+            primary_action_label: 'Send',
+            primary_action(values) {
+                // Collect data to send to server
+                let data = {
+                    employees: values.employee_table || []
+                };
+                employee_ids = [];
+                if (values.employee_table && values.employee_table.length > 0) { 
+                    employee_ids = values.employee_table.map(row => row.employee).filter(Boolean);
+                }
+
+                frappe.call({
+                        method: 'prompt_hr.py.payroll_entry.send_salary_sleep_to_employee',
+                        args: {
+                            payroll_entry_id: frm.doc.name,
+                            email_details: {
+                                company_email: values.company_email,
+                                personal_email: values.personal_email,
+                                employee_ids: employee_ids
+                            }                            
+                        },
+                        callback: function(r) {
+                            frappe.msgprint(__('Salary Slip PDF has been generated and sending to the employees will be sent shortly.'));
+                        }
+                });
+                d.hide();
             }
         });
+
+        d.show();
+        // frappe.call({
+        //     method: 'prompt_hr.py.payroll_entry.send_salary_sleep_to_employee',
+        //     args: {
+        //         payroll_entry_id: frm.doc.name
+        //     },
+        //     callback: function(r) {
+        //         frappe.msgprint(__('Salary Slip PDF has been generated and sending to the employees will be sent shortly.'));
+        //     }
+        // });
     });
 }
 

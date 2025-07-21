@@ -709,21 +709,52 @@ def import_adhoc_salary_details(payroll_entry_id, file_url):
 @frappe.whitelist()
 # * METHOD TO FETCH AND SEND SALARY SLEEP TO EMPLOYEE
 # ! prompt_hr.py.payroll_entry.send_salary_sleep_to_employee
-def send_salary_sleep_to_employee(payroll_entry_id):
+def send_salary_sleep_to_employee(payroll_entry_id, email_details):
+
     try:
-        salary_slip_info_list = frappe.db.get_all("Salary Slip", {"docstatus": 1, "payroll_entry": payroll_entry_id}, ['name', 'employee'])
-        print(salary_slip_info_list)
+        if email_details:
+            email_details = frappe.parse_json(email_details)
+            get_company_email = email_details.get("company_email", False)
+            get_personal_email = email_details.get("personal_email", False)
+            
+            avoid_employees = email_details.get("employee_ids", [])
+        else:
+            get_company_email = False
+            get_personal_email = False
+            avoid_employees = []
+            
+        
+        salary_slip_info_list = frappe.db.get_all("Salary Slip", {"docstatus": 1, "payroll_entry": payroll_entry_id, "employee": ["not in", avoid_employees]}, ['name', 'employee'])
+        
         print_format_info = frappe.db.get_all("Print Format Selection", {"parenttype":"HR Settings", "parentfield": "custom_print_format_table_prompt", "document": "Salary Slip"}, ["print_format_document", "letter_head"], limit=1)
-        print(print_format_info)
+        
         print_format_id = print_format_info[0].get("print_format_document") if print_format_info else None
         letter_head = print_format_info[0].get("letter_head") if print_format_info else None
 
         if salary_slip_info_list:
             for salary_slip_info in salary_slip_info_list:
                 attachments = []
-                preferred_email = frappe.db.get_value("Employee", salary_slip_info.employee, "prefered_email")
-                if not preferred_email:
-                    preferred_email = frappe.db.get_value("Employee", salary_slip_info.employee, "user_id")
+                recipient_email = []
+                
+                
+                if get_company_email:
+                    company_email = frappe.db.get_value("Employee", salary_slip_info.employee, "company_email")
+                    if company_email:
+                        recipient_email.append(company_email)
+                        
+                if get_personal_email:
+                    personal_email = frappe.db.get_value("Employee", salary_slip_info.employee, "personal_email")
+                    if personal_email:
+                        recipient_email.append(personal_email)
+                        
+                if not get_company_email and not get_personal_email:
+                    preferred_email = frappe.db.get_value("Employee", salary_slip_info.employee, "prefered_email")
+                    
+                    if not preferred_email:
+                        preferred_email = frappe.db.get_value("Employee", salary_slip_info.employee, "user_id")
+                        
+                    recipient_email.append(preferred_email)    
+                
                 try:
                     # ? GENERATE PDF USING FRAPPE'S BUILT-IN PDF GENERATION
                     pdf_content = frappe.get_print(
@@ -743,7 +774,7 @@ def send_salary_sleep_to_employee(payroll_entry_id):
                         message=f"Failed to generate PDF attachment: {str(pdf_error)}\n{traceback.format_exc()}",
                     )
                 frappe.sendmail(
-                recipients=[preferred_email],
+                recipients=recipient_email,
                 subject="Salary Slip",
                 message="Please find attached your salary slip.",
                 attachments=attachments if attachments else None,
