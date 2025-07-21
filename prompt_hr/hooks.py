@@ -175,7 +175,8 @@ override_doctype_class = {
     "Attendance": "prompt_hr.overrides.attendance_override.CustomAttendance",
     "Leave Policy Assignment": "prompt_hr.overrides.leave_policy_assignment_override.CustomLeavePolicyAssignment",
     "Payroll Entry": "prompt_hr.overrides.payroll_entry_override.CustomPayrollEntry",
-    "Compensatory Leave Request": "prompt_hr.overrides.compensatory_leave_request_override.CustomCompensatoryLeaveRequest"
+    "Compensatory Leave Request": "prompt_hr.overrides.compensatory_leave_request_override.CustomCompensatoryLeaveRequest",
+    'Process Loan Interest Accrual': 'prompt_hr.overrides.process_loan_interest_accrual_override.CustomProcessLoanInterestAccrual',
 }
 
 # Document Events
