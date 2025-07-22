@@ -27,8 +27,8 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-02 10:44:23.010079",
- "modified_by": "jignasha@sanskartechnolab.com",
+ "modified": "2025-07-22 15:36:07.660904",
+ "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Background Verification Agency",
  "naming_rule": "By fieldname",
@@ -50,5 +50,6 @@
  "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }

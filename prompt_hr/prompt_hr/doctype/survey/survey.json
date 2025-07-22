@@ -116,7 +116,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-04-11 05:17:10.032080",
+ "modified": "2025-07-22 15:36:10.305504",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Survey",
@@ -139,5 +139,6 @@
  "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }

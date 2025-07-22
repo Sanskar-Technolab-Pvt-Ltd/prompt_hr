@@ -68,7 +68,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-21 10:41:21.055182",
+ "modified": "2025-07-22 15:36:11.600494",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "WeekOff Change Request",
@@ -91,5 +91,6 @@
  "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }
