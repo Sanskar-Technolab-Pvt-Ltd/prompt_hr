@@ -7,7 +7,8 @@
  "field_order": [
   "section_break_uwul",
   "company",
-  "imprest_allocation"
+  "imprest_allocation",
+  "amended_from"
  ],
  "fields": [
   {
@@ -25,13 +26,23 @@
    "fieldtype": "Table",
    "label": "Imprest Allocation",
    "options": "Imprest Details"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Imprest Allocation",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-04-11 05:36:18.003355",
+ "modified": "2025-07-22 15:36:11.422236",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Imprest Allocation",
@@ -54,5 +65,6 @@
  "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }
