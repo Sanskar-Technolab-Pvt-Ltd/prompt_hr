@@ -11,7 +11,7 @@ class ReportingManagerChecklist(Document):
     def on_update(self):
 
         # ! DO NOT RUN THIS LOGIC IF DOCUMENT IS BEING CREATED FOR THE FIRST TIME
-        if self._is_new:
+        if self.is_new():
             return
 
         # ? RUN ONBOARDING ROW UPDATE LOGIC ONLY ON UPDATE
