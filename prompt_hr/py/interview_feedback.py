@@ -16,18 +16,19 @@ def on_submit(doc,method):
 
 def on_update(doc, method):
     skill_assessments = frappe.get_all("Skill Assessment", filters={"parent": doc.name}, fields=["*"])
-    skill_types = {}
+    # ? INITIALIZE RATING VARIABLES
     final_rating = 0
+    total_rating_scale = 0
+    total_rating_given = 0
+    # * LOOP THROUGH EACH SKILL ASSESSMENT ENTRY TO ACCUMULATE SCORES
     for assessment in skill_assessments:
-        skill_type = assessment.custom_skill_type
-        if skill_type not in skill_types:
-            skill_types[skill_type] = [assessment.custom_rating_given]
-        skill_types[skill_type].append(assessment.custom_rating_given)
-    for skill_type, ratings in skill_types.items():
-        average_rating = sum(ratings) / len(ratings)
-        skill_type_doc = frappe.get_doc("Interview Assessment Skill Type", skill_type)
-        final_rating += skill_type_doc.weightage * average_rating
-    doc.db_set("custom_obtained_average_score", final_rating / 100)
+        if assessment.custom_rating_scale:
+            total_rating_scale += assessment.custom_rating_scale
+        if assessment.custom_rating_given:
+            total_rating_given += assessment.custom_rating_given
+    #! CALCULATE FINAL RATING OUT OF 5 (NORMALIZED)
+    final_rating = total_rating_given/total_rating_scale * 5
+    doc.db_set("custom_obtained_average_score", final_rating)
     if doc.custom_expected_average_score:
         if doc.has_value_changed("custom_obtained_average_score") and (doc.result == "Pending" or doc.has_value_changed("custom_obtained_average_score")):
             if doc.custom_obtained_average_score >= doc.custom_expected_average_score:
