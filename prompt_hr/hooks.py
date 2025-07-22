@@ -175,7 +175,8 @@ override_doctype_class = {
     "Attendance": "prompt_hr.overrides.attendance_override.CustomAttendance",
     "Leave Policy Assignment": "prompt_hr.overrides.leave_policy_assignment_override.CustomLeavePolicyAssignment",
     "Payroll Entry": "prompt_hr.overrides.payroll_entry_override.CustomPayrollEntry",
-    "Compensatory Leave Request": "prompt_hr.overrides.compensatory_leave_request_override.CustomCompensatoryLeaveRequest"
+    "Compensatory Leave Request": "prompt_hr.overrides.compensatory_leave_request_override.CustomCompensatoryLeaveRequest",
+    'Process Loan Interest Accrual': 'prompt_hr.overrides.process_loan_interest_accrual_override.CustomProcessLoanInterestAccrual',
 }
 
 # Document Events
@@ -216,7 +217,8 @@ doc_events = {
     "Employee": {
         "on_update": "prompt_hr.py.employee.on_update",
         "validate": "prompt_hr.py.employee.validate",
-        "before_insert": "prompt_hr.py.employee.before_insert"
+        "before_insert": "prompt_hr.py.employee.before_insert",
+        "after_insert": "prompt_hr.py.employee.after_insert"
     },
     # "Probation Feedback Form": {
     #     "on_submit": "prompt_hr.custom_methods.add_probation_feedback_data_to_employee"
@@ -287,10 +289,13 @@ doc_events = {
     "Salary Slip": {
         "on_submit": "prompt_hr.py.salary_slip.loan_repayment_amount",
         "on_update": "prompt_hr.py.salary_slip.update_loan_principal_amount",
+        "on_cancel": "prompt_hr.py.salary_slip.cancel_loan_repayment_amount",
+        "before_validate": "prompt_hr.py.salary_slip.before_validate",
     },
     "Salary Structure Assignment": {
         "on_submit": "prompt_hr.py.salary_structure_assignment.update_employee_ctc",
         "before_save": "prompt_hr.py.salary_structure_assignment.update_arrear_details",
+        "on_cancel": "prompt_hr.py.salary_structure_assignment.on_cancel",
     },
     "Appointment Letter": {
         "before_save": "prompt_hr.py.appointment_letter.before_save",
@@ -478,5 +483,16 @@ fixtures = [
     # },
     # {
     #     "dt":"Workflow Action Master", "filters": [["name", "in", ["Confirm"]]]
+    # },
+    # {
+    #     "doctype": "Type of Document",
+    #     "filters": {
+    #         "name": ["in", [
+    #             "Proof of Work Experience",
+    #             "Proof of Identity",
+    #             "Proof of Address",
+    #             "Proof of Qualification"
+    #         ]]
+    #     }
     # }
 ]

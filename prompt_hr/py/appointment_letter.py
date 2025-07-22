@@ -1,12 +1,16 @@
 import frappe
 
 def before_save(doc, method=None):
-    employee = frappe.get_doc("Employee", doc.custom_employee)
-    if getattr(doc, "custom_salary_structure_based_on", None) == "CTC Based":
-        doc.db_set("custom_monthly_salary", getattr(employee, "ctc", 0))
-    else:
-        doc.db_set("custom_monthly_salary", getattr(employee, "custom_gross_salary", 0))
     set_annexure_details(doc)
+    if doc.custom_salary_structure and doc.custom_employee_standard_salary:
+        employee_standard_salary_doc = frappe.get_doc("Employee Standard Salary",doc.custom_employee_standard_salary)
+        doc.custom_monthly_salary = employee_standard_salary_doc.monthly_salary
+        if not doc.custom_salary_per_annum or doc.has_value_changed("custom_salary_structure"):
+            doc.custom_salary_per_annum = doc.custom_monthly_salary * 12
+        if not doc.custom_annual_performance_incentive or  doc.has_value_changed("custom_salary_structure"):
+            doc.custom_annual_performance_incentive = employee_standard_salary_doc.annual_performance_incentive
+        if not doc.custom_annual_loyalty_bonus or  doc.has_value_changed("custom_salary_structure"):
+            doc.custom_annual_loyalty_bonus = employee_standard_salary_doc.annual_loyalty_bonus
 
 def set_annexure_details(doc):
     """
@@ -36,7 +40,6 @@ def set_annexure_details(doc):
         old_salary_structure = doc.custom_salary_structure
         doc.db_set("custom_salary_structure", employee_standard_salary_doc.salary_structure)
         new_salary_structure = employee_standard_salary_doc.salary_structure
-        print(old_salary_structure, new_salary_structure)
         if old_salary_structure != new_salary_structure:
             is_salary_structure_change = True
         # Set earnings and deductions if not set
@@ -64,3 +67,16 @@ def set_annexure_details(doc):
                 comp_dict.pop("parentfield", None)
                 comp_dict.pop("parenttype", None)
                 doc.append("custom_deductions", comp_dict)
+
+        if not doc.custom_employer_contribution or is_salary_structure_change:
+            # Add deductions
+            if is_salary_structure_change:
+                doc.custom_employer_contribution = []
+
+            for comp in employee_standard_salary_doc.employer_contribution:
+                comp_dict = comp.as_dict().copy()
+                comp_dict.pop("name", None)
+                comp_dict.pop("parent", None)
+                comp_dict.pop("parentfield", None)
+                comp_dict.pop("parenttype", None)
+                doc.append("custom_employer_contribution", comp_dict)

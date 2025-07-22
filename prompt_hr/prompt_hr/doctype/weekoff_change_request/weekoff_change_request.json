@@ -11,6 +11,7 @@
   "column_break_yxha",
   "status",
   "company",
+  "reason",
   "weekoff_details_section",
   "weekoff_details"
  ],
@@ -56,12 +57,18 @@
    "fieldtype": "Link",
    "label": "Company",
    "options": "Company"
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Small Text",
+   "label": "Reason",
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-06-22 16:59:46.624341",
+ "modified": "2025-07-21 10:41:21.055182",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "WeekOff Change Request",

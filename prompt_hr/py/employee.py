@@ -1144,3 +1144,68 @@ def update_employee_status_for_prompt_company():
 def update_employee_status_for_indifoss_company():
     indifoss_abbr = frappe.db.get_single_value("HR Settings", "custom_indifoss_abbr")
     update_employee_status_for_company(indifoss_abbr)
+
+def after_insert(doc, method=None):
+    # ! FIND CANDIDATE PORTAL RECORD FOR GIVEN JOB APPLICANT AND COMPANY
+    candidate_portal = frappe.get_all("Candidate Portal", filters={
+        "applicant_email": doc.job_applicant,
+        "company": doc.company
+    }, fields=["name"], order_by="creation desc")
+
+    # ? EXIT IF NO CANDIDATE PORTAL FOUND
+    if not candidate_portal:
+        frappe.msgprint("No Candidate Portal found")
+        return
+
+    # ! FETCH DOCUMENT COLLECTION LINKED TO THE CANDIDATE PORTAL
+    documents_list = frappe.get_all(
+        "Document Collection",
+        filters={"parent": candidate_portal[0].name},
+        fields=[
+            "type_of_document",
+            "required_document",
+            "attachment",
+            "consent",
+            "collection_stage",
+            "upload_date",
+            "upload_time",
+            "ip_address_on_document_upload"
+        ],
+    )
+
+    # ? EXIT IF DOCUMENT COLLECTION IS EMPTY
+    if not documents_list:
+        frappe.msgprint("No Document Collection records exist")
+        return
+
+
+    # ! REMOVE DUPLICATES BASED ON (TYPE_OF_DOCUMENT, REQUIRED_DOCUMENT)
+    seen = set()
+    final_doc_list = []
+    for d in documents_list:
+        key = (
+            (d.type_of_document or "").strip().lower(),
+            (d.required_document or "").strip().lower()
+        )
+        if key not in seen:
+            final_doc_list.append(d)
+            seen.add(key)
+
+    # ! SORT DOCUMENTS: VALID TYPE_OF_DOCUMENT FIRST, NULL OR EMPTY LAST
+    final_doc_list.sort(key=lambda x: (x.type_of_document is None or x.type_of_document == "", x.type_of_document or ""))
+
+    # ! APPEND EACH DOCUMENT ENTRY TO CUSTOM_DOCUMENTS CHILD TABLE
+    for document in final_doc_list:
+        doc.append("custom_documents", {
+            "type_of_document": document.type_of_document,
+            "required_document": document.required_document,
+            "attachment": document.attachment,
+            "consent": document.consent,
+            "collection_stage": document.collection_stage,
+            "upload_date": document.upload_date,
+            "upload_time": document.upload_time,
+            "ip_address_on_document_upload": document.ip_address_on_document_upload
+        })
+
+    # ! SAVE CHANGES TO PARENT DOC AFTER APPENDING DOCUMENTS
+    doc.save(ignore_permissions=True)

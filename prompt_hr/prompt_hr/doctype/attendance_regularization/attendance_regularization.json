@@ -9,6 +9,7 @@
   "employee",
   "employee_name",
   "company",
+  "reason",
   "column_break_yyxg",
   "status",
   "attendance",
@@ -78,12 +79,18 @@
    "fieldname": "employee_notified",
    "fieldtype": "Check",
    "label": "Employee Notified"
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Small Text",
+   "label": "Reason",
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-01 12:00:31.204348",
+ "modified": "2025-07-21 10:45:49.016226",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Attendance Regularization",

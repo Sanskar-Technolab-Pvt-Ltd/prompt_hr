@@ -42,16 +42,16 @@
   {
    "allow_in_quick_entry": 1,
    "fieldname": "type_of_document",
-   "fieldtype": "Select",
+   "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Type of Document",
-   "options": "\nProof of Qualification\nProof of Address\nProof of Identity\nProof of Work Experience"
+   "options": "Type of Document"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-18 13:11:21.095503",
+ "modified": "2025-07-21 15:20:39.362570",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Required Document Applicant",
