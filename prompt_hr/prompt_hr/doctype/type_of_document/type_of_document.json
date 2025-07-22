@@ -21,7 +21,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-21 15:19:18.205891",
+ "modified": "2025-07-22 15:36:08.130116",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Type of Document",
@@ -45,5 +45,6 @@
  "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }

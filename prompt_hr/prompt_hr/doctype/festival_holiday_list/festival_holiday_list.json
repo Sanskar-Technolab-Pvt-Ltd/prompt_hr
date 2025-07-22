@@ -65,7 +65,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-01 10:56:57.855522",
+ "modified": "2025-07-22 15:36:13.012448",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Festival Holiday List",
@@ -90,5 +90,6 @@
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
- "title_field": "festival_holiday_list_name"
+ "title_field": "festival_holiday_list_name",
+ "track_changes": 1
 }
