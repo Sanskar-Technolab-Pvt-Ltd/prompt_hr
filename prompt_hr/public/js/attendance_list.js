@@ -76,7 +76,7 @@ frappe.listview_settings["Attendance"] = {
 						label: __("Status"),
 						fieldtype: "Select",
 						fieldname: "status",
-						options: ["Present", "Absent", "Half Day", "Work From Home"],
+						options: ["Present", "Absent"],
 						reqd: 1,
 					},
 					{
