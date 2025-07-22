@@ -31,7 +31,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-14 16:34:39.708668",
+ "modified": "2025-07-22 15:36:14.861564",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Factor Category Parameters",
@@ -51,9 +51,11 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "show_title_field_in_link": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
- "title_field": "factor_category_name"
+ "title_field": "factor_category_name",
+ "track_changes": 1
 }

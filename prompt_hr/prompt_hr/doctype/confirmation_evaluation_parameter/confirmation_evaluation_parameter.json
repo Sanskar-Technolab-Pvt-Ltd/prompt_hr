@@ -25,7 +25,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-11 17:45:04.787387",
+ "modified": "2025-07-22 15:36:13.178025",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Confirmation Evaluation Parameter",
@@ -45,9 +45,11 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "show_title_field_in_link": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
- "title_field": "parameter"
+ "title_field": "parameter",
+ "track_changes": 1
 }
