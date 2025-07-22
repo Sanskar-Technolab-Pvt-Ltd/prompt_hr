@@ -10,13 +10,21 @@
   "employee",
   "employee_name",
   "company",
+  "annual_performance_incentive",
   "column_break_ahci",
   "salary_structure_assignment",
   "salary_structure",
   "monthly_salary",
+  "annual_loyalty_bonus",
   "salary_breakup_section",
   "earnings",
-  "deductions"
+  "deductions",
+  "employer_contribution",
+  "section_break_ktib",
+  "total_gross_pay",
+  "total_net_pay",
+  "column_break_gmdu",
+  "total_deductions"
  ],
  "fields": [
   {
@@ -83,12 +91,54 @@
    "label": "Deductions",
    "options": "Salary Detail",
    "read_only": 1
+  },
+  {
+   "fetch_from": "salary_structure_assignment.custom_annual_performance_incentive",
+   "fieldname": "annual_performance_incentive",
+   "fieldtype": "Currency",
+   "label": "Annual Performance Incentive"
+  },
+  {
+   "fetch_from": "salary_structure_assignment.custom_annual_loyalty_bonus",
+   "fieldname": "annual_loyalty_bonus",
+   "fieldtype": "Currency",
+   "label": "Annual Loyalty Bonus"
+  },
+  {
+   "fieldname": "employer_contribution",
+   "fieldtype": "Table",
+   "label": "Employer Contribution",
+   "options": "Salary Detail",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_gross_pay",
+   "fieldtype": "Currency",
+   "label": "Total Gross Pay"
+  },
+  {
+   "fieldname": "total_deductions",
+   "fieldtype": "Currency",
+   "label": "Total Deductions"
+  },
+  {
+   "fieldname": "total_net_pay",
+   "fieldtype": "Currency",
+   "label": "Total Net Pay"
+  },
+  {
+   "fieldname": "section_break_ktib",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_gmdu",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-24 15:30:36.969202",
+ "modified": "2025-07-21 10:24:23.947874",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Standard Salary",
