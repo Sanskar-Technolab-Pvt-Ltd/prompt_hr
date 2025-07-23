@@ -18,25 +18,6 @@ class CustomSalarySlip(SalarySlip):
     def before_save(self):
         self.apply_custom_adhoc_components()
     
-    def get_status(self):
-        if self.docstatus == 2:
-            return "Cancelled"
-        else:
-            if self.salary_withholding:
-                return "Withheld"
-            elif self.docstatus == 0:
-
-                if self.payroll_entry:
-                    is_salary_withheld = frappe.db.get_all("Hold Salary", {"parenttype": "Payroll Entry", "parent": self.payroll_entry, "employee": self.employee, "withholding_type": "Hold Salary Release"}, "name", limit=1)
-                    if is_salary_withheld:
-                        return "Salary Withheld"
-                    else:
-                        return "Draft"
-                else:
-                    return "Draft"
-            elif self.docstatus == 1:
-                return "Submitted"
-    
     def get_working_days_details(self, lwp=None, for_preview=0):
         # * Step 1: Inherit default logic
         super().get_working_days_details(lwp, for_preview)
