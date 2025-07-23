@@ -143,16 +143,6 @@ def add_to_interview_availability(job_opening, job_applicants, employees):
 
 @frappe.whitelist()
 def before_insert(doc, method=None):
-    if doc.email_id:
-        email_id = doc.email_id
-        job_applicants = frappe.get_all(
-            "Job Applicant",
-            filters={"email_id": email_id, "name": ["!=", doc.name]},
-            fields=["name"]
-        )
-        if job_applicants:
-            doc.custom_already_exists = len(job_applicants)
-    
     if doc.custom_company:
         # ? SET THE JOINING DOCUMENT CHECKLIST IF FOUND
         joining_document_checklist = frappe.get_all(
@@ -178,47 +168,3 @@ def before_insert(doc, method=None):
                     "collection_stage": record.document_collection_stage
                 })
                 frappe.db.commit()
-
-@frappe.whitelist()
-def send_rejection_notification(job_applicant):
-    # ? GET BASIC INFO OF THE APPLICANT
-    applicant = frappe.get_doc("Job Applicant", job_applicant)
-    
-    if not applicant.email_id:
-        frappe.throw("No email address found for the applicant.")
-
-    notification = frappe.get_doc("Notification", "Job Applicant Rejection Notification")
-    if notification:
-        subject = frappe.render_template(notification.subject, {"doc": applicant})
-        message = frappe.render_template(notification.message, {"doc": applicant})
-
-        # ? SEND EMAIL NOTIFICATION
-        frappe.sendmail(
-            recipients=[applicant.email_id],
-            subject=subject,
-            message=message,
-            reference_doctype="Job Applicant",
-            reference_name=job_applicant
-        )
-
-@frappe.whitelist()
-def send_on_hold_notification(job_applicant):
-    # ? GET BASIC INFO OF THE APPLICANT
-    applicant = frappe.get_doc("Job Applicant", job_applicant)
-
-    if not applicant.email_id:
-        frappe.throw("No email address found for the applicant.")
-
-    notification = frappe.get_doc("Notification", "Job Applicant On Hold Notification")
-    if notification:
-        subject = frappe.render_template(notification.subject, {"doc": applicant})
-        message = frappe.render_template(notification.message, {"doc": applicant})
-
-        # ? SEND EMAIL NOTIFICATION
-        frappe.sendmail(
-            recipients=[applicant.email_id],
-            subject=subject,
-            message=message,
-            reference_doctype="Job Applicant",
-            reference_name=job_applicant
-        )
