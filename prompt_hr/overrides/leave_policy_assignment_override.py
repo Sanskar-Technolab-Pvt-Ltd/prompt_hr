@@ -222,7 +222,7 @@ def filter_leave_policy_for_display(
     company = filters.get("company")
 
     leave_policies = frappe.get_all(
-        "Leave Policy", filters={"custom_company": company}, fields=["name", "title"]
+        "Leave Policy", filters={"custom_company": company, "docstatus":1}, fields=["name", "title"]
     )
     leave_policy_display = []
 
