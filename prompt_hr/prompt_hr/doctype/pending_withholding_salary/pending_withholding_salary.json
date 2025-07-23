@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "creation": "2025-07-15 13:34:37.396902",
+ "creation": "2025-07-17 13:01:26.845323",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
@@ -71,7 +71,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-07-15 13:36:53.638168",
+ "modified": "2025-07-17 13:01:26.845323",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Pending Withholding Salary",

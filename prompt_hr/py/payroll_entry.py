@@ -1,6 +1,8 @@
 import frappe
 from frappe.utils import cint
 from dateutil.relativedelta import relativedelta
+from datetime import datetime
+from frappe.utils import getdate
 from frappe.utils.xlsxutils import make_xlsx, read_xlsx_file_from_attached_file
 from frappe.utils.response import build_response
 from frappe import _
@@ -89,17 +91,6 @@ def append_exit_employees(doc):
             }
         ).insert(ignore_permissions=True)
 
-def on_submit(doc, method):
-    if doc.custom_salary_withholding_details:
-        for withholding in doc.custom_salary_withholding_details:
-            if not frappe.db.exists("Employee Salary Withholding", {"employee": withholding.employee, "from_date": withholding.from_date, "to_date": withholding.to_date}):
-                frappe.get_doc({
-                    "doctype": "Employee Salary Withholding",
-                    "employee": withholding.employee,
-                    "from_date": withholding.from_date,
-                    "to_date": withholding.to_date,
-                    "withholding_type": withholding.withholding_type
-                }).insert(ignore_permissions=True)
 
 # ? METHOD TO SET NEW JOINEE COUNT
 # ! prompt_hr.py.payroll_entry.set_new_joinee_count
@@ -435,26 +426,22 @@ def append_employees_with_incomplete_bank_details(doc):
 
 @frappe.whitelist()
 def get_actual_lop_days(employee, start_date):
-    if isinstance(start_date, str):
-        start_date = frappe.utils.getdate(start_date)
-
-    # Calculate the first and last day of the previous month
-    previous_month_start = (
-        start_date.replace(day=1) - relativedelta(months=1)
-    ).replace(day=1)
-    previous_month_end = (
-        previous_month_start.replace(day=1)
-        + relativedelta(months=1)
-        - relativedelta(days=1)
-    )
-
+    clean_month_str = start_date.strip().replace("-", " ")
+    parsed_date = datetime.strptime(clean_month_str.strip(), "%B %Y")
+    
+    # * First day of the month
+    first_day = getdate(parsed_date.replace(day=1))
+    
+    # * Last day of the month
+    last_day = getdate((parsed_date + relativedelta(months=1)).replace(day=1) - relativedelta(days=1))
+    
     # * Fetch salary slip of Last Month
     last_month_salary_slip = frappe.get_all(
         "Salary Slip",
         filters={
             "employee": employee,
-            "start_date": [">=", previous_month_start],
-            "end_date": ["<=", previous_month_end],
+            "start_date": [">=", first_day],
+            "end_date": ["<=", last_day],
             "docstatus": 1,
         },
         fields=["start_date", "leave_without_pay"],
@@ -709,52 +696,19 @@ def import_adhoc_salary_details(payroll_entry_id, file_url):
 @frappe.whitelist()
 # * METHOD TO FETCH AND SEND SALARY SLEEP TO EMPLOYEE
 # ! prompt_hr.py.payroll_entry.send_salary_sleep_to_employee
-def send_salary_sleep_to_employee(payroll_entry_id, email_details):
-
+def send_salary_sleep_to_employee(payroll_entry_id):
     try:
-        if email_details:
-            email_details = frappe.parse_json(email_details)
-            get_company_email = email_details.get("company_email", False)
-            get_personal_email = email_details.get("personal_email", False)
-            
-            avoid_employees = email_details.get("employee_ids", [])
-        else:
-            get_company_email = False
-            get_personal_email = False
-            avoid_employees = []
-            
-        
-        salary_slip_info_list = frappe.db.get_all("Salary Slip", {"docstatus": 1, "payroll_entry": payroll_entry_id, "employee": ["not in", avoid_employees]}, ['name', 'employee'])
-        
+        salary_slip_info_list = frappe.db.get_all("Salary Slip", {"docstatus": 1, "payroll_entry": payroll_entry_id}, ['name', 'employee'])
         print_format_info = frappe.db.get_all("Print Format Selection", {"parenttype":"HR Settings", "parentfield": "custom_print_format_table_prompt", "document": "Salary Slip"}, ["print_format_document", "letter_head"], limit=1)
-        
         print_format_id = print_format_info[0].get("print_format_document") if print_format_info else None
         letter_head = print_format_info[0].get("letter_head") if print_format_info else None
 
         if salary_slip_info_list:
             for salary_slip_info in salary_slip_info_list:
                 attachments = []
-                recipient_email = []
-                
-                
-                if get_company_email:
-                    company_email = frappe.db.get_value("Employee", salary_slip_info.employee, "company_email")
-                    if company_email:
-                        recipient_email.append(company_email)
-                        
-                if get_personal_email:
-                    personal_email = frappe.db.get_value("Employee", salary_slip_info.employee, "personal_email")
-                    if personal_email:
-                        recipient_email.append(personal_email)
-                        
-                if not get_company_email and not get_personal_email:
-                    preferred_email = frappe.db.get_value("Employee", salary_slip_info.employee, "prefered_email")
-                    
-                    if not preferred_email:
-                        preferred_email = frappe.db.get_value("Employee", salary_slip_info.employee, "user_id")
-                        
-                    recipient_email.append(preferred_email)    
-                
+                preferred_email = frappe.db.get_value("Employee", salary_slip_info.employee, "prefered_email")
+                if not preferred_email:
+                    preferred_email = frappe.db.get_value("Employee", salary_slip_info.employee, "user_id")
                 try:
                     # ? GENERATE PDF USING FRAPPE'S BUILT-IN PDF GENERATION
                     pdf_content = frappe.get_print(
@@ -774,7 +728,7 @@ def send_salary_sleep_to_employee(payroll_entry_id, email_details):
                         message=f"Failed to generate PDF attachment: {str(pdf_error)}\n{traceback.format_exc()}",
                     )
                 frappe.sendmail(
-                recipients=recipient_email,
+                recipients=[preferred_email],
                 subject="Salary Slip",
                 message="Please find attached your salary slip.",
                 attachments=attachments if attachments else None,
@@ -789,6 +743,7 @@ def send_salary_sleep_to_employee(payroll_entry_id, email_details):
 def send_payroll_entry(payroll_entry_id):
     try:
         account_user_users = frappe.db.get_all("Has Role", {"role": "Accounts User", "parenttype": "User", "parent": ["not in", ["Administrator"]]}, ["parent"])
+        print(f"\n\n {account_user_users} \n\n")
         if account_user_users:
             account_user_emails = [user.get("parent") for user in account_user_users]
             payroll_entry_link = frappe.utils.get_url_to_form("Payroll Entry", payroll_entry_id)
