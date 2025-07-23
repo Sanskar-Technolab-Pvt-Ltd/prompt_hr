@@ -14,49 +14,44 @@ class ReportingManagerChecklist(Document):
         if self.is_new():
             return
 
-        # ? RUN ONBOARDING ROW UPDATE LOGIC ONLY ON UPDATE
-        update_employee_onboarding_rows(self)
+        update_employee_onboarding_row(self)
 
 
-# ? FUNCTION TO UPDATE ALL MATCHING EMPLOYEE ONBOARDING ACTIVITY ROWS
-def update_employee_onboarding_rows(self):
+# ? FUNCTION TO UPDATE EMPLOYEE ONBOARDING ACTIVITY ROW
+def update_employee_onboarding_row(self):
     try:
-        # ? FETCH CURRENT USER AND THEIR ROLES
-        current_user = frappe.session.user
-        user_roles = frappe.get_roles(current_user)
-
-        # ? GET ALL EMPLOYEE BOARDING ACTIVITY RECORDS LINKED TO THIS CHECKLIST
-        potential_rows = frappe.get_all(
+        # ? GET ALL ROWS LINKED TO THIS CHECKLIST
+        rows = frappe.get_all(
             "Employee Boarding Activity",
             filters={"custom_checklist_record": self.name},
-            fields=["name", "user", "role"],
+            fields=["name", "user", "role"]
         )
 
-        # ? TRACK HOW MANY ROWS WERE UPDATED
-        updated_rows = 0
+        current_user = frappe.session.user
+        user_roles = frappe.get_roles()
 
-        for row in potential_rows:
-            # * CHECK IF ROW MATCHES CURRENT USER OR ANY ROLE
-            if (row.user == current_user) or (row.role and row.role in user_roles):
-                # ? UPDATE FIELD TO MARK AS SUBMITTED
-                frappe.db.set_value(
-                    "Employee Boarding Activity", row.name, "custom_is_submitted", 1
-                )
-                updated_rows += 1
+        matched_row = None
 
-        # ? SHOW MESSAGE BASED ON UPDATE RESULTS
-        if updated_rows:
-            frappe.msgprint(
-                f"Marked {updated_rows} onboarding activity row(s) as submitted."
+        for row in rows:
+            if row.user == current_user:
+                matched_row = row.name
+                break
+            if row.role and row.role in user_roles:
+                matched_row = row.name
+                break
+
+        if matched_row:
+            # ? UPDATE THE FIELD IF A MATCHING ROW IS FOUND
+            frappe.db.set_value(
+                "Employee Boarding Activity",
+                matched_row,
+                "custom_is_submitted",
+                1
             )
+            frappe.msgprint("Marked activity as submitted.")
         else:
-            frappe.msgprint(
-                "No matching Employee Boarding Activity rows found for your user or roles."
-            )
+            frappe.msgprint("No matching Employee Boarding Activity found for your user or role.")
 
     except Exception as e:
-        # ! CATCH AND LOG EXCEPTION
-        frappe.msgprint("Something went wrong while updating onboarding activities.")
-        frappe.log_error(
-            frappe.get_traceback(), "Error in update_employee_onboarding_rows"
-        )
+        frappe.msgprint("Something went wrong while updating onboarding activity.")
+        frappe.log_error(frappe.get_traceback(), "Error in update_employee_onboarding_row")

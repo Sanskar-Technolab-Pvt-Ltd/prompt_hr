@@ -1,6 +1,7 @@
 import frappe
 from frappe import _
 from hrms.payroll.doctype.payroll_entry.payroll_entry import PayrollEntry, get_employee_list
+from prompt_hr.py.salary_slip_overriden_methods import custom_create_salary_slips_for_employees
 
 class CustomPayrollEntry(PayrollEntry):
 
@@ -60,7 +61,8 @@ class CustomPayrollEntry(PayrollEntry):
                         )
                     )
                 adhoc_salary_pair.add(key)
-
+        
+        self.link_payroll_entry_to_salary_slips()
     def on_submit(self):
         super().on_submit()
 
@@ -88,7 +90,22 @@ class CustomPayrollEntry(PayrollEntry):
                 # Save current doc with updated employee list
                 self.save(ignore_permissions=True)
 
-
+    def link_payroll_entry_to_salary_slips(self):
+        """
+        Link the Payroll Entry to Salary Slips created for employees.
+        This method is called after salary slips are created.
+        """
+        
+        if self.custom_pending_withholding_salary:
+            for row in self.custom_pending_withholding_salary:
+                if row.release_salary:
+                    
+                    if frappe.db.exists("Salary Slip", {"employee": row.get("employee"), "start_date": [">=", row.get("from_date")], "end_date": ["<=", row.get("to_date")]}):
+                        salary_slips_id = frappe.db.get_all("Salary Slip", {"employee": row.get("employee"), "start_date": [">=", row.get("from_date")], "end_date": ["<=", row.get("to_date")]}, "name")
+                        if salary_slips_id:
+                            for slip in salary_slips_id:
+                                frappe.db.set_value("Salary Slip", slip.name, "payroll_entry", self.name)
+                    
     @frappe.whitelist()
     def fill_employee_details(self):
         # * Get PROMPT abbreviation from HR Settings
@@ -159,8 +176,77 @@ class CustomPayrollEntry(PayrollEntry):
         self.number_of_employees = len(self.employees)
         self.update_employees_with_withheld_salaries()
 
+        if employees:
+            for emp in employees:
+                if frappe.db.exists("Employee Salary Withholding", {"employee": emp.get('employee'), "is_salary_released": 0}):
+                    doc_id = frappe.db.get_value("Employee Salary Withholding", {"employee": emp.get("employee"), "is_salary_released": 0}, "name")
+                    withholding_doc = frappe.get_doc("Employee Salary Withholding", doc_id)
+                    
+                    self.append("custom_pending_withholding_salary", {
+                        "employee": withholding_doc.get("employee"),
+                        "from_date": withholding_doc.get("from_date"),
+                        "to_date": withholding_doc.get("to_date"),                        
+                    })
+
+            
         return self.get_employees_with_unmarked_attendance()
 
+    @frappe.whitelist()
+    def create_salary_slips(self):
+        """
+        Creates salary slip for selected employees if already not created
+        """
+        self.check_permission("write")
+        
+        not_create_slips = []
+        if self.custom_salary_withholding_details:
+            not_create_slips = [
+                emp.employee for emp in self.custom_salary_withholding_details if (self.start_date <= emp.from_date <= self.end_date and self.start_date <= emp.to_date <= self.end_date) and emp.withholding_type == "Hold Salary Processing"
+            ]
+        
+        
+        if self.custom_pending_withholding_salary:
+            not_create_slips += [
+                emp.employee for emp in self.custom_pending_withholding_salary if not emp.process_salary 
+            ]
+        
+        employees = [emp.employee for emp in self.employees if emp.employee not in not_create_slips] 
+
+        if employees:
+            args = frappe._dict(
+                {
+                    "salary_slip_based_on_timesheet": self.salary_slip_based_on_timesheet,
+                    "payroll_frequency": self.payroll_frequency,
+                    "start_date": self.start_date,
+                    "end_date": self.end_date,
+                    "company": self.company,
+                    "posting_date": self.posting_date,
+                    "deduct_tax_for_unclaimed_employee_benefits": self.deduct_tax_for_unclaimed_employee_benefits,
+                    "deduct_tax_for_unsubmitted_tax_exemption_proof": self.deduct_tax_for_unsubmitted_tax_exemption_proof,
+                    "payroll_entry": self.name,
+                    "exchange_rate": self.exchange_rate,
+                    "currency": self.currency,
+                }
+            )
+            if len(employees) > 30 or frappe.flags.enqueue_payroll_entry:
+                self.db_set("status", "Queued")
+                frappe.enqueue(
+                    custom_create_salary_slips_for_employees,
+                    timeout=3000,
+                    employees=employees,
+                    args=args,
+                    publish_progress=False,
+                )
+                frappe.msgprint(
+                    _("Salary Slip creation is queued. It may take a few minutes"),
+                    alert=True,
+                    indicator="blue",
+                )
+            else:
+                custom_create_salary_slips_for_employees(employees, args, publish_progress=False)
+                # since this method is called via frm.call this doc needs to be updated manually
+                self.reload()
+    
 def custom_set_filter_conditions(query, filters, qb_object):
     """Append optional filters to employee query"""
 

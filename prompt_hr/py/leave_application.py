@@ -185,7 +185,6 @@ def on_update(doc, method):
         reporting_manager_name = reporting_manager.get("employee_name")
         reporting_manager_id = reporting_manager.get("user_id")
     hr_manager_email = None
-    hr_manager_name = None
     hr_manager_users = frappe.get_all(
         "Employee",
         filters={"company": employee.company},
@@ -207,12 +206,9 @@ def on_update(doc, method):
             # Check if this user has the HR Manager role
             if "HR Manager" in frappe.get_roles(hr_manager_user):
                 hr_manager_email = frappe.db.get_value("User", hr_manager_user, "email")
-                hr_manager_name = frappe.db.get_value("User", hr_manager_user, "full_name")
                 break
 
-    if not reporting_manager_name:
-        reporting_manager_name = hr_manager_name
-                    
+                        
     if doc.workflow_state == "Pending":
         notification = frappe.get_doc("Notification", "Leave Request Notification")
         if notification:
