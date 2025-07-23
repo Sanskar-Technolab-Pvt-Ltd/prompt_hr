@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-07-21 13:26:42.904966",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Report",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "<p>Dear Team,</p>\n\n<p>The <strong>{{ report_name }}</strong> report has been generated and is ready for review.</p>\n\n<p>\nYou can access it here: <a href=\"{{ report_url }}\" target=\"_blank\">{{ report_name }} Report</a>\n</p>\n\n<p>Kindly take the necessary accounting actions.</p>\n\n<p>Regards,<br>HR System</p>\n",
+ "message_type": "HTML",
+ "modified": "2025-07-21 14:34:46.699330",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "PF-ECR and ESIC Challan Notification",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "{{report_name}} Report is Available"
+}

@@ -48,8 +48,8 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-02 10:44:20.723983",
- "modified_by": "jignasha@sanskartechnolab.com",
+ "modified": "2025-07-22 15:36:06.276623",
+ "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Skill Evaluation Matrix",
  "owner": "Administrator",
@@ -70,5 +70,6 @@
  "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }

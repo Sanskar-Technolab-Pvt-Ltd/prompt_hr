@@ -130,7 +130,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-11 18:54:20.236439",
+ "modified": "2025-07-22 15:36:18.106761",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Welcome Page",
@@ -153,5 +153,6 @@
  "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }

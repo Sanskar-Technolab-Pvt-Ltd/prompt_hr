@@ -21,7 +21,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-29 22:44:54.267436",
+ "modified": "2025-07-22 15:36:07.790294",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Quater",
@@ -44,5 +44,6 @@
  "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }

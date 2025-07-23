@@ -31,6 +31,14 @@ from prompt_hr.py.utils import calculate_annual_eligible_hra_exemption, get_comp
 import hrms.regional.india.utils as hra_override
 hra_override.calculate_annual_eligible_hra_exemption = calculate_annual_eligible_hra_exemption
 hra_override.get_component_amt_from_salary_slip = get_component_amt_from_salary_slip
+import lending.loan_management.doctype.loan_repayment.loan_repayment as LoanRepayment
+import hrms.payroll.doctype.salary_slip.salary_slip_loan_utils as LoanUtils
+from prompt_hr.py.loan_application import custom_get_accrued_interest_entries, custom_process_loan_interest_accruals
+
+LoanRepayment.get_accrued_interest_entries = custom_get_accrued_interest_entries
+
+LoanUtils.process_loan_interest_accruals = custom_process_loan_interest_accruals
+
 
 @frappe.whitelist()
 def custom_get_applicable_interviewers(interview: str) -> List[str]:
@@ -68,6 +76,7 @@ interview_feedback_module.get_applicable_interviewers = custom_get_applicable_in
 
 workflow.has_approval_access = custom_has_approval_access
 workflow.get_transitions = custom_get_transitions
+
 
 @frappe.whitelist()
 

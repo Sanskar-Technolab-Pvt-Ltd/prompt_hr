@@ -21,8 +21,8 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-02 10:44:24.073014",
- "modified_by": "jignasha@sanskartechnolab.com",
+ "modified": "2025-07-22 15:36:16.788218",
+ "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Document Collection Stage",
  "naming_rule": "By fieldname",
@@ -45,5 +45,6 @@
  "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }

@@ -39,7 +39,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-24 12:52:14.117531",
+ "modified": "2025-07-22 15:36:07.968442",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Interview Assessment Skill Type",
@@ -62,5 +62,6 @@
  "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }

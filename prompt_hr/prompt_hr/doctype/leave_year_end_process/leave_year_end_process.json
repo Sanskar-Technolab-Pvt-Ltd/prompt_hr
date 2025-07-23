@@ -12,7 +12,8 @@
   "from_date",
   "to_date",
   "section_break_chbg",
-  "table_kekm"
+  "table_kekm",
+  "amended_from"
  ],
  "fields": [
   {
@@ -55,13 +56,23 @@
    "fieldname": "table_kekm",
    "fieldtype": "Table",
    "options": "Leave Year Process Details"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Leave Year End Process",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-04-18 07:06:33.849323",
+ "modified": "2025-07-22 15:36:14.642115",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Leave Year End Process",
@@ -84,5 +95,6 @@
  "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }
