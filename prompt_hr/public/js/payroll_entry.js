@@ -20,17 +20,6 @@ frappe.ui.form.on('Pending FnF Details', {
 frappe.ui.form.on("Payroll Entry", {
     refresh: (frm) => {
 
-
-        // frm.page.btn_submit_salary_slip.on('click', function () { 
-        //     console.log("Sned MAIL");
-        //     // frappe.confirm(
-        //     //     function () {
-        //     //         console.log("Send    MAIL")
-        //     //     }
-        //     // )
-        // })
-
-
         // ? REMOVE AUTO BRANCH ADDITION DATA
         empty_branch_field_if_form_is_new(frm);
         send_salary_slip(frm)
@@ -158,10 +147,13 @@ frappe.ui.form.on("Payroll Entry", {
 			(frm.doc.__onload && frm.doc.__onload.submitted_ss)
 		) {
 			frm.events.add_bank_entry_button(frm);
-		} else if (frm.doc.salary_slips_created && frm.doc.status !== "Queued") {
-			frm.add_custom_button(__("Submit Salary Slip"), function () {
-				custom_submit_salary_slip(frm);
-			}).addClass("btn-primary");
+		} else if (frm.doc.salary_slips_created && frm.doc.status !== "Queued") {   
+            inform_account_users(frm)
+            if (frm.doc.custom_account_users_informed) {                    
+                frm.add_custom_button(__("Submit Salary Slip"), function () {
+                        submit_salary_slip(frm);
+                }).addClass("btn-primary");
+            }
 		} else if (!frm.doc.salary_slips_created && frm.doc.status === "Failed") {
 			frm.add_custom_button(__("Create Salary Slips"), function () {
 				frm.trigger("create_salary_slips");
@@ -293,48 +285,111 @@ function set_lop_month_options_for_all_rows(frm) {
 }
 
 
+function submitted_bank_entry(frm) {
+    frappe.call({
+        method: "prompt_hr.py.payroll_entry.linked_bank_entry",
+        args: {
+            payroll_entry_id: frm.doc.name
+        },
+        callback: function (res) {
+            if (res.message) {
+                console.log(res.message.is_all_submitted)
+                if (res.message.is_all_submitted == 1) {
+                    console.log("True")
+                    return 1
+                }
+                else {
+                    return 0
+                }
+            }
+        }
+    })
+}
+
 // ? FUNCTION TO ADD CUSTOM BUTTON FOR GENERATING AND SENDING SALARY SLIP PDF
 function send_salary_slip(frm) {
-    frm.add_custom_button(__('Generate Salary Slip PDF'), function() {
-        frappe.call({
-            method: 'prompt_hr.py.payroll_entry.send_salary_sleep_to_employee',
-            args: {
-                payroll_entry_id: frm.doc.name
-            },
-            callback: function(r) {
-                frappe.msgprint(__('Salary Slip PDF has been generated and sending to the employees will be sent shortly.'));
+
+    frappe.call({
+        method: "prompt_hr.py.payroll_entry.linked_bank_entry",
+        args: {
+            payroll_entry_id: frm.doc.name
+        },
+        callback: function (res) {
+            if (res.message) {
+                console.log(res.message.is_all_submitted)
+                if (res.message.is_all_submitted == 1) {
+                    console.log("True")
+                    frm.add_custom_button(__('Generate Salary Slip PDF'), function() {
+                        frappe.call({
+                            method: 'prompt_hr.py.payroll_entry.send_salary_sleep_to_employee',
+                            args: {
+                                payroll_entry_id: frm.doc.name
+                            },
+                            callback: function(r) {
+                                frappe.msgprint(__('Salary Slip PDF has been generated and sending to the employees will be sent shortly.'));
+                            }
+                        });
+                    });
+                }
             }
+        }
+    })
+        
+    
+}
+
+// * FUNCTION TO INFORM ACCOUNT USERS
+
+function inform_account_users(frm) {
+    if (!frm.doc.custom_account_users_informed) {
+        frm.add_custom_button(__('Inform Account Department'), function () {
+            
+            frappe.call({
+                method: "prompt_hr.py.payroll_entry.send_payroll_entry",
+                args: {
+                    payroll_entry_id: frm.doc.name,
+                    from_date: frm.doc.start_date,
+                    to_date: frm.doc.end_date,
+                    company: frm.doc.company
+                },
+                callback: function (res) {
+                    frm.reload_doc()
+                }
+            })
         });
-    });
+    }
 }
 
 
 
-const custom_submit_salary_slip = function (frm) {
-	frappe.confirm(
-		__(
-			"This will submit Salary Slips and create accrual Journal Entry. Do you want to proceed?",
-        ),
-		function () {
-			frappe.call({
-				method: "submit_salary_slips",
-				args: {},
-				doc: frm.doc,
-				freeze: true,
-				freeze_message: __("Submitting Salary Slips and creating Journal Entry..."),
-            });
-            frappe.call({
-                method: "prompt_hr.py.payroll_entry.send_payroll_entry",
-                args: {
-                    payroll_entry_id: frm.doc.name
-                }
-            })
 
-		},
-		function () {
-			if (frappe.dom.freeze_count) {
-				frappe.dom.unfreeze();
-			}
-		},
-	);
-};
+// const custom_submit_salary_slip = function (frm) {
+// 	frappe.confirm(
+// 		__(
+// 			"This will submit Salary Slips and create accrual Journal Entry. Do you want to proceed?",
+//         ),
+// 		function () {
+// 			frappe.call({
+// 				method: "submit_salary_slips",
+// 				args: {},
+// 				doc: frm.doc,
+// 				freeze: true,
+// 				freeze_message: __("Submitting Salary Slips and creating Journal Entry..."),
+//             });
+//             frappe.call({
+//                 method: "prompt_hr.py.payroll_entry.send_payroll_entry",
+//                 args: {
+//                     payroll_entry_id: frm.doc.name
+//                 }
+//             })
+
+// 		},
+// 		function () {
+// 			if (frappe.dom.freeze_count) {
+// 				frappe.dom.unfreeze();
+// 			}
+// 		},
+// 	);
+// };
+
+
