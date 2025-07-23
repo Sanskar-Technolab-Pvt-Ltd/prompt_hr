@@ -244,6 +244,8 @@ doc_events = {
     },
     "Payroll Entry": {
         "on_update": "prompt_hr.py.payroll_entry.on_update",
+        "on_submit": "prompt_hr.py.payroll_entry.on_submit",
+        
     },
     "Leave Allocation": {
         "before_validate": "prompt_hr.py.leave_allocation.before_validate",
