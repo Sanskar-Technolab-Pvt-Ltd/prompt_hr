@@ -2,7 +2,7 @@ import frappe
 from frappe import _
 from collections import defaultdict
 from hrms.payroll.doctype.payroll_entry.payroll_entry import log_payroll_failure, get_existing_salary_slips
-from frappe.utils import getdate, add_days
+from frappe.utils import getdate, add_days, add_months, get_first_day, get_last_day
 from calendar import monthrange
 from datetime import datetime
 from calendar import monthrange
@@ -34,6 +34,9 @@ def custom_create_salary_slips_for_employees(employees, args, publish_progress=T
 		})
 
 	try:
+		create_pending_withholding_salary = []
+
+		create_pending_withholding_salary = [{"employee": emp.employee, "from_date": emp.from_date, "to_date": emp.to_date} for emp in payroll_entry.custom_pending_withholding_salary if emp.process_salary]
 
 		salary_slips_exist_for = get_existing_salary_slips(employees, args)
 		count = 0
@@ -51,14 +54,53 @@ def custom_create_salary_slips_for_employees(employees, args, publish_progress=T
 				args.update({"doctype": "Salary Slip", "employee": emp, "custom_lop_days": lop_days_map.get(emp), "custom_working_days_for_lop_reversal": working_days_map.get(emp)})
 			else:
 				args.update({"doctype": "Salary Slip", "employee": emp, "custom_lop_days": lop_days_map.get(emp)})
-			frappe.get_doc(args).insert()
+    
 
-			count += 1
-			if publish_progress:
-				frappe.publish_progress(
-					count * 100 / len(employees),
-					title=_("Creating Salary Slips..."),
-				)
+			if any(emp == row.get("employee") for row in create_pending_withholding_salary):
+				for row in create_pending_withholding_salary:
+					if emp == row.get("employee"):
+						from_date = getdate(row.get("from_date"))
+						to_date = getdate(row.get("to_date"))
+						current_date = from_date
+						while current_date <= to_date:
+							first_day = get_first_day(current_date)
+							last_day = get_last_day(current_date)
+
+							existing_slip = frappe.db.exists(
+								"Salary Slip",
+								{
+									"employee": emp,
+									"start_date": first_day,
+									"end_date": last_day,
+								}
+							)
+							if not existing_slip:
+								args.update({
+									"doctype": "Salary Slip",
+									"employee": emp,
+									"start_date": first_day,
+									"end_date": last_day,
+									"custom_lop_days": lop_days_map.get(emp)
+								})
+								frappe.get_doc(args).insert()
+								count += 1
+								if publish_progress:
+									frappe.publish_progress(
+										count * 100 / len(employees),
+										title=_("Creating Salary Slips..."),
+									)
+							current_date = add_months(current_date, 1)
+						break
+			else:
+    
+				frappe.get_doc(args).insert()
+
+				count += 1
+				if publish_progress:
+					frappe.publish_progress(
+						count * 100 / len(employees),
+						title=_("Creating Salary Slips..."),
+					)
 
 
 		if restricted_employee:
