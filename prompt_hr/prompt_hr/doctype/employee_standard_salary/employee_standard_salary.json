@@ -22,9 +22,13 @@
   "employer_contribution",
   "section_break_ktib",
   "total_gross_pay",
-  "total_net_pay",
+  "total_employer_contribution",
   "column_break_gmdu",
-  "total_deductions"
+  "total_deductions",
+  "section_break_dprc",
+  "total_net_pay",
+  "column_break_pvxs",
+  "ctc"
  ],
  "fields": [
   {
@@ -133,12 +137,30 @@
   {
    "fieldname": "column_break_gmdu",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_employer_contribution",
+   "fieldtype": "Currency",
+   "label": "Total Employer Contribution"
+  },
+  {
+   "fieldname": "ctc",
+   "fieldtype": "Currency",
+   "label": "CTC"
+  },
+  {
+   "fieldname": "section_break_dprc",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_pvxs",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-22 15:36:17.902900",
+ "modified": "2025-07-23 19:17:33.507073",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Standard Salary",
