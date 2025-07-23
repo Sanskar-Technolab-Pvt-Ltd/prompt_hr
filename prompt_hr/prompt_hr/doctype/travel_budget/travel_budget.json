@@ -69,7 +69,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-06-20 17:01:48.049463",
+ "modified": "2025-07-22 15:36:19.337568",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Travel Budget",
@@ -93,5 +93,6 @@
  "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }

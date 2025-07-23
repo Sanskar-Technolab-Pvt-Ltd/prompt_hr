@@ -12,6 +12,33 @@ def update_employee_ctc(doc, method=None):
         elif employee.custom_salary_structure_based_on == "Gross Based":
             employee.db_set("custom_gross_salary" ,doc.base)
 
+    employee_standard_salary = frappe.get_all("Employee Standard Salary", filters={"employee":doc.employee, "docstatus":["!=",2]})
+    if employee_standard_salary:
+        for es in employee_standard_salary:
+            es_doc = frappe.get_doc("Employee Standard Salary", es.name)
+            es_doc.salary_structure_assignment = doc.name
+            es_doc.salary_structure = doc.salary_structure
+            es_doc.save(ignore_permissions=True)
+    else:
+        employee_standard_salary = frappe.new_doc("Employee Standard Salary")
+        employee_standard_salary.employee = doc.employee
+        employee_standard_salary.salary_structure_assignment = doc.name
+        employee_standard_salary.salary_structure = doc.salary_structure
+        employee_standard_salary.save(ignore_permissions=True)
+
+def on_cancel(doc, method=None):
+    employee_standard_salary = frappe.get_all("Employee Standard Salary", filters={"employee":doc.employee, "docstatus":["!=",2]})
+    if employee_standard_salary:
+        for es in employee_standard_salary:
+            es_doc = frappe.get_doc("Employee Standard Salary", es.name)
+            ssa = frappe.get_all("Salary Structure Assignment", filters={"employee": doc.employee, "docstatus":1, "name": ["!=", es_doc.salary_structure_assignment]}, fields=["name", "salary_structure"])
+            if ssa:
+                es_doc.salary_structure_assignment = ssa[0].name
+                es_doc.salary_structure = ssa[0].salary_structure
+                es_doc.save(ignore_permissions=True)
+            else:
+                frappe.delete_doc("Employee Standard Salary", es_doc.name)
+            frappe.db.commit()
 
 def update_arrear_details(doc, method=None):
     """
