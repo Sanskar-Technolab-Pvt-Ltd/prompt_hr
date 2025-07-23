@@ -24,9 +24,6 @@ frappe.ui.form.on("Leave Policy Assignment", {
 
   // Triggered when employee is selected/changed
   employee: function (frm) {
-    // Reset the leave_policy field
-    frm.set_value("leave_policy", null);
-
     // Proceed only if company is selected
     if (frm.doc.employee) {
       // Get gender of the selected employee
