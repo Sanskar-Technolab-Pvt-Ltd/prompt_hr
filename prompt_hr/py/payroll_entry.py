@@ -697,9 +697,21 @@ def import_adhoc_salary_details(payroll_entry_id, file_url):
 @frappe.whitelist()
 # * METHOD TO FETCH AND SEND SALARY SLEEP TO EMPLOYEE
 # ! prompt_hr.py.payroll_entry.send_salary_sleep_to_employee
-def send_salary_sleep_to_employee(payroll_entry_id):
+def send_salary_sleep_to_employee(payroll_entry_id, email_details):
     try:
-        salary_slip_info_list = frappe.db.get_all("Salary Slip", {"docstatus": 1, "payroll_entry": payroll_entry_id}, ['name', 'employee'])
+        if email_details:
+            email_details = frappe.parse_json(email_details)
+            get_company_email = email_details.get("company_email", False)
+            get_personal_email = email_details.get("personal_email", False)
+
+            avoid_employees = email_details.get("employee_ids", [])
+        else:
+            get_company_email = False
+            get_personal_email = False
+            avoid_employees = []
+
+
+        salary_slip_info_list = frappe.db.get_all("Salary Slip", {"docstatus": 1, "payroll_entry": payroll_entry_id, "employee": ["not in", avoid_employees]}, ['name', 'employee'])
         print_format_info = frappe.db.get_all("Print Format Selection", {"parenttype":"HR Settings", "parentfield": "custom_print_format_table_prompt", "document": "Salary Slip"}, ["print_format_document", "letter_head"], limit=1)
         print_format_id = print_format_info[0].get("print_format_document") if print_format_info else None
         letter_head = print_format_info[0].get("letter_head") if print_format_info else None
@@ -707,9 +719,28 @@ def send_salary_sleep_to_employee(payroll_entry_id):
         if salary_slip_info_list:
             for salary_slip_info in salary_slip_info_list:
                 attachments = []
-                preferred_email = frappe.db.get_value("Employee", salary_slip_info.employee, "prefered_email")
-                if not preferred_email:
-                    preferred_email = frappe.db.get_value("Employee", salary_slip_info.employee, "user_id")
+                
+                recipient_email = []
+
+
+                if get_company_email:
+                    company_email = frappe.db.get_value("Employee", salary_slip_info.employee, "company_email")
+                    if company_email:
+                        recipient_email.append(company_email)
+
+                if get_personal_email:
+                    personal_email = frappe.db.get_value("Employee", salary_slip_info.employee, "personal_email")
+                    if personal_email:
+                        recipient_email.append(personal_email)
+
+                if not get_company_email and not get_personal_email:
+                    preferred_email = frappe.db.get_value("Employee", salary_slip_info.employee, "prefered_email")
+
+                    if not preferred_email:
+                        preferred_email = frappe.db.get_value("Employee", salary_slip_info.employee, "user_id")
+
+                    recipient_email.append(preferred_email)
+                    
                 try:
                     # ? GENERATE PDF USING FRAPPE'S BUILT-IN PDF GENERATION
                     pdf_content = frappe.get_print(
@@ -729,7 +760,7 @@ def send_salary_sleep_to_employee(payroll_entry_id):
                         message=f"Failed to generate PDF attachment: {str(pdf_error)}\n{traceback.format_exc()}",
                     )
                 frappe.sendmail(
-                recipients=[preferred_email],
+                recipients=recipient_email,
                 subject="Salary Slip",
                 message="Please find attached your salary slip.",
                 attachments=attachments if attachments else None,
@@ -739,7 +770,17 @@ def send_salary_sleep_to_employee(payroll_entry_id):
         frappe.throw(_("Error while sending salary slips: {0}").format(str(e)))
         
         
-
+def on_submit(doc, method):
+    if doc.custom_salary_withholding_details:
+        for withholding in doc.custom_salary_withholding_details:
+            if not frappe.db.exists("Employee Salary Withholding", {"employee": withholding.employee, "from_date": withholding.from_date, "to_date": withholding.to_date}):
+                frappe.get_doc({
+                    "doctype": "Employee Salary Withholding",
+                    "employee": withholding.employee,
+                    "from_date": withholding.from_date,
+                    "to_date": withholding.to_date,
+                    "withholding_type": withholding.withholding_type
+                }).insert(ignore_permissions=True)
 @frappe.whitelist()
 def send_payroll_entry(payroll_entry_id, from_date, to_date, company):
     try:
@@ -781,13 +822,8 @@ def linked_bank_entry(payroll_entry_id):
             "docstatus"
         ]
     )
-    
-    print(f"\n\n bank entries  {bank_entries}\n\n")
     if not bank_entries:
         return {"is_all_submitted": 0}
                 
-    all_entries_submitted = all(int(entry.get("docstatus")) == 1 for entry in bank_entries )
-    
-    print(f"\n\n all_entries_submitted {all_entries_submitted} \n\n")
-    
+    all_entries_submitted = all(int(entry.get("docstatus")) == 1 for entry in bank_entries)
     return {"is_all_submitted": 1 if all_entries_submitted else 0}
