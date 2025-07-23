@@ -7,6 +7,39 @@ from frappe.utils import formatdate, getdate
 
 
 class CustomLeavePolicyAssignment(LeavePolicyAssignment):
+    def before_save(self):
+        employee_gender = frappe.db.get_value("Employee", self.employee, "gender")
+
+        if not employee_gender or employee_gender not in ("Male", "Female"):
+            return
+
+        if not self.leave_policy:
+            return
+
+        leave_policy_doc = frappe.get_doc("Leave Policy", self.leave_policy)
+
+        for detail in leave_policy_doc.leave_policy_details:
+            leave_type = detail.leave_type
+            if not leave_type:
+                continue
+
+            #? FETCH BOTH FIELDS IN SINGLE CALL FOR PERFORMANCE
+            leave_type_flags = frappe.db.get_value(
+                "Leave Type", leave_type,
+                ["custom_is_paternity_leave", "custom_is_maternity_leave"],
+                as_dict=True
+            )
+
+            if not leave_type_flags:
+                continue
+
+            if leave_type_flags.custom_is_paternity_leave and employee_gender == "Female":
+                frappe.throw(_("Paternity Leave is not allowed for Female Employee"))
+
+            if leave_type_flags.custom_is_maternity_leave and employee_gender == "Male":
+                frappe.throw(_("Maternity Leave is not allowed for Male Employee"))
+
+                
     def on_submit(self):
         """
         Triggered after a Leave Policy Assignment document is submitted.
@@ -222,7 +255,7 @@ def filter_leave_policy_for_display(
     company = filters.get("company")
 
     leave_policies = frappe.get_all(
-        "Leave Policy", filters={"custom_company": company}, fields=["name", "title"]
+        "Leave Policy", filters={"custom_company": company, "docstatus":1}, fields=["name", "title"]
     )
     leave_policy_display = []
 

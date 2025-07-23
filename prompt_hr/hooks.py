@@ -77,7 +77,8 @@ doctype_js = {
 
 doctype_list_js = {
     "Job Applicant": "public/js/job_applicant_list.js",
-    "Attendance": "public/js/attendance_list.js"
+    "Attendance": "public/js/attendance_list.js",
+    "Leave Application": "public/js/leave_application_list.js"
 }
 
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}

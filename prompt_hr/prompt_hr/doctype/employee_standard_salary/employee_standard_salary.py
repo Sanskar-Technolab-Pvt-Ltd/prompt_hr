@@ -23,6 +23,7 @@ class EmployeeStandardSalary(Document):
         total_gross_pay = 0
         total_net_pay = 0
         total_deductions = 0
+        total_employer_contributions = 0
         # ? Ensure required fields are present
         if not (self.employee and self.salary_structure_assignment):
             return
@@ -61,7 +62,7 @@ class EmployeeStandardSalary(Document):
         self.employer_contribution = []
 
         # * Prepare data for evaluation
-        self.data, self.default_data = self.get_data_for_eval()
+        self.data, self.default_data = self.get_data_for_eval(self.total_gross_pay)
         # * Add earnings
         for row in self._salary_structure_doc.get("earnings", []):
             component = self.create_component_row(row, "earnings")
@@ -70,14 +71,14 @@ class EmployeeStandardSalary(Document):
                 # * Prepare data for evaluation
                 self.data, self.default_data = self.get_data_for_eval()
                 total_gross_pay += component.get("amount")
-
+        self.data.update({"gross_pay": total_gross_pay})
         # * Add deductions
         for row in self._salary_structure_doc.get("deductions", []):
             component = self.create_component_row(row, "deductions")
             if component:
                 self.append("deductions", component)
                 # * Prepare data for evaluation
-                self.data, self.default_data = self.get_data_for_eval()
+                self.data, self.default_data = self.get_data_for_eval(total_gross_pay)
                 total_deductions +=component.get("amount")
 
         # * Add Employer Contributions
@@ -86,17 +87,21 @@ class EmployeeStandardSalary(Document):
             if component:
                 self.append("employer_contribution", component)
                 # * Prepare data for evaluation
-                self.data, self.default_data = self.get_data_for_eval()
-                total_gross_pay +=component.get("amount")
-
+                self.data, self.default_data = self.get_data_for_eval(total_gross_pay)
+                total_employer_contributions +=component.get("amount")
 
         self.total_gross_pay = total_gross_pay
         self.total_deductions = total_deductions
+        self.total_employer_contribution = total_employer_contributions
         self.total_net_pay = total_gross_pay - total_deductions
+        self.ctc = total_gross_pay + total_employer_contributions
 
-    def get_data_for_eval(self):
+    def get_data_for_eval(self, gross_pay=None):
         # * Create merged dict for salary component evaluation
         data = frappe._dict()
+        print(gross_pay)
+        if gross_pay:
+            data.update({"gross_pay":gross_pay})
 
         # * Merge Employee data
         if self.employee:
@@ -132,6 +137,7 @@ class EmployeeStandardSalary(Document):
         data.setdefault("total_working_days", 30)
         data.setdefault("leave_without_pay", 0)
         data.setdefault("custom_lop_days", 0)
+        data.setdefault("custom_total_arrear_payable", 0)
         data.setdefault("absent_days", 0)
         data.setdefault("payment_days", 30)
         data.setdefault("custom_penalty_leave_days", 0)
