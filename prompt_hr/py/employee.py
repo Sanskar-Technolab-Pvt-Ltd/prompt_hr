@@ -1146,6 +1146,9 @@ def update_employee_status_for_indifoss_company():
     update_employee_status_for_company(indifoss_abbr)
 
 def after_insert(doc, method=None):
+    
+    create_shift_assignment(doc)
+    
     # ! FIND CANDIDATE PORTAL RECORD FOR GIVEN JOB APPLICANT AND COMPANY
     candidate_portal = frappe.get_all("Candidate Portal", filters={
         "applicant_email": doc.job_applicant,
@@ -1209,3 +1212,13 @@ def after_insert(doc, method=None):
 
     # ! SAVE CHANGES TO PARENT DOC AFTER APPENDING DOCUMENTS
     doc.save(ignore_permissions=True)
+
+def create_shift_assignment(doc):
+
+    if doc.default_shift and not frappe.db.exists("Shift Assignment", {"employee": doc.name, "shift_type": doc.default_shift}):
+        shift_assignment_doc = frappe.new_doc("Shift Assignment")
+        shift_assignment_doc.employee = doc.name
+        shift_assignment_doc.shift_type = doc.default_shift
+        shift_assignment_doc.start_date = getdate()
+        shift_assignment_doc.insert(ignore_permissions=True)
+        shift_assignment_doc.submit()
