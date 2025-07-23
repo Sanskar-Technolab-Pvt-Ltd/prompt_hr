@@ -7,7 +7,7 @@ from prompt_hr.py.utils import send_notification_email
 
 
 @frappe.whitelist()
-def create_attendance_regularization(attendance_id, update_data):
+def create_attendance_regularization(attendance_id, update_data, reason):
     """Method to create Attendance Regularization
     """
     try:
@@ -27,6 +27,7 @@ def create_attendance_regularization(attendance_id, update_data):
         attendance_regularization_doc.employee = attendance_doc.employee
         attendance_regularization_doc.attendance = attendance_id
         attendance_regularization_doc.regularization_date = attendance_doc.attendance_date
+        attendance_regularization_doc.reason = reason
         
         for row in regularization_data:
             attendance_regularization_doc.append("checkinpunch_details", row)
