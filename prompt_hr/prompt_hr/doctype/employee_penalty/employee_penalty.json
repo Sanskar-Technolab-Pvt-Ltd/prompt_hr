@@ -19,6 +19,7 @@
   "for_late_coming",
   "for_insufficient_hours",
   "for_no_attendance",
+  "for_mispunch",
   "section_break_ixto",
   "remarks"
  ],
@@ -108,6 +109,12 @@
    "fieldname": "for_no_attendance",
    "fieldtype": "Check",
    "label": "For no attendance"
+  },
+  {
+   "default": "0",
+   "fieldname": "for_mispunch",
+   "fieldtype": "Check",
+   "label": "For Mispunch"
   }
  ],
  "grid_page_length": 50,
