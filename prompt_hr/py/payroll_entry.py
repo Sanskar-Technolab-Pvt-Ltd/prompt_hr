@@ -3,6 +3,7 @@ from frappe.utils import cint
 from dateutil.relativedelta import relativedelta
 from datetime import datetime
 from frappe.utils import getdate
+import frappe.utils
 from frappe.utils.xlsxutils import make_xlsx, read_xlsx_file_from_attached_file
 from frappe.utils.response import build_response
 from frappe import _
@@ -740,20 +741,53 @@ def send_salary_sleep_to_employee(payroll_entry_id):
         
 
 @frappe.whitelist()
-def send_payroll_entry(payroll_entry_id):
+def send_payroll_entry(payroll_entry_id, from_date, to_date, company):
     try:
         account_user_users = frappe.db.get_all("Has Role", {"role": "Accounts User", "parenttype": "User", "parent": ["not in", ["Administrator"]]}, ["parent"])
-        print(f"\n\n {account_user_users} \n\n")
-        if account_user_users:
+        if account_user_users:                                                
             account_user_emails = [user.get("parent") for user in account_user_users]
             payroll_entry_link = frappe.utils.get_url_to_form("Payroll Entry", payroll_entry_id)
 
+            salary_report_link = frappe.utils.get_url(f"/app/query-report/Salary%20Register?from_date={from_date}&to_date={to_date}&currency=INR&company={company.replace(' ', '+')}&docstatus=Submitted")            
+            
             frappe.sendmail(
                 recipients=account_user_emails,
                 subject="Payroll Entry Notification",
-                message=f"A new Payroll Entry has been created. You can view it here: {payroll_entry_link}"
+                message=f"""A new Payroll Entry has been created. You can view it here: {payroll_entry_link}<br><br>View the Salary Register report with applied filters here: {salary_report_link}"""
+                # message=f"A new Payroll Entry has been created.   You can view it here: {payroll_entry_link}"
             )
-
+            
+            frappe.db.set_value("Payroll Entry", payroll_entry_id, "custom_account_users_informed", 1)            
     except Exception as e:
         frappe.log_error("Error while sending Payroll Entry notification", frappe.get_traceback())
         frappe.throw(_("Error while sending Payroll Entry notification: {0}").format(str(e)))
+        
+    
+
+@frappe.whitelist()
+def linked_bank_entry(payroll_entry_id):
+    
+    bank_entries = frappe.db.get_all("Journal Entry Account",{"parenttype": "Journal Entry", "reference_type": "Payroll Entry", "reference_name": payroll_entry_id}, ["parent"])
+    
+    bank_entries = frappe.db.get_all(
+        "Journal Entry",
+        [
+            ["voucher_type", "=", "Bank Entry"],
+            ["Journal Entry Account", "reference_type", "=", "Payroll Entry"],
+            ["Journal Entry Account", "reference_name", "=", payroll_entry_id]
+        ],        
+        [
+            "name",
+            "docstatus"
+        ]
+    )
+    
+    print(f"\n\n bank entries  {bank_entries}\n\n")
+    if not bank_entries:
+        return {"is_all_submitted": 0}
+                
+    all_entries_submitted = all(int(entry.get("docstatus")) == 1 for entry in bank_entries )
+    
+    print(f"\n\n all_entries_submitted {all_entries_submitted} \n\n")
+    
+    return {"is_all_submitted": 1 if all_entries_submitted else 0}
