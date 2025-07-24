@@ -166,7 +166,6 @@ frappe.ui.form.on("Payroll Entry", {
             inform_account_users(frm)
             if (frm.doc.custom_account_users_informed) {                    
                 frm.add_custom_button(__("Submit Salary Slip"), function () {
-                        console.log("Hello")
                         submit_salary_slip(frm);
                 }).addClass("btn-primary");
             }
@@ -441,7 +440,6 @@ function send_salary_slip(frm) {
 }
 
 // * FUNCTION TO INFORM ACCOUNT USERS
-
 function inform_account_users(frm) {
     if (!frm.doc.custom_account_users_informed) {
         frm.add_custom_button(__('Inform Account Department'), function () {

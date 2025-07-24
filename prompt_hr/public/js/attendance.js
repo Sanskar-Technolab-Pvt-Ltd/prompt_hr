@@ -116,6 +116,7 @@ function show_checkin_dialog(frm) {
                         label: 'Punch Details',
                         fieldname: 'punch_table',
                         fieldtype: 'Table',
+                        reqd: 1,
                         // cannot_add_rows: 1,
                         // in_place_edit: true,
                         fields: [
