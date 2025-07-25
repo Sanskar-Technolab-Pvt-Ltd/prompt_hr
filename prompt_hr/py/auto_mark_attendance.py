@@ -195,8 +195,33 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
             
 def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, day_start_time, day_end_time, grace_time_period_for_late_coming, grace_time_for_insufficient_hours=0, prompt=0, indifoss=0, regularize_attendance=0, attendance_id=None,   regularize_start_time=None, regularize_end_time=None):
 
+    # Prepare filters dictionary first
+    shift_filters = {
+        "docstatus": 1,
+        "status": "Active",
+        "employee": employee_data.get("name"),
+        "start_date": ["<=", mark_attendance_date]
+    }
+
+    # Print the filters
+    print(f"[DEBUG] Shift Assignment Filters: {shift_filters}")
+
+    # Now execute the query
+    assigned_shift = frappe.db.get_all(
+        "Shift Assignment",
+        shift_filters,
+        ["name", "shift_type"],
+        order_by="creation desc",
+        limit=1
+    )
+
+    # Print result if found
+    if assigned_shift:
+        print(f"[DEBUG] Assigned Shift Found: {assigned_shift[0]['name']} | Shift Type: {assigned_shift[0]['shift_type']}")
+    else:
+        print("[DEBUG] No active shift assignment found.")
+
     
-    assigned_shift = frappe.db.get_all("Shift Assignment", {"docstatus": 1, "status": "Active","employee": employee_data.get("name"), "start_date":["<=", mark_attendance_date]}, ["name","shift_type"], order_by="creation desc", limit=1)
 
     #* If no shift assigned then move to next employee
     if not assigned_shift:
@@ -319,18 +344,32 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
         
         formatted_working_hours = format_duration(total_minutes)
         
+        # ! ATTENDANCE STATUS & PENALTY APPLICATION BASED ON FINAL WORKING HOURS
+        print("Employee:",employee_data)
+        print(f"[DEBUG] Final Working Hours: {final_working_hours}")
+        print(f"[DEBUG] Thresholds - Half Day: {half_day_threshold}, Absent: {absent_threshold}")
+        print(f"[DEBUG] Grace Time for Insufficient Hours (Prompt): {grace_time_for_insufficient_hours}")
+
         if final_working_hours < half_day_threshold and final_working_hours > absent_threshold:
             attendance_status = "Half Day"
-            
+            print(f"[DEBUG] Attendance Status set to: {attendance_status}")
+
             if prompt:
+                print("[DEBUG] Prompt is enabled, checking grace time condition...")
                 if final_working_hours < grace_time_for_insufficient_hours:
                     apply_penalty = 1
-            
-        elif final_working_hours < absent_threshold:
-            attendance_status = "Absent"
-            apply_penalty = 1
+                    print(f"[DEBUG] Working hours below grace time ({grace_time_for_insufficient_hours}). Penalty will be applied.")
+                else:
+                    print(f"[DEBUG] Working hours above grace time. No penalty applied.")
         else:
-            attendance_status = "Present"
+            if final_working_hours < absent_threshold:
+                attendance_status = "Absent"
+                apply_penalty = 1
+                print(f"[DEBUG] Attendance Status set to: {attendance_status}. Penalty will be applied.")
+            else:
+                attendance_status = "Present"
+                print(f"[DEBUG] Attendance Status set to: {attendance_status}. No penalty applied.")
+
         
         
         if prompt and is_overtime_applicable:
