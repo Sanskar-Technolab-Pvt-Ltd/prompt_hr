@@ -38,8 +38,6 @@ frappe.ui.form.on("Payroll Entry", {
         // ? REMOVE AUTO BRANCH ADDITION DATA
         empty_branch_field_if_form_is_new(frm);
         send_salary_slip(frm)
-        frm.get_field('custom_lop_summary').grid.cannot_add_rows = true;
-        frm.refresh_field('custom_lop_summary');
 
         if(frm.doc.docstatus === 0) {
             frm.add_custom_button(__('Data Import'), function() {
