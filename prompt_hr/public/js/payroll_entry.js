@@ -148,6 +148,16 @@ frappe.ui.form.on("Payroll Entry", {
             };
         });
 
+        frm.set_query('employee','custom_lop_summary', function(doc, cdt, cdn) {
+            // Get the list of employee names from the employees child table
+            let employee_list = (frm.doc.employees || []).map(row => row.employee).filter(Boolean);
+            return {
+                filters: {
+                    name: ["in", employee_list]
+                }
+            };
+        });
+
         set_lop_month_options_for_all_rows(frm)
         
     },
