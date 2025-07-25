@@ -6,6 +6,13 @@ from typing import List
 import hrms.hr.doctype.interview_feedback.interview_feedback as interview_feedback_module
 import hrms.hr.doctype.interview.interview as interview_module
 from hrms.hr.doctype.leave_policy_assignment.leave_policy_assignment import LeavePolicyAssignment
+from prompt_hr.overrides.leave_policy_assignment_override import custom_calculate_pro_rated_leaves
+
+from hrms.hr.doctype.leave_policy_assignment import leave_policy_assignment
+from prompt_hr.overrides.leave_policy_assignment_override import is_earned_leave_applicable_for_current_month, custom_calculate_pro_rated_leaves
+
+leave_policy_assignment.calculate_pro_rated_leaves = custom_calculate_pro_rated_leaves
+
 import hrms.hr.utils
 import hrms.hr.doctype.leave_application.leave_application as leave_application_module
 import hrms.hr.report.employee_leave_balance.employee_leave_balance as leave_balance_report
@@ -100,3 +107,4 @@ FullandFinalStatement.get_payable_component = full_and_final_statement.custom_ge
 FullandFinalStatement.create_component_row = full_and_final_statement.custom_create_component_row
 FullandFinalStatement.get_receivable_component = full_and_final_statement.custom_get_receivable_component
 hrms.hr.utils.get_earned_leaves = custom_get_earned_leaves
+leave_policy_assignment.is_earned_leave_applicable_for_current_month = is_earned_leave_applicable_for_current_month

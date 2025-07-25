@@ -1296,3 +1296,37 @@ def create_leave_policy_assignment(employee_doc, based_on_joining_date, leave_pe
 	doc.submit()
 
 	return doc.name
+
+
+def before_save(doc, method=None):
+    validate_create_checkin_role(doc)
+
+
+def validate_create_checkin_role(doc):
+    """
+    Adds or removes 'Create Checkin' role from the user based on the attendance capture scheme.
+    """
+    #! CONTINUE ONLY IF USER IS SET
+    if not doc.user_id:
+        if not doc.is_new():
+            doc_before_save = frappe.get_doc(doc.doctype, doc.name)
+            if doc_before_save.custom_attendance_capture_scheme != doc.custom_attendance_capture_scheme:
+                frappe.msgprint("No User ID Found")
+        return
+
+    user_doc = frappe.get_doc("User", doc.user_id)
+
+    #? ROLE TO TOGGLE
+    target_role = "Create Checkin"
+
+    #? REMOVE IF SCHEME IS BIOMETRIC
+    if doc.custom_attendance_capture_scheme == "Biometric":
+        user_doc.roles = [r for r in user_doc.roles if r.role != target_role]
+
+    #? ENSURE IT EXISTS IF SCHEME IS MOBILE OR WEB
+    elif doc.custom_attendance_capture_scheme in ["Mobile Clockin-Clockout", "Web Checkin-Checkout"]:
+        if target_role not in [r.role for r in user_doc.roles]:
+            user_doc.append("roles", {"role": target_role})
+
+    #? SAVE CHANGES
+    user_doc.save(ignore_permissions=True)

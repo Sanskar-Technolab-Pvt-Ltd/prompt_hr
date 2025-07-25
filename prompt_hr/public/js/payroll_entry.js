@@ -38,8 +38,6 @@ frappe.ui.form.on("Payroll Entry", {
         // ? REMOVE AUTO BRANCH ADDITION DATA
         empty_branch_field_if_form_is_new(frm);
         send_salary_slip(frm)
-        frm.get_field('custom_lop_summary').grid.cannot_add_rows = true;
-        frm.refresh_field('custom_lop_summary');
 
         if(frm.doc.docstatus === 0) {
             frm.add_custom_button(__('Data Import'), function() {
@@ -141,6 +139,16 @@ frappe.ui.form.on("Payroll Entry", {
         });
 
         frm.set_query('employee','custom_adhoc_salary_details', function(doc, cdt, cdn) {
+            // Get the list of employee names from the employees child table
+            let employee_list = (frm.doc.employees || []).map(row => row.employee).filter(Boolean);
+            return {
+                filters: {
+                    name: ["in", employee_list]
+                }
+            };
+        });
+
+        frm.set_query('employee','custom_lop_summary', function(doc, cdt, cdn) {
             // Get the list of employee names from the employees child table
             let employee_list = (frm.doc.employees || []).map(row => row.employee).filter(Boolean);
             return {

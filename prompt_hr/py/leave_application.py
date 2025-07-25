@@ -471,13 +471,17 @@ def custom_update_previous_leave_allocation(allocation, annual_allocation, e_lea
             expired_leaves = -1 * max(unused, 0)
 
     new_allocation = flt(allocation.total_leaves_allocated) + flt(earned_leaves)
+    new_leaves_added = flt(earned_leaves)
     new_allocation_without_cf = flt(
         flt(allocation.get_existing_leave_count()) + flt(earned_leaves),
         allocation.precision("total_leaves_allocated"),
     )
 
     if new_allocation > e_leave_type.max_leaves_allowed and e_leave_type.max_leaves_allowed > 0:
+        new_leaves_added -= (new_allocation - e_leave_type.max_leaves_allowed)
         new_allocation = e_leave_type.max_leaves_allowed
+        if new_leaves_added < 0:
+            new_leaves_added = 0
 
     if new_allocation != allocation.total_leaves_allocated and new_allocation_without_cf <= annual_allocation:
         today_date = frappe.flags.current_date or getdate()
@@ -492,6 +496,7 @@ def custom_update_previous_leave_allocation(allocation, annual_allocation, e_lea
 
         if not is_maternity_leave:
             allocation.db_set("total_leaves_allocated", new_allocation, update_modified=False)
+            allocation.db_set("new_leaves_allocated", new_leaves_added)
             create_additional_leave_ledger_entry(allocation, earned_leaves, today_date)
 
             if expired_leaves:
