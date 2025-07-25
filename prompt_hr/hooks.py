@@ -71,7 +71,8 @@ doctype_js = {
     "Exit Interview": "public/js/exit_interview.js",
     "Travel Request": "public/js/travel_request.js",
     "Leave Allocation": "public/js/leave_allocation.js",
-    "Leave Policy Assignment": "public/js/leave_policy_assignment.js"
+    "Leave Policy Assignment": "public/js/leave_policy_assignment.js",
+    "Salary Slip": "public/js/salary_slip.js"
 
 }
 
