@@ -1,4 +1,5 @@
 import frappe
+from frappe import _
 from frappe.utils import getdate, add_months,cint
 from hrms.payroll.doctype.salary_slip.salary_slip_loan_utils import process_loan_interest_accruals,_get_loan_details, set_loan_repayment
 
@@ -380,6 +381,28 @@ def cancel_loan_repayment_amount(salary_slip_doc, method):
 
     # ? CANCEL ACCRUED INTEREST ENTRIES
     delete_loan_interest_accruals(salary_slip_doc)
+
+@frappe.whitelist()
+def send_salary_slip(salary_slip_id, from_date, to_date, company):
+    try:
+        account_user_users = frappe.db.get_all("Has Role", {"role": "Accounts User", "parenttype": "User", "parent": ["not in", ["Administrator"]]}, ["parent"])
+        if account_user_users:                                                
+            account_user_emails = [user.get("parent") for user in account_user_users]
+            payroll_entry_link = frappe.utils.get_url_to_form("Salary Slip", salary_slip_id)
+
+            salary_report_link = frappe.utils.get_url(f"/app/query-report/Salary%20Register?from_date={from_date}&to_date={to_date}&currency=INR&company={company.replace(' ', '+')}&docstatus=Submitted")            
+            
+            frappe.sendmail(
+                recipients=account_user_emails,
+                subject="Salary Slip Notification",
+                message=f"""A new Salary Slip has been created. You can view it here: {payroll_entry_link}<br><br>View the Salary Register report with applied filters here: {salary_report_link}"""                
+            )
+            
+            frappe.db.set_value("Salary Slip", salary_slip_id, "custom_account_user_informed", 1)            
+    except Exception as e:
+        frappe.db.set_value("Salary Slip", salary_slip_id, "custom_account_user_informed", 0)
+        frappe.log_error("Error while sending Payroll Entry notification", frappe.get_traceback())
+        frappe.throw(_("Error while sending Payroll Entry notification: {0}").format(str(e)))
 
 
 from frappe.utils import getdate
