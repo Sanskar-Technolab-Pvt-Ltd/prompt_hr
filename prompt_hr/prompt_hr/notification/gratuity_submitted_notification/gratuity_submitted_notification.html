@@ -1,0 +1,32 @@
+<p style="font-size: 15px;">
+    Dear Accounts Team,<br><br>
+
+    A new <strong>Gratuity</strong> form has been submitted for the following employee:
+</p>
+
+<ul style="font-size: 14px;">
+    <li><strong>Employee Name:</strong> {{ doc.employee_name }}</li>
+    <li><strong>Gratuity ID:</strong> {{ doc.name }}</li>
+    <li><strong>Status:</strong> Submitted</li>
+</ul>
+
+<br>
+
+<a href="{{ link }}" target="_blank" style="
+    display: inline-block;
+    padding: 10px 18px;
+    color: white;
+    background-color: #1f8feb;
+    text-decoration: none;
+    border-radius: 5px;
+    font-weight: bold;
+">
+    View Gratuity Form
+</a>
+
+<br><br>
+<p style="font-size: 14px;">
+    Regards,<br>
+    <strong>HR manager</strong>,<br>
+    <strong>{{doc.company}}</strong>
+</p>

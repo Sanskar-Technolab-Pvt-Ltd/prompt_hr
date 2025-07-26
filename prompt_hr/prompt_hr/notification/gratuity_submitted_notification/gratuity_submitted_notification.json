@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-07-26 18:29:39.587553",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Employee Gratuity",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "<p style=\"font-size: 15px;\">\n    Dear Accounts Team,<br><br>\n\n    A new <strong>Gratuity</strong> form has been submitted for the following employee:\n</p>\n\n<ul style=\"font-size: 14px;\">\n    <li><strong>Employee Name:</strong> {{ doc.employee_name }}</li>\n    <li><strong>Gratuity ID:</strong> {{ doc.name }}</li>\n    <li><strong>Status:</strong> Submitted</li>\n</ul>\n\n<br>\n\n<a href=\"{{ link }}\" target=\"_blank\" style=\"\n    display: inline-block;\n    padding: 10px 18px;\n    color: white;\n    background-color: #1f8feb;\n    text-decoration: none;\n    border-radius: 5px;\n    font-weight: bold;\n\">\n    View Gratuity Form\n</a>\n\n<br><br>\n<p style=\"font-size: 14px;\">\n    Regards,<br>\n    <strong>HR manager</strong>,<br>\n    <strong>{{doc.company}}</strong>\n</p>\n",
+ "message_type": "HTML",
+ "modified": "2025-07-26 19:07:46.456982",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Gratuity Submitted Notification",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "Gratuity Submitted for {{ doc.employee_name }}"
+}
