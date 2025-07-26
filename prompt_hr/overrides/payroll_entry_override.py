@@ -2,6 +2,8 @@ import frappe
 from frappe import _
 from hrms.payroll.doctype.payroll_entry.payroll_entry import PayrollEntry, get_employee_list
 from prompt_hr.py.salary_slip_overriden_methods import custom_create_salary_slips_for_employees
+from frappe.query_builder.functions import Coalesce
+
 
 class CustomPayrollEntry(PayrollEntry):
 
@@ -90,6 +92,25 @@ class CustomPayrollEntry(PayrollEntry):
 
                 # Save current doc with updated employee list
                 self.save(ignore_permissions=True)
+
+    def get_sal_slip_list(self, ss_status, as_dict=False):
+        """
+        Returns list of salary slips based on selected criteria
+        """
+        ss = frappe.qb.DocType("Salary Slip")
+        ss_list = (
+            frappe.qb.from_(ss)
+            .select(ss.name, ss.salary_structure)
+            .where(
+                (ss.docstatus == ss_status)
+                # & (ss.start_date >= self.start_date)
+                # & (ss.end_date <= self.end_date)
+                & (ss.payroll_entry == self.name)
+                & ((ss.journal_entry.isnull()) | (ss.journal_entry == ""))
+                & (Coalesce(ss.salary_slip_based_on_timesheet, 0) == self.salary_slip_based_on_timesheet)
+            )
+        ).run(as_dict=as_dict)
+        return ss_list
 
     def link_payroll_entry_to_salary_slips(self):
         """
