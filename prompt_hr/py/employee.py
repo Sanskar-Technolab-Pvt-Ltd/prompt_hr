@@ -1355,12 +1355,10 @@ def custom_autoname_employee(doc, method=None):
         #? EXTRACT NUMERIC PARTS AND FIND MAX
         last_number = 0
         pattern = re.compile(rf"{prefix}(\d+)")
-        print(pattern)
         for eid in existing_ids:
             match = pattern.match(eid)
             if match:
                 num = int(match.group(1))
-                print(num)
                 last_number = max(last_number, num)
         #? GENERATE NEXT NAME
         next_number = last_number + 1
