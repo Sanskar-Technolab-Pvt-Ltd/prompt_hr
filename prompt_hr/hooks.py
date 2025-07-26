@@ -218,6 +218,7 @@ doc_events = {
     },
     "Employee": {
         "on_update": "prompt_hr.py.employee.on_update",
+        "autoname": "prompt_hr.py.employee.custom_autoname_employee",
         "validate": "prompt_hr.py.employee.validate",
         "before_insert": "prompt_hr.py.employee.before_insert",
         "after_insert": "prompt_hr.py.employee.after_insert",

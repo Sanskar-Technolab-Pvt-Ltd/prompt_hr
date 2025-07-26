@@ -10,6 +10,7 @@ import calendar
 from datetime import timedelta, datetime
 from dateutil import relativedelta
 from frappe import _
+import re
 from prompt_hr.py.utils import get_prompt_company_name, get_indifoss_company_name
 
 
@@ -65,7 +66,7 @@ def create_welcome_status(user_id, company):
 
 # ? EMPLOYEE BEFORE INSERT HOOK
 def before_insert(doc, method):
-
+    custom_autoname_employee(doc)
     # ? SET IMPREST ALLOCATION AMOUNT FROM EMPLOYEE ONBOARDING FORM
     set_imprest_allocation_amount(doc)
 
@@ -1330,3 +1331,35 @@ def validate_create_checkin_role(doc):
 
     #? SAVE CHANGES
     user_doc.save(ignore_permissions=True)
+
+
+#? CUSTOM AUTONAME HANDLER FOR EMPLOYEE
+def custom_autoname_employee(doc, method=None):
+    #? IF 'employer_number' IS SELECTED, USE THAT
+    if doc.naming_series == "Employee Number":
+        if not doc.employee_number:
+            frappe.throw("Employer Number is required when using 'employer_number' as naming series.")
+        doc.name = doc.employee_number
+        return
+
+    #? MANUAL HANDLING FOR PE.####, PI.####, PC.####
+    if doc.naming_series in ["PE.####", "PI.####", "PC.####"]:
+        prefix = doc.naming_series.split(".")[0]  # PE, PI, PC
+        #? REGEX TO EXTRACT LAST NUMBER FOR PREFIX
+        existing_ids = frappe.db.get_all(
+            "Employee",
+            filters = {"name": ["like", f"{prefix}%"]},
+            pluck="name"
+        )
+
+        #? EXTRACT NUMERIC PARTS AND FIND MAX
+        last_number = 0
+        pattern = re.compile(rf"{prefix}(\d+)")
+        for eid in existing_ids:
+            match = pattern.match(eid)
+            if match:
+                num = int(match.group(1))
+                last_number = max(last_number, num)
+        #? GENERATE NEXT NAME
+        next_number = last_number + 1
+        doc.name = f"{prefix}{str(next_number).zfill(4)}"
