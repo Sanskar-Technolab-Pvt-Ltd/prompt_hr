@@ -760,11 +760,12 @@ def send_salary_sleep_to_employee(payroll_entry_id, email_details):
                         message=f"Failed to generate PDF attachment: {str(pdf_error)}\n{traceback.format_exc()}",
                     )
                 frappe.sendmail(
-                recipients=recipient_email,
-                subject="Salary Slip",
-                message="Please find attached your salary slip.",
-                attachments=attachments if attachments else None,
-            )
+                    recipients=recipient_email,
+                    subject="Salary Slip",
+                    message="Please find attached your salary slip.",
+                    attachments=attachments if attachments else None,
+                )                                
+                frappe.db.set_value("Salary Slip", salary_slip_info.get("name"), "custom_is_salary_slip_released", 1)
     except Exception as e:
         frappe.log_error("Error while sending salary slips", frappe.get_traceback())
         frappe.throw(_("Error while sending salary slips: {0}").format(str(e)))

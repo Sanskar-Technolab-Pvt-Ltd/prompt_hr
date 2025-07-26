@@ -86,6 +86,9 @@ class AttendanceRegularization(Document):
 
 	def before_save(self):
 
+
+		if not self.checkinpunch_details:
+			frappe.throw("Checkin details not found", title="Data Missing")
 		if self.get("status") in ["Approved", "Rejected"]:
 			return
 
@@ -93,6 +96,8 @@ class AttendanceRegularization(Document):
 		limit_date = add_days(frappe.utils.getdate(), -attendance_regularization_limit)
 
 		
+
+	
 		# ! VALIDATE IF REGULARIZATION DATE IS WITHIN THE LIMIT
 		if get_datetime(self.regularization_date).date() < limit_date:
 			frappe.throw(f"Attendance Regularization cannot be raised for past dates more than {attendance_regularization_limit} days.")
