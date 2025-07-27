@@ -49,6 +49,7 @@ app_include_js = [
 
 # include js in doctype views
 doctype_js = {
+    "Salary Structure Assignment": "public/js/salary_structure_assignment.js",
     "Employee Onboarding": "public/js/employee_onboarding.js",
     "Job Offer": "public/js/job_offer.js",
     "Job Requisition": "public/js/job_requisition.js",
@@ -316,6 +317,9 @@ doc_events = {
     "Employee Separation": {
         "before_save": "prompt_hr.py.employee_separation.before_save"
     },
+    "Income Tax Slab": {
+        "validate": "prompt_hr.py.income_tax_slab.validate",
+    }
 }
 
 
