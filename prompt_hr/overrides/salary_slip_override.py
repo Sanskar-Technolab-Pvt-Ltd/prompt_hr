@@ -1,6 +1,6 @@
 import frappe
 from frappe import _
-from frappe.utils import ceil, flt
+from frappe.utils import ceil, flt, formatdate
 from hrms.payroll.doctype.salary_slip.salary_slip import SalarySlip
 
 # ? CustomSalarySlip enhances SalarySlip by including:
