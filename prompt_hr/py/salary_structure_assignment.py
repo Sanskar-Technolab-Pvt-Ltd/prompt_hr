@@ -1,4 +1,5 @@
 import frappe
+from frappe import _
 from frappe.utils import getdate, add_months
 
 def update_employee_ctc(doc, method=None):
@@ -121,3 +122,36 @@ def update_arrear_details(doc, method=None):
     doc.custom_total_arrear_payable = sum(
         row.arrear_amount for row in doc.custom_salary_arrear_details
     )
+
+
+@frappe.whitelist()
+def set_income_tax_slab(employee, posting_date, company):
+    #! FETCH TAX EXEMPTION DECLARATION IF EXISTS
+    declarations = frappe.get_all(
+        "Employee Tax Exemption Declaration",
+        filters={"employee": employee},
+        fields=["payroll_period", "custom_tax_regime"]
+    )
+
+    #! CHECK IF ANY DECLARATION IS VALID FOR THE GIVEN POSTING DATE
+    for declaration in declarations:
+        payroll_period = frappe.get_doc("Payroll Period", declaration.payroll_period)
+        if getdate(payroll_period.start_date) <= getdate(posting_date) <= getdate(payroll_period.end_date):
+            return declaration.custom_tax_regime
+
+    #! BUILD FILTERS FOR DEFAULT REGIME (OPTIONAL COMPANY)
+    filters = {
+        "docstatus": 1,
+        "disabled": 0,
+        "custom_is_default_regime": 1
+    }
+    if company:
+        filters["company"] = company
+
+    #! FETCH DEFAULT TAX REGIME
+    default_regime = frappe.db.get_value("Income Tax Slab", filters, "name")
+    #? THROW ERROR IF NO DEFAULT REGIME FOUND
+    if not default_regime:
+        frappe.msgprint(_("No Default Income Tax Slab found{0}.").format(f" for company {company}" if company else ""))
+
+    return default_regime
