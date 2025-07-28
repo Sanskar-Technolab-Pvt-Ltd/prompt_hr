@@ -41,6 +41,8 @@ def send_esic_challan_notification(report_name):
         report_url = f"{base_url}/app/query-report/ESIC_Challan"
     elif report_name == "PF ECR Challan Excel":
         report_url = f"{base_url}/app/query-report/PF ECR Challan Excel"
+    else:
+        report_url = f"{base_url}/app/query-report/{report_name}"
 
     # ? Step 5: Get Notification Doc
     notification = frappe.get_doc("Notification", "PF-ECR and ESIC Challan Notification")
