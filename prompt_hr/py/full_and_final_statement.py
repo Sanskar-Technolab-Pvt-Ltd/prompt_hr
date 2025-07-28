@@ -53,7 +53,7 @@ def custom_get_payable_component(doc):
     Get the list of components to be added to the payables table
     """
     return [
-        "Notice Period Recovery", 
+        # "Notice Period Recovery", 
         "Expense Claim",
         "Leave Encashment",
     ]
@@ -67,7 +67,7 @@ def custom_get_receivable_component(doc):
     """
     Modify function to add Imprest Account to the receivables table
     """
-    receivables = ["Employee Advance"]
+    receivables = ["Employee Advance", "Notice Period Recovery"]
     if "lending" in frappe.get_installed_apps():
         receivables.append("Loan")
     company_abbr = frappe.get_doc("Company", doc.company).abbr
@@ -224,7 +224,7 @@ def on_update(doc, method):
 
     amount = unserved_days * monthly_salary / 30
 
-    for row in doc.payables:
+    for row in doc.receivables:
         if row.component == "Notice Period Recovery":
             row.amount = amount  # Update the amount for the "Notice Period Recovery" row
             break
