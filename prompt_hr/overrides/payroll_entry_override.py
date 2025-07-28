@@ -199,6 +199,8 @@ class CustomPayrollEntry(PayrollEntry):
         self.update_employees_with_withheld_salaries()
 
         if employees:
+            # ? SET EMPLOYEE COUNT AND APPEND IN PENDING FNF TABLE
+            self.append_exit_employees(employees)
             for emp in employees:
                 if frappe.db.exists("Employee Salary Withholding", {"employee": emp.get('employee'), "is_salary_released": 0}):
                     doc_id = frappe.db.get_value("Employee Salary Withholding", {"employee": emp.get("employee"), "is_salary_released": 0}, "name")
@@ -210,15 +212,80 @@ class CustomPayrollEntry(PayrollEntry):
                         "to_date": withholding_doc.get("to_date"),                        
                     })        
         
+        
         return self.get_employees_with_unmarked_attendance()
 
+    def append_exit_employees(self, employees):                        
+        eligible_employees = [row.get("employee") for row in employees]
+        
+        if not eligible_employees:
+            # ? CLEAR EXISTING CHILD TABLE
+            # frappe.db.delete("Pending FnF Details", {"parent": self.name})
+            self.custom_pending_fnf_details = []
+            self.custom_exit_employees_count = 0
+            # frappe.db.set_value("Payroll Entry", self.name, "custom_exit_employees_count", 0)
+
+        exit_employees = frappe.get_all(
+            "Employee",
+            filters={
+                "name": ["in", eligible_employees],
+                "relieving_date": ["between", [self.start_date, self.end_date]],
+            },
+            fields=["name", "employee_name"],
+        )
+        
+        exit_employee_ids = [emp["name"] for emp in exit_employees]
+        
+        # ? FETCH FULL AND FINAL STATEMENTS FOR THESE EMPLOYEES
+        fnf_records = frappe.get_all(
+            "Full and Final Statement",
+            filters={"employee": ["in", exit_employee_ids], "docstatus": 0},
+            fields=["employee", "name"],
+        )
+        
+        # ? MAP EMPLOYEE → FNF RECORD
+        fnf_record_map = {record["employee"]: record["name"] for record in fnf_records}
+        fnf_employees = set(fnf_record_map.keys())
+        
+        # ? SET EMPLOYEE COUNT
+        # frappe.db.set_value(
+        #     "Payroll Entry", self.name, "custom_exit_employees_count", len(exit_employee_ids)
+        # )
+        self.custom_exit_employees_count = len(exit_employee_ids)
+        
+        self.custom_pending_fnf_details = []
+        
+        for emp in exit_employees:
+            self.append("custom_pending_fnf_details",{
+                "employee": emp["name"],
+                "employee_name": emp.get("employee_name") or "Unknown",
+                "is_fnf_processed": 1 if emp["name"] in fnf_employees else 0,
+                "fnf_record": fnf_record_map.get(emp["name"]),
+            })
+            # frappe.get_doc(
+            #     {
+            #         "doctype": "Pending FnF Details",
+            #         "parent": self.name,
+            #         "parenttype": "Payroll Entry",
+            #         "parentfield": "custom_pending_fnf_details",
+            #         "employee": emp["name"],
+            #         "employee_name": emp.get("employee_name") or "Unknown",
+            #         "is_fnf_processed": 1 if emp["name"] in fnf_employees else 0,
+            #         "fnf_record": fnf_record_map.get(emp["name"]),
+            #     }
+            # ).insert(ignore_permissions=True)
+        
+        #? LINK PAYROLL ENTRY TO ALL THE FNF RECORDS LINKED IN THE PENDING FNF DETAILS TABLE
+        for fnf_id in fnf_records:
+            frappe.db.set_value("Full and Final Statement", fnf_id.get("name"), "custom_payroll_entry", self.name)
+            
+            
     @frappe.whitelist()
     def create_salary_slips(self):  
         """
         Creates salary slip for selected employees if already not created
         """
         
-        print(f"\n\n Custom one getting called \n\n")
         self.check_permission("write")
         
         not_create_slips = []
@@ -231,12 +298,35 @@ class CustomPayrollEntry(PayrollEntry):
             not_create_slips += [
                 emp.employee for emp in self.custom_pending_withholding_salary if not emp.process_salary 
             ]
-            
+        
         print(f"\n\n not_create_slips {not_create_slips}\n\n")
 
+        skip_salary_slip_creation = False
+        for emp in self.employees:
+            
+            skip_salary_slip_creation = False
+            for fnf in self.custom_pending_fnf_details:
+                print(f"\n\n Teressfdfsd \n\n")
+                if fnf.employee == emp.employee:
+                    print(f"\n\n FOUND EMP \n\n")
+                    if fnf.fnf_record:
+                        fnf_status = frappe.db.get_value("Full and Final Statement", fnf.fnf_record, "docstatus")
+                        if fnf_status != 1:
+                            frappe.msgprint(f"Please Submit Full and Final Statement for employee {emp.employee}")
+                            skip_salary_slip_creation = True
+                            break
+                    else:
+                        print(f"\n\n fnf Records not Found \n\n")
+                        frappe.msgprint(f"Please Create and Submit Full and Final Statement for employee {emp.employee}")						
+                        skip_salary_slip_creation = True
+                        break
+
+            if skip_salary_slip_creation:
+                continue
+                    
+        
         employees = [emp.employee for emp in self.employees if emp.employee not in not_create_slips] 
 
-        print(f"\n\n employees {employees}\n\n")
         if employees:
             args = frappe._dict(
                 {
