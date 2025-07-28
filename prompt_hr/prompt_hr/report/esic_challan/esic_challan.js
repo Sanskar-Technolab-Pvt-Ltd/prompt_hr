@@ -13,7 +13,8 @@ frappe.query_reports["ESIC_Challan"] = {
                 frappe.call({
                     method: "prompt_hr.py.accounting_team_notifications.send_esic_challan_notification",
                     args: {
-                        report_name: "ESIC Challan"
+                        report_name: "ESIC Challan",
+                        url: window.location.href,
                     },
                     callback: function(r) {
                         if (r.message === "success") {
