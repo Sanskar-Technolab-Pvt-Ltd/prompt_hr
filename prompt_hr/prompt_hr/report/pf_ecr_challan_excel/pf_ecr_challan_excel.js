@@ -3,22 +3,28 @@
 
 frappe.query_reports["PF ECR Challan Excel"] = {
     filters: [
-		{
-			fieldname: "month",
-			label: __("Month"),
-			fieldtype: "Select",
-			options: "Jan\nFeb\nMar\nApr\nMay\nJun\nJul\nAug\nSep\nOct\nNov\nDec",
-			default: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-			[frappe.datetime.str_to_obj(frappe.datetime.get_today()).getMonth()]
-
-		},
-		{
-			fieldname: "employee",
-			label: __("Employee"),
-			fieldtype: "Link",
-			options: "Employee"
-		}
-	],
+        {
+            fieldname: "from_date",
+            label: __("From Date"),
+            fieldtype: "Date",
+            reqd: 1,
+            default: frappe.datetime.month_start()
+        },
+        {
+            fieldname: "to_date",
+            label: __("To Date"),
+            fieldtype: "Date",
+            reqd: 1,
+            default: frappe.datetime.month_end()
+        },
+        {
+            fieldname: "company",
+            label: __("Company"),
+            fieldtype: "Link",
+            options: "Company",
+            reqd: 0
+        }
+    ],
 
     onload: function(report) {
 
@@ -30,7 +36,8 @@ frappe.query_reports["PF ECR Challan Excel"] = {
                 frappe.call({
                     method: "prompt_hr.py.accounting_team_notifications.send_esic_challan_notification",
                     args: {
-                        report_name: "PF ECR Challan Excel"
+                        report_name: "PF ECR Challan Excel",
+                        url: window.location.href,
                     },
                     callback: function(r) {
                         if (r.message === "success") {
@@ -41,15 +48,15 @@ frappe.query_reports["PF ECR Challan Excel"] = {
             }).removeClass("btn-default").addClass("btn-primary");
         }
 
-        // Button 2: Create Payment Entry
-        if (roles.includes("Accounts User") || roles.includes("Accounts Manager")) {
-            report.page.add_inner_button("Create Payment Entry", () => {
-                frappe.new_doc("Payment Entry", {
-                    payment_type: "Pay",
-                    party_type: "Employee",
-                });
-            }).removeClass("btn-default").addClass("btn-primary");
-        }
+        // // Button 2: Create Payment Entry
+        // if (roles.includes("Accounts User") || roles.includes("Accounts Manager")) {
+        //     report.page.add_inner_button("Create Payment Entry", () => {
+        //         frappe.new_doc("Payment Entry", {
+        //             payment_type: "Pay",
+        //             party_type: "Employee",
+        //         });
+        //     }).removeClass("btn-default").addClass("btn-primary");
+        // }
     
         report.page.add_inner_button('Download Text File', async function() {
             // 1. Fetch the report data

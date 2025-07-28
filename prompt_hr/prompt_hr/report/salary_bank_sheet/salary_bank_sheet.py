@@ -2,36 +2,38 @@
 # For license information, please see license.txt
 
 import frappe
-from frappe.utils import getdate, get_datetime
+from frappe.utils import getdate, add_months, format_date
 import calendar
 
 def execute(filters=None):
     columns = [
-        {"label": "Empno.", "fieldtype": "Link", "fieldname": "employee","options":'Employee', "width": 100},
+        {"label": "Employee No.", "fieldtype": "Link", "fieldname": "employee","options":'Employee', "width": 160},
         {"label": "Name", "fieldtype": "Data", "fieldname": "employee_name", "width": 180},
-        {"label": "Department", "fieldtype": "Data", "fieldname": "department", "width": 120},
-        {"label": "Payment Mode", "fieldtype": "Data", "fieldname": "payment_mode", "width": 120},
-        {"label": "Bank", "fieldtype": "Data", "fieldname": "bank_name", "width": 120},
-        {"label": "IFSC Code", "fieldtype": "Data", "fieldname": "ifsc_code", "width": 120},
-        {"label": "Bank Account No", "fieldtype": "Data", "fieldname": "bank_account_no", "width": 140},
-        {"label": "Payment For", "fieldtype": "Data", "fieldname": "payment_for", "width": 100},
-        {"label": "Amount", "fieldtype": "Currency", "fieldname": "amount", "width": 100},
+        {"label": "Department", "fieldtype": "Data", "fieldname": "department", "width": 160},
+        {"label": "Payment Mode", "fieldtype": "Data", "fieldname": "payment_mode", "width": 160},
+        {"label": "Bank", "fieldtype": "Data", "fieldname": "bank_name", "width": 160},
+        {"label": "IFSC Code", "fieldtype": "Data", "fieldname": "ifsc_code", "width": 160},
+        {"label": "Bank Account No", "fieldtype": "Data", "fieldname": "bank_account_no", "width": 200},
+        {"label": "Payment For", "fieldtype": "Data", "fieldname": "payment_for", "width": 160},
+        {"label": "Amount", "fieldtype": "Currency", "fieldname": "amount", "width": 200},
     ]
 
     data = []
-    month = frappe.utils.getdate(filters.get("month")).month
-    year = int(get_datetime().year)
-    from_date = getdate(f"{year}-{month:02d}-01")
-    last_day = calendar.monthrange(year, month)[1]
-    to_date = getdate(f"{year}-{month:02d}-{last_day}")
-    # Fetch Salary Slips for the selected month and year
+    from_date = filters.get("from_date") or getdate()
+    to_date = filters.get("to_date") or add_months(from_date, 1)
+
+    # ? MAKE SALARY SLIP FILTERS
+    salary_slip_filters = {
+        "start_date": from_date,
+        "end_date": to_date,
+        "docstatus": 1
+    }
+    if filters.get("company"):
+        salary_slip_filters.update({"company": filters.get("company")})
+
     salary_slips = frappe.get_all(
         "Salary Slip",
-        filters={
-            "start_date": from_date,
-            "end_date": to_date,
-            "docstatus": 1  # Only submitted
-        },
+        filters= salary_slip_filters,
         fields=[
             "name", "employee", "employee_name", "department",
             "mode_of_payment", "bank_name", "bank_account_no", "net_pay"
@@ -40,19 +42,20 @@ def execute(filters=None):
 
     for slip in salary_slips:
         employee = frappe.get_doc("Employee", slip.employee)
-        data.append({
-            "employee": employee.name,
-            "employee_name": employee.employee_name,
-            "department": employee.department,
-            "payment_mode": slip.mode_of_payment,
-            "bank_name": slip.bank_name,
-            "ifsc_code": employee.ifsc_code,
-            "bank_account_no": slip.bank_account_no,
-            "payment_for": "Salary",
-            "amount": slip.net_pay,
-        })
+        if employee.salary_mode == "Bank":
+            data.append({
+                "employee": slip.employee,
+                "employee_name": slip.employee_name,
+                "department": slip.department,
+                "payment_mode": 'Bank Transfer',
+                "bank_name": employee.bank_name,
+                "ifsc_code": employee.ifsc_code,
+                "bank_account_no": employee.bank_ac_no,
+                "payment_for": "Salary",
+                "amount": slip.net_pay,
+            })
 
     # Message to display on the report
-    message = f"Bank Transfer Statement for the month of {month}, {year} (Currency: INR)"
+    message = f"<h3>Bank Transfer Statement from the date {format_date(from_date, 'dd-MM-yyyy')} to {format_date(to_date, 'dd-MM-yyyy')} (Currency: INR)</h3>"
 
-    return columns, data, None, message
+    return columns, data, message
