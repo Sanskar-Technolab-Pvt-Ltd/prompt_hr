@@ -75,14 +75,59 @@ def custom_create_salary_slips_for_employees(employees, args, publish_progress=T
 								}
 							)
 							if not existing_slip:
+								print(f"\n\n NOT EXisting \n\n")
 								args.update({
-									"doctype": "Salary Slip",
-									"employee": emp,
+									# "doctype": "Salary Slip",
+									# "employee": emp,
 									"start_date": first_day,
 									"end_date": last_day,
-									"custom_lop_days": lop_days_map.get(emp)
+									# "custom_lop_days": lop_days_map.get(emp)
 								})
-								frappe.get_doc(args).insert()
+								
+								
+								# print(f"\n\n args {args} \n\n")
+								if payroll_entry.get("start_date") == first_day and payroll_entry.get("end_date") == last_day:
+									print(f"\n\n DATES MATCHES \n\n")
+
+									if payroll_entry.custom_pending_fnf_details:
+										if any(row.employee == emp for row in payroll_entry.custom_pending_fnf_details):
+											for fnf in payroll_entry.custom_pending_fnf_details:
+												if fnf.get("employee") == emp and not fnf.get("hold_fnf"):
+													salary_slip_doc = frappe.get_doc(args)
+													salary_slip_doc.insert()
+													fnf_payable_details = frappe.db.get_all("Full and Final Outstanding Statement", {"parenttype": "Full and Final Statement", "parent": fnf.fnf_record, "parentfield": "payables"}, ["component as salary_component", "amount", "hold_fnf"])
+
+													fnf_receivable_details = frappe.db.get_all("Full and Final Outstanding Statement", {"parenttype": "Full and Final Statement", "parent": fnf.fnf_record, "parentfield": "receivables"}, ["component as salary_component", "amount"])
+
+													if fnf_payable_details:
+														salary_slip_doc.earnings = []
+
+														for payable in fnf_payable_details:
+															salary_slip_doc.append("earnings", {
+																"salary_component": payable.get("salary_component"),
+																"amount": payable.get("amount")
+															})
+													if fnf_receivable_details:
+														salary_slip_doc.deductions = []
+														for receivable in fnf_receivable_details:
+															salary_slip_doc.append("deductions", {
+																"salary_component": receivable.get("salary_component"),
+																"amount": receivable.get("amount")
+															})
+													if fnf_receivable_details or fnf_payable_details:
+														salary_slip_doc.save(ignore_permissions=True)
+												elif fnf.get("hold_fnf"):
+													print(f"\n\n HOLD \n\n")
+													frappe.db.set_value("Full and Final Statement", fnf.get("fnf_record"), "status", "On Hold")
+										else:
+											frappe.get_doc(args).insert()
+											
+									else:
+										frappe.get_doc(args).insert()
+										
+								else:
+									frappe.get_doc(args).insert()
+
 								count += 1
 								if publish_progress:
 									frappe.publish_progress(
@@ -92,8 +137,43 @@ def custom_create_salary_slips_for_employees(employees, args, publish_progress=T
 							current_date = add_months(current_date, 1)
 						break
 			else:
+				
     
-				frappe.get_doc(args).insert()
+				if payroll_entry.custom_pending_fnf_details:
+					if any(row.employee == emp for row in payroll_entry.custom_pending_fnf_details):
+						salary_slip_doc = frappe.get_doc(args)
+						salary_slip_doc.insert()
+						for fnf in payroll_entry.custom_pending_fnf_details:
+							if fnf.get("employee") == emp and not fnf.get("hold_fnf"):
+
+								fnf_payable_details = frappe.db.get_all("Full and Final Outstanding Statement", {"parenttype": "Full and Final Statement", "parent": fnf.fnf_record, "parentfield": "payables"}, ["component as salary_component", "amount"])
+
+								fnf_receivable_details = frappe.db.get_all("Full and Final Outstanding Statement", {"parenttype": "Full and Final Statement", "parent": fnf.fnf_record, "parentfield": "receivables"}, ["component as salary_component", "amount"])
+
+								if fnf_payable_details:
+									salary_slip_doc.earnings = []
+
+									for payable in fnf_payable_details:
+										salary_slip_doc.append("earnings", {
+											"salary_component": payable.get("salary_component"),
+											"amount": payable.get("amount")
+										})
+								if fnf_receivable_details:
+									salary_slip_doc.deductions = []
+									for receivable in fnf_receivable_details:
+										salary_slip_doc.append("deductions", {
+											"salary_component": receivable.get("salary_component"),
+											"amount": receivable.get("amount")
+										})
+								if fnf_receivable_details or fnf_payable_details:
+										salary_slip_doc.save(ignore_permissions=True)
+							elif fnf.get("hold_fnf"):
+								print(f"\n\n HOLD \n\n")
+								frappe.db.set_value("Full and Final Statement", fnf.get("fnf_record"), "status", "On Hold")
+					else:
+						frappe.get_doc(args).insert()						
+				else:
+					frappe.get_doc(args).insert()
 
 				count += 1
 				if publish_progress:

@@ -18,7 +18,7 @@ def on_update(doc, method):
     set_new_joinee_count(doc)
 
     # ? SET EMPLOYEE COUNT AND APPEND IN PENDING FNF TABLE
-    append_exit_employees(doc)
+    # append_exit_employees(doc)
 
     # ? APPEND PENDING LEAVE APPLICATIONS
     append_pending_leave_approvals(doc)
@@ -36,63 +36,9 @@ def on_update(doc, method):
     frappe.db.commit()
     doc.reload()
 
-def append_exit_employees(doc):
-    # ? FETCH ELIGIBLE EMPLOYEES BASED ON PAYROLL EMPLOYEE DETAIL
-    eligible_employees = get_eligible_employees(doc.name)
 
-    if not eligible_employees:
-        # ? CLEAR EXISTING CHILD TABLE
-        frappe.db.delete("Pending FnF Details", {"parent": doc.name})
-        frappe.db.set_value("Payroll Entry", doc.name, "custom_exit_employees_count", 0)
-        return
-
-    # ? FETCH EMPLOYEES WHO HAVE RELIEVING DATE BETWEEN START AND END DATES
-    exit_employees = frappe.get_all(
-        "Employee",
-        filters={
-            "name": ["in", eligible_employees],
-            "relieving_date": ["between", [doc.start_date, doc.end_date]],
-        },
-        fields=["name", "employee_name"],
-    )
-
-    exit_employee_ids = [emp["name"] for emp in exit_employees]
-
-    # ? FETCH FULL AND FINAL STATEMENTS FOR THESE EMPLOYEES
-    fnf_records = frappe.get_all(
-        "Full and Final Statement",
-        filters={"employee": ["in", exit_employee_ids]},
-        fields=["employee", "name"],
-    )
-
-    # ? MAP EMPLOYEE → FNF RECORD
-    fnf_record_map = {record["employee"]: record["name"] for record in fnf_records}
-    fnf_employees = set(fnf_record_map.keys())
-
-    # ? SET EMPLOYEE COUNT
-    frappe.db.set_value(
-        "Payroll Entry", doc.name, "custom_exit_employees_count", len(exit_employee_ids)
-    )
-
-    # ? CLEAR OLD CHILD ROWS
-    frappe.db.delete("Pending FnF Details", {"parent": doc.name})
-
-    # ? INSERT CHILD RECORDS USING get_doc().insert()
-    for emp in exit_employees:
-        frappe.get_doc(
-            {
-                "doctype": "Pending FnF Details",
-                "parent": doc.name,
-                "parenttype": "Payroll Entry",
-                "parentfield": "custom_pending_fnf_details",
-                "employee": emp["name"],
-                "employee_name": emp.get("employee_name") or "Unknown",
-                "is_fnf_processed": 1 if emp["name"] in fnf_employees else 0,
-                "fnf_record": fnf_record_map.get(emp["name"]),
-            }
-        ).insert(ignore_permissions=True)
-
-
+    
+    # doc.save(ingnore_permissions=True)
 # ? METHOD TO SET NEW JOINEE COUNT
 # ! prompt_hr.py.payroll_entry.set_new_joinee_count
 def set_new_joinee_count(doc):
@@ -828,3 +774,67 @@ def linked_bank_entry(payroll_entry_id):
                 
     all_entries_submitted = all(int(entry.get("docstatus")) == 1 for entry in bank_entries)
     return {"is_all_submitted": 1 if all_entries_submitted else 0}
+
+
+
+
+# ! CODE FOR BACKUP WRITE YOUR CODE ABOVE THIS LINE
+# def append_exit_employees(doc):
+#     # ? FETCH ELIGIBLE EMPLOYEES BASED ON PAYROLL EMPLOYEE DETAIL
+#     doc = frappe.parse_json(doc)
+#     eligible_employees = get_eligible_employees(doc.name)
+#     if not eligible_employees:
+#         # ? CLEAR EXISTING CHILD TABLE
+#         frappe.db.delete("Pending FnF Details", {"parent": doc.name})
+#         frappe.db.set_value("Payroll Entry", doc.name, "custom_exit_employees_count", 0)
+#         return
+
+#     # ? FETCH EMPLOYEES WHO HAVE RELIEVING DATE BETWEEN START AND END DATES
+#     exit_employees = frappe.get_all(
+#         "Employee",
+#         filters={
+#             "name": ["in", eligible_employees],
+#             "relieving_date": ["between", [doc.start_date, doc.end_date]],
+#         },
+#         fields=["name", "employee_name"],
+#     )
+
+#     exit_employee_ids = [emp["name"] for emp in exit_employees]
+
+#     # ? FETCH FULL AND FINAL STATEMENTS FOR THESE EMPLOYEES
+#     fnf_records = frappe.get_all(
+#         "Full and Final Statement",
+#         filters={"employee": ["in", exit_employee_ids], "docstatus": 0},
+#         fields=["employee", "name"],
+#     )
+
+#     # ? MAP EMPLOYEE → FNF RECORD
+#     fnf_record_map = {record["employee"]: record["name"] for record in fnf_records}
+#     fnf_employees = set(fnf_record_map.keys())
+    
+#     # ? SET EMPLOYEE COUNT
+#     frappe.db.set_value(
+#         "Payroll Entry", doc.name, "custom_exit_employees_count", len(exit_employee_ids)
+#     )
+
+#     # ? CLEAR OLD CHILD ROWS
+#     frappe.db.delete("Pending FnF Details", {"parent": doc.name})
+
+#     # ? INSERT CHILD RECORDS USING get_doc().insert()
+#     for emp in exit_employees:
+#         frappe.get_doc(
+#             {
+#                 "doctype": "Pending FnF Details",
+#                 "parent": doc.name,
+#                 "parenttype": "Payroll Entry",
+#                 "parentfield": "custom_pending_fnf_details",
+#                 "employee": emp["name"],
+#                 "employee_name": emp.get("employee_name") or "Unknown",
+#                 "is_fnf_processed": 1 if emp["name"] in fnf_employees else 0,
+#                 "fnf_record": fnf_record_map.get(emp["name"]),
+#             }
+#         ).insert(ignore_permissions=True)
+
+#     #? LINK PAYROLL ENTRY TO ALL THE FNF RECORDS LINKED IN THE PENDING FNF DETAILS TABLE
+#     for fnf_id in fnf_records:
+#         frappe.db.set_value("Full and Final Statement", fnf_id.get("name"), "custom_payroll_entry", doc.name)

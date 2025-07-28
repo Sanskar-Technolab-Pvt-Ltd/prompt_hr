@@ -10,15 +10,40 @@ frappe.ui.form.on('Pending FnF Details', {
             return;
         }
 
-        // ? REDIRECT TO FULL AND FINAL FORM WITH EMPLOYEE IN URL
-        const emp = encodeURIComponent(row.employee);
-        window.location.href = `${window.location.origin}/app/full-and-final-statement/new-1?employee=${emp}`;
+        if (row.fnf_record) {            
+            frappe.set_route('Form', "Full and Final Statement", row.fnf_record);
+        }
+        else {
+            frappe.route_options = {
+                "employee": row.employee,
+                "custom_payroll_entry": frm.doc.name
+            }
+            frappe.set_route("Form", "Full and Final Statement", "new")
+
+
+
+            // const emp = encodeURIComponent(row.employee);
+            // // ? REDIRECT TO FULL AND FINAL FORM WITH EMPLOYEE IN URL
+            // window.location.href = `${window.location.origin}/app/full-and-final-statement/new-1?employee=${emp}`;            
+        }
     }
 });
 
 
 frappe.ui.form.on("Payroll Entry", {
     refresh: (frm) => {
+
+        update_fnf_button(frm)
+        // if (frm.doc.docstatus === 0 && !frm.is_new()) {
+		// 	frm.page.clear_primary_action();
+		// 	frm.add_custom_button(__("Get Employees"), function () {
+		// 		console.log("Custom is getting called stl")
+		// 		frm.events.get_employee_details(frm);
+		// 	}).toggleClass("btn-primary", !(frm.doc.employees || []).length);
+		// }
+
+
+
 
         // ? CODE TO REMOVE ADD ROW BUTTON FORM THE EXISTING WITHHOLDING SALARY CHILD TABLE
         frm.set_df_property('custom_pending_withholding_salary', 'cannot_add_rows', true);
@@ -197,9 +222,23 @@ frappe.ui.form.on("Payroll Entry", {
 				}).addClass("btn-primary");
 			}
 		});
-	},
-
+	}
 });
+
+
+function update_fnf_button(frm) {
+
+    frm.set_df_property("custom_pending_fnf_details", "cannot_add_rows", 1)
+    frm.doc.custom_pending_fnf_details.forEach(function(row, index) {
+        let button_label = (row.is_fnf_processed || row.fnf_record) ? 'View FnF' : 'Process FnF';
+
+        frm.fields_dict['custom_pending_fnf_details'].grid.update_docfield_property(
+            'process_fnf', 'label', button_label, row.name
+        );
+    });
+
+    frm.fields_dict['custom_pending_fnf_details'].grid.refresh();
+}
 
 // ? FUNCTION TO EMPTY BRANCH FIELD IF FORM IS NEW
 function empty_branch_field_if_form_is_new(frm) {
@@ -322,9 +361,6 @@ function set_lop_month_options_for_all_rows(frm) {
         );
     }
 }
-
-
-
 
 // ? FUNCTION TO ADD CUSTOM BUTTON FOR GENERATING AND SENDING SALARY SLIP PDF
 function send_salary_slip(frm) {
