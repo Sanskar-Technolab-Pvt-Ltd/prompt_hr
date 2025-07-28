@@ -2,7 +2,7 @@
 # For license information, please see license.txt
 
 import frappe
-
+from frappe.utils import getdate, add_months, format_date
 
 def execute(filters=None):
 	columns, data = get_columns(), get_data(filters)
@@ -49,25 +49,76 @@ def get_columns():
 	]
 
 def get_data(filters):
-	filters.setdefault("docstatus", 1)  # Ensure only submitted Salary Slips are fetched
-	data = []
-	slip_datas = frappe.get_all(
-		"Salary Slip",
-		filters=filters,
-		fields=[
-			"*"
-		],
-		order_by="creation desc"
-	)
-	for slip_data in slip_datas:
-		row = {}
-		employee_number = frappe.get_value("Employee", slip_data.employee, "employee_number")
-		row["ip_number"] = employee_number
-		row["ip_name"] = frappe.get_value("Employee", slip_data.employee, "employee_name")
-		row["total_no_of_days"] = slip_data.total_working_days
-		row["total_monthly_wages"] = slip_data.net_pay
-		row["reason"] = slip_data.reason_code or ""
-		row["last_working_day"] = slip_data.end_date
-		data.append(row)
+    #! SET FROM AND TO DATE FROM FILTERS
+    from_date = getdate(filters.get("from_date")) or getdate()
+    to_date = getdate(filters.get("to_date")) or add_months(from_date, 1)
 
-	return data
+    #! BASE SALARY SLIP FILTERS
+    salary_filters = {
+        "start_date": from_date,
+        "end_date": to_date,
+        "docstatus": 1
+    }
+
+    if filters.get("company"):
+        salary_filters["company"] = filters.get("company")
+
+    #! FETCH SALARY SLIPS
+    slip_datas = frappe.get_all(
+        "Salary Slip",
+        filters=salary_filters,
+        fields=["*"],
+        order_by="creation desc"
+    )
+
+    data = []
+
+    #! LOOP THROUGH SALARY SLIPS
+    for slip_data in slip_datas:
+        employee = frappe.get_doc("Employee", slip_data.employee)
+        relieving_date = getdate(employee.relieving_date) if employee.relieving_date else None
+        retirement_date = getdate(employee.date_of_retirement) if employee.date_of_retirement else None
+
+        #! DEFAULT REASON CODE
+        reason_code = ""
+        last_working_day = ""
+
+        if slip_data.payment_days == slip_data.total_working_days:
+            reason_code = "0"
+
+        elif slip_data.payment_days == 0:
+            #? REASON 1 - ZERO WORKING DAYS
+            reason_code = "1"
+            slip_data.gross_pay = 0
+            slip_data.payment_days = 0
+
+        elif relieving_date and from_date <= relieving_date <= to_date:
+            #? REASON 2 - RELIEVED THIS MONTH
+            reason_code = "2"
+            last_working_day = relieving_date
+
+        elif retirement_date and from_date <= retirement_date <= to_date:
+            #? REASON 3 - RETIRED THIS MONTH
+            reason_code = "3"
+            last_working_day = retirement_date
+
+        #! FILTER BY SALARY STRUCTURE ASSIGNMENT AND BASE CONDITION
+        if slip_data.custom_salary_structure_assignment:
+            salary_structure_assignment = frappe.get_doc(
+                "Salary Structure Assignment",
+                slip_data.custom_salary_structure_assignment
+            )
+
+            if salary_structure_assignment.base >= 21000:
+                row = {
+                    "ip_number": employee.custom_esic_ip_number,
+                    "ip_name": slip_data.employee_name,
+                    "total_no_of_days": slip_data.payment_days,
+                    "total_monthly_wages": slip_data.gross_pay,
+                    "reason": reason_code,
+                    "last_working_day": last_working_day
+                }
+
+                data.append(row)
+
+    return data
