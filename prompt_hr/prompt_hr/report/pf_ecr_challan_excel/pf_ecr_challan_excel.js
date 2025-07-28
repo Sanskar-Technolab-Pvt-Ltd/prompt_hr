@@ -30,7 +30,8 @@ frappe.query_reports["PF ECR Challan Excel"] = {
                 frappe.call({
                     method: "prompt_hr.py.accounting_team_notifications.send_esic_challan_notification",
                     args: {
-                        report_name: "PF ECR Challan Excel"
+                        report_name: "PF ECR Challan Excel",
+                        url: window.location.href,
                     },
                     callback: function(r) {
                         if (r.message === "success") {

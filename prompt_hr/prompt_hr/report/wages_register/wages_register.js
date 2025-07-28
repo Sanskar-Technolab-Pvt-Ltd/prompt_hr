@@ -64,7 +64,8 @@ frappe.query_reports["Wages Register"] = {
                 frappe.call({
                     method: "prompt_hr.py.accounting_team_notifications.send_esic_challan_notification",
                     args: {
-                        report_name: "Wages Register"
+                        report_name: "Wages Register",
+                        url: window.location.href,
                     },
                     callback: function(r) {
                         if (r.message === "success") {

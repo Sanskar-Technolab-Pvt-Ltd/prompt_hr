@@ -1,7 +1,7 @@
 import frappe
 
 @frappe.whitelist()
-def send_esic_challan_notification(report_name):
+def send_esic_challan_notification(report_name, url):
     """Send ESIC Challan notification to users with 'Accounts User' or 'Accounts Manager' roles."""
 
     # ? Step 1: Get all users with the relevant roles
@@ -37,7 +37,9 @@ def send_esic_challan_notification(report_name):
 
     # ? Step 4: Prepare report info and fetch notification template
     base_url = frappe.utils.get_url()
-    if report_name == "ESIC Challan":
+    if url:
+        report_url = url
+    elif report_name == "ESIC Challan":
         report_url = f"{base_url}/app/query-report/ESIC_Challan"
     elif report_name == "PF ECR Challan Excel":
         report_url = f"{base_url}/app/query-report/PF ECR Challan Excel"
