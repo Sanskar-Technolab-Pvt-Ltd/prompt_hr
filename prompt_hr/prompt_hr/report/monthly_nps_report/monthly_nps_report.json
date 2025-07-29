@@ -1,0 +1,32 @@
+{
+ "add_total_row": 0,
+ "add_translate_data": 0,
+ "columns": [],
+ "creation": "2025-07-29 18:19:34.258922",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": "Prompt - Letter Head",
+ "letterhead": null,
+ "modified": "2025-07-29 18:19:34.258922",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Monthly NPS Report",
+ "owner": "Administrator",
+ "prepared_report": 0,
+ "ref_doctype": "Salary Slip",
+ "report_name": "Monthly NPS Report",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "HR Manager"
+  },
+  {
+   "role": "Employee Self Service"
+  }
+ ],
+ "timeout": 0
+}
