@@ -12,3 +12,11 @@ function updateRelatedToOptions(frm) {
     });
     frm.refresh_field("related_to");
 }
+
+cur_frm.fields_dict["table_qygi"].grid.get_field("related_to").get_query = function() {
+    return {
+        filters: {
+            name: ["in", ["User", "Contact", "Customer"]]
+        }
+    };
+};
