@@ -1,7 +1,7 @@
 // Copyright (c) 2025, Jignasha Chavda and contributors
 // For license information, please see license.txt
 
-frappe.query_reports["PT Monthly Statement"] = {
+frappe.query_reports["Monthly NPS Report"] = {
 	filters: [
         {
             fieldname: "from_date",
@@ -35,7 +35,7 @@ frappe.query_reports["PT Monthly Statement"] = {
                 frappe.call({
                     method: "prompt_hr.py.accounting_team_notifications.send_esic_challan_notification",
                     args: {
-                        report_name: "PT Monthly Statement",
+                        report_name: "Monthly NPS Report",
                         url: window.location.href,
                     },
                     callback: function(r) {
