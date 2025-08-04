@@ -171,6 +171,7 @@ class EmployeeStandardSalary(Document):
         # Skip statistical components
         if struct_row.statistical_component:
             self.default_data[struct_row.abbr] = flt(amount)
+            self.data[struct_row.abbr] = flt(amount)
             if struct_row.depends_on_payment_days:
                 payment_days_amount = (
                     flt(amount) * flt(self.data.get("payment_days", 30)) / cint(30)
