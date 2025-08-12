@@ -376,6 +376,7 @@ def get_expense_claim_exception(doc):
                 daily_food_lodging_totals_by_type,
                 current_doc_daily_food_lodging_totals,
                 doc,
+                travel_budget
             )
 
             if (
@@ -408,6 +409,7 @@ def _validate_and_process_expense(
     daily_food_lodging_totals_by_type,
     current_doc_daily_food_lodging_totals,
     doc,
+    travel_budget
 ):
     """
     Validates and processes an individual expense item within the claim.
@@ -437,7 +439,8 @@ def _validate_and_process_expense(
             budget_row,
             daily_food_lodging_totals_by_type,
             current_doc_daily_food_lodging_totals,
-            company
+            company,
+            travel_budget
         )
 
     elif exp.expense_type == EXPENSE_TYPES["LOCAL_COMMUTE"]:
@@ -479,7 +482,8 @@ def _process_food_lodging_expense(
     budget_row,
     approved_daily_food_lodging_totals_by_type,
     current_doc_daily_food_lodging_totals,
-    company
+    company,
+    travel_budget
 ):
     """
     Processes validation for Food and Lodging expenses against their defined allowances.
@@ -494,6 +498,51 @@ def _process_food_lodging_expense(
 
     limit_field = f"{expense_type_for_budget_lookup}_allowance_{'metro' if metro else 'non_metro'}"
     limit = budget_row.get(limit_field, 0)
+    #? IF EXPENSE TYPE IS LODGING
+    if exp.expense_type == EXPENSE_TYPES["LODGING"]:
+        #? IF SHARED ACCOMMODATION WITH SOMEONE
+        if exp.custom_shared_accommodation_employee:
+            #? FETCH GRADE OF SHARED ACCOMODATION EMPLOYEE
+            shared_employee_grade = frappe.db.get_value(
+                "Employee", exp.custom_shared_accommodation_employee, "grade"
+            )
+            if shared_employee_grade:
+                #? FETCH SHARED EMPLOYEE'S BUDGET ALLOCATION ROW BASED ON GRADE
+                shared_employee_budget_row = frappe.db.get_value(
+                    "Budget Allocation",
+                    {
+                        "parent": travel_budget,
+                        "parentfield": "buget_allocation",
+                        "grade": shared_employee_grade,
+                    },
+                    [
+                        "lodging_allowance_metro",
+                        "lodging_allowance_non_metro",
+                        "meal_allowance_metro",
+                        "meal_allowance_non_metro",
+                        "local_commute_limit_daily",
+                        "local_commute_limit_monthly",
+                    ],
+                    as_dict=True,
+                )
+                if shared_employee_budget_row:
+                    #? DETERMINE ALLOWANCE FIELD NAME BASED ON METRO/NON-METRO
+                    shared_employee_limit_field = f"{expense_type_for_budget_lookup}_allowance_{'metro' if metro else 'non_metro'}"
+                    
+                    #? GET SHARED EMPLOYEE LIMIT VALUE
+                    shared_employee_limit = shared_employee_budget_row.get(shared_employee_limit_field, 0)
+                    
+                    #? IF SHARED EMPLOYEE LIMIT IS LESS THAN CURRENT LIMIT → ADD 40% OF THEIR LIMIT
+                    if shared_employee_limit < limit:
+                        limit = limit + shared_employee_limit * 0.4
+                    else:
+                        #? ELSE TAKE 40% OF CURRENT LIMIT + FULL SHARED EMPLOYEE LIMIT
+                        limit = limit * 0.4  + shared_employee_limit
+            else:
+                #! THROW ERROR IF GRADE NOT SET FOR SHARED EMPLOYEE
+                frappe.throw(
+                    f"Grade not set for employee {exp.custom_shared_accommodation_employee}"
+                )
 
     exceeded_any_day = False
     for i in range(days):
