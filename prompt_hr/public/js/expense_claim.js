@@ -4,7 +4,23 @@ frappe.ui.form.on('Expense Claim', {
 		create_payment_entry_button(frm);
 		fetch_commute_data(frm);
 		set_local_commute_monthly_expense(frm);
-	},
+		// ? FETCH GENDER OF THE CURRENT EMPLOYEE
+        if (frm.doc.employee) {
+            frappe.db.get_value('Employee', frm.doc.employee, 'gender', function(r) {
+                if (r && r.gender) {
+                    // ? SET FILTERS FOR SHARED ACCOMODATION EMPLOYEE (BELONGS TO SAME GENDER AS EMPLOYEE AND NOT HIMSELF)
+                    frm.set_query('custom_shared_accommodation_employee', 'expenses', function() {
+                        return {
+                            filters: {
+                                name: ["!=", frm.doc.employee],
+                                gender: r.gender
+                            }
+                        };
+                    });
+                }
+            });
+        }
+    },
 	employee: (frm) => { 
 		fetch_commute_data(frm); 
 		set_local_commute_monthly_expense(frm); 
