@@ -340,7 +340,6 @@ scheduler_events = {
     },
     "daily": [
         "prompt_hr.py.employee_changes_approval.daily_check_employee_changes_approval",
-        "prompt_hr.py.compensatory_leave_request.expire_compensatory_leave_after_confirmation",
         "prompt_hr.scheduler_methods.create_probation_feedback_form",
         "prompt_hr.scheduler_methods.create_confirmation_evaluation_form_for_prompt",
         "prompt_hr.scheduler_methods.inform_employee_for_confirmation_process",

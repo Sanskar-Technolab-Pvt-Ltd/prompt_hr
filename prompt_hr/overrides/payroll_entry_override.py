@@ -66,6 +66,11 @@ class CustomPayrollEntry(PayrollEntry):
                 
         # * LINKING PAYROLL ENTRY TO SALARY SLIPS
         self.link_payroll_entry_to_salary_slips()
+    
+    def before_submit(self):
+        super().before_submit()
+        check_step_completed(self)
+    
     def on_submit(self):
         super().on_submit()
 
@@ -287,7 +292,8 @@ class CustomPayrollEntry(PayrollEntry):
         """
         
         self.check_permission("write")
-        
+
+        check_step_completed(self)
         not_create_slips = []
         if self.custom_salary_withholding_details:
             not_create_slips = [
@@ -361,6 +367,7 @@ class CustomPayrollEntry(PayrollEntry):
                 custom_create_salary_slips_for_employees(employees, args, publish_progress=False)
                 # since this method is called via frm.call this doc needs to be updated manually
                 self.reload()
+
 def custom_set_filter_conditions(query, filters, qb_object):
     """Append optional filters to employee query"""
 
@@ -374,5 +381,22 @@ def custom_set_filter_conditions(query, filters, qb_object):
 
     return query
 
+def check_step_completed(self):
+    """
+    #! CHECK IF ALL REQUIRED PAYROLL STEPS ARE COMPLETED BEFORE FINALIZATION
+    """
+    #? REQUIRED PAYROLL STEPS WITH USER MESSAGES
+    step_fields = {
+        "custom_new_joinee_and_exit_step_completed": "New Joinee and Exit step is incomplete.",
+        "custom_leave_and_attendance_step_completed": "Leave and Attendance step is incomplete.",
+        "custom_adhoc_salary_adjustment_step_completed": "Adhoc Salary Adjustment step is incomplete.",
+        "custom_restricted_salary_step_completed": "Restricted Salary step is incomplete.",
+        "custom_salary_withholding_step_completed": "Salary Withholding step is incomplete.",
+    }
 
+    #? COLLECT INCOMPLETE STEPS
+    messages = [msg for field, msg in step_fields.items() if not self.get(field)]
 
+    #? THROW IF ANY STEP IS INCOMPLETE
+    if messages:
+        frappe.throw("<br>".join(messages), title="Incomplete Payroll Steps")

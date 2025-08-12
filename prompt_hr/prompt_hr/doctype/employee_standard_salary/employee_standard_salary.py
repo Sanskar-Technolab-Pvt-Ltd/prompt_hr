@@ -70,7 +70,8 @@ class EmployeeStandardSalary(Document):
                 self.append("earnings", component)
                 # * Prepare data for evaluation
                 self.data, self.default_data = self.get_data_for_eval()
-                total_gross_pay += component.get("amount")
+                if not component.get("do_not_include_in_total") and not component.get("statistical_component"):
+                    total_gross_pay += component.get("amount")
         self.data.update({"gross_pay": total_gross_pay})
         # * Add deductions
         for row in self._salary_structure_doc.get("deductions", []):
@@ -79,7 +80,8 @@ class EmployeeStandardSalary(Document):
                 self.append("deductions", component)
                 # * Prepare data for evaluation
                 self.data, self.default_data = self.get_data_for_eval(total_gross_pay)
-                total_deductions +=component.get("amount")
+                if not component.get("do_not_include_in_total") and not component.get("statistical_component"):
+                    total_deductions +=component.get("amount")
 
         # * Add Employer Contributions
         for row in self._salary_structure_doc.get("custom_employer_contribution", []):
@@ -88,7 +90,8 @@ class EmployeeStandardSalary(Document):
                 self.append("employer_contribution", component)
                 # * Prepare data for evaluation
                 self.data, self.default_data = self.get_data_for_eval(total_gross_pay)
-                total_employer_contributions +=component.get("amount")
+                if not component.get("do_not_include_in_total") and not component.get("statistical_component"):
+                    total_employer_contributions +=component.get("amount")
 
         self.total_gross_pay = total_gross_pay
         self.total_deductions = total_deductions
@@ -99,7 +102,6 @@ class EmployeeStandardSalary(Document):
     def get_data_for_eval(self, gross_pay=None):
         # * Create merged dict for salary component evaluation
         data = frappe._dict()
-        print(gross_pay)
         if gross_pay:
             data.update({"gross_pay":gross_pay})
 
@@ -171,6 +173,7 @@ class EmployeeStandardSalary(Document):
         # Skip statistical components
         if struct_row.statistical_component:
             self.default_data[struct_row.abbr] = flt(amount)
+            self.data[struct_row.abbr] = flt(amount)
             if struct_row.depends_on_payment_days:
                 payment_days_amount = (
                     flt(amount) * flt(self.data.get("payment_days", 30)) / cint(30)
