@@ -5,73 +5,168 @@ from prompt_hr.py.leave_allocation import get_matching_link_field
 from frappe import _
 from collections import defaultdict
 from frappe.utils import getdate, add_days, date_diff
-from hrms.hr.utils import get_leave_period
+from hrms.hr.utils import get_leave_period, create_additional_leave_ledger_entry
+from frappe.utils import add_days, cint, date_diff, format_date, get_url_to_list, getdate, flt
 
 class CustomCompensatoryLeaveRequest(CompensatoryLeaveRequest):
 
     # ? CALLED ON CANCEL OF COMPENSATORY LEAVE REQUEST
     def on_cancel(self):
-        # ! Skip if already rejected
-        if self.get("workflow_state") in ["Rejected"]:
-            return
-
-        # ? Proceed only if Leave Allocation exists
-        if self.leave_allocation:
-            # * Calculate leave days (including half-day)
-            date_difference = date_diff(self.work_end_date, self.work_from_date) + 1
-            if self.half_day:
-                date_difference -= 0.5
-
-            # ? Fetch Leave Allocation record
-            leave_allocation = frappe.get_doc("Leave Allocation", self.leave_allocation)
-            if leave_allocation:
-                # * Adjust new_leaves_allocated (ensure non-negative)
-                leave_allocation.new_leaves_allocated = max(0, leave_allocation.new_leaves_allocated - date_difference)
-
-                # * Save updated leave allocation totals
-                leave_allocation.validate()
-                leave_allocation.db_set("new_leaves_allocated", leave_allocation.total_leaves_allocated)
-                leave_allocation.db_set("total_leaves_allocated", leave_allocation.total_leaves_allocated)
-
-                # ? Identify the related Leave Ledger Entry to delete
-                company = frappe.db.get_value("Employee", self.employee, "company")
-                comp_leave_valid_from = add_days(self.work_end_date, 1)
-                leave_period = get_leave_period(comp_leave_valid_from, comp_leave_valid_from, company)
-
-                leave_ledger_entry = frappe.get_all(
-                    "Leave Ledger Entry",
-                    filters={
-                        "transaction_name": leave_allocation.name,
-                        "transaction_type": "Leave Allocation",
-                        "employee": self.employee,
-                        "leave_type": self.leave_type,
-                        "docstatus": 1,
-                        "from_date": comp_leave_valid_from,
-                        "to_date": leave_period[0].to_date if leave_period else comp_leave_valid_from
-                    },
-                    fields=["name", "transaction_name"]
-                )
-
-                # * Delete the matched ledger entry
-                if leave_ledger_entry:
-                    frappe.db.sql(
-                        """
-                        DELETE FROM `tabLeave Ledger Entry`
-                        WHERE `transaction_name` = %s AND `name` = %s
-                        """,
-                        (leave_ledger_entry[0].transaction_name, leave_ledger_entry[0].name),
-                    )
-
         # ? Set workflow state to Cancelled after cancellation
         if self.get("workflow_state"):
             self.db_set("workflow_state", "Cancelled")
 
+        # ! Skip if already rejected
+        if self.get("workflow_state") in ["Rejected"]:
+            return
+
+        # ? PROCEED ONLY IF LEAVE ALLOCATION EXISTS
+        if self.leave_allocation:
+            # * CALCULATE LEAVE DAYS INCLUDING HALF-DAY IF APPLICABLE
+            date_difference = date_diff(self.work_end_date, self.work_from_date) + 1
+            if self.half_day:
+                date_difference -= 0.5
+
+            try:
+                # ? FETCH LEAVE ALLOCATION
+                leave_allocation = frappe.get_doc("Leave Allocation", self.leave_allocation)
+
+                if leave_allocation.docstatus == 1:
+                    #! CALCULATE EXISTING ALLOCATED LEAVES AFTER REVERSAL
+                    remaining_leaves = flt(leave_allocation.total_leaves_allocated) - flt(date_difference)
+
+                    if remaining_leaves <= 0:
+                        # ? CANCEL LEAVE ALLOCATION IF LEAVES ARE FULLY REVERSED
+                        leave_allocation.cancel()
+                    else:
+                        # ? UPDATE ALLOCATION IF PARTIAL LEAVES REMAIN
+                        leave_allocation.db_set("total_leaves_allocated", remaining_leaves)
+                        leave_allocation.db_set("new_leaves_allocated", remaining_leaves)
+                        # ? Identify the related Leave Ledger Entry to delete
+                        from_date = add_days(self.custom_approved_date, 0)
+                        leave_type_doc = frappe.get_doc("Leave Type", self.leave_type)
+                        leave_ledger_entry = frappe.get_all(
+                            "Leave Ledger Entry",
+                            filters={
+                                "transaction_name": leave_allocation.name,
+                                "transaction_type": "Leave Allocation",
+                                "employee": self.employee,
+                                "leave_type": self.leave_type,
+                                "docstatus": 1,
+                                "from_date": from_date,
+                                "to_date": add_days(from_date, cint(leave_type_doc.custom_leave_validity_days or 0) - 1)
+                            },
+                            fields=["name", "transaction_name"]
+                        )
+
+                        # * Delete the matched ledger entry
+                        if leave_ledger_entry:
+                            frappe.db.sql(
+                                """
+                                DELETE FROM `tabLeave Ledger Entry`
+                                WHERE `transaction_name` = %s AND `name` = %s
+                                """,
+                                (leave_ledger_entry[0].transaction_name, leave_ledger_entry[0].name),
+                            )
+
+            except frappe.DoesNotExistError:
+                frappe.log_error(f"Leave Allocation {self.leave_allocation} not found", "Cancel Error")
+
+
     # ? CALLED ON SUBMIT
     def on_submit(self):
-        # ! SKIP DEFAULT SUBMIT IF REJECTED STATES
+        # ! SKIP SUBMIT IF REJECTED STATES
         if self.get("workflow_state") not in ["Rejected"]:
-            super().on_submit()
+            company = frappe.db.get_value("Employee", self.employee, "company")
+            date_difference = date_diff(self.work_end_date, self.work_from_date) + 1
+            if self.half_day:
+                date_difference -= 0.5
 
+            # ? SET VALIDITY DATES FROM APPROVED DATE
+            from_date = add_days(self.custom_approved_date, 0)
+            leave_type_doc = frappe.get_doc("Leave Type", self.leave_type)
+            to_date = add_days(from_date, cint(leave_type_doc.custom_leave_validity_days or 0) - 1)
+
+            # ? FETCH LEAVE PERIOD
+            leave_period = get_leave_period(from_date, from_date, company)
+            if not leave_period:
+                bold_from_date = frappe.bold(format_date(from_date))
+                msg = _("This compensatory leave will be applicable from {0}.").format(bold_from_date)
+                msg += " " + _(
+                    "Currently, there is no {0} leave period for this date to create leave allocation."
+                ).format(frappe.bold(_("active")))
+                msg += "<br><br>" + _("Please create a new {0} for the date {1} first.").format(
+                    f"""<a href='{get_url_to_list("Leave Period")}'>Leave Period</a>""",
+                    bold_from_date,
+                )
+                frappe.throw(msg, title=_("No Leave Period Found"))
+
+            leave_period_end_date = leave_period[0].get("to_date")
+            # ? TRY TO FETCH EXISTING ALLOCATION FOR OVERLAPPING PERIOD
+            existing_allocation = frappe.db.sql("""
+                SELECT name FROM `tabLeave Allocation`
+                WHERE
+                    employee = %(employee)s
+                    AND leave_type = %(leave_type)s
+                    AND from_date <= %(from_date)s
+                    AND to_date <= %(to_date)s
+                    AND docstatus = 1
+                LIMIT 1
+            """, {
+                "employee": self.employee,
+                "leave_type": self.leave_type,
+                "from_date": from_date,
+                "to_date": leave_period_end_date
+            }, as_dict=True)
+
+
+            if existing_allocation:
+                # ? UPDATE EXISTING ALLOCATION
+                leave_allocation = frappe.get_doc("Leave Allocation", existing_allocation)
+                leave_allocation.new_leaves_allocated = date_difference
+                leave_allocation.total_leaves_allocated += date_difference
+                if leave_allocation.to_date < to_date:
+                    if to_date < leave_period_end_date:
+                        leave_allocation.db_set("to_date", to_date)
+                    else:
+                        leave_allocation.db_set("to_date", leave_period_end_date)
+                    leave_allocation.db_set("new_leaves_allocated", leave_allocation.new_leaves_allocated)
+                    leave_allocation.db_set("total_leaves_allocated", leave_allocation.total_leaves_allocated)
+                    create_additional_leave_ledger_entry(leave_allocation, date_difference, from_date)
+                else:
+                    leave_allocation.db_set("new_leaves_allocated", leave_allocation.new_leaves_allocated)
+                    leave_allocation.db_set("total_leaves_allocated", leave_allocation.total_leaves_allocated)
+                    # ? MANUALLY CREATE LEAVE LEDGER ENTRY WITH COMP LEAVE REQUEST EXPIRE TO_DATE
+                    frappe.get_doc({
+                        "doctype": "Leave Ledger Entry",
+                        "employee": leave_allocation.employee,
+                        "leave_type": leave_allocation.leave_type,
+                        "transaction_type": "Leave Allocation",
+                        "transaction_name": leave_allocation.name,
+                        "from_date": from_date,
+                        "to_date": to_date,
+                        "leaves": date_difference,
+                        "unused_leaves": 0,
+                        "is_carry_forward": 0,
+                        "is_expired": 0,
+                        "is_lwp": 0,
+                        "new_leaves_allocated": date_difference
+                    }).insert(ignore_permissions=True).submit()
+
+            else:
+                # ? CREATE NEW LEAVE ALLOCATION
+                leave_allocation = frappe.new_doc("Leave Allocation")
+                leave_allocation.employee = self.employee
+                leave_allocation.leave_type = self.leave_type
+                leave_allocation.from_date = from_date
+                leave_allocation.to_date = to_date
+                leave_allocation.new_leaves_allocated = date_difference
+                leave_allocation.total_leaves_allocated = date_difference
+                leave_allocation.company = company
+                leave_allocation.save(ignore_permissions=True)
+                leave_allocation.submit()
+
+            self.db_set("leave_allocation", leave_allocation.name)
 
     def on_update(self):
         if self.has_value_changed("workflow_state"):
@@ -95,7 +190,7 @@ class CustomCompensatoryLeaveRequest(CompensatoryLeaveRequest):
                 hr_manager_user = hr_manager.get("user_id")
                 if hr_manager_user:
                     # Check if this user has the HR Manager role
-                    if "HR Manager" in frappe.get_roles(hr_manager_user):
+                    if "S - HR Manager" in frappe.get_roles(hr_manager_user):
                         hr_manager_email = frappe.db.get_value("User", hr_manager_user, "email")
                         break
 
