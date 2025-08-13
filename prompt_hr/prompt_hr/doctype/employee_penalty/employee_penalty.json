@@ -20,6 +20,8 @@
   "for_insufficient_hours",
   "for_no_attendance",
   "for_mispunch",
+  "section_break_tpof",
+  "leave_penalty_details",
   "section_break_ixto",
   "remarks"
  ],
@@ -115,12 +117,22 @@
    "fieldname": "for_mispunch",
    "fieldtype": "Check",
    "label": "For Mispunch"
+  },
+  {
+   "fieldname": "section_break_tpof",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "leave_penalty_details",
+   "fieldtype": "Table",
+   "label": "Leave Penalty Details",
+   "options": "Employee Leave Penalty Details"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-22 15:36:17.406583",
+ "modified": "2025-07-28 15:00:47.831474",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Penalty",
