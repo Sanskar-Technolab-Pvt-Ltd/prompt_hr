@@ -40,6 +40,7 @@ def prompt_employee_attendance_penalties():
 
     # ? MIS-PUNCH PENALTY CONFIGURATION
     mispunch_penalty_buffer_days = hr_settings.custom_buffer_days_for_mispunch_penalty or 0
+    mispunch_penalty_target_date = getdate(add_to_date(today(), days=-(int(mispunch_penalty_buffer_days) + 1)))
 
     # ! FETCH ALL LATE ENTRY PENALTY RECORDS FOR THE LAST BUFFER DAYS
     late_penalty = process_late_entry_penalties_for_prompt(employees, late_coming_allowed_per_month, late_coming_penalty_buffer_days, "custom_late_coming_leave_penalty_configuration", late_coming_target_date)
@@ -55,6 +56,9 @@ def prompt_employee_attendance_penalties():
         employees, no_attendance_penalty_buffer_days, no_attendance_target_date, "custom_no_attendance_leave_penalty_configuration"
     )
 
+    # ! FETCH ALL MIS-PUNCH PENALTY RECORDS FOR THE LAST BUFFER DAYS
+    mispunch_penalty = process_mispunch_penalties_for_prompt(employees, mispunch_penalty_buffer_days, mispunch_penalty_target_date, "custom_attendance_mispunch_leave_penalty_configuration")
+
     # ! CREATE OR UPDATE PENALTY RECORDS IN THE DATABASE
     if late_penalty:
         create_penalty_records(late_penalty, late_coming_target_date)
@@ -64,6 +68,9 @@ def prompt_employee_attendance_penalties():
 
     if no_attendance_penalty:
         create_penalty_records(no_attendance_penalty, no_attendance_target_date)
+
+    if mispunch_penalty:
+        create_penalty_records(mispunch_penalty, mispunch_penalty_target_date)
 
 
 def process_late_entry_penalties_for_prompt(employees, late_coming_allowed_per_month, penalty_buffer_days, priority_field, target_date):
@@ -94,7 +101,7 @@ def process_late_entry_penalties_for_prompt(employees, late_coming_allowed_per_m
         return penalty_entries
 
     # ! CHECK TARGET DATE'S ATTENDANCE IS LATE OR NOT
-    late_attendance_records = target_date_attendance_exists(employees, target_date, 1, 0)
+    late_attendance_records = target_date_attendance_exists(employees, target_date, 1, 0, 0)
     # ! SKIP IF TARGET DATE ATTENDANCE IS NOT LATE
     if not late_attendance_records:
         return []
@@ -187,17 +194,6 @@ def calculate_leave_deductions_based_on_priority(
     if not leave_priority:
         return {}
 
-    # ! GET LEAVE PERIOD DATA
-    leave_period_data = frappe.db.get_value(
-        "Leave Period",
-        {
-            "is_active": 1,
-            "from_date": ["<=", attendance_date],
-            "to_date": [">=", attendance_date]
-        },
-        ["name", "from_date", "to_date"],
-        as_dict=True,
-    )
 
     # ? GET REMAINING LEAVE BALANCES FOR THE EMPLOYEE
     leave_balances = get_remaining_leaves(employee)
@@ -216,16 +212,6 @@ def calculate_leave_deductions_based_on_priority(
             balance = leave_balances.get(leave_type, 0.0)
             # ? CHECK IF LEAVE BALANCE IS SUFFICIENT
             if balance >= leave_amount:
-                # ? GET LEAVE ALLOCATION ID
-                leave_allocation_id = get_leave_allocation_id(employee, leave_type, attendance_date)
-                # ? CREATE LEAVE LEDGER ENTRY
-                ledger_entry_id = add_leave_ledger_entry(
-                    employee=employee,
-                    leave_type=leave_type,
-                    leave_allocation_id=leave_allocation_id,
-                    leave_period_data=leave_period_data,
-                    earned_leave=leave_amount,
-                )
                 # ? RETURN PENALTY ENTRY DICTIONARY
                 return {
                     employee: {
@@ -235,7 +221,7 @@ def calculate_leave_deductions_based_on_priority(
                         "leave_amount": leave_amount,
                         "reason": reason,
                         "leave_balance_before_application": balance,
-                        "leave_ledger_entry": ledger_entry_id,
+                        "leave_ledger_entry": "",
                         "remarks": remarks,
                         "earned_leave": leave_amount
                     }
@@ -287,7 +273,7 @@ def get_remaining_leaves(employee):
     return leave_balance_map
 
 
-def target_date_attendance_exists(employees, target_date, late_entry=0, no_attendance=0):
+def target_date_attendance_exists(employees, target_date, late_entry=0, no_attendance=0, mispunch = 0):
     """
     RETURN A DICTIONARY WHERE KEY = EMPLOYEE ID
     VALUE = { "attendance_date": ..., "attendance": ... }
@@ -299,12 +285,18 @@ def target_date_attendance_exists(employees, target_date, late_entry=0, no_atten
         "docstatus": 1,
         "attendance_date": target_date,
     }
+    # ? ADD LATE ENTRY FILTER IF FETCHING LATE ENTRIES
     if late_entry:
         filters.update({"late_entry" : 1})
 
-    if not no_attendance:
+    # ? ADD STATUS FILTERS FOR ALL OTHER CASES EXCEPT NO ATTENDANCE AND MISPUNCH
+    if not no_attendance and not mispunch:
         filters.update({"status": ["not in",["Absent","On Leave"]]})
 
+    # ? ADD MISPUNCH STATUS FILTER IF FETCHING MISPUNCH RECORDS
+    if mispunch:
+        filters.update({"status": "Mispunch"})
+    
     # ? FETCH ATTENDANCE RECORDS FOR TARGET DATE FOR GIVEN EMPLOYEES
     attendance_list = frappe.get_all(
         "Attendance",
@@ -337,7 +329,7 @@ def process_daily_hours_penalties_for_prompt(employees, penalty_buffer_days, tar
         return penalty_entries
 
     # ! FETCH ATTENDANCE RECORDS FOR TARGET DATE
-    daily_hours_records = target_date_attendance_exists(employees, target_date, 0, 0)
+    daily_hours_records = target_date_attendance_exists(employees, target_date, 0, 0, 0)
 
     # ! SKIP IF TARGET DATE ATTENDANCE IS NOT THERE
     if not daily_hours_records:
@@ -421,18 +413,43 @@ def create_penalty_records(penalty_entries, target_date):
         },
         fields=["name", "employee"]
     )
-
-    # ? MAP EXISTING PENALTIES BY EMPLOYEE FOR QUICK LOOKUP
     existing_penalties_map = {ep["employee"]: ep["name"] for ep in existing_penalties}
 
-    # ? LOOP THROUGH ENTRIES AND CREATE OR UPDATE
+    # ? GET LEAVE PERIOD DATA ONCE
+    leave_period_data = frappe.db.get_value(
+        "Leave Period",
+        {
+            "is_active": 1,
+            "from_date": ["<=", target_date],
+            "to_date": [">=", target_date]
+        },
+        ["name", "from_date", "to_date"],
+        as_dict=True,
+    )
+
+    changes_made = False
+
+    def handle_leave_ledger(details, employee):
+        """CREATE LEAVE LEDGER ENTRY IF EARNED LEAVE IS PRESENT."""
+        if details.get("earned_leave", 0) != 0:
+            leave_allocation_id = get_leave_allocation_id(employee, details["leave_type"], target_date)
+            ledger_entry_id = add_leave_ledger_entry(
+                employee=employee,
+                leave_type=details["leave_type"],
+                leave_allocation_id=leave_allocation_id,
+                leave_period_data=leave_period_data,
+                earned_leave=details["leave_amount"],
+            )
+            details["leave_ledger_entry"] = ledger_entry_id
+
+    # ? LOOP AND PROCESS PENALTIES
     for employee, details in penalty_entries.items():
         if employee in existing_penalties_map:
-            # ? UPDATE EXISTING RECORD
             penalty_doc = frappe.get_doc("Employee Penalty", existing_penalties_map[employee])
-            #? CHECK IF SAME REASON ALREADY EXISTS IN CHILD TABLE
             existing_reasons = {row.reason for row in penalty_doc.leave_penalty_details}
+
             if details["reason"] not in existing_reasons:
+                handle_leave_ledger(details, employee)
                 penalty_doc.deduct_earned_leave += details.get("earned_leave", 0)
                 penalty_doc.deduct_leave_without_pay += details.get("leave_without_pay", 0)
                 penalty_doc.total_leave_penalty = penalty_doc.deduct_earned_leave + penalty_doc.deduct_leave_without_pay
@@ -445,15 +462,19 @@ def create_penalty_records(penalty_entries, target_date):
                     "remarks": details.get("remarks")
                 })
                 penalty_doc.save(ignore_permissions=True)
+                changes_made = True
+
         else:
-            # ? CREATE NEW RECORD
+            handle_leave_ledger(details, employee)
             penalty_doc = frappe.new_doc("Employee Penalty")
-            penalty_doc.employee = employee
-            penalty_doc.attendance = details["attendance"]
-            penalty_doc.penalty_date = target_date
-            penalty_doc.deduct_earned_leave = details.get("earned_leave", 0)
-            penalty_doc.deduct_leave_without_pay = details.get("leave_without_pay", 0)
-            penalty_doc.total_leave_penalty = details.get("earned_leave", 0) + details.get("leave_without_pay", 0)
+            penalty_doc.update({
+                "employee": employee,
+                "attendance": details["attendance"],
+                "penalty_date": target_date,
+                "deduct_earned_leave": details.get("earned_leave", 0),
+                "deduct_leave_without_pay": details.get("leave_without_pay", 0),
+                "total_leave_penalty": details.get("earned_leave", 0) + details.get("leave_without_pay", 0)
+            })
             penalty_doc.append("leave_penalty_details", {
                 "leave_type": details["leave_type"],
                 "leave_amount": details["leave_amount"],
@@ -463,8 +484,10 @@ def create_penalty_records(penalty_entries, target_date):
                 "remarks": details.get("remarks")
             })
             penalty_doc.insert(ignore_permissions=True)
+            changes_made = True
 
-    frappe.db.commit()
+    if changes_made:
+        frappe.db.commit()
 
 #? FUNCTION TO CHECK IF SHIFT IS ASSIGNED FOR GIVEN EMPLOYEE & DATE
 def check_if_shift_is_assign(employee, date):
@@ -599,7 +622,7 @@ def process_no_attendance_penalties_for_prompt(employees, penalty_buffer_days, t
         return penalty_entries
 
     # ! CHECK TARGET DATE'S ATTENDANCE IS EXISTS OR NOT
-    attendance_records = target_date_attendance_exists(employees, target_date, 0, 1)
+    attendance_records = target_date_attendance_exists(employees, target_date, 0, 1, 0)
     employees_with_attendance = list(attendance_records.keys())
 
     # ? FIND EMPLOYEES WITHOUT ATTENDANCE
@@ -675,4 +698,63 @@ def process_no_attendance_penalties_for_prompt(employees, penalty_buffer_days, t
                     )
                 )
 
+    return penalty_entries
+
+
+def process_mispunch_penalties_for_prompt(employees, penalty_buffer_days, target_date, priority_field):
+    """
+    PROCESS MIS-PUNCH PENALTIES FOR EMPLOYEES WHO HAD MIS-PUNCHES
+    AND CREATE 'MIS-PUNCH' ATTENDANCE RECORDS IF NOT HOLIDAY OR WEEKOFF.
+    """
+    penalty_entries = {}
+
+    # ? RETURN IF BUFFER NOT CONFIGURED
+    if not penalty_buffer_days:
+        return penalty_entries
+
+    # ! CHECK TARGET DATE'S MISPUNCH ATTENDANCE IS EXISTS OR NOT
+    mispunch_records = target_date_attendance_exists(employees, target_date, 0, 0, 1)
+
+    # ! SKIP IF TARGET DATE ATTENDANCE IS NOT MISPUNCH
+    if not mispunch_records:
+        return penalty_entries
+
+    # ? REMOVE EMPLOYEES WHOSE DAY IS NOT VALID
+    mispunch_records = {
+        emp: data
+        for emp, data in mispunch_records.items()
+        if check_if_day_is_valid(emp, target_date)
+    }
+
+    # ? GET LEAVE PENALTY CONFIGURATION FOR MIS-PUNCH PENALTY
+    leave_priority = frappe.db.get_all(
+        "Leave Penalty Configuration",
+        filters={
+            "parent": "HR Settings",
+            "parenttype": "HR Settings",
+            "parentfield": priority_field
+        },
+        fields=[
+            "penalty_deduction_type",
+            "leave_type_for_penalty",
+            "deduction_of_leave",
+        ],
+        order_by="idx asc",
+    )
+
+    # ? PROCESS EACH MIS-PUNCH RECORD
+    for emp, data in mispunch_records:
+        penalty_entries.update(
+            calculate_leave_deductions_based_on_priority(
+                employee=emp,
+                attendance_date=target_date,
+                deduction_amount=1.0,
+                reason="Mispunch",
+                penalizable_attendance=mispunch_records[emp]["attendance"],
+                remarks=f"Penalty for Mispunch on {target_date}",
+                leave_priority= leave_priority
+            )
+        )
+
+    
     return penalty_entries
