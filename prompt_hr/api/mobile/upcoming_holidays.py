@@ -48,8 +48,8 @@ def get(name):
         # GET HOLIDAYS FOR CURRENT MONTH EXCLUDING WEEKLY OFFS
         holidays = []
         for holiday in holiday_list.holidays:
-            holiday_date = getdate(holiday.holiday_date)
-            if (month_first_date <= holiday_date <= month_last_date):
+            # holiday_date = getdate(holiday.holiday_date)
+            # if (month_first_date <= holiday_date <= month_last_date):
                 
                 # EXTRACT PLAIN TEXT FROM HTML DESCRIPTION
                 description_text = holiday.description
@@ -63,7 +63,9 @@ def get(name):
                 })
 
         if not holidays:
-            frappe.throw(f"No holidays found for current month {month_first_date} to {month_last_date} (excluding weekly offs)")
+            # frappe.throw(f"No holidays found for current month {month_first_date} to {month_last_date} (excluding weekly offs)")
+            frappe.throw(f"No holidays found for this employee {name} (excluding weekly offs)")
+
 
         
 
