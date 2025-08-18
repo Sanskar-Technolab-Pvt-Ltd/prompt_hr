@@ -743,7 +743,7 @@ def process_mispunch_penalties_for_prompt(employees, penalty_buffer_days, target
     )
 
     # ? PROCESS EACH MIS-PUNCH RECORD
-    for emp, data in mispunch_records:
+    for emp in mispunch_records.keys():
         penalty_entries.update(
             calculate_leave_deductions_based_on_priority(
                 employee=emp,
