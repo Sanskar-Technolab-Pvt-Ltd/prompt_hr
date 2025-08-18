@@ -2590,7 +2590,7 @@ def add_leave_ledger_entry(
         leave_ledger_entry_doc.leave_type = leave_type
         leave_ledger_entry_doc.transaction_type = "Leave Allocation"
         leave_ledger_entry_doc.transaction_name = leave_allocation_id
-        leave_ledger_entry_doc.from_date = from_date
+        leave_ledger_entry_doc.from_date = getdate(today())
         leave_ledger_entry_doc.to_date = to_date
         leave_ledger_entry_doc.leaves = -abs(earned_leave)  # Always deduct as negative
 

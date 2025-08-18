@@ -180,6 +180,7 @@ override_doctype_class = {
     "Payroll Entry": "prompt_hr.overrides.payroll_entry_override.CustomPayrollEntry",
     "Compensatory Leave Request": "prompt_hr.overrides.compensatory_leave_request_override.CustomCompensatoryLeaveRequest",
     'Process Loan Interest Accrual': 'prompt_hr.overrides.process_loan_interest_accrual_override.CustomProcessLoanInterestAccrual',
+    "Leave Application": "prompt_hr.overrides.leave_application_override.CustomLeaveApplication",
 }
 
 # Document Events
