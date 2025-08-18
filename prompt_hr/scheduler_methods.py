@@ -2598,7 +2598,7 @@ def add_leave_ledger_entry(
         leave_ledger_entry_doc.insert(ignore_permissions=True)
         leave_ledger_entry_doc.submit()
         frappe.db.commit()
-
+        return leave_ledger_entry_doc.name
         print(f"[DEBUG] Leave Ledger Entry Created: {leave_ledger_entry_doc.name}")
 
     except Exception as e:
