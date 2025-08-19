@@ -453,3 +453,27 @@ def delete_loan_interest_accruals(doc):
                         title="LOAN ACCRUAL DELETION ERROR",
                         message=f"ERROR DELETING PROCESS LOAN INTEREST ACCRUAL FOR LOAN {loan.name}:\n{frappe.get_traceback()}"
                     )
+
+def salary_slip_view_and_access_permissions(user):
+    """
+    RETURNS CONDITIONS TO CONTROL VIEW/ACCESS FOR SALARY SLIPS.
+
+    - HR / Accounts roles can view all Salary Slips without restrictions.
+    - Employees can only view their own Salary Slips when:
+        1. The Salary Slip is submitted (docstatus = 1), AND
+        2. The Salary Slip is marked as released (custom_is_salary_slip_released = 1).
+    """
+
+    #! USE SESSION USER IF USER NOT PROVIDED
+    if not user:
+        user = frappe.session.user
+
+    #? FETCH ALL ROLES FOR THE GIVEN USER
+    roles = frappe.get_roles(user)
+
+    #? HR & ACCOUNTS ROLES HAVE FULL ACCESS TO SALARY SLIPS
+    if any(role in roles for role in ["S - HR Manager", "S - HR Executive", "S - Accounts User", "S - Accounts Manager", "System Manager"]):
+        return
+
+    #? EMPLOYEES CAN ONLY VIEW SALARY SLIPS THAT ARE SUBMITTED AND RELEASED
+    return """(`tabSalary Slip`.`docstatus` = 1 AND `tabSalary Slip`.`custom_is_salary_slip_released` = 1)"""

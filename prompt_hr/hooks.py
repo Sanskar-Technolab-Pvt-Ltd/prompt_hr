@@ -159,6 +159,7 @@ permission_query_conditions = {
     "Interview": "prompt_hr.py.interview_availability.check_interviewer_permission",
     "Interview Feedback": "prompt_hr.py.interview_feedback.get_permission_query_conditions",
     "Job Opening": "prompt_hr.py.job_opening.get_permission_query_conditions",
+    "Salary Slip": "prompt_hr.py.salary_slip.salary_slip_view_and_access_permissions"
 }
 
 # has_permission = {
