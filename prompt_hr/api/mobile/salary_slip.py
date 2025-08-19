@@ -15,6 +15,8 @@ def list(
     try:
         
         filters = frappe.parse_json(filters) if isinstance(filters, str) else (filters or [])
+        
+        filters.append(["Salary Slip", "custom_is_salary_slip_released", "=", 1])
 
         # Get Payroll Period Dates
         start_date = frappe.db.get_value("Payroll Period", payroll_period, "start_date") if payroll_period else None
@@ -52,7 +54,7 @@ def list(
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Getting Salary Slip List: {str(e)}",
+            "message": f"While Getting Salary Slip List: {str(e)}",
             "data": None,
         }
 
@@ -81,6 +83,13 @@ def get(name):
                 frappe.DoesNotExistError,
             )
 
+        is_released = frappe.db.get_value("Salary Slip", name, "custom_is_salary_slip_released")
+        if not is_released:
+            frappe.throw(
+                f"Salary Slip: {name} is not released!",
+                frappe.PermissionError,
+            )
+            
         # ? GET SALARY SLIP  DOC
         salary_slip = frappe.get_doc("Salary Slip", name).as_dict()
         salary_slip = get_data_from_employee(salary_slip)
@@ -227,7 +236,7 @@ def get_payroll_period_list(
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Getting Payroll Period List: {str(e)}",
+            "message": f"While Getting Payroll Period List: {str(e)}",
             "data": None,
         }
 
