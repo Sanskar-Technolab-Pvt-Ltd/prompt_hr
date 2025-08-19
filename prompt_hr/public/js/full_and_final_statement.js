@@ -41,8 +41,10 @@ frappe.ui.form.on("Full and Final Statement", {
         });
       }
     }
+    if (frm.doc.status == "On Hold") {
+      release_fnf_button(frm)
+    }
   },
-
   validate: function (frm) {
     frm.events.update_reference_document_requirement(frm);
   },
@@ -113,3 +115,20 @@ frappe.ui.form.on("Full and Final Statement", {
     });
   },
 });
+
+
+function release_fnf_button(frm) {
+
+  frm.add_custom_button(__("Release FNF"), function () {
+    frappe.call({
+      method: "prompt_hr.py.full_and_final_statement.send_release_fnf_mail",
+      args: {
+        fnf_id: frm.doc.name
+      },
+      callback: function (res) {
+        frm.set_value("status", "Unpaid")
+        frm.save()
+      }
+    })
+  })
+}

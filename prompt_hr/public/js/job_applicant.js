@@ -6,8 +6,30 @@ frappe.ui.form.on('Job Applicant', {
 
         // ? ADD CUSTOM BUTTON TO INVITE OR RE-INVITE FOR SCREEN TEST
         screenInviteButton(frm);
+
+        // ? ADD CUSTOM BUTTTON TO SEND EMAIL FOR REJECTION AND ON HOLD
+        sendEmailButton(frm);
     }
 });
+
+// ? FUNCTION TO ADD CUSTOM BUTTON
+
+function sendEmailButton(frm){
+        // Add dropdown for email actions
+        frm.add_custom_button('Send Rejection Email', function() {
+            frappe.call({
+                method: 'prompt_hr.py.job_applicant.send_rejection_notification',
+                args: { job_applicant: frm.doc.name }
+            });
+        }, "Send Email");
+        
+        frm.add_custom_button('Send On Hold Email', function() {
+            frappe.call({
+                method: 'prompt_hr.py.job_applicant.send_on_hold_notification',
+                args: { job_applicant: frm.doc.name }
+            });
+        }, "Send Email");
+}
 
 // ? CREATE INVITE FOR DOCUMENT COLLECTION BUTTON
 function createInviteButton(frm) {

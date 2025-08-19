@@ -24,7 +24,15 @@ frappe.ui.form.on("Employee", {
         set_text_field_height();
 
         addEmployeeDetailsChangesButton(frm);
-
+        frm.set_query("custom_leave_policy", () => {
+            return {
+                query:"prompt_hr.overrides.leave_policy_assignment_override.filter_leave_policy_for_display",
+                filters: {
+                    gender: frm.doc.gender,
+                    company: frm.doc.company,
+                },
+            };
+        });
         // ? EMPLOYEE RESIGNATION BUTTON AND FUNCTIONALITY
         createEmployeeResignationButton(frm);
         if (!frm.doc.department) {

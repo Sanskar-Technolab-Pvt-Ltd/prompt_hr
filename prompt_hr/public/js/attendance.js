@@ -116,6 +116,7 @@ function show_checkin_dialog(frm) {
                         label: 'Punch Details',
                         fieldname: 'punch_table',
                         fieldtype: 'Table',
+                        reqd: 1,
                         // cannot_add_rows: 1,
                         // in_place_edit: true,
                         fields: [
@@ -141,12 +142,18 @@ function show_checkin_dialog(frm) {
                                 // in_list_view: 1
                             }
                         ]
+                    },
+                    {
+                        label: 'Reason',
+                        fieldname: 'reason',
+                        fieldtype: 'Small Text',
+                        reqd: 1
                     }
                 ],
                 primary_action_label: 'Submit Regularization',
                 primary_action(values) {
                     const all_entries = values.punch_table;
-
+                    const reason = values.reason
                     if (!all_entries.length) {
                         frappe.msgprint('No entries to submit.');
                         return;
@@ -156,7 +163,8 @@ function show_checkin_dialog(frm) {
                         method: "prompt_hr.py.attendance.create_attendance_regularization",
                         args: {
                             attendance_id: frm.doc.name,
-                            update_data: all_entries
+                            update_data: all_entries,
+                            reason: reason
                         },
                         callback: function (res) {
                             // frappe.msgprint(`Regularization Created: <a href="/app/attendance-regularization/${res.message.attendance_regularization_id}">${res.message.attendance_regularization_id}</a>`);

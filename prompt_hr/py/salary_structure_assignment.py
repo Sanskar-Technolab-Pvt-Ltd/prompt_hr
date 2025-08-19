@@ -1,4 +1,5 @@
 import frappe
+from frappe import _
 from frappe.utils import getdate, add_months
 
 def update_employee_ctc(doc, method=None):
@@ -12,6 +13,63 @@ def update_employee_ctc(doc, method=None):
         elif employee.custom_salary_structure_based_on == "Gross Based":
             employee.db_set("custom_gross_salary" ,doc.base)
 
+        fields_mapping = {
+            "custom_pf_consent": "custom_pf_consent",
+            "custom_esi_consent": "custom_esi_consent",
+            "custom_eps_contribution": "custom_eps_contribution",
+            "custom_nps_consent": "custom_nps_consent",
+            "custom_metro_city_applicable": "custom_metro_city_applicable",
+            "custom_nonmetro_city": "custom_nonmetro_city",
+            "custom_conveyance_allowance__applicable": "custom_conveyance_allowance__applicable_",
+            "custom_performance_linked_incentive_applicable": "custom_performance_linked_incentive_applicable",
+            "custom_uniform_allowance_applicable": "custom_uniform_allowance_applicable",
+            "custom_gratuity": "custom_gratuity",
+            "custom_driver_salary_applicable": "custom_driver_salary_applicable",
+            "custom_car_reimbursement_applicable": "custom_car_reimbursement_applicable",
+            "custom_mobile__internet_reimbursement": "custom_mobile_and_internet_card_consent",
+            "custom_meal_coupons": "custom_meal_card_consent",
+            "custom_lta_applicable": "custom_lta_applicable",
+            "custom_loyalty_bonus": "custom_loyalty_bonus",
+            "custom_internet_expense_reimbursement_applicable": "custom_internet_expense_reimbursement_applicable",
+            "custom_conveyance_allowance_applicable": "custom_conveyance_allowance_applicable",
+            "custom_food_deduction": "custom_food_deduction",
+            "custom_attire_card_consent": "custom_attire_card_consent",
+            "custom_fuel_card_consent": "custom_fuel_card_consent",
+            "custom_periodical_journals_applicable": "custom_periodical_journals_applicable",
+            "custom_food_coupons_sodexo_applicable": "custom_food_coupons_sodexo_applicable",
+        }
+
+        for field, employee_field in fields_mapping.items():
+            if hasattr(doc, field):
+                employee.db_set(employee_field, doc.get(field))
+
+    employee_standard_salary = frappe.get_all("Employee Standard Salary", filters={"employee":doc.employee, "docstatus":["!=",2]})
+    if employee_standard_salary:
+        for es in employee_standard_salary:
+            es_doc = frappe.get_doc("Employee Standard Salary", es.name)
+            es_doc.salary_structure_assignment = doc.name
+            es_doc.salary_structure = doc.salary_structure
+            es_doc.save(ignore_permissions=True)
+    else:
+        employee_standard_salary = frappe.new_doc("Employee Standard Salary")
+        employee_standard_salary.employee = doc.employee
+        employee_standard_salary.salary_structure_assignment = doc.name
+        employee_standard_salary.salary_structure = doc.salary_structure
+        employee_standard_salary.save(ignore_permissions=True)
+
+def on_cancel(doc, method=None):
+    employee_standard_salary = frappe.get_all("Employee Standard Salary", filters={"employee":doc.employee, "docstatus":["!=",2]})
+    if employee_standard_salary:
+        for es in employee_standard_salary:
+            es_doc = frappe.get_doc("Employee Standard Salary", es.name)
+            ssa = frappe.get_all("Salary Structure Assignment", filters={"employee": doc.employee, "docstatus":1, "name": ["!=", es_doc.salary_structure_assignment]}, fields=["name", "salary_structure"])
+            if ssa:
+                es_doc.salary_structure_assignment = ssa[0].name
+                es_doc.salary_structure = ssa[0].salary_structure
+                es_doc.save(ignore_permissions=True)
+            else:
+                frappe.delete_doc("Employee Standard Salary", es_doc.name)
+            frappe.db.commit()
 
 def update_arrear_details(doc, method=None):
     """
@@ -94,3 +152,36 @@ def update_arrear_details(doc, method=None):
     doc.custom_total_arrear_payable = sum(
         row.arrear_amount for row in doc.custom_salary_arrear_details
     )
+
+
+@frappe.whitelist()
+def set_income_tax_slab(employee, posting_date, company):
+    #! FETCH TAX EXEMPTION DECLARATION IF EXISTS
+    declarations = frappe.get_all(
+        "Employee Tax Exemption Declaration",
+        filters={"employee": employee},
+        fields=["payroll_period", "custom_tax_regime"]
+    )
+
+    #! CHECK IF ANY DECLARATION IS VALID FOR THE GIVEN POSTING DATE
+    for declaration in declarations:
+        payroll_period = frappe.get_doc("Payroll Period", declaration.payroll_period)
+        if getdate(payroll_period.start_date) <= getdate(posting_date) <= getdate(payroll_period.end_date):
+            return declaration.custom_tax_regime
+
+    #! BUILD FILTERS FOR DEFAULT REGIME (OPTIONAL COMPANY)
+    filters = {
+        "docstatus": 1,
+        "disabled": 0,
+        "custom_is_default_regime": 1
+    }
+    if company:
+        filters["company"] = company
+
+    #! FETCH DEFAULT TAX REGIME
+    default_regime = frappe.db.get_value("Income Tax Slab", filters, "name")
+    #? THROW ERROR IF NO DEFAULT REGIME FOUND
+    if not default_regime:
+        frappe.msgprint(_("No Default Income Tax Slab found{0}.").format(f" for company {company}" if company else ""))
+
+    return default_regime

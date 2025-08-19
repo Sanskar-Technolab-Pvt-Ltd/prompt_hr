@@ -7,7 +7,6 @@
  "engine": "InnoDB",
  "field_order": [
   "employee",
-  "leave_type",
   "company",
   "deduct_earned_leave",
   "deduct_leave_without_pay",
@@ -15,12 +14,8 @@
   "penalty_date",
   "attendance",
   "total_leave_penalty",
-  "leave_balance_before_application",
-  "for_late_coming",
-  "for_insufficient_hours",
-  "for_no_attendance",
-  "section_break_ixto",
-  "remarks"
+  "section_break_tpof",
+  "leave_penalty_details"
  ],
  "fields": [
   {
@@ -28,12 +23,6 @@
    "fieldtype": "Link",
    "label": "Employee",
    "options": "Employee"
-  },
-  {
-   "fieldname": "leave_type",
-   "fieldtype": "Link",
-   "label": "Leave Type",
-   "options": "Leave Type"
   },
   {
    "fieldname": "column_break_yxdx",
@@ -46,38 +35,11 @@
    "options": "Attendance"
   },
   {
-   "fieldname": "section_break_ixto",
-   "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "remarks",
-   "fieldtype": "Small Text",
-   "label": "Remarks"
-  },
-  {
    "fetch_from": "employee.company",
    "fieldname": "company",
    "fieldtype": "Link",
    "label": "Company",
    "options": "Company"
-  },
-  {
-   "fieldname": "leave_balance_before_application",
-   "fieldtype": "Float",
-   "label": "Leave Balance Before Application",
-   "precision": "1"
-  },
-  {
-   "default": "0",
-   "fieldname": "for_late_coming",
-   "fieldtype": "Check",
-   "label": "For late coming"
-  },
-  {
-   "default": "0",
-   "fieldname": "for_insufficient_hours",
-   "fieldtype": "Check",
-   "label": "For insufficient hours"
   },
   {
    "fieldname": "penalty_date",
@@ -104,16 +66,20 @@
    "precision": "1"
   },
   {
-   "default": "0",
-   "fieldname": "for_no_attendance",
-   "fieldtype": "Check",
-   "label": "For no attendance"
+   "fieldname": "section_break_tpof",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "leave_penalty_details",
+   "fieldtype": "Table",
+   "label": "Leave Penalty Details",
+   "options": "Employee Leave Penalty Details"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-06-22 17:01:22.651533",
+ "modified": "2025-08-14 15:00:38.445433",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Penalty",
@@ -136,5 +102,6 @@
  "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }

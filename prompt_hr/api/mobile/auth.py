@@ -42,11 +42,17 @@ def login(email, password):
         # ? GET SESSION DETAILS
         sid = frappe.session.sid
         csrf_token = frappe.sessions.get_csrf_token()
-        api_secret = (
-            user.get_password("api_secret")
-            if user.get("api_secret")
-            else generate_keys(user)
-        )
+        
+        
+        if user.get("api_secret"):
+            try:
+                api_secret = user.get_password("api_secret")
+            except frappe.ValidationError:
+                # Encryption key mismatch, regenerate
+                api_secret = generate_keys(user)
+        else:
+            api_secret = generate_keys(user)
+
         api_key = user.get("api_key")
         auth_token = f"token {api_key}:{api_secret}"
         username = user.get("username")

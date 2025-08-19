@@ -20,6 +20,8 @@
   "gratuity_calculation_tab",
   "last_salary_slip",
   "last_drawn_salary",
+  "last_drawn_basic",
+  "last_drawn_da",
   "column_break_sojq",
   "salary_component",
   "gratuity_amount",
@@ -106,6 +108,7 @@
    "default": "0",
    "fieldname": "settled_with_fnf",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "Settled with FnF"
   },
   {
@@ -142,13 +145,23 @@
    "print_hide": 1,
    "read_only": 1,
    "search_index": 1
+  },
+  {
+   "fieldname": "last_drawn_basic",
+   "fieldtype": "Currency",
+   "label": "Last drawn Basic"
+  },
+  {
+   "fieldname": "last_drawn_da",
+   "fieldtype": "Currency",
+   "label": "Last drawn DA"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-06-22 17:02:23.411732",
+ "modified": "2025-07-26 18:24:43.691704",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Gratuity",
@@ -172,5 +185,6 @@
  "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }

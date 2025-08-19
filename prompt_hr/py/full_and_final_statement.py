@@ -4,23 +4,70 @@ from dateutil.relativedelta import relativedelta
 from frappe.utils import getdate
 
 
+
+
+def on_submit(doc, event):
+    validate_payroll_and_update_linked_payroll_entry(doc)
+
+# * METHOD TO CHECK IF THE PAYROLL ENTRY IS LINKED OR NOT IF NOT THEN INFORMING ACCOUNT OTHERWISE ADDING THE FNF ID IN THE LINKED PAYROLL ENTRY FOR THAT EMPLOYEE
+def validate_payroll_and_update_linked_payroll_entry(doc):
+    if doc.custom_payroll_entry:
+        payroll_doc = frappe.get_doc("Payroll Entry", doc.custom_payroll_entry)
+
+        for row in payroll_doc.custom_pending_fnf_details:
+            if doc.employee == row.get("employee"):
+                row.fnf_record = doc.name                
+        payroll_doc.save(ignore_permissions=True)
+    else:
+        account_user_users = frappe.db.get_all("Has Role", {"role": "Accounts User", "parenttype": "User", "parent": ["not in", ["Administrator"]]}, ["parent"])
+        if account_user_users:                                                
+            account_user_emails = [user.get("parent") for user in account_user_users]
+            fnf_link = frappe.utils.get_url_to_form("Full and Final Statement", doc.name)            
+            frappe.sendmail(
+                recipients=account_user_emails,
+                subject="Full and Final Statement",
+                message=f"""Full and Final Statement has been released by HR department. You can view it here: {fnf_link}"""
+            )
+
+# * METHOD TO SEND MAIL WHEN RELEASE FNF BUTTON IS CLICKED
+@frappe.whitelist()
+def send_release_fnf_mail(fnf_id):
+    try:
+        account_user_users = frappe.db.get_all("Has Role", {"role": "Accounts User", "parenttype": "User", "parent": ["not in", ["Administrator"]]}, ["parent"])
+        if account_user_users:           
+            account_user_emails = [user.get("parent") for user in account_user_users]                                     
+            fnf_link = frappe.utils.get_url_to_form("Full and Final Statement", fnf_id)            
+            frappe.sendmail(
+                recipients=account_user_emails,
+                subject="Full and Final Statement",
+                message=f"""Full and Final Statement has been released by HR department. You can view it here: {fnf_link}"""
+            )
+    except Exception as e:
+        frappe.log_error("fnf send_release_fnf_email_error", frappe.get_traceback())
+        frappe.throw(str(e), title="Error while sending mails to account users")
+
+
 @frappe.whitelist()
 def custom_get_payable_component(doc):
     """
     Get the list of components to be added to the payables table
     """
     return [
-        "Notice Period Recovery", 
+        # "Notice Period Recovery", 
         "Expense Claim",
         "Leave Encashment",
     ]
+
+
+
+
 
 @frappe.whitelist()
 def custom_get_receivable_component(doc):
     """
     Modify function to add Imprest Account to the receivables table
     """
-    receivables = ["Employee Advance"]
+    receivables = ["Employee Advance", "Notice Period Recovery"]
     if "lending" in frappe.get_installed_apps():
         receivables.append("Loan")
     company_abbr = frappe.get_doc("Company", doc.company).abbr
@@ -49,7 +96,7 @@ def custom_create_component_row(doc, components, component_type):
                     "amount": (
                             0
                             if not doc.custom_unserved_notice_days or not doc.custom_monthly_salary
-                            else (doc.custom_unserved_notice_days * doc.custom_monthly_salary) / 26
+                            else (doc.custom_unserved_notice_days * doc.custom_monthly_salary) / 30
                         ),
 
                 },
@@ -175,9 +222,9 @@ def on_update(doc, method):
     unserved_days = doc.custom_unserved_notice_days or 0
     monthly_salary = doc.custom_monthly_salary or 0
 
-    amount = unserved_days * monthly_salary / 26
+    amount = unserved_days * monthly_salary / 30
 
-    for row in doc.payables:
+    for row in doc.receivables:
         if row.component == "Notice Period Recovery":
             row.amount = amount  # Update the amount for the "Notice Period Recovery" row
             break

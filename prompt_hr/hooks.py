@@ -49,6 +49,7 @@ app_include_js = [
 
 # include js in doctype views
 doctype_js = {
+    "Salary Structure Assignment": "public/js/salary_structure_assignment.js",
     "Employee Onboarding": "public/js/employee_onboarding.js",
     "Job Offer": "public/js/job_offer.js",
     "Job Requisition": "public/js/job_requisition.js",
@@ -71,13 +72,15 @@ doctype_js = {
     "Exit Interview": "public/js/exit_interview.js",
     "Travel Request": "public/js/travel_request.js",
     "Leave Allocation": "public/js/leave_allocation.js",
-    "Leave Policy Assignment": "public/js/leave_policy_assignment.js"
+    "Leave Policy Assignment": "public/js/leave_policy_assignment.js",
+    "Salary Slip": "public/js/salary_slip.js"
 
 }
 
 doctype_list_js = {
     "Job Applicant": "public/js/job_applicant_list.js",
-    "Attendance": "public/js/attendance_list.js"
+    "Attendance": "public/js/attendance_list.js",
+    "Leave Application": "public/js/leave_application_list.js"
 }
 
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -156,6 +159,7 @@ permission_query_conditions = {
     "Interview": "prompt_hr.py.interview_availability.check_interviewer_permission",
     "Interview Feedback": "prompt_hr.py.interview_feedback.get_permission_query_conditions",
     "Job Opening": "prompt_hr.py.job_opening.get_permission_query_conditions",
+    "Salary Slip": "prompt_hr.py.salary_slip.salary_slip_view_and_access_permissions"
 }
 
 # has_permission = {
@@ -175,6 +179,9 @@ override_doctype_class = {
     "Attendance": "prompt_hr.overrides.attendance_override.CustomAttendance",
     "Leave Policy Assignment": "prompt_hr.overrides.leave_policy_assignment_override.CustomLeavePolicyAssignment",
     "Payroll Entry": "prompt_hr.overrides.payroll_entry_override.CustomPayrollEntry",
+    "Compensatory Leave Request": "prompt_hr.overrides.compensatory_leave_request_override.CustomCompensatoryLeaveRequest",
+    'Process Loan Interest Accrual': 'prompt_hr.overrides.process_loan_interest_accrual_override.CustomProcessLoanInterestAccrual',
+    "Leave Application": "prompt_hr.overrides.leave_application_override.CustomLeaveApplication",
 }
 
 # Document Events
@@ -214,8 +221,11 @@ doc_events = {
     },
     "Employee": {
         "on_update": "prompt_hr.py.employee.on_update",
+        "autoname": "prompt_hr.py.employee.custom_autoname_employee",
         "validate": "prompt_hr.py.employee.validate",
-        "before_insert": "prompt_hr.py.employee.before_insert"
+        "before_insert": "prompt_hr.py.employee.before_insert",
+        "after_insert": "prompt_hr.py.employee.after_insert",
+        "before_save": "prompt_hr.py.employee.before_save",
     },
     # "Probation Feedback Form": {
     #     "on_submit": "prompt_hr.custom_methods.add_probation_feedback_data_to_employee"
@@ -241,6 +251,8 @@ doc_events = {
     },
     "Payroll Entry": {
         "on_update": "prompt_hr.py.payroll_entry.on_update",
+        "on_submit": "prompt_hr.py.payroll_entry.on_submit",
+        
     },
     "Leave Allocation": {
         "before_validate": "prompt_hr.py.leave_allocation.before_validate",
@@ -249,11 +261,6 @@ doc_events = {
     "Additional Salary": {"before_save": "prompt_hr.py.additional_salary.before_save"},
     "Leave Encashment": {
         "before_save": "prompt_hr.py.leave_encashment.before_save",
-    },
-    "Compensatory Leave Request": {
-        "before_save": "prompt_hr.py.compensatory_leave_request.before_save",
-        "on_cancel": "prompt_hr.py.compensatory_leave_request.on_cancel",
-        "on_update": "prompt_hr.py.compensatory_leave_request.on_update",
     },
     "Additional Salary": {"before_save": "prompt_hr.py.additional_salary.before_save"},
     "Job Opening": {"before_insert": "prompt_hr.py.job_opening.before_insert"},
@@ -279,6 +286,7 @@ doc_events = {
         "on_update": "prompt_hr.py.full_and_final_statement.on_update",
         "before_submit": "prompt_hr.py.full_and_final_statement.before_submit",
         "before_insert": "prompt_hr.py.full_and_final_statement.before_insert",
+        "on_submit": "prompt_hr.py.full_and_final_statement.on_submit"
     },
     "Travel Request": {
         "on_update": "prompt_hr.py.travel_request.on_update",
@@ -291,10 +299,13 @@ doc_events = {
     "Salary Slip": {
         "on_submit": "prompt_hr.py.salary_slip.loan_repayment_amount",
         "on_update": "prompt_hr.py.salary_slip.update_loan_principal_amount",
+        "on_cancel": "prompt_hr.py.salary_slip.cancel_loan_repayment_amount",
+        "before_validate": "prompt_hr.py.salary_slip.before_validate",
     },
     "Salary Structure Assignment": {
         "on_submit": "prompt_hr.py.salary_structure_assignment.update_employee_ctc",
         "before_save": "prompt_hr.py.salary_structure_assignment.update_arrear_details",
+        "on_cancel": "prompt_hr.py.salary_structure_assignment.on_cancel",
     },
     "Appointment Letter": {
         "before_save": "prompt_hr.py.appointment_letter.before_save",
@@ -308,6 +319,9 @@ doc_events = {
     "Employee Separation": {
         "before_save": "prompt_hr.py.employee_separation.before_save"
     },
+    "Income Tax Slab": {
+        "validate": "prompt_hr.py.income_tax_slab.validate",
+    }
 }
 
 
@@ -328,7 +342,6 @@ scheduler_events = {
     },
     "daily": [
         "prompt_hr.py.employee_changes_approval.daily_check_employee_changes_approval",
-        "prompt_hr.py.compensatory_leave_request.expire_compensatory_leave_after_confirmation",
         "prompt_hr.scheduler_methods.create_probation_feedback_form",
         "prompt_hr.scheduler_methods.create_confirmation_evaluation_form_for_prompt",
         "prompt_hr.scheduler_methods.inform_employee_for_confirmation_process",
@@ -475,12 +488,23 @@ fixtures = [
     #     "dt":"Role", "filters": [["name", "in", ["Job Requisition", "Head of Department", "Managing Director"]]]
     # },
     # {
-    #     "dt":"Workflow", "filters": [["name", "in", ["Job Requisition", "Expense Claim", "Compensatory Leave Request", "Leave Application", "Loan Application", "Travel Request"]]]
+    #     "dt":"Workflow", "filters": [["name", "in", ["Job Requisition","Loan Application", "Compensatory Leave Request", "Leave Application", "Expense Claim", "Travel Request"]]]
     # },
     # {
     #     "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled", "Confirmed", "Approved by HR", "Rejected by HR", "Approved by BU Head", "Rejected by BU Head", "Extension Approved", "Extension Confirmed", "Extension Rejected", "Extension Requested"]]]
     # },
     # {
     #     "dt":"Workflow Action Master", "filters": [["name", "in", ["Confirm"]]]
+    # },
+    # {
+    #     "doctype": "Type of Document",
+    #     "filters": {
+    #         "name": ["in", [
+    #             "Proof of Work Experience",
+    #             "Proof of Identity",
+    #             "Proof of Address",
+    #             "Proof of Qualification"
+    #         ]]
+    #     }
     # }
 ]

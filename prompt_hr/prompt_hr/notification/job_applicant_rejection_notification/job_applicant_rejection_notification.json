@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-07-16 12:29:55.967510",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Job Applicant",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "<p>Dear {{ doc.applicant_name }},</p>\n\n<p>Thank you for your interest in the <strong>{{ doc.designation }}</strong> role at {{ doc.custom_company or \"our organization\" }}.</p>\n\n<p>We truly appreciate the time and effort you invested in the application and interview process.</p>\n\n<p>After careful consideration, we regret to inform you that you have not been selected for this position. This decision was not easy due to the high quality of applications we received.</p>\n\n<p>We will keep your profile on file and may reach out if a future opportunity aligns with your background and skills.</p>\n\n<p>We wish you continued success in your career.</p>\n\n<p>Best regards,<br>\nHR Team</p>\n",
+ "message_type": "HTML",
+ "modified": "2025-07-16 18:36:13.612009",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Job Applicant Rejection Notification",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "Update on Your Application for the {{ doc.designation }} Role"
+}

@@ -31,7 +31,7 @@
   },
   {
    "fieldname": "lop_month",
-   "fieldtype": "Data",
+   "fieldtype": "Select",
    "in_list_view": 1,
    "label": "LOP Month"
   },
@@ -40,13 +40,14 @@
    "fieldtype": "Float",
    "in_list_view": 1,
    "label": "Actual LOP Days",
-   "precision": "1"
+   "precision": "1",
+   "read_only": 1
   },
   {
    "fieldname": "lop_reversal_days",
    "fieldtype": "Float",
    "in_list_view": 1,
-   "label": "LOP Reversal Days",
+   "label": "Final LOP Reversal",
    "precision": "1"
   },
   {
@@ -64,7 +65,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-06-22 16:56:37.292440",
+ "modified": "2025-07-25 19:21:31.103465",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "LOP Reversal Details",

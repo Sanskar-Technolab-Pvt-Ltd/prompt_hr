@@ -26,7 +26,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-06-23 16:32:22.451821",
+ "modified": "2025-07-22 15:36:16.109561",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Exit Clearance Item",
@@ -49,5 +49,6 @@
  "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }

@@ -1,0 +1,75 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-07-28 14:58:04.229670",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "leave_penalty_details_section",
+  "leave_type",
+  "leave_amount",
+  "reason",
+  "leave_ledger_entry",
+  "leave_balance_before_penalty",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "leave_penalty_details_section",
+   "fieldtype": "Section Break",
+   "label": "Leave Penalty Details"
+  },
+  {
+   "fieldname": "leave_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Leave Type",
+   "options": "Leave Type"
+  },
+  {
+   "fieldname": "leave_amount",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Leave Amount"
+  },
+  {
+   "fieldname": "leave_ledger_entry",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Leave Ledger Entry",
+   "options": "Leave Ledger Entry"
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Reason",
+   "options": "\nLate Coming\nInsufficient Hours\nNo Attendance\nMispunch"
+  },
+  {
+   "fieldname": "leave_balance_before_penalty",
+   "fieldtype": "Float",
+   "label": "Leave Balance Before Penalty"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-08-14 15:04:49.554113",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Employee Leave Penalty Details",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

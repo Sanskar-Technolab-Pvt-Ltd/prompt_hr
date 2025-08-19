@@ -130,7 +130,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-28 20:05:55.296524",
+ "modified": "2025-07-22 15:36:17.212399",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Candidate Portal",
@@ -153,5 +153,6 @@
  "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }

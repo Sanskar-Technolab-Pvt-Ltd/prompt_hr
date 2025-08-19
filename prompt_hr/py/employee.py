@@ -7,9 +7,10 @@ from prompt_hr.api.main import notify_signatory_on_email
 import traceback
 from prompt_hr.py.utils import send_notification_email, get_hr_managers_by_company
 import calendar
-from datetime import timedelta
+from datetime import timedelta, datetime
 from dateutil import relativedelta
 from frappe import _
+import re
 from prompt_hr.py.utils import get_prompt_company_name, get_indifoss_company_name
 
 
@@ -65,7 +66,7 @@ def create_welcome_status(user_id, company):
 
 # ? EMPLOYEE BEFORE INSERT HOOK
 def before_insert(doc, method):
-
+    custom_autoname_employee(doc)
     # ? SET IMPREST ALLOCATION AMOUNT FROM EMPLOYEE ONBOARDING FORM
     set_imprest_allocation_amount(doc)
 
@@ -114,6 +115,35 @@ def on_update(doc, method):
     if doc.user_id:
         if not frappe.db.exists("Welcome Page", {"user": doc.user_id}):
             create_welcome_status(doc.user_id, doc.company)
+
+    # ? ASSIGN LEAVE POLICY TO EMPLOYEE ON CHANGE OF LEAVE POLICY ON EMPLOYEE
+    if doc.custom_leave_policy and doc.has_value_changed("custom_leave_policy"):
+
+        # ? IF POLICY ASSIGNMENT IS BASED ON JOINING DATE
+        if doc.custom_leave_policy_assignment_based_on_joining:
+            # ? CREATE ASSIGNMENT BASED ON JOINING DATE (NO LEAVE PERIOD REQUIRED)
+            create_leave_policy_assignment(doc, 1)
+
+        else:
+            # ? FIND CURRENT ACTIVE LEAVE PERIOD (CONTAINING TODAY)
+            active_leave_period = frappe.get_all(
+                "Leave Period",
+                filters={
+                    "from_date": ["<=", getdate()],
+                    "to_date": [">=", getdate()],
+                    "is_active": 1
+                },
+                fields=["name", "to_date"],
+                order_by="to_date desc",  # ? PRIORITIZE THE MOST RECENT END DATE
+                limit=1
+            )
+
+            # ? ASSIGN POLICY IF ACTIVE LEAVE PERIOD IS FOUND
+            if active_leave_period:
+                create_leave_policy_assignment(doc, 0, active_leave_period[0].get("name"))
+            else:
+                # ! THROW ERROR IF NO VALID ACTIVE LEAVE PERIOD EXISTS
+                frappe.throw(_("Cannot assign leave policy as there is no active Leave Period for the current date."))
 
 
 def validate(doc, method):
@@ -1144,3 +1174,192 @@ def update_employee_status_for_prompt_company():
 def update_employee_status_for_indifoss_company():
     indifoss_abbr = frappe.db.get_single_value("HR Settings", "custom_indifoss_abbr")
     update_employee_status_for_company(indifoss_abbr)
+
+def after_insert(doc, method=None):
+    
+    create_shift_assignment(doc)
+    
+    # ! FIND CANDIDATE PORTAL RECORD FOR GIVEN JOB APPLICANT AND COMPANY
+    candidate_portal = frappe.get_all("Candidate Portal", filters={
+        "applicant_email": doc.job_applicant,
+        "company": doc.company
+    }, fields=["name"], order_by="creation desc")
+
+    # ? EXIT IF NO CANDIDATE PORTAL FOUND
+    if not candidate_portal:
+        frappe.msgprint("No Candidate Portal found")
+        return
+
+    # ! FETCH DOCUMENT COLLECTION LINKED TO THE CANDIDATE PORTAL
+    documents_list = frappe.get_all(
+        "Document Collection",
+        filters={"parent": candidate_portal[0].name},
+        fields=[
+            "type_of_document",
+            "required_document",
+            "attachment",
+            "consent",
+            "collection_stage",
+            "upload_date",
+            "upload_time",
+            "ip_address_on_document_upload"
+        ],
+    )
+
+    # ? EXIT IF DOCUMENT COLLECTION IS EMPTY
+    if not documents_list:
+        frappe.msgprint("No Document Collection records exist")
+        return
+
+
+    # ! REMOVE DUPLICATES BASED ON (TYPE_OF_DOCUMENT, REQUIRED_DOCUMENT)
+    seen = set()
+    final_doc_list = []
+    for d in documents_list:
+        key = (
+            (d.type_of_document or "").strip().lower(),
+            (d.required_document or "").strip().lower()
+        )
+        if key not in seen:
+            final_doc_list.append(d)
+            seen.add(key)
+
+    # ! SORT DOCUMENTS: VALID TYPE_OF_DOCUMENT FIRST, NULL OR EMPTY LAST
+    final_doc_list.sort(key=lambda x: (x.type_of_document is None or x.type_of_document == "", x.type_of_document or ""))
+
+    # ! APPEND EACH DOCUMENT ENTRY TO CUSTOM_DOCUMENTS CHILD TABLE
+    for document in final_doc_list:
+        doc.append("custom_documents", {
+            "type_of_document": document.type_of_document,
+            "required_document": document.required_document,
+            "attachment": document.attachment,
+            "consent": document.consent,
+            "collection_stage": document.collection_stage,
+            "upload_date": document.upload_date,
+            "upload_time": document.upload_time,
+            "ip_address_on_document_upload": document.ip_address_on_document_upload
+        })
+
+    # ! SAVE CHANGES TO PARENT DOC AFTER APPENDING DOCUMENTS
+    doc.save(ignore_permissions=True)
+
+def create_shift_assignment(doc):
+
+    if doc.default_shift and not frappe.db.exists("Shift Assignment", {"employee": doc.name, "shift_type": doc.default_shift}):
+        shift_assignment_doc = frappe.new_doc("Shift Assignment")
+        shift_assignment_doc.employee = doc.name
+        shift_assignment_doc.shift_type = doc.default_shift
+        shift_assignment_doc.start_date = getdate()
+        shift_assignment_doc.insert(ignore_permissions=True)
+        shift_assignment_doc.submit()
+
+# ? METHOD TO CREATE LEAVE POLICY ASSIGNMENT
+def create_leave_policy_assignment(employee_doc, based_on_joining_date, leave_period=None):
+	assignment_based_on = "Joining Date" if based_on_joining_date else "Leave Period"
+	print(assignment_based_on)  # ? DEBUGGING: PRINT ASSIGNMENT TYPE
+
+	# ? CREATE DOCUMENT
+	doc = frappe.new_doc("Leave Policy Assignment")
+	doc.employee = employee_doc.name
+	doc.assignment_based_on = assignment_based_on
+	doc.leave_policy = employee_doc.custom_leave_policy
+
+	# ? SET EFFECTIVE DATES BASED ON JOINING DATE
+	if doc.assignment_based_on == "Joining Date" and doc.employee:
+		employee_joining_date = frappe.db.get_value("Employee", doc.employee, "date_of_joining")
+		if employee_joining_date:
+			doc.effective_from = employee_joining_date
+
+			# ? TRY TO FIND A MATCHING ACTIVE LEAVE PERIOD
+			leave_period = frappe.db.get_value(
+				"Leave Period",
+				{
+					"from_date": ("<=", employee_joining_date),
+					"to_date": (">=", employee_joining_date),
+					"is_active": 1
+				},
+				"to_date"
+			)
+
+			if leave_period:
+				doc.effective_to = leave_period
+			else:
+				# ? SET TO 31ST DECEMBER OF THE JOINING YEAR
+				joining_dt = getdate(employee_joining_date)
+				dec_31 = datetime(joining_dt.year, 12, 31)
+				doc.effective_to = dec_31.date()
+
+	# ? SET LEAVE PERIOD IF AVAILABLE
+	if leave_period:
+		doc.leave_period = leave_period
+
+	doc.save()
+	doc.submit()
+
+	return doc.name
+
+
+def before_save(doc, method=None):
+    validate_create_checkin_role(doc)
+
+
+def validate_create_checkin_role(doc):
+    """
+    Adds or removes 'Create Checkin' role from the user based on the attendance capture scheme.
+    """
+    #! CONTINUE ONLY IF USER IS SET
+    if not doc.user_id:
+        if not doc.is_new():
+            doc_before_save = frappe.get_doc(doc.doctype, doc.name)
+            if doc_before_save.custom_attendance_capture_scheme != doc.custom_attendance_capture_scheme:
+                frappe.msgprint("No User ID Found")
+        return
+
+    user_doc = frappe.get_doc("User", doc.user_id)
+
+    #? ROLE TO TOGGLE
+    target_role = "Create Checkin"
+
+    #? REMOVE IF SCHEME IS BIOMETRIC
+    if doc.custom_attendance_capture_scheme == "Biometric":
+        user_doc.roles = [r for r in user_doc.roles if r.role != target_role]
+
+    #? ENSURE IT EXISTS IF SCHEME IS MOBILE OR WEB
+    elif doc.custom_attendance_capture_scheme in ["Mobile Clockin-Clockout", "Web Checkin-Checkout"]:
+        if target_role not in [r.role for r in user_doc.roles]:
+            user_doc.append("roles", {"role": target_role})
+
+    #? SAVE CHANGES
+    user_doc.save(ignore_permissions=True)
+
+
+#? CUSTOM AUTONAME HANDLER FOR EMPLOYEE
+def custom_autoname_employee(doc, method=None):
+    #? IF 'employer_number' IS SELECTED, USE THAT
+    if doc.naming_series == "Employee Number":
+        if not doc.employee_number:
+            frappe.throw("Employer Number is required when using 'employer_number' as naming series.")
+        doc.name = doc.employee_number
+        return
+
+    #? MANUAL HANDLING FOR PE.####, PI.####, PC.####
+    if doc.naming_series in ["PE.####", "PI.####", "PC.####"]:
+        prefix = doc.naming_series.split(".")[0]  # PE, PI, PC
+        #? REGEX TO EXTRACT LAST NUMBER FOR PREFIX
+        existing_ids = frappe.db.get_all(
+            "Employee",
+            filters = {"name": ["like", f"{prefix}%"]},
+            pluck="name"
+        )
+
+        #? EXTRACT NUMERIC PARTS AND FIND MAX
+        last_number = 0
+        pattern = re.compile(rf"{prefix}(\d+)")
+        for eid in existing_ids:
+            match = pattern.match(eid)
+            if match:
+                num = int(match.group(1))
+                last_number = max(last_number, num)
+        #? GENERATE NEXT NAME
+        next_number = last_number + 1
+        doc.name = f"{prefix}{str(next_number).zfill(4)}"

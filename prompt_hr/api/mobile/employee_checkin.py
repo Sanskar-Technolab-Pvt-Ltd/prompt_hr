@@ -1,4 +1,5 @@
 import frappe
+from datetime import datetime, date
 
 
 # ! prompt_hr.api.mobile.employee_checkin.list
@@ -14,6 +15,31 @@ def list(
 ):
     try:
 
+        filters = frappe.parse_json(filters) if filters else []
+        or_filters = frappe.parse_json(or_filters) if or_filters else []
+        fields = frappe.parse_json(fields) if fields else ["*"]
+
+        has_date_filter = False
+        date_fields = ['time', 'creation', 'modified', 'date']
+        
+        # Check if any existing filters contain date/time fields
+        for filter_item in filters:
+            if hasattr(filter_item, '__len__') and len(filter_item) >= 1:
+                field_name = str(filter_item[0])
+                if any(date_field in field_name.lower() for date_field in date_fields):
+                    has_date_filter = True
+                    break
+        
+        # If no date filter exists, add today's filter
+        if not has_date_filter:
+            today = date.today()
+            today_start = f"{today} 00:00:00"
+            today_end = f"{today} 23:59:59"
+            
+            # Add filter for today's records
+            filters.append(["time", ">=", today_start])
+            filters.append(["time", "<=", today_end])
+            
         # ? GET EMPLOYEE CHECKIN LIST
         employee_checkin_list = frappe.get_list(
             "Employee Checkin",
@@ -165,6 +191,27 @@ def checking_log(
         filters = frappe.parse_json(filters) if filters else []
         or_filters = frappe.parse_json(or_filters) if or_filters else []
         fields = frappe.parse_json(fields) if fields else ["*"]
+
+        has_date_filter = False
+        date_fields = ['time', 'creation', 'modified', 'date']
+        
+        # Check if any existing filters contain date/time fields
+        for filter_item in filters:
+            if hasattr(filter_item, '__len__') and len(filter_item) >= 1:
+                field_name = str(filter_item[0])
+                if any(date_field in field_name.lower() for date_field in date_fields):
+                    has_date_filter = True
+                    break
+        
+        # If no date filter exists, add today's filter
+        if not has_date_filter:
+            today = date.today()
+            today_start = f"{today} 00:00:00"
+            today_end = f"{today} 23:59:59"
+            
+            # Add filter for today's records
+            filters.append(["time", ">=", today_start])
+            filters.append(["time", "<=", today_end])
 
         # Fetch latest check-in
         employee_checkin_list = frappe.get_list(
