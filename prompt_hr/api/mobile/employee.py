@@ -292,10 +292,10 @@ def create_field_changes(employee=None, field_name=None, field_label=None, new_v
         if existing_value == new_value:
             frappe.throw("No changes detected.")
 
-        if str(existing_value).strip() != str(old_value).strip():
-            frappe.throw(
-                f"Mismatch in your old value and existing value. Kindly try again and if issue persists contact System Manager. Current: {existing_value}, Provided: {old_value}"
-            )
+        # if str(existing_value).strip() != str(old_value).strip():
+        #     frappe.throw(
+        #         f"Mismatch in your old value and existing value. Kindly try again and if issue persists contact System Manager. Current: {existing_value}, Provided: {old_value}"
+        #     )
 
         # ? CHECK PENDING REQUEST
         if frappe.db.exists(
