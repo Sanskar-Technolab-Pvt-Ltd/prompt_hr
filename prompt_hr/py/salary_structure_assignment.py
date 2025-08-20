@@ -16,27 +16,11 @@ def update_employee_ctc(doc, method=None):
         fields_mapping = {
             "custom_pf_consent": "custom_pf_consent",
             "custom_esi_consent": "custom_esi_consent",
-            "custom_eps_contribution": "custom_eps_contribution",
             "custom_nps_consent": "custom_nps_consent",
-            "custom_metro_city_applicable": "custom_metro_city_applicable",
-            "custom_nonmetro_city": "custom_nonmetro_city",
-            "custom_conveyance_allowance__applicable": "custom_conveyance_allowance__applicable_",
-            "custom_performance_linked_incentive_applicable": "custom_performance_linked_incentive_applicable",
-            "custom_uniform_allowance_applicable": "custom_uniform_allowance_applicable",
-            "custom_gratuity": "custom_gratuity",
-            "custom_driver_salary_applicable": "custom_driver_salary_applicable",
-            "custom_car_reimbursement_applicable": "custom_car_reimbursement_applicable",
-            "custom_mobile__internet_reimbursement": "custom_mobile_and_internet_card_consent",
             "custom_meal_coupons": "custom_meal_card_consent",
-            "custom_lta_applicable": "custom_lta_applicable",
-            "custom_loyalty_bonus": "custom_loyalty_bonus",
-            "custom_internet_expense_reimbursement_applicable": "custom_internet_expense_reimbursement_applicable",
-            "custom_conveyance_allowance_applicable": "custom_conveyance_allowance_applicable",
-            "custom_food_deduction": "custom_food_deduction",
             "custom_attire_card_consent": "custom_attire_card_consent",
             "custom_fuel_card_consent": "custom_fuel_card_consent",
-            "custom_periodical_journals_applicable": "custom_periodical_journals_applicable",
-            "custom_food_coupons_sodexo_applicable": "custom_food_coupons_sodexo_applicable",
+            "custom_telephone_reimbursement_applicable": "custom_telephone_reimbursement_applicable"
         }
 
         for field, employee_field in fields_mapping.items():
