@@ -462,6 +462,9 @@ def create_penalty_records(penalty_entries, target_date):
                     "remarks": details.get("remarks")
                 })
                 penalty_doc.save(ignore_permissions=True)
+                penalty_id = frappe.db.get_value("Attendance", details["attendance"], penalty_doc.name, "custom_employee_penalty_id")
+                if not penalty_id:
+                    frappe.db.set_value("Attendance", details["attendance"], "custom_employee_penalty_id", penalty_doc.name)
                 changes_made = True
 
         else:
@@ -484,6 +487,8 @@ def create_penalty_records(penalty_entries, target_date):
                 "remarks": details.get("remarks")
             })
             penalty_doc.insert(ignore_permissions=True)
+            frappe.db.set_value("Attendance",details["attendance"], "custom_employee_penalty_id", penalty_doc.name)
+
             changes_made = True
 
     if changes_made:
@@ -623,7 +628,9 @@ def process_no_attendance_penalties_for_prompt(employees, penalty_buffer_days, t
 
     # ! CHECK TARGET DATE'S ATTENDANCE IS EXISTS OR NOT
     attendance_records = target_date_attendance_exists(employees, target_date, 0, 1, 0)
-    employees_with_attendance = list(attendance_records.keys())
+    employees_with_attendance = []
+    if attendance_records:
+        employees_with_attendance = list(attendance_records.keys())
 
     # ? FIND EMPLOYEES WITHOUT ATTENDANCE
     employees_without_attendance = list(set(employees) - set(employees_with_attendance))
