@@ -84,14 +84,57 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
             else:
                 employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": company_id}, ["name", "holiday_list", "custom_is_overtime_applicable"])
 
-                if not employee_list:
-                    throw("No Employees Found")
-            grace_time_period_for_late_coming = 0
-            if prompt:
-                grace_time_period_for_late_coming = frappe.db.get_single_value("HR Settings", "custom_grace_time_period_for_late_coming_for_prompt") or 0
-                grace_time_for_insufficient_hours = frappe.db.get_single_value("HR Settings", "custom_daily_hours_criteria_for_penalty_for_prompt") or 0
-            elif indifoss:
-                grace_time_period_for_late_coming = frappe.db.get_single_value("HR Settings", "custom_grace_time_period_for_late_coming_for_indifoss") or 0
+                #? GET ALL EMPLOYEE IDS
+                employee_ids = [emp.name for emp in employee_list]
+
+                #? FETCH SHIFT ASSIGNMENTS FOR TARGET DATE (INCLUDING OPEN-ENDED SHIFTS)
+                if attendance_date:
+                    shift_assignments = frappe.get_all(
+                        "Shift Assignment",
+                        filters={
+                            "employee": ["in", employee_ids],
+                            "docstatus": 1,
+                            "start_date": ["<=", attendance_date]
+                        },
+                        or_filters=[
+                            {"end_date": [">=", attendance_date]},
+                            {"end_date": ["is", "not set"]}
+                        ],
+                        fields=["employee", "shift_type"]
+                    )
+                else:
+                    return
+
+                #? GET UNIQUE SHIFT TYPES
+                shift_types = list({s.shift_type for s in shift_assignments if s.shift_type})
+
+                #? FETCH LATE ENTRY GRACE PERIOD FROM SHIFT TYPE
+                shift_type_map = frappe.db.get_all(
+                    "Shift Type",
+                    filters={"name": ["in", shift_types]},
+                    fields=["name", "late_entry_grace_period"],
+                    as_list=False
+                )
+                shift_type_map = {st["name"]: st["late_entry_grace_period"] for st in shift_type_map}
+
+                #? MAKE SHIFT MAP WITH SHIFT TYPE + GRACE PERIOD
+                shift_map = {}
+                for s in shift_assignments:
+                    shift_map[s.employee] = {
+                        "shift_type": s.shift_type,
+                        "late_entry_grace_period": shift_type_map.get(s.shift_type)
+                    }
+
+                #? ENRICH EMPLOYEE LIST WITH SHIFT INFO
+                for emp in employee_list:
+                    emp.update(shift_map.get(emp.name, {"shift_type": None, "late_entry_grace_period": None}))
+
+                    if not employee_list:
+                        throw("No Employees Found")
+                if prompt:
+                    grace_time_for_insufficient_hours = frappe.db.get_single_value("HR Settings", "custom_daily_hours_criteria_for_penalty_for_prompt") or 0
+                elif indifoss:
+                    grace_time_period_for_late_coming = frappe.db.get_single_value("HR Settings", "custom_grace_time_period_for_late_coming_for_indifoss") or 0
             
         else:
             
@@ -108,12 +151,55 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
             indifoss_company_id = indifoss_company_name.get("company_id")
             
             employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": ["in", [prompt_company_id, indifoss_company_id]]}, ["name", "holiday_list", "custom_is_overtime_applicable", "company"])
-            
+
+            #? GET ALL EMPLOYEE IDS
+            employee_ids = [emp.name for emp in employee_list]
+
+            #? FETCH SHIFT ASSIGNMENTS FOR TARGET DATE (INCLUDING OPEN-ENDED SHIFTS)
+            if attendance_date:
+                shift_assignments = frappe.get_all(
+                    "Shift Assignment",
+                    filters={
+                        "employee": ["in", employee_ids],
+                        "docstatus": 1,
+                        "start_date": ["<=", attendance_date]
+                    },
+                    or_filters=[
+                        {"end_date": [">=", attendance_date]},
+                        {"end_date": ["is", "not set"]}
+                    ],
+                    fields=["employee", "shift_type"]
+                )
+            else:
+                return
+
+            #? GET UNIQUE SHIFT TYPES
+            shift_types = list({s.shift_type for s in shift_assignments if s.shift_type})
+
+            #? FETCH LATE ENTRY GRACE PERIOD FROM SHIFT TYPE
+            shift_type_map = frappe.db.get_all(
+                "Shift Type",
+                filters={"name": ["in", shift_types]},
+                fields=["name", "late_entry_grace_period"],
+                as_list=False
+            )
+            shift_type_map = {st["name"]: st["late_entry_grace_period"] for st in shift_type_map}
+
+            #? MAKE SHIFT MAP WITH SHIFT TYPE + GRACE PERIOD
+            shift_map = {}
+            for s in shift_assignments:
+                shift_map[s.employee] = {
+                    "shift_type": s.shift_type,
+                    "late_entry_grace_period": shift_type_map.get(s.shift_type)
+                }
+
+            #? ENRICH EMPLOYEE LIST WITH SHIFT INFO
+            for emp in employee_list:
+                emp.update(shift_map.get(emp.name, {"shift_type": None, "late_entry_grace_period": None}))
+
             if not employee_list:
                 frappe.log_error("Error in mark_attendance_for_prompt", "No Employee Found")    
             
-            # print(f"\n\n employee list {employee_list} \n\n")
-            grace_time_period_for_late_coming_for_prompt = frappe.db.get_single_value("HR Settings", "custom_grace_time_period_for_late_coming_for_prompt") or 0
             grace_time_for_insufficient_hours_for_prompt = frappe.db.get_single_value("HR Settings", "custom_daily_hours_criteria_for_penalty_for_prompt") or 0
             
             grace_time_period_for_late_coming_for_indifoss = frappe.db.get_single_value("HR Settings", "custom_grace_time_period_for_late_coming_for_indifoss") or 0
@@ -131,7 +217,7 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                     if is_scheduler:
                         print(f"\n\n  is scheduler {employee_data.get('name')}\n\n")
                         if employee_data.get("company") == prompt_company_id:
-                            
+                            grace_time_period_for_late_coming_for_prompt = employee_data.get("late_entry_grace_period", 0)
                             attendance(
                                 employee_data,
                                 mark_attendance_date,
@@ -157,7 +243,7 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                                 indifoss = 1
                             )
                     else:
-                        print(f"\n\n prompt {prompt}  \n\n")
+                        grace_time_period_for_late_coming = employee_data.get("late_entry_grace_period", 0)
                         attendance(
                             employee_data,
                             mark_attendance_date,
@@ -170,7 +256,8 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                             indifoss = indifoss
                         )
         elif regularize_attendance:
-            print(f"\n\n Attendance Regularization \n\n")
+            if employee_data.get("company") != indifoss_company_id:
+                grace_time_period_for_late_coming = employee_data.get("late_entry_grace_period", 0)
             attendance(
                             employee_data,
                             mark_attendance_date,
@@ -453,7 +540,6 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
                     "status": attendance_status,
                     "late_entry": late_entry,
                     "early_exit": is_early_exit,
-                    "custom_apply_penalty": apply_penalty,
                     "custom_late_entry_with_grace_period": late_entry_with_grace_period,
                     "in_time" : in_datetime if in_type_emp_checkin or regularize_start_time else None,
                     "out_time" : out_datetime if out_type_emp_checkin or regularize_end_time else None,
@@ -478,7 +564,6 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
                     "late_entry": late_entry,
                     "custom_late_entry_with_grace_period": late_entry_with_grace_period,
                     "early_exit": is_early_exit,
-                    "custom_apply_penalty": apply_penalty,
                     "in_time" : in_datetime if in_type_emp_checkin else None,
                     "out_time" : out_datetime if out_type_emp_checkin else None,
                     "custom_checkin_time" : in_datetime if in_type_emp_checkin else None,
@@ -506,7 +591,6 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
             late_entry = late_entry,
             custom_late_entry_with_grace_period =late_entry_with_grace_period,
             early_exit = is_early_exit,
-            custom_apply_penalty = apply_penalty,
             shift = shift_type,
             in_time = in_datetime if in_type_emp_checkin or regularize_start_time else None,
             out_time = out_datetime if out_type_emp_checkin or regularize_end_time else None,
@@ -608,7 +692,6 @@ def create_attendance(
     late_entry = 0,
     custom_late_entry_with_grace_period = 0,
     early_exit = 0,
-    custom_apply_penalty = 0,
     shift = '',
     in_time = None,
     out_time = None,
@@ -637,7 +720,6 @@ def create_attendance(
     attendance_doc.late_entry = late_entry
     attendance_doc.custom_late_entry_with_grace_period = custom_late_entry_with_grace_period
     attendance_doc.early_exit = early_exit
-    attendance_doc.custom_apply_penalty = custom_apply_penalty
     attendance_doc.shift = shift
     attendance_doc.in_time = in_time
     attendance_doc.out_time = out_time

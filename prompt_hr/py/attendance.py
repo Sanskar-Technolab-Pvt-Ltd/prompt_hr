@@ -1,10 +1,9 @@
 import frappe
 from datetime import timedelta
-from frappe import throw
-from frappe.utils import get_datetime, time_diff_in_hours, today, getdate, days_diff, add_months, date_diff
+from frappe import throw, _
+from frappe.utils import get_datetime, time_diff_in_hours, today, getdate, days_diff, add_months, date_diff,format_duration
 from prompt_hr.py.utils import send_notification_email
-
-
+import json
 
 @frappe.whitelist()
 def create_attendance_regularization(attendance_id, update_data, reason):
@@ -160,3 +159,44 @@ def validate_regularization_creation_for_indifoss(attendance_date, employee_id):
     except Exception as e:
         frappe.log_error("Error while validating regularization creation", frappe.get_traceback())
         return {"error": 1, "message": str(e)}
+    
+@frappe.whitelist()
+def custom_mark_bulk_attendance(data):
+    if isinstance(data, str):
+        data = json.loads(data)
+
+    data = frappe._dict(data)
+
+    if not data.unmarked_days:
+        frappe.throw(_("Please select a date."))
+        return
+
+    for date in data.unmarked_days:
+        working_hours = 0
+        if data.get("working_hours"):
+            working_hours = round(data.get("working_hours"), 1)
+            work_seconds = int(working_hours * 3600)
+            work_hours = format_duration(work_seconds)
+        doc_dict = {
+            "doctype": "Attendance",
+            "employee": data.employee,
+            "attendance_date": get_datetime(date),
+            "status": data.status,
+            "half_day_status": "Absent" if data.status == "Half Day" else None,
+            "late_entry": data.get("late_entry"),
+            "early_exit": data.get("early_exit"),
+            "custom_apply_penalty": data.get("apply_penalty")
+        }
+
+        if data.get("checkin_time") and data.get("checkout_time"):
+            doc_dict.update({
+                "custom_checkin_time": data.get("checkin_time"),
+                "custom_checkout_time": data.get("checkout_time"),
+                "in_time": get_datetime(f"{date} {data.get('checkin_time')}"),
+                "out_time": get_datetime(f"{date} {data.get('checkout_time')}"),
+                "working_hours": working_hours,
+                "custom_work_hours": work_hours,
+            })
+
+        attendance = frappe.get_doc(doc_dict).insert()
+        attendance.submit()
