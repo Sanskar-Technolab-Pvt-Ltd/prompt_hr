@@ -73,11 +73,50 @@ frappe.listview_settings["Attendance"] = {
 						hidden: 1,
 					},
 					{
+						label: __("Checkin Time"),
+						fieldtype: "Time",
+						fieldname: "checkin_time",
+
+					},
+					{
+						label: __("Late Entry"),
+						fieldtype: "Check",
+						fieldname: "late_entry",
+					},
+					{
+						label: __("Early Exit"),
+						fieldtype: "Check",
+						fieldname: "early_exit",
+					},
+					{
+						fieldtype: "Column Break",
+						fieldname: "time_column_brak",
+						hidden: 1,
+					},
+					{
+						label: __("Checkout Time"),
+						fieldtype: "Time",
+						fieldname: "checkout_time",
+					},
+					{
+						label: __("Working Hours"),
+						fieldtype: "Float",
+						fieldname: "working_hours",
+					},
+
+					{
+						fieldtype: "Section Break",
+						fieldname: "status_section",
+						hidden: 1,
+					},
+					{
 						label: __("Status"),
 						fieldtype: "Select",
 						fieldname: "status",
 						options: ["Present", "Absent"],
 						reqd: 1,
+						onchange: () => me.get_unmarked_days(dialog),
+
 					},
 					{
 						label: __("Exclude Holidays"),
@@ -110,7 +149,7 @@ frappe.listview_settings["Attendance"] = {
 							]),
 							() => {
 								frappe.call({
-									method: "hrms.hr.doctype.attendance.attendance.mark_bulk_attendance",
+									method: "prompt_hr.py.attendance.custom_mark_bulk_attendance",
 									args: {
 										data: data,
 									},
@@ -159,6 +198,7 @@ frappe.listview_settings["Attendance"] = {
 			dialog.set_df_property("days_section", "hidden", 0);
 			dialog.set_df_property("status", "hidden", 0);
 			dialog.set_df_property("exclude_holidays", "hidden", 0);
+			dialog.set_df_property("status_section", "hidden", 0)
 			dialog.no_unmarked_days_left = false;
 
 			frappe
@@ -191,6 +231,22 @@ frappe.listview_settings["Attendance"] = {
 						options.length > 0 ? options : [],
 					);
 					dialog.no_unmarked_days_left = options.length === 0;
+					if (fields.status.value != "Absent"){
+						dialog.set_df_property("checkin_time", "reqd", 1)
+						dialog.set_df_property("checkout_time", "reqd", 1)
+						dialog.set_df_property("working_hours", "reqd", 1)
+						dialog.refresh_field("checkin_time");
+						dialog.refresh_field("checkout_time");
+						dialog.refresh_field("working_hours");
+					}
+					else {
+						dialog.set_df_property("checkin_time", "reqd", 0)
+						dialog.set_df_property("checkout_time", "reqd", 0)
+						dialog.set_df_property("working_hours", "reqd", 0)
+						dialog.refresh_field("checkin_time");
+						dialog.refresh_field("checkout_time");
+						dialog.refresh_field("working_hours");
+					}
 				});
 		}
 	},
