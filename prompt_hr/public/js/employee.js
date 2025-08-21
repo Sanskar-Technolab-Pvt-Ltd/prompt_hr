@@ -11,7 +11,7 @@ function set_text_field_height() {
         'emergency_phone_number', 'relation', 'bank_name', 'bank_ac_no',
         'bank_cb', 'ifsc_code', 'micr_code', 'iban', 'passport_number',
         'valid_upto', 'place_of_issue', 'health_insurance_no', 'new_workplace',
-        'old_parent'
+        'old_parent', "custom_home_phone", "custom_father_name", "custom_mother_name", "custom_spouse_name", "custom_children_names", "custom_name_as_per_bank_account", "custom_source_of_hire", "custom_employee_referral_name", "custom_mrf_number"
     ];
 
     fields.forEach(field => {
@@ -21,6 +21,13 @@ function set_text_field_height() {
 }
 frappe.ui.form.on("Employee", {
     refresh: function (frm) {
+        // ? SET AUTOCOMPLETE OPTIONS FOR CURRENT AND PERMANENT STATE
+        set_state_options(frm, "custom_current_state", "custom_current_country");
+        set_state_options(frm, "custom_permanent_state", "custom_permanent_country");
+        // ? SET FILTERS FOR CURRENT AND PERMANENT DISTRICT, SUB DISTRICT
+        handle_location_change(frm, "custom_current")
+        handle_location_change(frm, "custom_permanent")
+
         set_text_field_height();
 
         addEmployeeDetailsChangesButton(frm);
@@ -128,6 +135,57 @@ frappe.ui.form.on("Employee", {
             });
         }
     },
+    custom_current_country (frm) {
+        set_state_options(frm, "custom_current_state", "custom_current_country");
+        handle_location_change(frm, "custom_current")
+
+    },
+    custom_permanent_country (frm) {
+        set_state_options(frm, "custom_permanent_state", "custom_permanent_country");
+        handle_location_change(frm, "custom_permanent")
+
+    },
+    custom_current_district(frm) {
+        if (frm.doc.custom_current_country == "India"){
+            set_city_autocomplete_options(frm, "custom_current_city", { state: frm.doc.custom_current_state, district: frm.doc.custom_current_district });
+            handle_location_change(frm, "custom_current")
+        }
+    },
+    custom_permanent_district(frm) {
+        if (frm.doc.custom_current_country == "India"){
+            set_city_autocomplete_options(frm, "custom_permanent_city", { state: frm.doc.custom_permanent_state, district: frm.doc.custom_permanent_district });
+            handle_location_change(frm, "custom_permanent")
+
+        }
+    },
+    custom_current_state (frm) {
+        if (frm.doc.custom_current_country == "India"){
+            set_city_autocomplete_options(frm, "custom_current_city", { state: frm.doc.custom_current_state });
+            handle_location_change(frm, "custom_current")
+
+        }
+    },
+    custom_permanent_state (frm) {
+        if (frm.doc.custom_permanent_country == "India"){
+            set_city_autocomplete_options(frm, "custom_permanent_city", { state: frm.doc.custom_permanent_state });
+            handle_location_change(frm, "custom_permanent")
+        }
+    },
+
+    custom_current_sub_district (frm) {
+        if (frm.doc.custom_current_country == "India"){
+            set_city_autocomplete_options(frm, "custom_current_city", { state: frm.doc.custom_current_state, district: frm.doc.custom_current_district, sub_district: frm.doc.custom_current_sub_district });
+            handle_location_change(frm, "custom_current")
+
+        }
+    },
+
+    custom_permanent_sub_district (frm) {
+        if (frm.doc.custom_permanent_country == "India"){
+            set_city_autocomplete_options(frm, "custom_permanent_city", { state: frm.doc.custom_permanent_state, district: frm.doc.custom_permanent_district, sub_district: frm.doc.custom_permanent_sub_district });
+            handle_location_change(frm, "custom_permanent")
+        }
+    },
     department: function (frm) {
         console.log("Employee Form Refreshed");
         if (frm.doc.department) {
@@ -205,6 +263,15 @@ frappe.ui.form.on("Employee", {
     // }
 
 });
+function set_state_options(frm, state_field_name, country_field_name) {
+    const state_field = frm.get_field(state_field_name);
+    const country = frm.get_field(country_field_name).value;
+    if (country !== "India") {
+        state_field.set_data([]);
+        return;
+    }
+    state_field.set_data(frappe.boot.india_state_options || []);
+}
 
 // ? FUNCTION TO CREATE EMPLOYEE RESIGNATION BUTTON AND HANDLE RESIGNATION PROCESS
 function createEmployeeResignationButton(frm) {
@@ -462,4 +529,132 @@ function handleFieldChangeRequest(frm, values, dialog) {
             }, 3000);
         }
     });
+}
+
+/**
+ * ? APPLY CASCADING LOCATION FILTERS AND DYNAMIC CITY AUTOCOMPLETE
+ * @param {object} frm - Frappe Form Object
+ * @param {object} fields - Fields mapping (state, district, sub_district, city)
+ */
+function apply_location_filters(frm, fields, country) {
+    const {
+        state_field,
+        district_field,
+        sub_district_field,
+        city_field
+    } = fields;
+
+    if (country === "India") {
+        // ? APPLY FILTER: DISTRICT BY STATE
+        if (state_field && district_field) {
+            frm.set_query(district_field, () => {
+                if (!frm.doc[state_field]) {
+                    frappe.msgprint("Please select State first.");
+                    frm.set_value(district_field, null);
+                    return { filters: { name: "none" } }
+                }
+                return { filters: { state: frm.doc[state_field] } }
+            });
+        }
+
+        // ? APPLY FILTER: SUB-DISTRICT BY DISTRICT
+        if (district_field && sub_district_field) {
+            frm.set_query(sub_district_field, () => {
+                if (!frm.doc[district_field]) {
+                    frappe.msgprint("Please select District first.");
+                    frm.set_value(sub_district_field, null);
+                    return { filters: { name: "none" } };
+                }
+                return { filters: { district: frm.doc[district_field] } };
+            });
+        }
+
+        // ? SETUP AUTOCOMPLETE FOR CITY BY SUB-DISTRICT (OR HIGHER FILTERS)
+        if (city_field && sub_district_field) {
+            frm.set_query(city_field, () => {
+                if (!frm.doc[sub_district_field]) {
+                    frappe.msgprint("Please select Sub District first.");
+                    return;
+                }
+            });
+            set_city_autocomplete_options(frm, {
+                state: frm.doc[state_field],
+                district: frm.doc[district_field],
+                sub_district: frm.doc[sub_district_field]
+            });
+        }
+
+    } else {
+        // ? REMOVE ALL CUSTOM LOCATION FILTERS FOR NON-INDIA COUNTRY
+        if (district_field) frm.set_query(district_field, null);
+        if (sub_district_field) frm.set_query(sub_district_field, null);
+        if (city_field) frm.set_query(city_field, null);
+
+        // ? RESET CITY FIELD TO PLAIN DATA (NO AUTOCOMPLETE)
+        reset_city_field_to_data(frm, city_field);
+    }
+}
+
+/**
+ * Set autocomplete options for city field based on filters
+ * @param {object} frm - Frappe Form Object
+ * @param {string} fieldname - Field to set options for
+ * @param {object} filters - Filters for frappe.client.get_list
+ */
+function set_city_autocomplete_options(frm, fieldname, filters = {}) {
+    const setOptions = options => {
+        const field = frm.fields_dict[fieldname];
+        if (field?.set_data) field.set_data(options);
+        else if (field?.$input?.autocomplete) field.$input.autocomplete({ source: options });
+    };
+
+    if (!filters.sub_district) return setOptions([]);
+
+    frappe.call({
+        method: "frappe.client.get_list",
+        args: {
+            doctype: "Village or City",
+            fields: ["name"],
+            filters,
+            order_by: "name asc",
+            limit_page_length: 0
+        },
+        callback: r => setOptions(r.message?.map(doc => doc.name) || [])
+    });
+}
+
+
+/**
+ * ? RESET CITY FIELD TO SIMPLE DATA (WITHOUT AUTOCOMPLETE) FOR NON-INDIA COUNTRY
+ * @param {object} frm - Frappe Form Object
+ * @param {string} city_field - Fieldname for city
+ */
+function reset_city_field_to_data(frm, city_field) {
+    if (frm.fields_dict[city_field]) {
+        // ? REMOVE ANY AUTOCOMPLETE DATA/OPTIONS
+        if (frm.fields_dict[city_field].set_data) {
+            frm.fields_dict[city_field].set_data([]);
+        }
+        if (frm.fields_dict[city_field].$input && frm.fields_dict[city_field].$input.autocomplete) {
+            frm.fields_dict[city_field].$input.autocomplete({ source: [] });
+        }
+        // ? ENSURE THE FIELD IS ENABLED FOR USER INPUT
+        frm.toggle_enable(city_field, true);
+    }
+}
+
+// ? HANDLE LOCATION CHANGE LOGIC AND CALL APPLY_LOCATION_FILTERS FUNCTION
+function handle_location_change(frm, prefix) {
+    const country = frm.doc[`${prefix}_country`];
+    if (country !== "India") return;
+
+    // ! FIELD MAPPING
+    const fields = {
+        state_field: `${prefix}_state`,
+        district_field: `${prefix}_district`,
+        sub_district_field: `${prefix}_sub_district`,
+        city_field: `${prefix}_city`
+    };
+
+    apply_location_filters(frm, fields, country);
 }

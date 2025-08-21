@@ -29,35 +29,47 @@ def prompt_employee_attendance_penalties():
     late_coming_allowed_per_month = hr_settings.custom_late_coming_allowed_per_month_for_prompt or 0
     late_coming_penalty_buffer_days = hr_settings.custom_buffer_period_for_leave_penalty_for_prompt or 0
     late_coming_target_date = getdate(add_to_date(today(), days=-(int(late_coming_penalty_buffer_days) + 1)))
+    late_coming_penalty_enable = hr_settings.custom_enable_late_coming_penalty
 
     # ? DAILY HOURS PENALTY CONFIGURATION
     daily_hours_penalty_buffer_days = hr_settings.custom_buffer_period_for_daily_hours_penalty_for_prompt or 0
     daily_hours_target_date = getdate(add_to_date(today(), days=-(int(daily_hours_penalty_buffer_days) + 1)))
+    daily_hour_penalty_enable = hr_settings.custom_enable_daily_hours_penalty
 
     # ? NO ATTENDANCE PENALTY CONFIGURATION
     no_attendance_penalty_buffer_days = hr_settings.custom_buffer_period_for_no_attendance_penalty_for_prompt or 0
     no_attendance_target_date = getdate(add_to_date(today(), days=-(int(no_attendance_penalty_buffer_days) + 1)))
+    no_attendance_penalty_enable = hr_settings.custom_enable_no_attendance_penalty
 
     # ? MIS-PUNCH PENALTY CONFIGURATION
     mispunch_penalty_buffer_days = hr_settings.custom_buffer_days_for_mispunch_penalty or 0
     mispunch_penalty_target_date = getdate(add_to_date(today(), days=-(int(mispunch_penalty_buffer_days) + 1)))
+    mispunch_penalty_enable = hr_settings.custom_enable_mispunch_penalty
 
-    # ! FETCH ALL LATE ENTRY PENALTY RECORDS FOR THE LAST BUFFER DAYS
-    late_penalty = process_late_entry_penalties_for_prompt(employees, late_coming_allowed_per_month, late_coming_penalty_buffer_days, "custom_late_coming_leave_penalty_configuration", late_coming_target_date)
+    # ! FETCH ALL LATE ENTRY PENALTY RECORDS FOR THE LAST BUFFER DAYS IF LATE ENTRY PENALTY ENABLE
+    late_penalty = {}
+    if late_coming_penalty_enable:
+        late_penalty = process_late_entry_penalties_for_prompt(employees, late_coming_allowed_per_month, late_coming_penalty_buffer_days, "custom_late_coming_leave_penalty_configuration", late_coming_target_date)
 
     # ? DAILY HOURS PERCENTAGE FOR PENALTY
     percentage_for_daily_hour_penalty = hr_settings.custom_daily_hours_criteria_for_penalty_for_prompt
 
-    # ! FETCH ALL DAILY HOURS PENALTY RECORDS FOR THE LAST BUFFER DAYS
-    daily_hour_penalty = process_daily_hours_penalties_for_prompt(employees, daily_hours_penalty_buffer_days, daily_hours_target_date, percentage_for_daily_hour_penalty, "custom_daily_hour_leave_penalty_configuration")
+    # ! FETCH ALL DAILY HOURS PENALTY RECORDS FOR THE LAST BUFFER DAYS IF IT IS ENABLE
+    daily_hour_penalty = {}
+    if daily_hour_penalty_enable:
+        daily_hour_penalty = process_daily_hours_penalties_for_prompt(employees, daily_hours_penalty_buffer_days, daily_hours_target_date, percentage_for_daily_hour_penalty, "custom_daily_hour_leave_penalty_configuration")
 
-    # ! FETCH ALL NO ATTENDANCE PENALTY RECORDS FOR THE LAST BUFFER DAYS
-    no_attendance_penalty = process_no_attendance_penalties_for_prompt(
-        employees, no_attendance_penalty_buffer_days, no_attendance_target_date, "custom_no_attendance_leave_penalty_configuration"
-    )
+    # ! FETCH ALL NO ATTENDANCE PENALTY RECORDS FOR THE LAST BUFFER DAYS IF IT IS ENABLE
+    no_attendance_penalty = {}
+    if no_attendance_penalty_enable:
+        no_attendance_penalty = process_no_attendance_penalties_for_prompt(
+            employees, no_attendance_penalty_buffer_days, no_attendance_target_date, "custom_no_attendance_leave_penalty_configuration"
+        )
 
-    # ! FETCH ALL MIS-PUNCH PENALTY RECORDS FOR THE LAST BUFFER DAYS
-    mispunch_penalty = process_mispunch_penalties_for_prompt(employees, mispunch_penalty_buffer_days, mispunch_penalty_target_date, "custom_attendance_mispunch_leave_penalty_configuration")
+    # ! FETCH ALL MIS-PUNCH PENALTY RECORDS FOR THE LAST BUFFER DAYS IF IT IS ENABLE
+    mispunch_penalty = {}
+    if mispunch_penalty_enable:
+        mispunch_penalty = process_mispunch_penalties_for_prompt(employees, mispunch_penalty_buffer_days, mispunch_penalty_target_date, "custom_attendance_mispunch_leave_penalty_configuration")
 
     # ! CREATE OR UPDATE PENALTY RECORDS IN THE DATABASE
     if late_penalty:
@@ -101,7 +113,7 @@ def process_late_entry_penalties_for_prompt(employees, late_coming_allowed_per_m
         return penalty_entries
 
     # ! CHECK TARGET DATE'S ATTENDANCE IS LATE OR NOT
-    late_attendance_records = target_date_attendance_exists(employees, target_date, 1, 0, 0)
+    late_attendance_records = target_date_attendance_exists(employees, target_date, 1, 0, 0, 0)
     # ! SKIP IF TARGET DATE ATTENDANCE IS NOT LATE
     if not late_attendance_records:
         return []
@@ -273,7 +285,7 @@ def get_remaining_leaves(employee):
     return leave_balance_map
 
 
-def target_date_attendance_exists(employees, target_date, late_entry=0, no_attendance=0, mispunch = 0):
+def target_date_attendance_exists(employees, target_date, late_entry=0, no_attendance=0, mispunch = 0, daily_hour = 0):
     """
     RETURN A DICTIONARY WHERE KEY = EMPLOYEE ID
     VALUE = { "attendance_date": ..., "attendance": ... }
@@ -291,7 +303,10 @@ def target_date_attendance_exists(employees, target_date, late_entry=0, no_atten
 
     # ? ADD STATUS FILTERS FOR ALL OTHER CASES EXCEPT NO ATTENDANCE AND MISPUNCH
     if not no_attendance and not mispunch:
-        filters.update({"status": ["not in",["Absent","On Leave"]]})
+        if daily_hour:
+            filters.update({"status": ["not in",["Absent","On Leave", "Mispunch"]]})
+        else:
+            filters.update({"status": ["not in",["Absent","On Leave"]]})
 
     # ? ADD MISPUNCH STATUS FILTER IF FETCHING MISPUNCH RECORDS
     if mispunch:
@@ -329,7 +344,7 @@ def process_daily_hours_penalties_for_prompt(employees, penalty_buffer_days, tar
         return penalty_entries
 
     # ! FETCH ATTENDANCE RECORDS FOR TARGET DATE
-    daily_hours_records = target_date_attendance_exists(employees, target_date, 0, 0, 0)
+    daily_hours_records = target_date_attendance_exists(employees, target_date, 0, 0, 0, 1)
 
     # ! SKIP IF TARGET DATE ATTENDANCE IS NOT THERE
     if not daily_hours_records:
@@ -462,6 +477,9 @@ def create_penalty_records(penalty_entries, target_date):
                     "remarks": details.get("remarks")
                 })
                 penalty_doc.save(ignore_permissions=True)
+                penalty_id = frappe.db.get_value("Attendance", details["attendance"], penalty_doc.name, "custom_employee_penalty_id")
+                if not penalty_id:
+                    frappe.db.set_value("Attendance", details["attendance"], "custom_employee_penalty_id", penalty_doc.name)
                 changes_made = True
 
         else:
@@ -484,6 +502,8 @@ def create_penalty_records(penalty_entries, target_date):
                 "remarks": details.get("remarks")
             })
             penalty_doc.insert(ignore_permissions=True)
+            frappe.db.set_value("Attendance",details["attendance"], "custom_employee_penalty_id", penalty_doc.name)
+
             changes_made = True
 
     if changes_made:
@@ -622,8 +642,10 @@ def process_no_attendance_penalties_for_prompt(employees, penalty_buffer_days, t
         return penalty_entries
 
     # ! CHECK TARGET DATE'S ATTENDANCE IS EXISTS OR NOT
-    attendance_records = target_date_attendance_exists(employees, target_date, 0, 1, 0)
-    employees_with_attendance = list(attendance_records.keys())
+    attendance_records = target_date_attendance_exists(employees, target_date, 0, 1, 0, 0)
+    employees_with_attendance = []
+    if attendance_records:
+        employees_with_attendance = list(attendance_records.keys())
 
     # ? FIND EMPLOYEES WITHOUT ATTENDANCE
     employees_without_attendance = list(set(employees) - set(employees_with_attendance))
@@ -713,8 +735,7 @@ def process_mispunch_penalties_for_prompt(employees, penalty_buffer_days, target
         return penalty_entries
 
     # ! CHECK TARGET DATE'S MISPUNCH ATTENDANCE IS EXISTS OR NOT
-    mispunch_records = target_date_attendance_exists(employees, target_date, 0, 0, 1)
-
+    mispunch_records = target_date_attendance_exists(employees, target_date, 0, 0, 1, 0)
     # ! SKIP IF TARGET DATE ATTENDANCE IS NOT MISPUNCH
     if not mispunch_records:
         return penalty_entries
