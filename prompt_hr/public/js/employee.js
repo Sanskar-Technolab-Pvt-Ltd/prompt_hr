@@ -11,7 +11,7 @@ function set_text_field_height() {
         'emergency_phone_number', 'relation', 'bank_name', 'bank_ac_no',
         'bank_cb', 'ifsc_code', 'micr_code', 'iban', 'passport_number',
         'valid_upto', 'place_of_issue', 'health_insurance_no', 'new_workplace',
-        'old_parent'
+        'old_parent', "custom_home_phone", "custom_father_name", "custom_mother_name", "custom_spouse_name", "custom_children_names", "custom_name_as_per_bank_account", "custom_source_of_hire", "custom_employee_referral_name", "custom_mrf_number"
     ];
 
     fields.forEach(field => {
