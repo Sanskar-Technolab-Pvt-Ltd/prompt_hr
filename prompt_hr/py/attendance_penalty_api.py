@@ -101,7 +101,7 @@ def process_late_entry_penalties_for_prompt(employees, late_coming_allowed_per_m
         return penalty_entries
 
     # ! CHECK TARGET DATE'S ATTENDANCE IS LATE OR NOT
-    late_attendance_records = target_date_attendance_exists(employees, target_date, 1, 0, 0)
+    late_attendance_records = target_date_attendance_exists(employees, target_date, 1, 0, 0, 0)
     # ! SKIP IF TARGET DATE ATTENDANCE IS NOT LATE
     if not late_attendance_records:
         return []
@@ -273,7 +273,7 @@ def get_remaining_leaves(employee):
     return leave_balance_map
 
 
-def target_date_attendance_exists(employees, target_date, late_entry=0, no_attendance=0, mispunch = 0):
+def target_date_attendance_exists(employees, target_date, late_entry=0, no_attendance=0, mispunch = 0, daily_hour = 0):
     """
     RETURN A DICTIONARY WHERE KEY = EMPLOYEE ID
     VALUE = { "attendance_date": ..., "attendance": ... }
@@ -291,7 +291,10 @@ def target_date_attendance_exists(employees, target_date, late_entry=0, no_atten
 
     # ? ADD STATUS FILTERS FOR ALL OTHER CASES EXCEPT NO ATTENDANCE AND MISPUNCH
     if not no_attendance and not mispunch:
-        filters.update({"status": ["not in",["Absent","On Leave"]]})
+        if daily_hour:
+            filters.update({"status": ["not in",["Absent","On Leave", "Mispunch"]]})
+        else:
+            filters.update({"status": ["not in",["Absent","On Leave"]]})
 
     # ? ADD MISPUNCH STATUS FILTER IF FETCHING MISPUNCH RECORDS
     if mispunch:
@@ -329,7 +332,7 @@ def process_daily_hours_penalties_for_prompt(employees, penalty_buffer_days, tar
         return penalty_entries
 
     # ! FETCH ATTENDANCE RECORDS FOR TARGET DATE
-    daily_hours_records = target_date_attendance_exists(employees, target_date, 0, 0, 0)
+    daily_hours_records = target_date_attendance_exists(employees, target_date, 0, 0, 0, 1)
 
     # ! SKIP IF TARGET DATE ATTENDANCE IS NOT THERE
     if not daily_hours_records:
@@ -627,7 +630,7 @@ def process_no_attendance_penalties_for_prompt(employees, penalty_buffer_days, t
         return penalty_entries
 
     # ! CHECK TARGET DATE'S ATTENDANCE IS EXISTS OR NOT
-    attendance_records = target_date_attendance_exists(employees, target_date, 0, 1, 0)
+    attendance_records = target_date_attendance_exists(employees, target_date, 0, 1, 0, 0)
     employees_with_attendance = []
     if attendance_records:
         employees_with_attendance = list(attendance_records.keys())
@@ -720,8 +723,7 @@ def process_mispunch_penalties_for_prompt(employees, penalty_buffer_days, target
         return penalty_entries
 
     # ! CHECK TARGET DATE'S MISPUNCH ATTENDANCE IS EXISTS OR NOT
-    mispunch_records = target_date_attendance_exists(employees, target_date, 0, 0, 1)
-
+    mispunch_records = target_date_attendance_exists(employees, target_date, 0, 0, 1, 0)
     # ! SKIP IF TARGET DATE ATTENDANCE IS NOT MISPUNCH
     if not mispunch_records:
         return penalty_entries
