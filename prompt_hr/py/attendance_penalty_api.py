@@ -29,35 +29,47 @@ def prompt_employee_attendance_penalties():
     late_coming_allowed_per_month = hr_settings.custom_late_coming_allowed_per_month_for_prompt or 0
     late_coming_penalty_buffer_days = hr_settings.custom_buffer_period_for_leave_penalty_for_prompt or 0
     late_coming_target_date = getdate(add_to_date(today(), days=-(int(late_coming_penalty_buffer_days) + 1)))
+    late_coming_penalty_enable = hr_settings.custom_enable_late_coming_penalty
 
     # ? DAILY HOURS PENALTY CONFIGURATION
     daily_hours_penalty_buffer_days = hr_settings.custom_buffer_period_for_daily_hours_penalty_for_prompt or 0
     daily_hours_target_date = getdate(add_to_date(today(), days=-(int(daily_hours_penalty_buffer_days) + 1)))
+    daily_hour_penalty_enable = hr_settings.custom_enable_daily_hours_penalty
 
     # ? NO ATTENDANCE PENALTY CONFIGURATION
     no_attendance_penalty_buffer_days = hr_settings.custom_buffer_period_for_no_attendance_penalty_for_prompt or 0
     no_attendance_target_date = getdate(add_to_date(today(), days=-(int(no_attendance_penalty_buffer_days) + 1)))
+    no_attendance_penalty_enable = hr_settings.custom_enable_no_attendance_penalty
 
     # ? MIS-PUNCH PENALTY CONFIGURATION
     mispunch_penalty_buffer_days = hr_settings.custom_buffer_days_for_mispunch_penalty or 0
     mispunch_penalty_target_date = getdate(add_to_date(today(), days=-(int(mispunch_penalty_buffer_days) + 1)))
+    mispunch_penalty_enable = hr_settings.custom_enable_mispunch_penalty
 
-    # ! FETCH ALL LATE ENTRY PENALTY RECORDS FOR THE LAST BUFFER DAYS
-    late_penalty = process_late_entry_penalties_for_prompt(employees, late_coming_allowed_per_month, late_coming_penalty_buffer_days, "custom_late_coming_leave_penalty_configuration", late_coming_target_date)
+    # ! FETCH ALL LATE ENTRY PENALTY RECORDS FOR THE LAST BUFFER DAYS IF LATE ENTRY PENALTY ENABLE
+    late_penalty = {}
+    if late_coming_penalty_enable:
+        late_penalty = process_late_entry_penalties_for_prompt(employees, late_coming_allowed_per_month, late_coming_penalty_buffer_days, "custom_late_coming_leave_penalty_configuration", late_coming_target_date)
 
     # ? DAILY HOURS PERCENTAGE FOR PENALTY
     percentage_for_daily_hour_penalty = hr_settings.custom_daily_hours_criteria_for_penalty_for_prompt
 
-    # ! FETCH ALL DAILY HOURS PENALTY RECORDS FOR THE LAST BUFFER DAYS
-    daily_hour_penalty = process_daily_hours_penalties_for_prompt(employees, daily_hours_penalty_buffer_days, daily_hours_target_date, percentage_for_daily_hour_penalty, "custom_daily_hour_leave_penalty_configuration")
+    # ! FETCH ALL DAILY HOURS PENALTY RECORDS FOR THE LAST BUFFER DAYS IF IT IS ENABLE
+    daily_hour_penalty = {}
+    if daily_hour_penalty_enable:
+        daily_hour_penalty = process_daily_hours_penalties_for_prompt(employees, daily_hours_penalty_buffer_days, daily_hours_target_date, percentage_for_daily_hour_penalty, "custom_daily_hour_leave_penalty_configuration")
 
-    # ! FETCH ALL NO ATTENDANCE PENALTY RECORDS FOR THE LAST BUFFER DAYS
-    no_attendance_penalty = process_no_attendance_penalties_for_prompt(
-        employees, no_attendance_penalty_buffer_days, no_attendance_target_date, "custom_no_attendance_leave_penalty_configuration"
-    )
+    # ! FETCH ALL NO ATTENDANCE PENALTY RECORDS FOR THE LAST BUFFER DAYS IF IT IS ENABLE
+    no_attendance_penalty = {}
+    if no_attendance_penalty_enable:
+        no_attendance_penalty = process_no_attendance_penalties_for_prompt(
+            employees, no_attendance_penalty_buffer_days, no_attendance_target_date, "custom_no_attendance_leave_penalty_configuration"
+        )
 
-    # ! FETCH ALL MIS-PUNCH PENALTY RECORDS FOR THE LAST BUFFER DAYS
-    mispunch_penalty = process_mispunch_penalties_for_prompt(employees, mispunch_penalty_buffer_days, mispunch_penalty_target_date, "custom_attendance_mispunch_leave_penalty_configuration")
+    # ! FETCH ALL MIS-PUNCH PENALTY RECORDS FOR THE LAST BUFFER DAYS IF IT IS ENABLE
+    mispunch_penalty = {}
+    if mispunch_penalty_enable:
+        mispunch_penalty = process_mispunch_penalties_for_prompt(employees, mispunch_penalty_buffer_days, mispunch_penalty_target_date, "custom_attendance_mispunch_leave_penalty_configuration")
 
     # ! CREATE OR UPDATE PENALTY RECORDS IN THE DATABASE
     if late_penalty:
