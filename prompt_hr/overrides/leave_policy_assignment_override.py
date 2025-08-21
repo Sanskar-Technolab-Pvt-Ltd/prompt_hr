@@ -382,7 +382,7 @@ def is_earned_leave_applicable_for_current_month(date_of_joining, allocate_on_da
     else:
         date = getdate(frappe.flags.current_date) or getdate()
         if date.month >= date_of_joining.month and date.year == date_of_joining.year:
-            if date_of_joining.day > 14:
+            if date_of_joining.day > 14 and getdate(effective_date) <= date_of_joining:
                 return False
             return True
         
