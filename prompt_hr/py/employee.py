@@ -67,6 +67,8 @@ def create_welcome_status(user_id, company):
 # ? EMPLOYEE BEFORE INSERT HOOK
 def before_insert(doc, method):
     custom_autoname_employee(doc)
+    validate_create_checkin_role(doc)
+
     # ? SET IMPREST ALLOCATION AMOUNT FROM EMPLOYEE ONBOARDING FORM
     set_imprest_allocation_amount(doc)
 
@@ -1475,3 +1477,38 @@ def custom_autoname_employee(doc, method=None):
         #? GENERATE NEXT NAME
         next_number = last_number + 1
         doc.name = f"{prefix}{str(next_number).zfill(4)}"
+
+def validate_create_checkin_role(doc):
+    """
+    ASSIGNS OR REMOVES A ROLE FROM THE USER BASED ON THE ATTENDANCE CAPTURE SCHEME.
+    """
+
+    #! CONTINUE ONLY IF USER IS SET
+    if not doc.user_id:
+        frappe.msgprint("No User ID Found")
+        return
+
+    #? GET USER DOC
+    user_doc = frappe.get_doc("User", doc.user_id)
+
+    #? TARGET ROLE
+    target_role = "Create Checkin"
+
+    #? REMOVE ROLE IF SCHEME IS BIOMETRIC (ONLY IF ROLE EXISTS)
+    if doc.custom_attendance_capture_scheme == "Biometric" or doc.custom_attendance_capture_scheme == "Biometric-Mobile Checkin-Checkout":
+        user_doc.roles = [r for r in user_doc.roles if r.role != target_role]
+
+    #? ADD ROLE IF SCHEME IS MANUAL TYPES (ONLY IF ROLE NOT ALREADY PRESENT)
+    elif doc.custom_attendance_capture_scheme in [
+        "Mobile-Web Checkin-Checkout",
+        "Geofencing"
+    ]:
+        if target_role not in [r.role for r in user_doc.roles]:
+            user_doc.append("roles", {"role":target_role})
+            frappe.msgprint(
+                f"The Role <b>{target_role}</b> has been assigned to user <b>{doc.name}</b> "
+                f"based on the Employee's Attendance Scheme: <b>{doc.custom_attendance_capture_scheme}</b>."
+            )
+
+    #? SAVE CHANGES
+    user_doc.save(ignore_permissions=True)
