@@ -44,38 +44,56 @@ def get_columns():
         {"label": "Remuneration Amount", "fieldname": "remuneration_amount", "fieldtype": "Currency", "width": 200},
     ]
 
-    # ? ADD DYNAMIC EARNING AND DEDUCTION COMPONENTS
-    dynamic_components = frappe.get_all(
-        "Salary Component",
-        filters={"disabled": 0},
-        fields=["name", "type"]
-    )
+    #! GET SELECT FIELD OPTIONS FROM THE DOCTYPE
+    custom_field_meta = frappe.get_meta("Salary Component").get_field("custom_salary_component_type")
+
+    #? SAFELY GET OPTIONS AND SPLIT THEM INTO A LIST
+    component_type_options = custom_field_meta.options.split("\n") if custom_field_meta and custom_field_meta.options else []
+
 
     earnings_columns = []
     deduction_columns = []
 
-    for comp in dynamic_components:
-        if comp.type == "Earning":
+    found_other_earnings = False  #! FLAG TO CHECK IF "Other Earnings" TYPE IS SEEN
+    for comp in component_type_options:
+        comp_clean = (comp or "").strip()  #! REMOVE LEADING/TRAILING SPACES & HANDLE None
+        calculated_width = max(120, len(comp) * 10 + 40)  # MIN WIDTH 120PX
+
+        #! SKIP BLANKS AND "GRATUITY"
+        if not comp_clean or comp_clean == "Gratuity":
+            continue
+
+        #? NORMALIZE FIELDNAME
+        fieldname = comp.lower().replace(" ", "_")
+
+        #! IF NOT YET FOUND "Other Earnings" TYPE → GO TO EARNINGS
+        if not found_other_earnings:
             earnings_columns.append({
-                "label": comp.name,
-                "fieldname": comp.name.lower().replace(" ", "_"),
+                "label": comp,
+                "fieldname": fieldname,
                 "fieldtype": "Currency",
-                "width": 250
+                "width": calculated_width
             })
-        elif comp.type == "Deduction":
+
+            #? FLIP FLAG IF "Other Earnings" FOUND
+            if comp == "Other Earnings":
+                found_other_earnings = True
+
+        else:
+            #! AFTER "Other Earnings" FOUND → ADD TO DEDUCTIONS
             deduction_columns.append({
-                "label": comp.name,
-                "fieldname": comp.name.lower().replace(" ", "_"),
+                "label": comp,
+                "fieldname": fieldname,
                 "fieldtype": "Currency",
-                "width": 250
+                "width": calculated_width
             })
 
     columns.extend(earnings_columns)  # * ADD EARNINGS
     columns.append({"label": "Gross Pay", "fieldname": "gross_pay", "fieldtype": "Currency", "width": 120})
     columns.extend(deduction_columns)  # * ADD DEDUCTIONS
     columns.append({"label": "Total Deductions", "fieldname": "total_deduction", "fieldtype": "Currency", "width": 200})
-    columns.append({"label": "Net Pay", "fieldname": "net_pay", "fieldtype": "Currency", "width": 120})
     columns.append({"label": "Salary Loan", "fieldname": "salary_loan", "fieldtype":"Currency", "width":200})
+    columns.append({"label": "Net Pay", "fieldname": "net_pay", "fieldtype": "Currency", "width": 120})
 
     return columns
 
@@ -129,7 +147,7 @@ def get_data(filters):
             work_location = frappe.db.get_value("Address", employee.custom_work_location, "address_title")
 
         # ? GET REMUNERATION FROM SALARY STRUCTURE ASSIGNMENT
-        remuneration_amount = employee.ctc
+        remuneration_amount = frappe.db.get_value("Salary Structure Assignment", slip.custom_salary_structure_assignment, "base") or 0
         # * BUILD ROW DATA
         row = {
             "salary_slip": slip.name,
@@ -158,7 +176,7 @@ def get_data(filters):
             "gross_pay": slip.gross_pay,
             "total_deduction": slip.total_deduction,
             "net_pay": slip.net_pay,
-            "salary_loan": slip.total_loan_repayment
+            "salary_loan": slip.total_loan_repayment,
         }
 
         # * MAP SALARY COMPONENTS TO COLUMNS
@@ -169,9 +187,16 @@ def get_data(filters):
         )
 
         for comp in components:
-            key = comp.salary_component.lower().replace(" ", "_")
-            row[key] = comp.amount
+            salary_component_type = frappe.db.get_value("Salary Component", comp.salary_component, "custom_salary_component_type")
 
-        data.append(row)  # > ADD ROW TO FINAL DATA
+            if not salary_component_type:
+                continue  #! SKIP IF FIELD IS EMPTY OR NULL
+
+            key = salary_component_type.lower().replace(" ", "_")
+
+            #! SAFELY INITIALIZE THE FIELD IF NOT PRESENT
+            row[key] = row.get(key, 0) + comp.amount
+
+        data.append(row)
 
     return data
