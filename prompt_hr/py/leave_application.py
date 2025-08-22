@@ -715,6 +715,9 @@ def get_additional_days(leave_type_doc, employee, from_date, to_date, number_of_
     if not holiday_list:
         holiday_list = get_holiday_list_for_employee(employee)
 
+    if leave_type_doc.include_holiday:
+        return number_of_days
+
     holiday_list_doc = frappe.get_doc("Holiday List", holiday_list)
     all_holidays = list(get_holiday_dates_for_employee(
         employee,
