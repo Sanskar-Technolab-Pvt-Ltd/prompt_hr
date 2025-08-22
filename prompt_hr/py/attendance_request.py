@@ -59,10 +59,8 @@ def validate(doc, event):
                     fallback_subject="Attendance Request Status Changed",
                     fallback_message=f"<p>Dear User,<br> The status of an attendance request has been changed from <b>{old_status}</b> to <b>{doc.custom_status}</b>. Please take note.</p>",
                 )
-            else:
-                frappe.throw(
-                    f"Employee {doc.employee} does not have a preferred email set."
-                )
+            else: #*Changed by Ayush
+                frappe.msgprint(f"No Email Sent Because Employee {doc.employee} does not have a preferred email set.")                
     except Exception as e:
         frappe.log_error(
             f"Error while validating Attendance Request status change: {str(e)}",

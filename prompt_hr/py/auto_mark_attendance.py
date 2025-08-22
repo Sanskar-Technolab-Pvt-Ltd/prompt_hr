@@ -244,6 +244,7 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                             )
                     else:
                         grace_time_period_for_late_coming = employee_data.get("late_entry_grace_period", 0)
+                        print(f"\n\n grace_time_period_for_late_coming {grace_time_period_for_late_coming}\n\n")                        
                         attendance(
                             employee_data,
                             mark_attendance_date,
@@ -460,11 +461,14 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
         
         
         if prompt and is_overtime_applicable:
+            
             if is_half_day:
                 ot_duration = overtime_duration(out_datetime, shift_end_datetime, is_half_day = 1)
             else:
                 ot_duration = overtime_duration(out_datetime, shift_end_time)
-                
+            
+            print(f"\n\n OT DURATION  {employee_data.get('name')} {ot_duration}\n\n")
+            frappe.log_error(f"OT DURATION {employee_data.get('name')}", f"\n\n OT DURATION  {employee_data.get('name')} {ot_duration}\n\n")    
         
         if not is_half_day:
             late_entry_and_apply_penalty = is_late_entry(in_datetime, shift_start_time, grace_time_period_for_late_coming)
@@ -678,6 +682,7 @@ def is_late_entry(employee_in_datetime, shift_start_time, grace_time , is_half_d
     time_diff = employee_in_datetime - shift_start_datetime
     late_minutes = int(time_diff.total_seconds() // 60)
     # ? ADD LATE MINUTES WITH GRACE TIME TO CHECK IF THE EMPLOYEE IS LATE ENTRY ONLY OR LATE ENTRY WITH PENALTY
+    
     return {"is_late_entry": 1 if late_minutes > grace_time else 0, "apply_penalty": 1 if late_minutes > grace_time else 0, "is_late_entry_with_grace_period": 1 if late_minutes > 0 else 0}
     
 
