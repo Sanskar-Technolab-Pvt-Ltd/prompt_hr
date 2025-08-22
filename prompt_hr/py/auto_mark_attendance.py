@@ -200,9 +200,9 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
             if not employee_list:
                 frappe.log_error("Error in mark_attendance_for_prompt", "No Employee Found")    
             
-            grace_time_for_insufficient_hours_for_prompt = frappe.db.get_single_value("HR Settings", "custom_daily_hours_criteria_for_penalty_for_prompt") or 0
-            
-            grace_time_period_for_late_coming_for_indifoss = frappe.db.get_single_value("HR Settings", "custom_grace_time_period_for_late_coming_for_indifoss") or 0
+        grace_time_for_insufficient_hours_for_prompt = frappe.db.get_single_value("HR Settings", "custom_daily_hours_criteria_for_penalty_for_prompt") or 0
+        
+        grace_time_period_for_late_coming_for_indifoss = frappe.db.get_single_value("HR Settings", "custom_grace_time_period_for_late_coming_for_indifoss") or 0
             
         
         mark_attendance_date = getdate(attendance_date) if attendance_date else getdate(today())
@@ -256,7 +256,7 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                             indifoss = indifoss
                         )
         elif regularize_attendance:
-            if employee_data.get("company") != indifoss_company_id:
+            if not indifoss:
                 grace_time_period_for_late_coming = employee_data.get("late_entry_grace_period", 0)
             attendance(
                             employee_data,
