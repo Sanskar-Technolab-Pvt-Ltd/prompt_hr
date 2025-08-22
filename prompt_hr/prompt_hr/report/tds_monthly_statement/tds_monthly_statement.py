@@ -56,7 +56,7 @@ def execute(filters=None):
                 income_tax += detail.amount
             elif salary_comp.custom_salary_component_type == "Surcharge":
                 surcharge += detail.amount
-            elif salary_comp.custom_salary_component_type == "Cess":
+            elif salary_comp.custom_salary_component_type == "Education Cess":
                 cess += detail.amount
 
         total_tax = income_tax + surcharge + cess
