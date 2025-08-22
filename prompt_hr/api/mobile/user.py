@@ -37,7 +37,7 @@ def list(
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Getting User List: {str(e)}",
+            "message": f"While Getting User List: {str(e)}",
             "data": None,
         }
 

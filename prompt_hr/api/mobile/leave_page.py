@@ -106,7 +106,7 @@ def get(**args):
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error Running Report: {str(e)}",
+            "message": f"Running Report: {str(e)}",
             "data": None
         }
     else:
