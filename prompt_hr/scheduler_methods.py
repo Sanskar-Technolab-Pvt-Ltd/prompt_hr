@@ -2924,8 +2924,8 @@ def daily_attendance_request_rituals():
 
     # ? ATTENDANCE CAPTURE SCHEME MAP BASED ON WORK MODE
     attendance_capture_scheme_map = {
-        "Work From Home": "Web Checkin-Checkout",
-        "On Duty": "Mobile Clockin-Clockout",
+        "Work From Home": "Mobile-Web Checkin-Checkout",
+        "On Duty": "Mobile-Web Checkin-Checkout",
     }
 
     # ? CREATE EMPLOYEE HASHMAP FOR QUICK ACCESS (NAME AS KEY AND SCHEME AS VALUE)
@@ -2963,16 +2963,6 @@ def daily_attendance_request_rituals():
                     "Employee", employee, "custom_attendance_capture_scheme", scheme
                 )
                 frappe.db.commit()
-
-        elif not attendance_request and scheme in [
-            "Mobile Clockin-Clockout",
-            "Web Checkin-Checkout",
-        ]:
-            # ? IF NO ATTENDANCE REQUEST EXISTS FOR THE EMPLOYEE, SET THE SCHEME TO BIOMETRIC
-            frappe.db.set_value(
-                "Employee", employee, "custom_attendance_capture_scheme", "Biometric"
-            )
-            frappe.db.commit()
 
 
 """
