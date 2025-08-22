@@ -56,7 +56,7 @@ def list(
         frappe.log_error("Error While Getting Cost Center List", str(e))
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Getting Cost Center List: {str(e)}",
+            "message": f"While Getting Cost Center List: {str(e)}",
             "data": None,
         }
     else:

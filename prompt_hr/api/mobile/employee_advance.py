@@ -305,7 +305,7 @@ def mode_of_payment_list(
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Getting Mode of Payment List: {str(e)}",
+            "message": f"While Getting Mode of Payment List: {str(e)}",
             "data": None,
         }
 
