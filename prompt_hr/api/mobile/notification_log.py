@@ -57,7 +57,7 @@ def list(
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Getting Notification Log List: {str(e)}",
+            "message": f"While Getting Notification Log List: {str(e)}",
             "data": None,
         }
         
@@ -138,7 +138,7 @@ def mark_all_as_read(user):
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Marking All Notifications as Read: {str(e)}",
+            "message": f"While Marking All Notifications as Read: {str(e)}",
             "data": None,
         }
     else:

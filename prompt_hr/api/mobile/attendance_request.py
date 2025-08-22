@@ -41,7 +41,7 @@ def list(
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Getting Attendance Request List: {str(e)}",
+            "message": f"While Getting Attendance Request List: {str(e)}",
             "data": None,
         }
 
@@ -140,7 +140,7 @@ def create(**args):
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Creating Attendance Request: {str(e)}",
+            "message": f"While Creating Attendance Request: {str(e)}",
             "data": None,
         }
 
@@ -180,7 +180,7 @@ def update(**args):
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Updating Attendance Request: {str(e)}",
+            "message": f"While Updating Attendance Request: {str(e)}",
             "data": None,
         }
 
@@ -219,7 +219,7 @@ def delete(name=None):
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Deleting Attendance Request: {str(e)}",
+            "message": f"While Deleting Attendance Request: {str(e)}",
             "data": None,
         }
 

@@ -241,7 +241,7 @@ def get(
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Getting Leaves days: {str(e)}",
+            "message": f"While Getting Leaves days: {str(e)}",
             "data": None,
         }
 
@@ -421,7 +421,7 @@ def get_additional_days(
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Getting Leaves days: {str(e)}",
+            "message": f"While Getting Leaves days: {str(e)}",
             "data": None,
         }
 
