@@ -73,7 +73,6 @@ frappe.query_reports["PF ECR Challan Excel"] = {
 
             // 3. Format as text with #~# separator
             let lines = [];
-            lines.push(columns.join("#~#")) ;
             data.forEach(row => {
 				const rowText = Object.values(row).map(val => {
 					// If value is null, undefined, or empty string

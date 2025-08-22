@@ -17,9 +17,9 @@ def execute(filters=None):
         {"label": "EPF WAGES", "fieldname": "epf_wages", "fieldtype": "Currency", "width": 200},
         {"label": "EPS WAGES", "fieldname": "eps_wages", "fieldtype": "Currency", "width": 200},
         {"label": "EDLI WAGES", "fieldname": "edli_wages", "fieldtype": "Currency", "width": 200},
-        {"label": "EE SHARE REMITTED", "fieldname": "ee_share_remitted", "fieldtype": "Currency", "width": 200},
-        {"label": "EPS CONTRIBUTION REMITTED", "fieldname": "eps_contribution_remitted", "fieldtype": "Currency", "width": 200},
-        {"label": "ER SHARE REMITTED", "fieldname": "er_share_remitted", "fieldtype": "Currency", "width": 200},
+        {"label": "EPF CONTRI REMITTED", "fieldname": "ee_share_remitted", "fieldtype": "Currency", "width": 200},
+        {"label": "EPS CONTRI REMITTED", "fieldname": "eps_contribution_remitted", "fieldtype": "Currency", "width": 200},
+        {"label": "EPF EPS DIFF REMITTED", "fieldname": "er_share_remitted", "fieldtype": "Currency", "width": 200},
         {"label": "NCP DAYS", "fieldname": "ncp_days", "fieldtype": "Int", "width": 120},
         {"label": "REFUNDS", "fieldname": "refund_of_advance", "fieldtype": "Data", "editable":1, "width": 150},
     ]
@@ -55,19 +55,16 @@ def execute(filters=None):
 
         )
         basic = 0
-        dearness_allowance = 0
         provident_fund = 0
         if salary_details:
             for salary_detail in salary_details:
                 salary_comp = frappe.get_doc("Salary Component", salary_detail.salary_component)
                 if salary_comp.custom_salary_component_type == "Basic Salary":
                     basic += salary_detail.amount
-                elif salary_comp.custom_salary_component_type == "Dearness Allowance":
-                    dearness_allowance += salary_detail.amount
                 elif salary_comp.custom_salary_component_type == "PF Employee Contribution" and salary_detail.parentfield=="deductions":
                     provident_fund += salary_detail.amount
-        
-        epf_wages = basic + dearness_allowance
+
+        epf_wages = basic
         if epf_wages > 15000:
             eps_wages = 15000
         else:
@@ -78,13 +75,13 @@ def execute(filters=None):
             row = {
                 "employee_number": employee.custom_uan_number,
                 "employee_name": slip.employee_name,
-                "gross_wages": slip.gross_pay,
-                "epf_wages":epf_wages,
-                "eps_wages": eps_wages,
-                "edli_wages": epf_wages,
-                "ee_share_remitted": ee_share_remitted,
-                "eps_contribution_remitted":eps_contribution_remitted,
-                "er_share_remitted": ee_share_remitted - eps_contribution_remitted,
+                "gross_wages": round(slip.gross_pay),
+                "epf_wages": round(epf_wages),
+                "eps_wages": round(eps_wages),
+                "edli_wages": round(eps_wages),
+                "ee_share_remitted": round(ee_share_remitted),
+                "eps_contribution_remitted": round(eps_contribution_remitted),
+                "er_share_remitted": round(ee_share_remitted - eps_contribution_remitted),
                 "ncp_days": slip.leave_without_pay,
                 "refund_of_advance": 0,
             }

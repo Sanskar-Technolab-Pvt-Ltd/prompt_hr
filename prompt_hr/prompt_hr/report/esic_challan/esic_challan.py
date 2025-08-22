@@ -77,16 +77,12 @@ def get_data(filters):
     for slip_data in slip_datas:
         employee = frappe.get_doc("Employee", slip_data.employee)
         relieving_date = getdate(employee.relieving_date) if employee.relieving_date else None
-        retirement_date = getdate(employee.date_of_retirement) if employee.date_of_retirement else None
 
         #! DEFAULT REASON CODE
         reason_code = ""
         last_working_day = ""
 
-        if slip_data.payment_days == slip_data.total_working_days:
-            reason_code = "0"
-
-        elif slip_data.payment_days == 0:
+        if slip_data.payment_days == 0:
             #? REASON 1 - ZERO WORKING DAYS
             reason_code = "1"
             slip_data.gross_pay = 0
@@ -97,11 +93,6 @@ def get_data(filters):
             reason_code = "2"
             last_working_day = relieving_date
 
-        elif retirement_date and from_date <= retirement_date <= to_date:
-            #? REASON 3 - RETIRED THIS MONTH
-            reason_code = "3"
-            last_working_day = retirement_date
-
         #! FILTER BY SALARY STRUCTURE ASSIGNMENT AND BASE CONDITION
         if slip_data.custom_salary_structure_assignment:
             salary_structure_assignment = frappe.get_doc(
@@ -109,12 +100,29 @@ def get_data(filters):
                 slip_data.custom_salary_structure_assignment
             )
 
-            if salary_structure_assignment.base >= 21000:
+            # ? SHOW IN REPORT ONLY IF EMPLOYEE BASE SALARY <= 21000
+            if salary_structure_assignment.base <= 21000:
+                # ? INITIAL GROSS PAY
+                gross_pay = slip_data.gross_pay
+                salary_details  = frappe.get_all(
+                    "Salary Detail",
+                    filters={
+                        "parent": slip_data.name,
+                        "parentfield": "earnings",
+                    },
+                    fields=["salary_component", "amount"]
+                )
+                for salary_detail in salary_details:
+                    salary_component = frappe.get_doc("Salary Component", salary_detail.salary_component)
+                    # ? SEPARATE LEAVE ENCASHMENT AMOUNT FROM TOTAL GROSS WAGES
+                    if salary_component.custom_salary_component_type == "Leave Encashment":
+                        gross_pay -= salary_detail.amount
+
                 row = {
                     "ip_number": employee.custom_esic_ip_number,
                     "ip_name": slip_data.employee_name,
                     "total_no_of_days": slip_data.payment_days,
-                    "total_monthly_wages": slip_data.gross_pay,
+                    "total_monthly_wages": round(gross_pay),
                     "reason": reason_code,
                     "last_working_day": last_working_day
                 }

@@ -160,6 +160,12 @@ def on_submit(doc,method=None):
                                     })
                                     prev_allocation = frappe.get_doc("Leave Allocation", existing_allocation[0].name)
                                     prev_allocation.db_set("to_date", doc.to_date)
+                                    #! UPDATE RELATED LEAVE LEDGER ENTRIES ALSO  
+                                    frappe.db.set_value(
+                                        "Leave Ledger Entry",              #? TARGET DOCTYPE  
+                                        {"transaction_name": prev_allocation.name, "transaction_type": "Leave Allocation"},  
+                                        "to_date", doc.to_date             #! UPDATE END DATE  
+                                    )
                                     allocation.insert(ignore_permissions=True)
                                     allocation.submit()
                     else:
@@ -176,6 +182,12 @@ def on_submit(doc,method=None):
                                     })
                         prev_allocation = frappe.get_doc("Leave Allocation", existing_allocation[0].name)
                         prev_allocation.db_set("to_date", doc.to_date)
+                        #! UPDATE RELATED LEAVE LEDGER ENTRIES ALSO  
+                        frappe.db.set_value(
+                            "Leave Ledger Entry",              #? TARGET DOCTYPE  
+                            {"transaction_name": prev_allocation.name, "transaction_type": "Leave Allocation"},  
+                            "to_date", doc.to_date             #! UPDATE END DATE  
+                        )
                         allocation.insert(ignore_permissions=True)
 
                         allocation.submit()
@@ -963,6 +975,13 @@ def custom_get_leave_details(employee, date, for_salary_slip=False):
 			to_date=to_date,
 			consider_all_leaves_in_the_allocation_period=not for_salary_slip,
 		)
+		#! FETCH LEAVE TYPE DETAILS IF DEFINED
+		if allocation.get("leave_type"):
+			is_maternity = frappe.db.get_value("Leave Type", allocation.get("leave_type"), "custom_is_maternity_leave")
+			is_paternity = frappe.db.get_value("Leave Type", allocation.get("leave_type"), "custom_is_paternity_leave")
+			if is_maternity or is_paternity:
+				leaves_start_date = min(leaves_start_date, allocation.get("from_date"))
+				leaves_end_date = min(leaves_end_date, allocation.get("to_date"))
 
 		#! FETCH ALL POSITIVE LEAVE ALLOCATIONS FROM LEDGER
 		leave_ledger_entry = frappe.get_all(
