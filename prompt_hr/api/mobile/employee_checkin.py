@@ -171,7 +171,6 @@ def create(**args):
                 f"Employee {emp_doc.name} is not allowed for Checkin. "
             )
 
-
         # Ignore permissions (because scheme is already validated)
         employee_checkin_doc.flags.ignore_permissions = True
 
