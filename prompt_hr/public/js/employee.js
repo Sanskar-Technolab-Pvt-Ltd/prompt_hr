@@ -125,15 +125,6 @@ frappe.ui.form.on("Employee", {
             });
         }, __("Release Letters"));
 
-        if (frm.doc.custom_state) {
-            frm.set_query("custom_festival_holiday_list", () => {
-                return {
-                    filters: {
-                        state: frm.doc.custom_state
-                    }
-                };
-            });
-        }
     },
     custom_current_country (frm) {
         set_state_options(frm, "custom_current_state", "custom_current_country");
