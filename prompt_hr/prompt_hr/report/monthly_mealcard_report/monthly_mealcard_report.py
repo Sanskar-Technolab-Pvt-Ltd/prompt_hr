@@ -115,7 +115,6 @@ def get_data(filters):
             "Salary Detail",
             filters={
                 "parent": slip.name,
-                "parentfield": "earnings"
             },
             fields=["salary_component", "amount"]
         )
@@ -127,19 +126,19 @@ def get_data(filters):
 
         for detail in salary_details:
             salary_comp = frappe.get_doc("Salary Component", detail.salary_component)
-            if salary_comp.custom_salary_component_type == "Petrol Allowance":
+            if salary_comp.custom_salary_component_type == "Fuel Coupan - Deduction":
                 fuel_amount += detail.amount
-            elif salary_comp.custom_salary_component_type == "Professional Attire & Development Allowance":
+            elif salary_comp.custom_salary_component_type == "Professional Attire Coupan - Deduction":
                 attire_amount += detail.amount
-            elif salary_comp.custom_salary_component_type == "Meal Coupon":
+            elif salary_comp.custom_salary_component_type == "Meal Coupan - Deduction":
                 meal_amount += detail.amount
-            elif salary_comp.custom_salary_component_type == "Mobile & Internet Allowance":
+            elif salary_comp.custom_salary_component_type == "Telephone Coupan - Deduction":
                 telecom_amount += detail.amount
 
         if (
             employee.status == "Active"
             and (
-                employee.custom_mobile_and_internet_card_consent
+                employee.custom_telephone_reimbursement_applicable
                 or employee.custom_fuel_card_consent
                 or employee.custom_attire_card_consent
                 or employee.custom_meal_card_consent
