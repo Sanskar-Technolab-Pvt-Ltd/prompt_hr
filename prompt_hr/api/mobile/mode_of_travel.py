@@ -35,7 +35,7 @@ def get(employee=None, company=None):
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Getting Travel Modes: {str(e)}",
+            "message": f"While Getting Travel Modes: {str(e)}",
             "data": None,
         }
 

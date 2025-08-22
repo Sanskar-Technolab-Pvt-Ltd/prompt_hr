@@ -41,7 +41,7 @@ def list(
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Getting Attendance List: {str(e)}",
+            "message": f"While Getting Attendance List: {str(e)}",
             "data": None,
         }
 
@@ -151,7 +151,7 @@ def attendance_calendar_list(
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Getting Attendance List: {str(e)}",
+            "message": f"While Getting Attendance List: {str(e)}",
             "data": None,
         }
 
