@@ -113,6 +113,10 @@ def on_update(doc, method):
 
     handle_sales_person_operations_on_update(doc, method)
 
+    # ? FETCH FROM HR SETTING LEAVE POLICY ASSIGNMENT ALLOWED FROM EMPLOYEE MASTER
+    is_leave_policy_assigned_from_employee_master = frappe.db.get_single_value(
+        "HR Settings", "custom_allow_leave_policy_assignment_from_employee_master"
+    )
     # ? CREATE WELCOME PAGE IF NOT EXISTS
     if doc.user_id:
         if not frappe.db.exists("Welcome Page", {"user": doc.user_id}):
@@ -124,7 +128,8 @@ def on_update(doc, method):
         # ? IF POLICY ASSIGNMENT IS BASED ON JOINING DATE
         if doc.custom_leave_policy_assignment_based_on_joining:
             # ? CREATE ASSIGNMENT BASED ON JOINING DATE (NO LEAVE PERIOD REQUIRED)
-            create_leave_policy_assignment(doc, 1)
+            if is_leave_policy_assigned_from_employee_master:
+                create_leave_policy_assignment(doc, 1)
 
         else:
             # ? FIND CURRENT ACTIVE LEAVE PERIOD (CONTAINING TODAY)
@@ -142,7 +147,8 @@ def on_update(doc, method):
 
             # ? ASSIGN POLICY IF ACTIVE LEAVE PERIOD IS FOUND
             if active_leave_period:
-                create_leave_policy_assignment(doc, 0, active_leave_period[0].get("name"))
+                if is_leave_policy_assigned_from_employee_master:
+                    create_leave_policy_assignment(doc, 0, active_leave_period[0].get("name"))
             else:
                 # ! THROW ERROR IF NO VALID ACTIVE LEAVE PERIOD EXISTS
                 frappe.throw(_("Cannot assign leave policy as there is no active Leave Period for the current date."))
