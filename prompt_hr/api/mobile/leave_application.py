@@ -71,7 +71,7 @@ def list(
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Getting Leave Application List: {str(e)}",
+            "message": f"While Getting Leave Application List: {str(e)}",
             "data": None,
         }
 
@@ -180,7 +180,7 @@ def create(**args):
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Creating Leave Application: {str(e)}",
+            "message": f"While Creating Leave Application: {str(e)}",
             "data": None,
         }
 
@@ -234,7 +234,7 @@ def update(**args):
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Updating Leave Application: {str(e)}",
+            "message": f"While Updating Leave Application: {str(e)}",
             "data": None,
         }
 
@@ -269,7 +269,7 @@ def delete(name=None):
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Deleting Leave Application: {str(e)}",
+            "message": f"While Deleting Leave Application: {str(e)}",
             "data": None,
         }
 
@@ -322,7 +322,7 @@ def leave_type_list(
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Getting Leave Type List: {str(e)}",
+            "message": f"While Getting Leave Type List: {str(e)}",
             "data": None,
         }
 

@@ -31,6 +31,7 @@
    "fetch_from": "employee.employee_name",
    "fieldname": "employee_name",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Employee Name"
   },
   {
@@ -90,7 +91,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-22 15:36:09.561101",
+ "modified": "2025-08-23 22:10:05.904390",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Attendance Regularization",

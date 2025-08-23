@@ -67,7 +67,7 @@ def list(
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Getting Employee Checkin List: {str(e)}",
+            "message": f"While Getting Employee Checkin List: {str(e)}",
             "data": None,
         }
 
@@ -150,21 +150,40 @@ def create(**args):
         if not args.get("time"):
             args["time"] = frappe.utils.now_datetime()
             
+        # ? FETCH EMPLOYEE DOC
+        emp_doc = frappe.get_doc("Employee", args.get("employee"))    
+        
         # ? CREATE EMPLOYEE CHECKIN DOC
         employee_checkin_doc = frappe.get_doc({
             "doctype": "Employee Checkin",
             **args
         })
+        
+        # ? IGNORE PERMISSIONS IF SCHEME MATCHES
+        allowed_schemes = [
+            "Biometric-Mobile Checkin-Checkout",
+            "Mobile-Web Checkin-Checkout",
+            "Geofencing"
+        ]
+         # ? VALIDATE SCHEME
+        if emp_doc.custom_attendance_capture_scheme not in allowed_schemes:
+            frappe.throw(
+                f"Employee {emp_doc.name} is not allowed for Checkin. "
+            )
+
+        # Ignore permissions (because scheme is already validated)
+        employee_checkin_doc.flags.ignore_permissions = True
+
         employee_checkin_doc.insert()
         frappe.db.commit()
 
     except Exception as e:
         # ? HANDLE ERRORS
-        frappe.log_error("Error While Creating Employee Checkin", str(e))
+        # frappe.log_error("Error While Creating Employee Checkin", str(e))
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Creating Employee Checkin: {str(e)}",
+            "message": f"{str(e)}",
             "data": None,
         }
 
@@ -230,7 +249,7 @@ def checking_log(
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Getting Employee Checkin List: {str(e)}",
+            "message": f"While Getting Employee Checkin List: {str(e)}",
             "data": None,
         }
 
@@ -239,5 +258,41 @@ def checking_log(
             "success": True,
             "message": "Latest Employee Checkin Loaded Successfully!",
             "data": employee_checkin_list,
+        }
+        
+        
+# ! prompt_hr.api.mobile.employee_checkin.check_button_status
+# ? CHECK IF EMPLOYEE IS ALLOWED FOR CHECKIN BUTTON
+
+@frappe.whitelist()
+def check_button_status(employee):
+    try:
+        # ? FETCH EMPLOYEE DOC
+        emp_doc = frappe.get_doc("Employee", employee)
+
+        # ? DEFINE ALLOWED SCHEMES
+        allowed_schemes = [
+            "Biometric-Mobile Checkin-Checkout",
+            "Mobile-Web Checkin-Checkout",
+            "Geofencing"
+        ]
+
+        # ? CHECK IF SCHEME IS ALLOWED
+        button_visible = emp_doc.custom_attendance_capture_scheme in allowed_schemes
+
+        frappe.local.response["message"] = {
+            "success": True,
+            "button_visible": button_visible,
+            "employee": emp_doc.name,
+            # "scheme": emp_doc.custom_attendance_capture_scheme,
+        }
+
+    except Exception as e:
+        frappe.clear_messages()
+        frappe.local.response["message"] = {
+            "success": False,
+            "button_visible": False,
+            # "message": f"{str(e)}",
+            "employee": employee,
         }
         

@@ -62,7 +62,7 @@ def list(
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Getting WeekOff Change Request List: {str(e)}",
+            "message": f"While Getting WeekOff Change Request List: {str(e)}",
             "data": None,
         }
 
@@ -155,7 +155,7 @@ def create(**args):
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Creating WeekOff Change Request: {str(e)}",
+            "message": f"While Creating WeekOff Change Request: {str(e)}",
             "data": None,
         }
 
@@ -197,7 +197,7 @@ def update(**args):
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Updating WeekOff Change Request: {str(e)}",
+            "message": f"While Updating WeekOff Change Request: {str(e)}",
             "data": None,
         }
 
@@ -232,7 +232,7 @@ def delete(name=None):
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Deleting WeekOff Change Request: {str(e)}",
+            "message": f"While Deleting WeekOff Change Request: {str(e)}",
             "data": None,
         }
 

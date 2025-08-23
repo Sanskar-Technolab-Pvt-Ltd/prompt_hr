@@ -53,7 +53,7 @@ def get(company, employee, leave_type):
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Getting Holiday List: {str(e)}",
+            "message": f"While Getting Holiday List: {str(e)}",
             "data": None,
         }
 

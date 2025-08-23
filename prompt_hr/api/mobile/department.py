@@ -41,7 +41,7 @@ def list(
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Getting Department List: {str(e)}",
+            "message": f"While Getting Department List: {str(e)}",
             "data": None,
         }
 

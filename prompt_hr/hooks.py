@@ -80,7 +80,8 @@ doctype_js = {
 doctype_list_js = {
     "Job Applicant": "public/js/job_applicant_list.js",
     "Attendance": "public/js/attendance_list.js",
-    "Leave Application": "public/js/leave_application_list.js"
+    "Leave Application": "public/js/leave_application_list.js",
+    "Employee Checkin": "public/js/employee_checkin_list.js"
 }
 
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -181,6 +182,7 @@ override_doctype_class = {
     "Payroll Entry": "prompt_hr.overrides.payroll_entry_override.CustomPayrollEntry",
     "Compensatory Leave Request": "prompt_hr.overrides.compensatory_leave_request_override.CustomCompensatoryLeaveRequest",
     'Process Loan Interest Accrual': 'prompt_hr.overrides.process_loan_interest_accrual_override.CustomProcessLoanInterestAccrual',
+    "Leave Encashment": "prompt_hr.overrides.leave_encashment_override.CustomLeaveEncashment",
     "Leave Application": "prompt_hr.overrides.leave_application_override.CustomLeaveApplication",
 }
 
@@ -280,7 +282,8 @@ doc_events = {
         "on_cancel": "prompt_hr.py.expense_claim.update_amount_in_marketing_planning",
     },
     "Employee Tax Exemption Declaration": {
-        "before_save": "prompt_hr.py.income_tax_computation.before_save"
+        "before_save": "prompt_hr.py.income_tax_computation.before_save",
+        "on_submit": "prompt_hr.py.income_tax_computation.on_submit"
     },
     "Full and Final Statement": {
         "on_update": "prompt_hr.py.full_and_final_statement.on_update",
@@ -321,6 +324,9 @@ doc_events = {
     },
     "Income Tax Slab": {
         "validate": "prompt_hr.py.income_tax_slab.validate",
+    },
+    "Employee Checkin": {
+        "before_insert": "prompt_hr.py.employee_checkin.before_insert"
     }
 }
 
@@ -338,6 +344,9 @@ scheduler_events = {
         ],
         "0 8 * * *":[
             "prompt_hr.scheduler_methods.send_attendance_issue"
+        ],
+        "30 23 * * *": [
+            "prompt_hr.scheduler_methods.auto_attendance"
         ]
     },
     "daily": [

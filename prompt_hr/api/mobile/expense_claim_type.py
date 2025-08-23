@@ -41,7 +41,7 @@ def list(
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Getting Expense Claim Type List: {str(e)}",
+            "message": f"While Getting Expense Claim Type List: {str(e)}",
             "data": None,
         }
 

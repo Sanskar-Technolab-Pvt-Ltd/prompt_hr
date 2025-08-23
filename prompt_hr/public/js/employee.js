@@ -31,6 +31,18 @@ frappe.ui.form.on("Employee", {
         set_text_field_height();
 
         addEmployeeDetailsChangesButton(frm);
+        frappe.db.get_value('Employee', {'name': frm.doc.name}, 'user_id').then(r => {
+            if (!frappe.user_roles.includes("S - HR Director (Global Admin)") && !frappe.user_roles.includes("System Manager")) {
+                if (frappe.session.user != r.message.user_id) {
+                    const fields_to_hidden = ["salary_currency", "custom_salary_structure_based_on", "ctc", "custom_gross_salary", "payroll_cost_center", "salary_mode", "pan_number", "provident_fund_account", "custom_esi_number", "custom_esic_ip_number", "custom_uan_number", "custom_aadhaar_number", "custom_name_as_per_aadhaar", "custom_pran_number", "custom_mealcard_ref_number", "custom_mealcard_number", "custom_income_tax_regime", "custom_consents", "bank_details_section", "custom_nominee_details_section", "health_insurance_section", "custom_submitted_document", "passport_details_section", "marital_status", "custom_religion", "family_background", "blood_group", "health_details", "custom_physically_handicaped", "bio", "custom_expense_details", "new_workplace", "leave_encashed", "encashment_date", "custom_ff_settlement_date", "custom_is_fit_to_be_rehired", "held_on", "custom_is_notice_period_served", "reason_for_leaving", "feedback", "custom_is_overtime_applicable", "approvers_section", "custom_probation_extension", "custom_probation_details", "custom_section_break_mm3qg", "custom_mrf_id", "scheduled_confirmation_date", "job_applicant", "custom_contract_start_date", "custom_contract_start_date", "date_of_retirement"]
+                    fields_to_hidden.forEach(field => {
+                        frm.set_df_property(field, "hidden", 1);
+                    });
+                }
+            }
+        });
+
+
         frm.set_query("custom_leave_policy", () => {
             return {
                 query:"prompt_hr.overrides.leave_policy_assignment_override.filter_leave_policy_for_display",
@@ -78,62 +90,56 @@ frappe.ui.form.on("Employee", {
                     console.error("Error fetching Department Type:", err);
                 });
         }
-        frm.add_custom_button(__("Release Service Level Agreement"), function () {
-            frappe.dom.freeze(__('Releasing Letter...'));
-            frappe.call({
-                method: "prompt_hr.py.employee.send_service_agreement",
-                args: { name: frm.doc.name },
-                callback: function (r) {
-                    if (r.message) {
-                        frappe.msgprint(r.message);
+        // ? ONLY VISIBLE TO HR MANAGER, HR USER AND SYSTEM MANAGER
+        if (frappe.user_roles.includes("S - HR Director (Global Admin)") || frappe.user_roles.includes("System Manager")) {
+            frm.add_custom_button(__("Release Service Level Agreement"), function () {
+                frappe.dom.freeze(__('Releasing Letter...'));
+                frappe.call({
+                    method: "prompt_hr.py.employee.send_service_agreement",
+                    args: { name: frm.doc.name },
+                    callback: function (r) {
+                        if (r.message) {
+                            frappe.msgprint(r.message);
+                        }
+                    },
+                    always: function () {
+                        frappe.dom.unfreeze();
                     }
-                },
-                always: function () {
-                    frappe.dom.unfreeze();
-                }
-            });
-        }, __("Release Letters"));
+                });
+            }, __("Release Letters"));
 
-        frm.add_custom_button(__("Release Confirmation Letter"), function () {
-            frappe.dom.freeze(__('Releasing Letter...'));
-            frappe.call({
-                method: "prompt_hr.py.employee.send_confirmation_letter",
-                args: { name: frm.doc.name },
-                callback: function (r) {
-                    if (r.message) {
-                        frappe.msgprint(r.message);
+            frm.add_custom_button(__("Release Confirmation Letter"), function () {
+                frappe.dom.freeze(__('Releasing Letter...'));
+                frappe.call({
+                    method: "prompt_hr.py.employee.send_confirmation_letter",
+                    args: { name: frm.doc.name },
+                    callback: function (r) {
+                        if (r.message) {
+                            frappe.msgprint(r.message);
+                        }
+                    },
+                    always: function () {
+                        frappe.dom.unfreeze();
                     }
-                },
-                always: function () {
-                    frappe.dom.unfreeze();
-                }
-            });
-        }, __("Release Letters"));
-        frm.add_custom_button(__("Release Probation Extension Letter"), function () {
-            frappe.dom.freeze(__('Releasing Letter...'));
-            frappe.call({
-                method: "prompt_hr.py.employee.send_probation_extension_letter",
-                args: { name: frm.doc.name },
-                callback: function (r) {
-                    if (r.message) {
-                        frappe.msgprint(r.message);
+                });
+            }, __("Release Letters"));
+            frm.add_custom_button(__("Release Probation Extension Letter"), function () {
+                frappe.dom.freeze(__('Releasing Letter...'));
+                frappe.call({
+                    method: "prompt_hr.py.employee.send_probation_extension_letter",
+                    args: { name: frm.doc.name },
+                    callback: function (r) {
+                        if (r.message) {
+                            frappe.msgprint(r.message);
+                        }
+                    },
+                    always: function () {
+                        frappe.dom.unfreeze();
                     }
-                },
-                always: function () {
-                    frappe.dom.unfreeze();
-                }
-            });
-        }, __("Release Letters"));
-
-        if (frm.doc.custom_state) {
-            frm.set_query("custom_festival_holiday_list", () => {
-                return {
-                    filters: {
-                        state: frm.doc.custom_state
-                    }
-                };
-            });
+                });
+            }, __("Release Letters"));
         }
+
     },
     custom_current_country (frm) {
         set_state_options(frm, "custom_current_state", "custom_current_country");

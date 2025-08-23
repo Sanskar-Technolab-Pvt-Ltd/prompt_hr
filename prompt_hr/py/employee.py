@@ -67,6 +67,8 @@ def create_welcome_status(user_id, company):
 # ? EMPLOYEE BEFORE INSERT HOOK
 def before_insert(doc, method):
     custom_autoname_employee(doc)
+    validate_create_checkin_role(doc)
+
     # ? SET IMPREST ALLOCATION AMOUNT FROM EMPLOYEE ONBOARDING FORM
     set_imprest_allocation_amount(doc)
 
@@ -111,6 +113,10 @@ def on_update(doc, method):
 
     handle_sales_person_operations_on_update(doc, method)
 
+    # ? FETCH FROM HR SETTING LEAVE POLICY ASSIGNMENT ALLOWED FROM EMPLOYEE MASTER
+    is_leave_policy_assigned_from_employee_master = frappe.db.get_single_value(
+        "HR Settings", "custom_allow_leave_policy_assignment_from_employee_master"
+    )
     # ? CREATE WELCOME PAGE IF NOT EXISTS
     if doc.user_id:
         if not frappe.db.exists("Welcome Page", {"user": doc.user_id}):
@@ -122,7 +128,8 @@ def on_update(doc, method):
         # ? IF POLICY ASSIGNMENT IS BASED ON JOINING DATE
         if doc.custom_leave_policy_assignment_based_on_joining:
             # ? CREATE ASSIGNMENT BASED ON JOINING DATE (NO LEAVE PERIOD REQUIRED)
-            create_leave_policy_assignment(doc, 1)
+            if is_leave_policy_assigned_from_employee_master:
+                create_leave_policy_assignment(doc, 1)
 
         else:
             # ? FIND CURRENT ACTIVE LEAVE PERIOD (CONTAINING TODAY)
@@ -140,7 +147,8 @@ def on_update(doc, method):
 
             # ? ASSIGN POLICY IF ACTIVE LEAVE PERIOD IS FOUND
             if active_leave_period:
-                create_leave_policy_assignment(doc, 0, active_leave_period[0].get("name"))
+                if is_leave_policy_assigned_from_employee_master:
+                    create_leave_policy_assignment(doc, 0, active_leave_period[0].get("name"))
             else:
                 # ! THROW ERROR IF NO VALID ACTIVE LEAVE PERIOD EXISTS
                 frappe.throw(_("Cannot assign leave policy as there is no active Leave Period for the current date."))
@@ -1475,3 +1483,77 @@ def custom_autoname_employee(doc, method=None):
         #? GENERATE NEXT NAME
         next_number = last_number + 1
         doc.name = f"{prefix}{str(next_number).zfill(4)}"
+
+def validate_create_checkin_role(doc):
+    """
+    ASSIGNS OR REMOVES A ROLE FROM THE USER BASED ON THE ATTENDANCE CAPTURE SCHEME.
+    """
+
+    #! CONTINUE ONLY IF USER IS SET
+    if not doc.user_id:
+        frappe.msgprint("No User ID Found")
+        return
+
+    #? GET USER DOC
+    user_doc = frappe.get_doc("User", doc.user_id)
+
+    #? TARGET ROLE
+    target_role = "Create Checkin"
+
+    #? REMOVE ROLE IF SCHEME IS BIOMETRIC (ONLY IF ROLE EXISTS)
+    if doc.custom_attendance_capture_scheme == "Biometric":
+        user_doc.roles = [r for r in user_doc.roles if r.role != target_role]
+
+    #? ADD ROLE IF SCHEME IS MANUAL TYPES (ONLY IF ROLE NOT ALREADY PRESENT)
+    elif doc.custom_attendance_capture_scheme in [
+        "Biometric-Mobile Checkin-Checkout",
+        "Mobile-Web Checkin-Checkout",
+        "Geofencing"
+    ]:
+        if target_role not in [r.role for r in user_doc.roles]:
+            user_doc.append("roles", {"role":target_role})
+            frappe.msgprint(
+                f"The Role <b>{target_role}</b> has been assigned to user <b>{doc.name}</b> "
+                f"based on the Employee's Attendance Scheme: <b>{doc.custom_attendance_capture_scheme}</b>."
+            )
+
+    #? SAVE CHANGES
+    user_doc.save(ignore_permissions=True)
+
+@frappe.whitelist()
+def check_if_employee_create_checkin_is_validate_via_web(user_id):
+    """
+    ! FUNCTION: CHECK IF EMPLOYEE CAN CREATE CHECK-IN VIA WEB
+    ? LOGIC:
+        - IF ATTENDANCE_CAPTURE_SCHEME IS BIOMETRIC → NOT ALLOWED (RETURN 0)
+        - IF ATTENDANCE_CAPTURE_SCHEME IS WEB/MOBILE → ALLOWED (RETURN 1)
+    """
+
+    try:
+
+        # ? FETCH CAPTURE SCHEME FOR GIVEN USER_ID
+        capture_scheme = frappe.db.get_value(
+            "Employee",
+            {"user_id": user_id},
+            "custom_attendance_capture_scheme"
+        )
+
+        # ? IF NO SCHEME IS FOUND, RETURN 0 (DEFAULT DENY)
+        if not capture_scheme:
+            return 0
+
+        # ? VALIDATE BASED ON SCHEME
+        if capture_scheme in ["Biometric-Mobile Checkin-Checkout", "Biometric"]:
+            return 0
+        elif capture_scheme in ["Mobile-Web Checkin-Checkout", "Geofencing"]:
+            return 1
+        else:
+            # ? UNKNOWN SCHEME → DEFAULT DENY
+            return 0
+
+    except Exception as e:
+
+        # ! LOG AND RE-RAISE FOR DEBUGGING
+        frappe.log_error(message=str(e), title="Check-in Validation Error")
+        raise
+

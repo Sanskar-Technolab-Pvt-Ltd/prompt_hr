@@ -124,6 +124,13 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                         "shift_type": s.shift_type,
                         "late_entry_grace_period": shift_type_map.get(s.shift_type)
                     }
+                #? ENSURE ALL EMPLOYEES ARE PRESENT (DEFAULT NONE IF NOT ASSIGNED)
+                for emp in employee_ids:
+                    if emp not in shift_map:
+                        shift_map[emp] = {
+                            "shift_type": None,
+                            "late_entry_grace_period": 0
+                        }
 
                 #? ENRICH EMPLOYEE LIST WITH SHIFT INFO
                 for emp in employee_list:
@@ -192,6 +199,14 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                     "shift_type": s.shift_type,
                     "late_entry_grace_period": shift_type_map.get(s.shift_type)
                 }
+            
+            #? ENSURE ALL EMPLOYEES ARE PRESENT (DEFAULT NONE IF NOT ASSIGNED)
+            for emp in employee_ids:
+                if emp not in shift_map:
+                    shift_map[emp] = {
+                        "shift_type": None,
+                        "late_entry_grace_period": 0
+                    }
 
             #? ENRICH EMPLOYEE LIST WITH SHIFT INFO
             for emp in employee_list:
@@ -200,9 +215,9 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
             if not employee_list:
                 frappe.log_error("Error in mark_attendance_for_prompt", "No Employee Found")    
             
-            grace_time_for_insufficient_hours_for_prompt = frappe.db.get_single_value("HR Settings", "custom_daily_hours_criteria_for_penalty_for_prompt") or 0
-            
-            grace_time_period_for_late_coming_for_indifoss = frappe.db.get_single_value("HR Settings", "custom_grace_time_period_for_late_coming_for_indifoss") or 0
+        grace_time_for_insufficient_hours_for_prompt = frappe.db.get_single_value("HR Settings", "custom_daily_hours_criteria_for_penalty_for_prompt") or 0
+        
+        grace_time_period_for_late_coming_for_indifoss = frappe.db.get_single_value("HR Settings", "custom_grace_time_period_for_late_coming_for_indifoss") or 0
             
         
         mark_attendance_date = getdate(attendance_date) if attendance_date else getdate(today())
@@ -218,16 +233,22 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                         print(f"\n\n  is scheduler {employee_data.get('name')}\n\n")
                         if employee_data.get("company") == prompt_company_id:
                             grace_time_period_for_late_coming_for_prompt = employee_data.get("late_entry_grace_period", 0)
-                            attendance(
-                                employee_data,
-                                mark_attendance_date,
-                                str_mark_attendance_date,
-                                day_start_time,
-                                day_end_time,
-                                grace_time_period_for_late_coming_for_prompt,
-                                grace_time_for_insufficient_hours = grace_time_for_insufficient_hours_for_prompt,
-                                prompt = 1
-                            )
+                            if employee_data.get("shift_type") is not None:
+                                attendance(
+                                    employee_data,
+                                    mark_attendance_date,
+                                    str_mark_attendance_date,
+                                    day_start_time,
+                                    day_end_time,
+                                    grace_time_period_for_late_coming_for_prompt,
+                                    grace_time_for_insufficient_hours = grace_time_for_insufficient_hours_for_prompt,
+                                    prompt = 1
+                                )
+                            else:
+                                if is_scheduler:
+                                    frappe.log_error(f"Shift is Not Assigned For Employee {employee_data.get('name')}")
+                                else:
+                                    raise frappe.ValidationError(f"Shift is Not Assigned For Employee {employee_data.get('name')}")
 
                         elif employee_data.get("company") == indifoss_company_id:
                             
@@ -244,35 +265,47 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                             )
                     else:
                         grace_time_period_for_late_coming = employee_data.get("late_entry_grace_period", 0)
-                        attendance(
-                            employee_data,
-                            mark_attendance_date,
-                            str_mark_attendance_date,
-                            day_start_time,
-                            day_end_time,
-                            grace_time_period_for_late_coming,
-                            grace_time_for_insufficient_hours if prompt else 0,
-                            prompt = prompt,
-                            indifoss = indifoss
-                        )
+                        if employee_data.get("shift_type") is not None:
+                            attendance(
+                                employee_data,
+                                mark_attendance_date,
+                                str_mark_attendance_date,
+                                day_start_time,
+                                day_end_time,
+                                grace_time_period_for_late_coming,
+                                grace_time_for_insufficient_hours if prompt else 0,
+                                prompt = prompt,
+                                indifoss = indifoss
+                            )
+                        else:
+                            if is_scheduler:
+                                    frappe.log_error(f"Shift is Not Assigned For Employee {employee_data.get('name')}")
+                            else:
+                                raise frappe.ValidationError(f"Shift is Not Assigned For Employee {employee_data.get('name')}")
         elif regularize_attendance:
-            if employee_data.get("company") != indifoss_company_id:
+            if not indifoss:
                 grace_time_period_for_late_coming = employee_data.get("late_entry_grace_period", 0)
-            attendance(
-                            employee_data,
-                            mark_attendance_date,
-                            str_mark_attendance_date,
-                            day_start_time,
-                            day_end_time,
-                            grace_time_period_for_late_coming,
-                            grace_time_for_insufficient_hours if prompt else 0,
-                            prompt = prompt,
-                            indifoss = indifoss,
-                            regularize_attendance = regularize_attendance,
-                            attendance_id = attendance_id,
-                            regularize_start_time = regularize_start_time,
-                            regularize_end_time = regularize_end_time
-                        )
+                if employee_data.get("shift_type") is not None:
+                    attendance(
+                                employee_data,
+                                mark_attendance_date,
+                                str_mark_attendance_date,
+                                day_start_time,
+                                day_end_time,
+                                grace_time_period_for_late_coming,
+                                grace_time_for_insufficient_hours if prompt else 0,
+                                prompt = prompt,
+                                indifoss = indifoss,
+                                regularize_attendance = regularize_attendance,
+                                attendance_id = attendance_id,
+                                regularize_start_time = regularize_start_time,
+                                regularize_end_time = regularize_end_time
+                                )
+                else:
+                    if is_scheduler:
+                        frappe.log_error(f"Shift is Not Assigned For Employee {employee_data.get('name')}")
+                    else:
+                        raise frappe.ValidationError(f"Shift is Not Assigned For Employee {employee_data.get('name')}")
     except Exception as e:
         if is_scheduler:
             frappe.log_error("Error While Marking Attendance", frappe.get_traceback())
@@ -460,11 +493,14 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
         
         
         if prompt and is_overtime_applicable:
+            
             if is_half_day:
                 ot_duration = overtime_duration(out_datetime, shift_end_datetime, is_half_day = 1)
             else:
                 ot_duration = overtime_duration(out_datetime, shift_end_time)
-                
+            
+            print(f"\n\n OT DURATION  {employee_data.get('name')} {ot_duration}\n\n")
+            frappe.log_error(f"OT DURATION {employee_data.get('name')}", f"\n\n OT DURATION  {employee_data.get('name')} {ot_duration}\n\n")    
         
         if not is_half_day:
             late_entry_and_apply_penalty = is_late_entry(in_datetime, shift_start_time, grace_time_period_for_late_coming)
@@ -678,6 +714,7 @@ def is_late_entry(employee_in_datetime, shift_start_time, grace_time , is_half_d
     time_diff = employee_in_datetime - shift_start_datetime
     late_minutes = int(time_diff.total_seconds() // 60)
     # ? ADD LATE MINUTES WITH GRACE TIME TO CHECK IF THE EMPLOYEE IS LATE ENTRY ONLY OR LATE ENTRY WITH PENALTY
+    
     return {"is_late_entry": 1 if late_minutes > grace_time else 0, "apply_penalty": 1 if late_minutes > grace_time else 0, "is_late_entry_with_grace_period": 1 if late_minutes > 0 else 0}
     
 

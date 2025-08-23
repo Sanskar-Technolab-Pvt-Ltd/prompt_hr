@@ -91,6 +91,6 @@ def list(
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
-            "message": f"Error While Getting Shift Assignment List: {str(e)}",
+            "message": f"While Getting Shift Assignment List: {str(e)}",
             "data": None,
         }
