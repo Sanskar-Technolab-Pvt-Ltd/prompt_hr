@@ -49,6 +49,7 @@ def get(name):
         holidays = []
         for holiday in holiday_list.holidays:
             # holiday_date = getdate(holiday.holiday_date)
+            if today_date <= getdate(holiday.holiday_date):
             # if (month_first_date <= holiday_date <= month_last_date):
                 
                 # EXTRACT PLAIN TEXT FROM HTML DESCRIPTION
