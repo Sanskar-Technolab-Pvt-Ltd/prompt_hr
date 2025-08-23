@@ -260,3 +260,39 @@ def checking_log(
             "data": employee_checkin_list,
         }
         
+        
+# ! prompt_hr.api.mobile.employee_checkin.log_button_status
+# ? CHECK IF EMPLOYEE IS ALLOWED FOR CHECKIN BUTTON
+
+@frappe.whitelist()
+def check_button_status(employee):
+    try:
+        # ? FETCH EMPLOYEE DOC
+        emp_doc = frappe.get_doc("Employee", employee)
+
+        # ? DEFINE ALLOWED SCHEMES
+        allowed_schemes = [
+            "Biometric-Mobile Checkin-Checkout",
+            "Mobile-Web Checkin-Checkout",
+            "Geofencing"
+        ]
+
+        # ? CHECK IF SCHEME IS ALLOWED
+        button_visible = emp_doc.custom_attendance_capture_scheme in allowed_schemes
+
+        frappe.local.response["message"] = {
+            "success": True,
+            "button_visible": button_visible,
+            "employee": emp_doc.name,
+            # "scheme": emp_doc.custom_attendance_capture_scheme,
+        }
+
+    except Exception as e:
+        frappe.clear_messages()
+        frappe.local.response["message"] = {
+            "success": False,
+            "button_visible": False,
+            # "message": f"{str(e)}",
+            "employee": employee,
+        }
+        
