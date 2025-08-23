@@ -53,6 +53,19 @@ def loan_repayment_amount(salary_slip_doc, method):
         salary_slip_doc: The Salary Slip document
         method: The hook method being called
     """
+    if salary_slip_doc.custom_is_salary_slip_released:
+        if salary_slip_doc.employee:
+            #! FETCH USER ID OF EMPLOYEE
+            user_id = frappe.db.get_value("Employee", salary_slip_doc.employee, "user_id")
+            if user_id:
+                #! SHARE DOCUMENT WITH READ ONLY PERMISSION
+                frappe.share.add(
+                    doctype=salary_slip_doc.doctype,
+                    name=salary_slip_doc.name,
+                    user=user_id,
+                    read=1,
+                )
+
     # * Early return if no loans exist in salary slip
     if not salary_slip_doc.loans:
         return
