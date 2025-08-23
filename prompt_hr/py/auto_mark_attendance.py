@@ -266,7 +266,7 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                             day_start_time,
                             day_end_time,
                             grace_time_period_for_late_coming,
-                            grace_time_for_insufficient_hours if prompt else 0,
+                            grace_time_for_insufficient_hours_for_prompt if prompt else 0,
                             prompt = prompt,
                             indifoss = indifoss,
                             regularize_attendance = regularize_attendance,
