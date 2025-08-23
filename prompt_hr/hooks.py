@@ -80,7 +80,8 @@ doctype_js = {
 doctype_list_js = {
     "Job Applicant": "public/js/job_applicant_list.js",
     "Attendance": "public/js/attendance_list.js",
-    "Leave Application": "public/js/leave_application_list.js"
+    "Leave Application": "public/js/leave_application_list.js",
+    "Employee Checkin": "public/js/employee_checkin_list.js"
 }
 
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -322,6 +323,9 @@ doc_events = {
     },
     "Income Tax Slab": {
         "validate": "prompt_hr.py.income_tax_slab.validate",
+    },
+    "Employee Checkin": {
+        "before_insert": "prompt_hr.py.employee_checkin.before_insert"
     }
 }
 

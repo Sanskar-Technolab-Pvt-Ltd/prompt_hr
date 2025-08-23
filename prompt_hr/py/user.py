@@ -17,11 +17,12 @@ def before_save(doc, method=None):
 
     # ? SCHEMES REQUIRING THE 'CREATE CHECKIN' ROLE
     manual_schemes = {
+        "Biometric-Mobile Checkin-Checkout",
         "Mobile-Web Checkin-Checkout",
         "Geofencing"
     }
 
-    if attendance_scheme == "Biometric" or attendance_scheme == "Biometric-Mobile Checkin-Checkout":
+    if attendance_scheme == "Biometric":
         # ? REMOVE THE ROLE IF SCHEME IS STRICTLY BIOMETRIC
         doc.roles = [r for r in doc.roles if r.role != target_role]
 

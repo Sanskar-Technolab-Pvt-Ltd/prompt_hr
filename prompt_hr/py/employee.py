@@ -1501,11 +1501,12 @@ def validate_create_checkin_role(doc):
     target_role = "Create Checkin"
 
     #? REMOVE ROLE IF SCHEME IS BIOMETRIC (ONLY IF ROLE EXISTS)
-    if doc.custom_attendance_capture_scheme == "Biometric" or doc.custom_attendance_capture_scheme == "Biometric-Mobile Checkin-Checkout":
+    if doc.custom_attendance_capture_scheme == "Biometric":
         user_doc.roles = [r for r in user_doc.roles if r.role != target_role]
 
     #? ADD ROLE IF SCHEME IS MANUAL TYPES (ONLY IF ROLE NOT ALREADY PRESENT)
     elif doc.custom_attendance_capture_scheme in [
+        "Biometric-Mobile Checkin-Checkout",
         "Mobile-Web Checkin-Checkout",
         "Geofencing"
     ]:
@@ -1518,3 +1519,41 @@ def validate_create_checkin_role(doc):
 
     #? SAVE CHANGES
     user_doc.save(ignore_permissions=True)
+
+@frappe.whitelist()
+def check_if_employee_create_checkin_is_validate_via_web(user_id):
+    """
+    ! FUNCTION: CHECK IF EMPLOYEE CAN CREATE CHECK-IN VIA WEB
+    ? LOGIC:
+        - IF ATTENDANCE_CAPTURE_SCHEME IS BIOMETRIC → NOT ALLOWED (RETURN 0)
+        - IF ATTENDANCE_CAPTURE_SCHEME IS WEB/MOBILE → ALLOWED (RETURN 1)
+    """
+
+    try:
+
+        # ? FETCH CAPTURE SCHEME FOR GIVEN USER_ID
+        capture_scheme = frappe.db.get_value(
+            "Employee",
+            {"user_id": user_id},
+            "custom_attendance_capture_scheme"
+        )
+
+        # ? IF NO SCHEME IS FOUND, RETURN 0 (DEFAULT DENY)
+        if not capture_scheme:
+            return 0
+
+        # ? VALIDATE BASED ON SCHEME
+        if capture_scheme in ["Biometric-Mobile Checkin-Checkout", "Biometric"]:
+            return 0
+        elif capture_scheme in ["Mobile-Web Checkin-Checkout", "Geofencing"]:
+            return 1
+        else:
+            # ? UNKNOWN SCHEME → DEFAULT DENY
+            return 0
+
+    except Exception as e:
+
+        # ! LOG AND RE-RAISE FOR DEBUGGING
+        frappe.log_error(message=str(e), title="Check-in Validation Error")
+        raise
+
