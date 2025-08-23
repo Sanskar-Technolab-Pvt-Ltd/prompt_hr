@@ -21,7 +21,7 @@ from dateutil import relativedelta
 from hrms.hr.utils import create_additional_leave_ledger_entry, get_monthly_earned_leave
 import datetime
 from erpnext.setup.doctype.employee.employee import get_holiday_list_for_employee
-from hrms.hr.report.employee_leave_balance.employee_leave_balance import get_leave_ledger_entries
+from hrms.hr.report.employee_leave_balance.employee_leave_balance import get_leave_ledger_entries, get_employees, get_leave_types
 from hrms.hr.utils import get_holiday_dates_for_employee
 from hrms.hr.doctype.leave_application.leave_application import (
     get_holidays,
@@ -1573,3 +1573,55 @@ def custom_get_opening_balance(
 
     #! RETURN DEFAULT OPENING BALANCE FOR NON-COMPENSATORY TYPES
     return opening_balance
+
+
+def custom_get_data(filters: Filters) -> list:
+    leave_types = get_leave_types()
+    active_employees = get_employees(filters)
+
+    precision = cint(frappe.db.get_single_value("System Settings", "float_precision"))
+    consolidate_leave_types = len(active_employees) > 1 and filters.consolidate_leave_types
+    row = None
+
+    data = []
+
+    for leave_type in leave_types:
+        if consolidate_leave_types:
+            data.append({"leave_type": leave_type})
+        else:
+            row = frappe._dict({"leave_type": leave_type})
+
+        for employee in active_employees:
+            if consolidate_leave_types:
+                row = frappe._dict()
+            else:
+                row = frappe._dict({"leave_type": leave_type})
+
+            row.employee = employee.name
+            row.employee_name = employee.employee_name
+
+            leaves_taken = (
+                get_leaves_for_period(employee.name, leave_type, filters.from_date, filters.to_date) * -1
+            )
+
+            new_allocation, expired_leaves, carry_forwarded_leaves = custom_get_allocated_and_expired_leaves(
+                filters.from_date, filters.to_date, employee.name, leave_type
+            )
+            opening = custom_get_opening_balance(employee.name, leave_type, filters, carry_forwarded_leaves)
+
+            row.leaves_allocated = flt(new_allocation, precision)
+            row.leaves_expired = flt(expired_leaves, precision)
+            row.opening_balance = flt(opening, precision)
+            row.leaves_taken = flt(leaves_taken, precision)
+
+            is_lwp = frappe.db.get_value("Leave Type", leave_type, "is_lwp")
+            if is_lwp:
+                row.closing_balance = 0
+            else:
+                closing = new_allocation + opening - (row.leaves_expired + leaves_taken)
+                row.closing_balance = flt(closing, precision)
+
+            row.indent = 1
+            data.append(row)
+
+    return data
