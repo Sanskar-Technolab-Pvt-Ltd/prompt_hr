@@ -5,6 +5,23 @@ def before_save(doc, method):
     # ? POPULATE DECLARATIONS FROM TAX REGIME
     populate_tax_exemption_declarations(doc)
 
+def on_submit(doc, method=None):
+    """
+    SHARE DOC WITH EMPLOYEE'S USER ID ON SUBMIT
+    """
+    if not doc.employee:
+        return
+
+    #! FETCH USER ID OF EMPLOYEE
+    user_id = frappe.db.get_value("Employee", doc.employee, "user_id")
+    if user_id:
+        #! SHARE DOCUMENT WITH READ ONLY PERMISSION
+        frappe.share.add(
+            doctype=doc.doctype,
+            name=doc.name,
+            user=user_id,
+            read=1,
+        )
 
 # ? FUNCTION TO POPULATE DECLARATIONS FROM TAX REGIME
 def populate_tax_exemption_declarations(doc):
