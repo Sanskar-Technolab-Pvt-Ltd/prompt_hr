@@ -124,7 +124,6 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                         "shift_type": s.shift_type,
                         "late_entry_grace_period": shift_type_map.get(s.shift_type)
                     }
-                    print(s.employee,shift_map[s.employee])
                 #? ENSURE ALL EMPLOYEES ARE PRESENT (DEFAULT NONE IF NOT ASSIGNED)
                 for emp in employee_ids:
                     if emp not in shift_map:
