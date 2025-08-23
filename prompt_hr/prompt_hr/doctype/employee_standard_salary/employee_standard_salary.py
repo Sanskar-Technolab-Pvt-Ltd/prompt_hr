@@ -13,6 +13,18 @@ from datetime import date
 
 
 class EmployeeStandardSalary(Document):
+    def after_insert(self):
+        if self.employee:
+            #! FETCH USER ID OF EMPLOYEE
+            user_id = frappe.db.get_value("Employee", self.employee, "user_id")
+            if user_id:
+                #! SHARE DOCUMENT WITH READ ONLY PERMISSION
+                frappe.share.add(
+                    doctype=self.doctype,
+                    name=self.name,
+                    user=user_id,
+                    read=1,
+                )
     def validate(self):
         employee_standard_salary_doc = frappe.get_all("Employee Standard Salary", filters={"employee":self.employee, "docstatus":["!=", 2], "name":["!=", self.name]}, fields = ["name"])
         if employee_standard_salary_doc:
