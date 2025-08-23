@@ -339,6 +339,9 @@ scheduler_events = {
         ],
         "0 8 * * *":[
             "prompt_hr.scheduler_methods.send_attendance_issue"
+        ],
+        "30 23 * * *": [
+            "prompt_hr.scheduler_methods.auto_attendance"
         ]
     },
     "daily": [
