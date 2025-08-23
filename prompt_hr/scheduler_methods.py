@@ -20,7 +20,6 @@ from prompt_hr.prompt_hr.doctype.exit_approval_process.exit_approval_process imp
 from datetime import datetime, timedelta
 
 
-@frappe.whitelist()
 def auto_attendance():
     mark_attendance(is_scheduler=1)
 
