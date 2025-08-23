@@ -159,10 +159,10 @@ def get_data(filters):
                 "meal_card_ref_no": employee.custom_mealcard_ref_number or "",
                 "remarks": "",
                 "handover_on": "",
-                "attire_wallet_amount": attire_amount,
-                "fuel_wallet_amount": fuel_amount,
-                "meal_wallet_amount": meal_amount,
-                "telecom_wallet_amount": telecom_amount
+                "attire_wallet_amount": attire_amount if employee.custom_attire_card_consent else 0,
+                "fuel_wallet_amount": fuel_amount if employee.custom_fuel_card_consent else 0,
+                "meal_wallet_amount": meal_amount if employee.custom_meal_card_consent else 0,
+                "telecom_wallet_amount": telecom_amount if employee.custom_telephone_reimbursement_applicable else 0
             }
             data.append(row)
 
