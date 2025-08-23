@@ -261,7 +261,7 @@ def checking_log(
         }
         
         
-# ! prompt_hr.api.mobile.employee_checkin.log_button_status
+# ! prompt_hr.api.mobile.employee_checkin.check_button_status
 # ? CHECK IF EMPLOYEE IS ALLOWED FOR CHECKIN BUTTON
 
 @frappe.whitelist()
