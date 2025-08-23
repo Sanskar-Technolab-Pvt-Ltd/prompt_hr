@@ -7,6 +7,16 @@ def update_employee_ctc(doc, method=None):
     Update the employee's CTC/Gross Salary based on the salary structure assignment.
     """
     if doc.employee:
+        #! FETCH USER ID OF EMPLOYEE
+        user_id = frappe.db.get_value("Employee", doc.employee, "user_id")
+        if user_id:
+            #! SHARE DOCUMENT WITH READ ONLY PERMISSION
+            frappe.share.add(
+                doctype=doc.doctype,
+                name=doc.name,
+                user=user_id,
+                read=1,
+            )
         employee = frappe.get_doc("Employee", doc.employee)
         if employee.custom_salary_structure_based_on == "CTC Based":
             employee.db_set("ctc",doc.base)
