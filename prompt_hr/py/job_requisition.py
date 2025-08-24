@@ -128,7 +128,7 @@ def notify_approver(doc, method):
                         )
         else:
                 hr_manager_user_emails = []
-                hr_manager_user_list = frappe.db.get_all("Has Role", {"parenttype": "User", "role": "HR Manager"}, "parent as user")
+                hr_manager_user_list = frappe.db.get_all("Has Role", {"parenttype": "User", "role": "S - HR Director (Global Admin)"}, "parent as user")
                 
                 if hr_manager_user_list:
                     for hr_manager in hr_manager_user_list:

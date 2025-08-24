@@ -30,7 +30,7 @@ frappe.query_reports["PT Monthly Statement"] = {
         const roles = frappe.user_roles || [];
 
         // Button 1: Notify Accountify Team
-        if (roles.includes("HR User") || roles.includes("HR Manager")) {
+        if (roles.includes("S - HR Director (Global Admin)")) {
             report.page.add_inner_button("Notify Accountify Team", () => {
                 frappe.call({
                     method: "prompt_hr.py.accounting_team_notifications.send_esic_challan_notification",

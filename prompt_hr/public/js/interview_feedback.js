@@ -7,7 +7,7 @@ frappe.ui.form.on('Interview Feedback', {
                 .hide();
                 if (frappe.user.has_role("Interviewer") && 
                 !frappe.user.has_role("System Manager") && 
-                !frappe.user.has_role("HR Manager") && 
+                !frappe.user.has_role("S - HR Director (Global Admin)") && 
                 frappe.session.user !== "Administrator") {
     
                 // Make main form fields read-only
