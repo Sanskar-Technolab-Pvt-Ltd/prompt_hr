@@ -148,7 +148,13 @@ def create(**args):
                     f"Please Fill {field_name} Field!",
                     frappe.MandatoryError,
                 )
-        
+        # ? EXTRA VALIDATION FOR HALF DAY
+        if str(args.get("half_day")) in ("1", "true", "True"):
+            if not args.get("half_day_date"):
+                frappe.throw("Please Fill Half Day Date", frappe.MandatoryError)
+            if not args.get("custom_half_day_time"):
+                frappe.throw("Please Fill Half Day Time!", frappe.MandatoryError)
+                
          # ? PARSE CHILD TABLE JSON FIELDS
         if args.get("custom_email_cc"):
             args["custom_email_cc"] = frappe.parse_json(args.get("custom_email_cc"))
@@ -162,17 +168,44 @@ def create(**args):
         leave_application_request_doc.insert()
         frappe.db.commit()
         
-        # ? HANDLE MULTIPLE FILE UPLOADS
+        # ? HANDLE FILE UPLOADS
         uploaded_files = frappe.request.files.getlist("file")
-        for uploaded_file in uploaded_files:
-            save_file(
-                uploaded_file.filename,
-                uploaded_file.stream.read(),
-                "Leave Application",
-                leave_application_request_doc.name,
-                is_private=0
-            )
-        frappe.db.commit()
+
+        if uploaded_files:
+            # if single attachment -> save into custom_attachment
+            if len(uploaded_files) == 1:
+                uploaded_file = uploaded_files[0]
+                file_doc = save_file(
+                    uploaded_file.filename,
+                    uploaded_file.stream.read(),
+                    "Leave Application",
+                    leave_application_request_doc.name,
+                    is_private=0
+                )
+                # update the custom_attachment field with file url
+                leave_application_request_doc.db_set("custom_attachment", file_doc.file_url)
+
+            else:
+                # multiple files: first -> custom_attachment, rest -> normal attach
+                first_file = uploaded_files[0]
+                first_file_doc = save_file(
+                    first_file.filename,
+                    first_file.stream.read(),
+                    "Leave Application",
+                    leave_application_request_doc.name,
+                    is_private=0
+                )
+                leave_application_request_doc.db_set("custom_attachment", first_file_doc.file_url)
+
+                for uploaded_file in uploaded_files[1:]:
+                    save_file(
+                        uploaded_file.filename,
+                        uploaded_file.stream.read(),
+                        "Leave Application",
+                        leave_application_request_doc.name,
+                        is_private=0
+                    )
+            frappe.db.commit()
 
     except Exception as e:
         # ? HANDLE ERRORS
