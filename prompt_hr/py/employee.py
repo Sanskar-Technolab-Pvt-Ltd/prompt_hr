@@ -1610,7 +1610,7 @@ def auto_shift_assign(doc):
 	#! IF AN ACTIVE ASSIGNMENT EXISTS WITH DIFFERENT SHIFT TYPE, THROW MESSAGE
 	if existing_assignment and existing_assignment != doc.default_shift:
 		frappe.msgprint(
-			f"Employee already has an active shift assigned: <b>{existing_assignment}</b>."
+			f"Employee already has an active shift assigned: <b>{existing_assignment[0].get('shift_type')}</b>"
 		)
 		return
 
