@@ -980,9 +980,8 @@ def custom_get_leave_details(employee, date, for_salary_slip=False):
 			is_maternity = frappe.db.get_value("Leave Type", allocation.get("leave_type"), "custom_is_maternity_leave")
 			is_paternity = frappe.db.get_value("Leave Type", allocation.get("leave_type"), "custom_is_paternity_leave")
 			if is_maternity or is_paternity:
-				leaves_start_date = min(leaves_start_date, allocation.get("from_date"))
+				leaves_start_date = min(leaves_start_date, allocation.get("from_date")) if getdate(date) < getdate(allocation.get("from_date")) else allocation.get("from_date")
 				leaves_end_date = max(leaves_end_date, allocation.get("to_date"))
-				print(leaves_start_date, leaves_end_date)
 
 		#! FETCH ALL POSITIVE LEAVE ALLOCATIONS FROM LEDGER
 		leave_ledger_entry = frappe.get_all(
