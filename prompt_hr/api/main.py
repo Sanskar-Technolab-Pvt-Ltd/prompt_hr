@@ -30,7 +30,7 @@ def trigger_appointment_notification(name):
     )
    
 
-    notify_signatory_on_email(doc.company, "HR Manager", doc.name, f"Appointment Letter - {doc.company}")
+    notify_signatory_on_email(doc.company, "S - HR Director (Global Admin)", doc.name, f"Appointment Letter - {doc.company}")
 
     return "Appointment Letter Successfully"
 

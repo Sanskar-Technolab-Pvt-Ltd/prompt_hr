@@ -16,7 +16,7 @@ def fetch_interview_questions(employee=None):
 
     # ? CHECK IF USER IS HR OR ADMIN
     roles = frappe.get_roles(user)
-    is_hr_or_admin = any(role in ['HR Manager', 'Administrator'] for role in roles)
+    is_hr_or_admin = any(role in ['S - HR Director (Global Admin)', 'Administrator'] for role in roles)
 
     # ? IF NOT HR/ADMIN, ONLY ALLOW ACCESS TO OWN QUESTIONS
     if not is_hr_or_admin:
@@ -52,7 +52,7 @@ def save_response(employee, response):
     # ? CHECK PERMISSIONS: HR, ADMIN, OR SELF
     user = frappe.session.user
     roles = frappe.get_roles(user)
-    if not ("HR Manager" in roles or user == "Administrator"):
+    if not ("S - HR Director (Global Admin)" in roles or user == "Administrator"):
         linked_emp = frappe.db.get_value("Employee", {"user_id": user}, "name")
         if employee != linked_emp:
             frappe.throw("You are not authorized to submit responses.")

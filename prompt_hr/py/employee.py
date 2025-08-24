@@ -425,7 +425,7 @@ def send_service_agreement(name):
             attachments=[attachment] if attachment else None,
         )
         notify_signatory_on_email(
-            doc.company, "HR Manager", doc.name, "Service Agreement Letter"
+            doc.company, "S - HR Director (Global Admin)", doc.name, "Service Agreement Letter"
         )
         notify_signatory_on_email(
             doc.company, "Employee", doc.name, "Service Agreement Letter", email
@@ -479,7 +479,7 @@ def send_confirmation_letter(name):
             reference_name=doc.name,
             attachments=[attachment] if attachment else None,
         )
-        notify_signatory_on_email(doc.company, "HR Manager", doc.name, letter_name)
+        notify_signatory_on_email(doc.company, "S - HR Director (Global Admin)", doc.name, letter_name)
     else:
         frappe.throw("No Email found for Employee")
 
@@ -530,7 +530,7 @@ def send_probation_extension_letter(name):
             reference_name=doc.name,
             attachments=[attachment] if attachment else None,
         )
-        notify_signatory_on_email(doc.company, "HR Manager", doc.name, letter_name)
+        notify_signatory_on_email(doc.company, "S - HR Director (Global Admin)", doc.name, letter_name)
     else:
         frappe.throw("No Email found for Employee")
     return "Probation Extension Letter sent Successfully"
@@ -1421,6 +1421,7 @@ def create_leave_policy_assignment(employee_doc, based_on_joining_date, leave_pe
 
 def before_save(doc, method=None):
     validate_create_checkin_role(doc)
+    auto_shift_assign(doc)
 
 
 def validate_create_checkin_role(doc):
@@ -1557,3 +1558,56 @@ def check_if_employee_create_checkin_is_validate_via_web(user_id):
         frappe.log_error(message=str(e), title="Check-in Validation Error")
         raise
 
+def auto_shift_assign(doc):
+	#! CHECK IF AUTO ASSIGNMENT IS ENABLED IN HR SETTINGS
+	auto_shift_enable = frappe.db.get_single_value(
+		"HR Settings", "custom_auto_assign_shift_from_employee"
+	)
+
+	#! EXIT IF FEATURE IS DISABLED
+	if not auto_shift_enable:
+		return
+
+	#! EXIT IF DEFAULT SHIFT IS NOT SET ON DOCUMENT
+	if not doc.default_shift:
+		return
+
+    # ? FETCH SHIFT START DATE FROM EMPLOYEE MASTER
+	if not doc.custom_shift_assignment_from_date:
+		shift_start_date =  getdate()
+	else:
+		shift_start_date =  getdate(doc.custom_shift_assignment_from_date)
+	#! FETCH ANY ACTIVE SHIFT ASSIGNMENT FOR THE EMPLOYEE
+	existing_assignment = frappe.get_value(
+		"Shift Assignment",
+		{
+			"employee": doc.employee,
+			"company": doc.company,
+			"status": "Active",
+			"docstatus": 1,
+		},
+		"shift_type"
+	)
+
+	#! IF AN ACTIVE ASSIGNMENT EXISTS WITH DIFFERENT SHIFT TYPE, THROW MESSAGE
+	if existing_assignment and existing_assignment != doc.default_shift:
+		frappe.msgprint(
+			f"Employee already has an active shift assigned: <b>{existing_assignment}</b>."
+		)
+		return
+
+	#! IF NO ACTIVE ASSIGNMENT EXISTS, CREATE NEW ONE
+	if not existing_assignment:
+		shift_doc = frappe.get_doc({
+			"doctype": "Shift Assignment",
+			"employee": doc.employee,
+			"shift_type": doc.default_shift,
+			"company": doc.company,
+			"status": "Active",
+			"start_date": shift_start_date,
+		})
+
+		#! INSERT AND SUBMIT DOCUMENT, IGNORING PERMISSIONS
+		shift_doc.flags.ignore_permissions = True
+		shift_doc.insert()
+		shift_doc.submit()

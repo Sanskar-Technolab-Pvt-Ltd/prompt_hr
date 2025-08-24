@@ -190,7 +190,7 @@ class CustomCompensatoryLeaveRequest(CompensatoryLeaveRequest):
                 hr_manager_user = hr_manager.get("user_id")
                 if hr_manager_user:
                     # Check if this user has the HR Manager role
-                    if "S - HR Manager" in frappe.get_roles(hr_manager_user):
+                    if "S - HR Director (Global Admin)" in frappe.get_roles(hr_manager_user):
                         hr_manager_email = frappe.db.get_value("User", hr_manager_user, "email")
                         break
 
