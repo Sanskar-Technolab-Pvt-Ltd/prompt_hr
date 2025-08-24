@@ -8,6 +8,8 @@ def update_employee_ctc(doc, method=None):
     """
     if doc.employee:
         #! FETCH USER ID OF EMPLOYEE
+        if doc.base <= 0:
+            frappe.throw(_("Base Salary Must Be Greater Than Zero"))
         user_id = frappe.db.get_value("Employee", doc.employee, "user_id")
         if user_id:
             #! SHARE DOCUMENT WITH READ ONLY PERMISSION
