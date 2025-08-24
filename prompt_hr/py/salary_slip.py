@@ -485,7 +485,7 @@ def salary_slip_view_and_access_permissions(user):
     roles = frappe.get_roles(user)
 
     #? HR & ACCOUNTS ROLES HAVE FULL ACCESS TO SALARY SLIPS
-    if any(role in roles for role in ["S - HR Manager", "S - HR Executive", "S - Accounts User", "S - Accounts Manager", "System Manager"]):
+    if any(role in roles for role in ["S - HR Director (Global Admin)", "S - Accounts User", "S - Accounts Manager", "System Manager"]):
         return
 
     #? EMPLOYEES CAN ONLY VIEW SALARY SLIPS THAT ARE SUBMITTED AND RELEASED

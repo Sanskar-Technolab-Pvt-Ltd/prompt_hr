@@ -18,7 +18,7 @@
  "list_columns": [],
  "login_required": 0,
  "max_attachment_size": 0,
- "modified": "2025-05-05 16:32:50.726706",
+ "modified": "2025-08-24 16:07:26.658345",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "exit-questionnaire",
@@ -41,7 +41,7 @@
    "options": "Employee",
    "precision": "",
    "read_only": 0,
-   "read_only_depends_on": "frappe.session.userroles.includes('HR Manager') || frappe.session.userroles.includes('Administrator')\n",
+   "read_only_depends_on": "frappe.session.userroles.includes('S - HR Director (Global Admin)') || frappe.session.userroles.includes('Administrator')\n",
    "reqd": 1,
    "show_in_filter": 0
   }

@@ -163,7 +163,7 @@ def send_mail_to_hr(docname):
 		"""
 	try:
 		
-		all_hr_role_user = frappe.get_all("Has Role", filters={"role": "HR Manager", "parenttype": "User"}, fields=["parent"])
+		all_hr_role_user = frappe.get_all("Has Role", filters={"role": "S - HR Director (Global Admin)", "parenttype": "User"}, fields=["parent"])
 		company_abbr = frappe.db.get_single_value("HR Settings", "custom_indifoss_abbr")
 		if company_abbr:
 			company_id = frappe.db.get_value("Company", {"abbr": company_abbr}, "name")

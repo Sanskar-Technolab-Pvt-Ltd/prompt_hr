@@ -363,7 +363,7 @@ def get_hr_managers_by_company(company):
                 FROM `tabHas Role` hr
                 JOIN `tabUser` u ON u.name = hr.parent
                 JOIN `tabEmployee` e ON e.user_id = u.name
-                WHERE hr.role = 'HR Manager'
+                WHERE hr.role = 'S - HR Director (Global Admin)'
                   AND u.enabled = 1
                   AND e.company = %s
             """,
@@ -417,7 +417,7 @@ def is_user_reporting_manager_or_hr(user_id, requesting_employee_id):
         has_hr_role = frappe.db.exists({
             "doctype": "Has Role",
             "parent": user_id,
-            "role": ["in", ["HR User", "HR Manager"]]
+            "role": ["in", ["S - HR Director (Global Admin)"]]
         })
 
         # * IF HR ROLE FOUND, GRANT ACCESS

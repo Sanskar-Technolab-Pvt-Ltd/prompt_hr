@@ -15,7 +15,7 @@ frappe.ui.form.on("Reporting Manager Checklist", {
 // * ROLES APPLICABLE: "Reporting Manager", "IT User", "Admin User"
 // * FIELDS AFFECTED: applicant_name, employment_type, designation, work_location, department, company
 function make_general_fields_read_only(frm) {
-    const roles_to_check = ["Reporting Manager", "IT User", "Admin User"];
+    const roles_to_check = ["S - HR Supervisor (RM)", "IT User", "Admin User"];
     const general_fields = [
         "applicant_name",
         "employment_type",
@@ -39,7 +39,7 @@ function make_general_fields_read_only(frm) {
 
 // ? MAIN FUNCTION TO APPLY FIELD RULES BASED ON USER ROLE
 function set_field_config_based_on_user_role(frm) {
-    if (frappe.user.has_role("Reporting Manager")) {
+    if (frappe.user.has_role("S - HR Supervisor (RM)")) {
         // * REPORTING MANAGER ROLE CONFIGURATION
         set_reporting_manager_field_config(frm);
     } 
