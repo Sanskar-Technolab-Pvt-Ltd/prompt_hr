@@ -425,7 +425,7 @@ def send_service_agreement(name):
             attachments=[attachment] if attachment else None,
         )
         notify_signatory_on_email(
-            doc.company, "HR Manager", doc.name, "Service Agreement Letter"
+            doc.company, "S - HR Director (Global Admin)", doc.name, "Service Agreement Letter"
         )
         notify_signatory_on_email(
             doc.company, "Employee", doc.name, "Service Agreement Letter", email
@@ -479,7 +479,7 @@ def send_confirmation_letter(name):
             reference_name=doc.name,
             attachments=[attachment] if attachment else None,
         )
-        notify_signatory_on_email(doc.company, "HR Manager", doc.name, letter_name)
+        notify_signatory_on_email(doc.company, "S - HR Director (Global Admin)", doc.name, letter_name)
     else:
         frappe.throw("No Email found for Employee")
 
@@ -530,7 +530,7 @@ def send_probation_extension_letter(name):
             reference_name=doc.name,
             attachments=[attachment] if attachment else None,
         )
-        notify_signatory_on_email(doc.company, "HR Manager", doc.name, letter_name)
+        notify_signatory_on_email(doc.company, "S - HR Director (Global Admin)", doc.name, letter_name)
     else:
         frappe.throw("No Email found for Employee")
     return "Probation Extension Letter sent Successfully"
