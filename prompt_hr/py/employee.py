@@ -121,7 +121,11 @@ def on_update(doc, method):
     if doc.user_id:
         if not frappe.db.exists("Welcome Page", {"user": doc.user_id}):
             create_welcome_status(doc.user_id, doc.company)
-
+    
+    if doc.custom_leave_policy_assignment_based_on_joining and doc.custom_leave_policy_assignment_based_on_custom_dates:
+            frappe.throw(
+                _("You cannot assign a leave policy based on both the Joining Date and Custom Dates at the same time.")
+            )
     # ? ASSIGN LEAVE POLICY TO EMPLOYEE ON CHANGE OF LEAVE POLICY ON EMPLOYEE
     if doc.custom_leave_policy and doc.has_value_changed("custom_leave_policy"):
 
@@ -1376,7 +1380,10 @@ def create_shift_assignment(doc):
 # ? METHOD TO CREATE LEAVE POLICY ASSIGNMENT
 def create_leave_policy_assignment(employee_doc, based_on_joining_date, leave_period=None):
 	assignment_based_on = "Joining Date" if based_on_joining_date else "Leave Period"
-	print(assignment_based_on)  # ? DEBUGGING: PRINT ASSIGNMENT TYPE
+
+	if employee_doc.custom_leave_policy_assignment_based_on_custom_dates:
+		assignment_based_on = "Custom Dates"
+
 
 	# ? CREATE DOCUMENT
 	doc = frappe.new_doc("Leave Policy Assignment")
@@ -1408,9 +1415,17 @@ def create_leave_policy_assignment(employee_doc, based_on_joining_date, leave_pe
 				joining_dt = getdate(employee_joining_date)
 				dec_31 = datetime(joining_dt.year, 12, 31)
 				doc.effective_to = dec_31.date()
-
+	
+    # ? SET LEAVE PERIOD IF AVAILABLE
+	if assignment_based_on == "Custom Dates":
+		if employee_doc.custom_leave_policy_assignment_from_date and employee_doc.custom_leave_policy_assignment_to_date:
+			doc.assignment_based_on = ""
+			doc.effective_from = employee_doc.custom_leave_policy_assignment_from_date
+			doc.effective_to = employee_doc.custom_leave_policy_assignment_to_date
+            
 	# ? SET LEAVE PERIOD IF AVAILABLE
-	if leave_period:
+	elif leave_period:
+		doc.assignment_based_on = "Leave Period"
 		doc.leave_period = leave_period
 
 	doc.save()
@@ -1563,7 +1578,6 @@ def auto_shift_assign(doc):
 	auto_shift_enable = frappe.db.get_single_value(
 		"HR Settings", "custom_auto_assign_shift_from_employee"
 	)
-
 	#! EXIT IF FEATURE IS DISABLED
 	if not auto_shift_enable:
 		return
@@ -1577,17 +1591,21 @@ def auto_shift_assign(doc):
 		shift_start_date =  getdate()
 	else:
 		shift_start_date =  getdate(doc.custom_shift_assignment_from_date)
+    
 	#! FETCH ANY ACTIVE SHIFT ASSIGNMENT FOR THE EMPLOYEE
-	existing_assignment = frappe.get_value(
-		"Shift Assignment",
-		{
-			"employee": doc.employee,
-			"company": doc.company,
-			"status": "Active",
-			"docstatus": 1,
-		},
-		"shift_type"
-	)
+	existing_assignment = frappe.get_all(
+        "Shift Assignment",
+        filters={
+            "employee": doc.name,
+            "docstatus": 1,
+            "start_date": ["<=", shift_start_date]
+        },
+        or_filters=[
+            {"end_date": [">=", shift_start_date]},
+            {"end_date": ["is", "not set"]}
+        ],
+        fields=["employee", "shift_type"]
+    )
 
 	#! IF AN ACTIVE ASSIGNMENT EXISTS WITH DIFFERENT SHIFT TYPE, THROW MESSAGE
 	if existing_assignment and existing_assignment != doc.default_shift:
