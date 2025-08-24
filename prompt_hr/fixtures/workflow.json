@@ -4,7 +4,7 @@
   "doctype": "Workflow",
   "document_type": "Loan Application",
   "is_active": 1,
-  "modified": "2025-07-17 11:23:11.184729",
+  "modified": "2025-08-24 13:42:55.116665",
   "name": "Loan Application",
   "override_status": 0,
   "send_email_alert": 0,
@@ -26,7 +26,7 @@
     "workflow_builder_id": "1"
    },
    {
-    "allow_edit": "Employee",
+    "allow_edit": "S - Employee",
     "avoid_status_override": 0,
     "doc_status": "0",
     "is_optional_state": 0,
@@ -42,7 +42,7 @@
     "workflow_builder_id": "2"
    },
    {
-    "allow_edit": "Employee",
+    "allow_edit": "S - Employee",
     "avoid_status_override": 0,
     "doc_status": "1",
     "is_optional_state": 0,
@@ -58,7 +58,7 @@
     "workflow_builder_id": "3"
    },
    {
-    "allow_edit": "HR Manager",
+    "allow_edit": "S - HR Director (Global Admin)",
     "avoid_status_override": 0,
     "doc_status": "0",
     "is_optional_state": 0,
@@ -74,7 +74,7 @@
     "workflow_builder_id": "4"
    },
    {
-    "allow_edit": "HR Manager",
+    "allow_edit": "S - HR Director (Global Admin)",
     "avoid_status_override": 0,
     "doc_status": "1",
     "is_optional_state": 0,
@@ -90,7 +90,7 @@
     "workflow_builder_id": "5"
    },
    {
-    "allow_edit": "Employee",
+    "allow_edit": "S - Employee",
     "avoid_status_override": 0,
     "doc_status": "1",
     "is_optional_state": 0,
@@ -106,7 +106,7 @@
     "workflow_builder_id": "6"
    },
    {
-    "allow_edit": "Employee",
+    "allow_edit": "S - Employee",
     "avoid_status_override": 0,
     "doc_status": "1",
     "is_optional_state": 0,
@@ -142,7 +142,7 @@
    {
     "action": "Approve",
     "allow_self_approval": 0,
-    "allowed": "Employee",
+    "allowed": "S - Employee",
     "condition": "frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Employee\",doc.applicant,\"reports_to\"), \"user_id\") or frappe.session.user == \"Administrator\"\n",
     "next_state": "Approved",
     "parent": "Loan Application",
@@ -155,7 +155,7 @@
    {
     "action": "Reject",
     "allow_self_approval": 0,
-    "allowed": "Employee",
+    "allowed": "S - Employee",
     "condition": "frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Employee\",doc.applicant,\"reports_to\"), \"user_id\") or frappe.session.user == \"Administrator\"\n",
     "next_state": "Rejected",
     "parent": "Loan Application",
@@ -168,7 +168,7 @@
    {
     "action": "Approve",
     "allow_self_approval": 0,
-    "allowed": "Employee",
+    "allowed": "S - Employee",
     "condition": "frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Business Unit\", frappe.db.get_value(\"Employee\", doc.applicant, \"custom_business_unit\"), \"business_unit_head\"), \"user_id\") or frappe.session.user == \"Administrator\"",
     "next_state": "Approved by BU Head",
     "parent": "Loan Application",
@@ -181,7 +181,7 @@
    {
     "action": "Reject",
     "allow_self_approval": 0,
-    "allowed": "Employee",
+    "allowed": "S - Employee",
     "condition": "frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Business Unit\", frappe.db.get_value(\"Employee\", doc.applicant, \"custom_business_unit\"), \"business_unit_head\"), \"user_id\") or frappe.session.user == \"Administrator\"",
     "next_state": "Rejected by BU Head",
     "parent": "Loan Application",
@@ -194,7 +194,7 @@
    {
     "action": "Approve",
     "allow_self_approval": 0,
-    "allowed": "HR Manager",
+    "allowed": "S - HR Director (Global Admin)",
     "condition": "",
     "next_state": "Approved by HR",
     "parent": "Loan Application",
@@ -207,7 +207,7 @@
    {
     "action": "Reject",
     "allow_self_approval": 0,
-    "allowed": "HR Manager",
+    "allowed": "S - HR Director (Global Admin)",
     "condition": "",
     "next_state": "Rejected by HR",
     "parent": "Loan Application",
@@ -657,7 +657,7 @@
   "doctype": "Workflow",
   "document_type": "Leave Application",
   "is_active": 1,
-  "modified": "2025-07-15 11:40:54.563581",
+  "modified": "2025-08-24 13:51:27.325747",
   "name": "Leave Application",
   "override_status": 0,
   "send_email_alert": 0,
@@ -743,7 +743,7 @@
     "workflow_builder_id": "8"
    },
    {
-    "allow_edit": "Employee",
+    "allow_edit": "S - Employee",
     "avoid_status_override": 0,
     "doc_status": "1",
     "is_optional_state": 0,
@@ -759,7 +759,7 @@
     "workflow_builder_id": "9"
    },
    {
-    "allow_edit": "Employee",
+    "allow_edit": "S - Employee",
     "avoid_status_override": 0,
     "doc_status": "1",
     "is_optional_state": 0,
@@ -779,8 +779,8 @@
    {
     "action": "Approve",
     "allow_self_approval": 0,
-    "allowed": "Employee",
-    "condition": "frappe.session.user == \"Administrator\" or frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Employee\", doc.employee, \"reports_to\"), \"user_id\") or frappe.db.get_value(\"Has Role\", {\"parent\": frappe.session.user, \"role\": \"HR Manager\"}, \"name\")\n",
+    "allowed": "S - Employee",
+    "condition": "frappe.session.user == \"Administrator\" or frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Employee\", doc.employee, \"reports_to\"), \"user_id\") or frappe.db.get_value(\"Has Role\", {\"parent\": frappe.session.user, \"role\": \"S - HR Director (Global Admin)\"}, \"name\")\n",
     "next_state": "Approved",
     "parent": "Leave Application",
     "parentfield": "transitions",
@@ -792,8 +792,8 @@
    {
     "action": "Reject",
     "allow_self_approval": 0,
-    "allowed": "Employee",
-    "condition": "frappe.session.user == \"Administrator\" or frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Employee\", doc.employee, \"reports_to\"), \"user_id\") or frappe.db.get_value(\"Has Role\", {\"parent\": frappe.session.user, \"role\": \"HR Manager\"}, \"name\")\n",
+    "allowed": "S - Employee",
+    "condition": "frappe.session.user == \"Administrator\" or frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Employee\", doc.employee, \"reports_to\"), \"user_id\") or frappe.db.get_value(\"Has Role\", {\"parent\": frappe.session.user, \"role\": \"S - HR Director (Global Admin)\"}, \"name\")\n",
     "next_state": "Rejected",
     "parent": "Leave Application",
     "parentfield": "transitions",
@@ -805,8 +805,8 @@
    {
     "action": "Approve",
     "allow_self_approval": 0,
-    "allowed": "Employee",
-    "condition": "frappe.session.user == \"Administrator\" or frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Employee\", doc.employee, \"reports_to\"), \"user_id\") or frappe.db.get_value(\"Has Role\", {\"parent\": frappe.session.user, \"role\": \"HR Manager\"}, \"name\")\n",
+    "allowed": "S - Employee",
+    "condition": "frappe.session.user == \"Administrator\" or frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Employee\", doc.employee, \"reports_to\"), \"user_id\") or frappe.db.get_value(\"Has Role\", {\"parent\": frappe.session.user, \"role\": \"S - HR Director (Global Admin)\"}, \"name\")\n",
     "next_state": "Extension Approved",
     "parent": "Leave Application",
     "parentfield": "transitions",
@@ -818,8 +818,8 @@
    {
     "action": "Reject",
     "allow_self_approval": 0,
-    "allowed": "Employee",
-    "condition": "frappe.session.user == \"Administrator\" or frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Employee\", doc.employee, \"reports_to\"), \"user_id\") or frappe.db.get_value(\"Has Role\", {\"parent\": frappe.session.user, \"role\": \"HR Manager\"}, \"name\")\n",
+    "allowed": "S - Employee",
+    "condition": "frappe.session.user == \"Administrator\" or frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Employee\", doc.employee, \"reports_to\"), \"user_id\") or frappe.db.get_value(\"Has Role\", {\"parent\": frappe.session.user, \"role\": \"S - HR Director (Global Admin)\"}, \"name\")\n",
     "next_state": "Extension Rejected",
     "parent": "Leave Application",
     "parentfield": "transitions",
@@ -831,7 +831,7 @@
    {
     "action": "Approve",
     "allow_self_approval": 1,
-    "allowed": "HR Manager",
+    "allowed": "S - HR Director (Global Admin)",
     "condition": null,
     "next_state": "Approved",
     "parent": "Leave Application",
@@ -844,7 +844,7 @@
    {
     "action": "Reject",
     "allow_self_approval": 1,
-    "allowed": "HR Manager",
+    "allowed": "S - HR Director (Global Admin)",
     "condition": null,
     "next_state": "Rejected",
     "parent": "Leave Application",
@@ -857,7 +857,7 @@
    {
     "action": "Approve",
     "allow_self_approval": 1,
-    "allowed": "HR Manager",
+    "allowed": "S - HR Director (Global Admin)",
     "condition": null,
     "next_state": "Extension Approved",
     "parent": "Leave Application",
@@ -870,7 +870,7 @@
    {
     "action": "Reject",
     "allow_self_approval": 1,
-    "allowed": "HR Manager",
+    "allowed": "S - HR Director (Global Admin)",
     "condition": null,
     "next_state": "Extension Rejected",
     "parent": "Leave Application",
@@ -890,7 +890,7 @@
   "doctype": "Workflow",
   "document_type": "Compensatory Leave Request",
   "is_active": 1,
-  "modified": "2025-07-15 11:38:50.282950",
+  "modified": "2025-08-24 13:44:39.677516",
   "name": "Compensatory Leave Request",
   "override_status": 0,
   "send_email_alert": 0,
@@ -964,7 +964,7 @@
    {
     "action": "Approve",
     "allow_self_approval": 0,
-    "allowed": "Employee",
+    "allowed": "S - Employee",
     "condition": "frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Employee\",doc.employee,\"reports_to\"), \"user_id\") or frappe.session.user == \"Administrator\"\n",
     "next_state": "Approved",
     "parent": "Compensatory Leave Request",
@@ -977,7 +977,7 @@
    {
     "action": "Reject",
     "allow_self_approval": 0,
-    "allowed": "Employee",
+    "allowed": "S - Employee",
     "condition": "frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Employee\",doc.employee,\"reports_to\"), \"user_id\") or frappe.session.user == \"Administrator\"\n",
     "next_state": "Rejected",
     "parent": "Compensatory Leave Request",
@@ -990,7 +990,7 @@
    {
     "action": "Approve",
     "allow_self_approval": 1,
-    "allowed": "HR Manager",
+    "allowed": "S - HR Director (Global Admin)",
     "condition": null,
     "next_state": "Approved",
     "parent": "Compensatory Leave Request",
@@ -1003,7 +1003,7 @@
    {
     "action": "Reject",
     "allow_self_approval": 1,
-    "allowed": "HR Manager",
+    "allowed": "S - HR Director (Global Admin)",
     "condition": null,
     "next_state": "Rejected",
     "parent": "Compensatory Leave Request",
