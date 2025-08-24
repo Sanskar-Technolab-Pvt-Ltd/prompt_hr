@@ -262,7 +262,7 @@ frappe.ui.form.on("Probation Feedback Form", {
                             
                             if (res.message.name) {
                                 if (res.message.name === frm.doc.company) {
-                                    if (frappe.user.has_role("S - HR Director (Global Admin)") || frappe.user.has_role("S - HR Director (Global Admin)")) {
+                                    if (frappe.user.has_role("S - HR Director (Global Admin)")) {
                                         frappe.call({
                                             "method": "frappe.client.get_value",
                                             "args": {
