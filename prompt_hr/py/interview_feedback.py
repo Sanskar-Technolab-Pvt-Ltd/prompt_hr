@@ -48,7 +48,7 @@ def get_permission_query_conditions(user):
     roles = frappe.get_roles(user)
 
     # HR Manager and System Manager have full access
-    if "HR Manager" in roles or "System Manager" in roles:
+    if "S - HR Director (Global Admin)" in roles or "System Manager" in roles:
         return
 
     # Interviewers can only see feedback where they are the assigned interviewer
