@@ -305,7 +305,7 @@ def send_notification_to_hr_manager(name, company, user):
             hr_manager_user = hr_manager.get("user_id")
             if hr_manager_user:
                 # Check if this user has the HR Manager role
-                if "HR Manager" in frappe.get_roles(hr_manager_user):
+                if "S - HR Director (Global Admin)" in frappe.get_roles(hr_manager_user):
                     hr_manager_email = frappe.db.get_value("User", hr_manager_user, "email")
                     break
 
@@ -369,7 +369,7 @@ def get_permission_query_conditions(user):
     roles = frappe.get_roles(user)
 
     # HR Manager and System Manager have full access
-    if "HR Manager" in roles or "System Manager" in roles:
+    if "S - HR Director (Global Admin)" in roles or "System Manager" in roles:
         return
 
     if "Interviewer" in roles:

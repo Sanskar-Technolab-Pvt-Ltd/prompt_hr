@@ -38,6 +38,7 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
         prompt_company_name = fetch_company_name(prompt=1)
         indifoss_company_name = fetch_company_name(indifoss=1)
         employee_list = []
+        employee_attendance_error = []
         if not is_scheduler:
             
             #* IF REGULARIZE ATTENDANCE THEN VALIDATING SPECIFIC PARAMETERS AND SHOW MESSAGE IF NOT FOUND
@@ -275,7 +276,8 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                                 if is_scheduler:
                                     frappe.log_error(f"Shift is Not Assigned For Employee {employee_data.get('name')}")
                                 else:
-                                    raise frappe.ValidationError(f"Shift is Not Assigned For Employee {employee_data.get('name')}")
+                                    frappe.log_error(f"Shift is Not Assigned For Employee {employee_data.get('name')}")
+                                    employee_attendance_error.append(employee_data.get("name"))
 
                         elif employee_data.get("company") == indifoss_company_id:
                             
@@ -308,7 +310,8 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                             if is_scheduler:
                                     frappe.log_error(f"Shift is Not Assigned For Employee {employee_data.get('name')}")
                             else:
-                                raise frappe.ValidationError(f"Shift is Not Assigned For Employee {employee_data.get('name')}")
+                                frappe.log_error(f"Shift is Not Assigned For Employee {employee_data.get('name')}")
+                                employee_attendance_error.append(employee_data.get("name"))
         elif regularize_attendance:
             if not indifoss:
                 print(f"\n\n employee_data {employee_data} \n\n")
@@ -334,7 +337,14 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                     if is_scheduler:
                         frappe.log_error(f"Shift is Not Assigned For Employee {employee_data.get('name')}")
                     else:
-                        raise frappe.ValidationError(f"Shift is Not Assigned For Employee {employee_data.get('name')}")
+                        frappe.log_error(f"Shift is Not Assigned For Employee {employee_data.get('name')}")
+                        employee_attendance_error.append(employee_data.get("name"))
+        if employee_attendance_error:
+            frappe.msgprint(
+                "Attendance could not be marked for some employees due to errors. "
+                "Please check the Error Log for detailed information."
+            )
+    
     except Exception as e:
         if is_scheduler:
             frappe.log_error("Error While Marking Attendance", frappe.get_traceback())
