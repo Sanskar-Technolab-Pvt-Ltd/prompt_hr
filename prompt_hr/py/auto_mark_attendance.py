@@ -81,6 +81,31 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                 employee_data = frappe.db.get_value("Employee", emp_id, ["name", "holiday_list", "custom_is_overtime_applicable"], as_dict=True)
                 if not employee_data:
                     throw("No Employees Found")
+                else:
+                    shift_assignments = frappe.get_all(
+                        "Shift Assignment",
+                        filters={
+                            "employee": employee_data.get("name"),
+                            "docstatus": 1,
+                            "start_date": ["<=", attendance_date]
+                        },
+                        or_filters=[
+                            {"end_date": [">=", attendance_date]},
+                            {"end_date": ["is", "not set"]}
+                        ],
+                        fields=["employee", "shift_type"],
+                        limit = 1
+                    )
+                    if not shift_assignments:
+                        throw(f"No Active Shift Assignment Found For Employee {employee_data.get('name')}")
+                    else:
+                        shift_type = shift_assignments[0].get("shift_type")
+                        # if not shift_type:
+                        #     throw(f"No Shift Type Assigned For Employee {employee_data.get('name')}")
+                        employee_data.update({
+                            "shift_type": shift_type,
+                            "late_entry_grace_period": frappe.db.get_value("Shift Type", shift_type, "late_entry_grace_period")
+                        })
             else:
                 employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": company_id}, ["name", "holiday_list", "custom_is_overtime_applicable"])
 
@@ -104,10 +129,9 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                     )
                 else:
                     return
-
                 #? GET UNIQUE SHIFT TYPES
                 shift_types = list({s.shift_type for s in shift_assignments if s.shift_type})
-
+                
                 #? FETCH LATE ENTRY GRACE PERIOD FROM SHIFT TYPE
                 shift_type_map = frappe.db.get_all(
                     "Shift Type",
@@ -115,6 +139,7 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                     fields=["name", "late_entry_grace_period"],
                     as_list=False
                 )
+                print(f"\n\n shift type map {shift_type_map} \n\n")
                 shift_type_map = {st["name"]: st["late_entry_grace_period"] for st in shift_type_map}
 
                 #? MAKE SHIFT MAP WITH SHIFT TYPE + GRACE PERIOD
@@ -124,6 +149,7 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                         "shift_type": s.shift_type,
                         "late_entry_grace_period": shift_type_map.get(s.shift_type)
                     }
+                print(f"\n\n shift map {shift_map} \n\n")
                 #? ENSURE ALL EMPLOYEES ARE PRESENT (DEFAULT NONE IF NOT ASSIGNED)
                 for emp in employee_ids:
                     if emp not in shift_map:
@@ -179,10 +205,10 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                 )
             else:
                 return
-
+            print(f"\n\n shift assignments {shift_assignments} \n\n")
             #? GET UNIQUE SHIFT TYPES
             shift_types = list({s.shift_type for s in shift_assignments if s.shift_type})
-
+            print(f"\n\n shift types {shift_types} \n\n")   
             #? FETCH LATE ENTRY GRACE PERIOD FROM SHIFT TYPE
             shift_type_map = frappe.db.get_all(
                 "Shift Type",
@@ -199,6 +225,7 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                     "shift_type": s.shift_type,
                     "late_entry_grace_period": shift_type_map.get(s.shift_type)
                 }
+            print(f"\n\n shift map {shift_map} \n\n")
             
             #? ENSURE ALL EMPLOYEES ARE PRESENT (DEFAULT NONE IF NOT ASSIGNED)
             for emp in employee_ids:
@@ -284,6 +311,7 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                                 raise frappe.ValidationError(f"Shift is Not Assigned For Employee {employee_data.get('name')}")
         elif regularize_attendance:
             if not indifoss:
+                print(f"\n\n employee_data {employee_data} \n\n")
                 grace_time_period_for_late_coming = employee_data.get("late_entry_grace_period", 0)
                 if employee_data.get("shift_type") is not None:
                     attendance(
@@ -293,7 +321,7 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                                 day_start_time,
                                 day_end_time,
                                 grace_time_period_for_late_coming,
-                                grace_time_for_insufficient_hours if prompt else 0,
+                                grace_time_for_insufficient_hours_for_prompt if prompt else 0,
                                 prompt = prompt,
                                 indifoss = indifoss,
                                 regularize_attendance = regularize_attendance,
@@ -302,6 +330,7 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                                 regularize_end_time = regularize_end_time
                                 )
                 else:
+                    print(f"\n\n no shift type for this employee {employee_data.get('name')} \n\n")
                     if is_scheduler:
                         frappe.log_error(f"Shift is Not Assigned For Employee {employee_data.get('name')}")
                     else:
