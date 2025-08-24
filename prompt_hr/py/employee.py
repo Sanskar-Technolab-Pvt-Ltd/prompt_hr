@@ -1543,9 +1543,9 @@ def check_if_employee_create_checkin_is_validate_via_web(user_id):
             return 0
 
         # ? VALIDATE BASED ON SCHEME
-        if capture_scheme in ["Biometric-Mobile Checkin-Checkout", "Biometric"]:
+        if capture_scheme in ["Biometric"]:
             return 0
-        elif capture_scheme in ["Mobile-Web Checkin-Checkout", "Geofencing"]:
+        elif capture_scheme in ["Biometric-Mobile Checkin-Checkout","Mobile-Web Checkin-Checkout", "Geofencing"]:
             return 1
         else:
             # ? UNKNOWN SCHEME → DEFAULT DENY
