@@ -7,7 +7,7 @@ frappe.ui.form.on('Job Offer', {
 
         if (is_candidate) {
             handle_candidate_access(frm);
-        } else if (frappe.user_roles.includes("HR Manager")) {
+        } else if (frappe.user_roles.includes("S - HR Director (Global Admin)")) {
             add_release_offer_button(frm);
         }
 

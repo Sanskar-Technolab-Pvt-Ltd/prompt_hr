@@ -29,7 +29,7 @@ class CustomAttendance(Attendance):
             has_hr_manager_role = frappe.db.exists({
                 "doctype": "Has Role",
                 "parent": user,
-                "role": ["in", ["HR Manager"]]
+                "role": ["in", ["S - HR Director (Global Admin)"]]
             })
             if not has_hr_manager_role:
                 previous_status = frappe.db.get_value(doc.doctype, doc.name, "status")
