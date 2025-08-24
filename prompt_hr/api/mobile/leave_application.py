@@ -476,10 +476,7 @@ def get_action_fields(workflow_state, employee, leave_application):
 
 
         if not actions:
-            frappe.throw(
-                f"No Actions Found For State: {workflow_state}",
-                frappe.DoesNotExistError,
-            )
+            return
 
     except Exception as e:
         # ? HANDLE ERRORS
