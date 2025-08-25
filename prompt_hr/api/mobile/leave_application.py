@@ -192,8 +192,6 @@ def create(**args):
                 leave_application_request_doc.name,
                 is_private=0
             )
-
-        
         
     except Exception as e:
         # ? HANDLE ERRORS
@@ -402,66 +400,16 @@ def apply_leave_workflow(leave_application, action):
         }
 
 
+from prompt_hr.py.workflow import get_workflow_transitions
+
 # ! prompt_hr.api.mobile.leave_application.workflow_actions
 # ? GET UNIQUE WORKFLOW ACTIONS BASED ON STATE
 
 @frappe.whitelist()
 def get_action_fields(workflow_state, employee, leave_application):
     try:
-        # ? GET USER FROM EMPLOYEE
-        user = frappe.db.get_value("Employee", employee, "user_id")
-        if not user:
-            frappe.throw(f"No User Linked With Employee {employee}")
-
-        # ? FETCH USER ROLES
-        roles = set(frappe.get_roles(user))
-
-        # ? ALLOWED ROLES
-        allowed_roles = {"S - Employee", "S - HR Director (Global Admin)"}
-
-        # ? CHECK IF USER HAS ANY ONE ROLE
-        if not roles.intersection(allowed_roles):
-            frappe.throw("You do not have permission to perform workflow actions")
-
-        # ? FETCH LEAVE APPLICATION DOC
-        leave_doc = frappe.get_doc("Leave Application", leave_application)
-
-        # If self leave (same employee who applied)
-        if leave_doc.employee == employee:
-            # If user is NOT HR Director → return blank
-            if "S - HR Director (Global Admin)" not in roles:
-                frappe.local.response["message"] = {
-                    "success": True,
-                    "message": "No workflow actions available for self leave",
-                    "data": [],
-                }
-                return
-            
-        # ? FETCH WORKFLOW FOR LEAVE APPLICATION
-        workflow_name = frappe.db.get_value(
-            "Workflow",
-            {"document_type": "Leave Application"},
-            "name"
-        )
-
-        if not workflow_name:
-            frappe.throw(
-                "No Workflow Found For Leave Application",
-                frappe.DoesNotExistError,
-            )
-
-        workflow_doc = frappe.get_doc("Workflow", workflow_name)
-
-        # ? COLLECT UNIQUE ACTIONS
-                
-        actions = []
-        seen = set()
-        for transition in workflow_doc.transitions:
-            if transition.state == workflow_state:
-                if transition.action not in seen:
-                    seen.add(transition.action)
-                    actions.append({"action": transition.action})
-
+        
+        actions = get_workflow_transitions("Leave Application", leave_application)
 
         if not actions:
             return
