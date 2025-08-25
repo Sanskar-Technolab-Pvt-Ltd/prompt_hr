@@ -5,7 +5,7 @@ import frappe
 from frappe import _, throw
 from frappe.utils import getdate, today, formatdate
 from frappe.model.document import Document
-from prompt_hr.py.utils import send_notification_email, check_user_is_reporting_manager
+from prompt_hr.py.utils import send_notification_email, is_user_reporting_manager_or_hr
 
 class WeekOffChangeRequest(Document):
 	
@@ -56,9 +56,8 @@ class WeekOffChangeRequest(Document):
 
 		# *CHECKING IF THE CURRENT USER IS THE EMPLOYEE USER LINKED TO DOCUMENT THEN WHEN WE SAVES THIS DOCUMENT THEN SENDING AN EMAIL TO THE EMPLOYEE'S REPORTING HEAD ABOUT THE CREATION WEEKOFF CHANGE REQUEST
 		current_user = frappe.session.user
-
 		if self.status == "Approved":
-			is_rh = check_user_is_reporting_manager(current_user, self.employee)
+			is_rh = is_user_reporting_manager_or_hr(current_user, self.employee)
 			if not is_rh.get("error") and is_rh.get("is_rh"):
 				emp_user_id = frappe.db.get_value("Employee", self.employee, "user_id")
 				if emp_user_id:
@@ -77,9 +76,8 @@ class WeekOffChangeRequest(Document):
 						)
 			elif is_rh.get("error"):
 				throw(f"{is_rh.get('message')}")
-
 		if self.status == "Rejected":
-			is_rh = check_user_is_reporting_manager(current_user, self.employee)
+			is_rh = is_user_reporting_manager_or_hr(current_user, self.employee)
 			if not is_rh.get("error") and is_rh.get("is_rh"):
 				emp_user_id = frappe.db.get_value("Employee", self.employee, "user_id")
 				if emp_user_id:
@@ -103,7 +101,11 @@ class WeekOffChangeRequest(Document):
 		# * NOTIFY REPORTING MANAGER IF THE CURRENT USER IS THE EMPLOYEE WHOSE WEEKOFF CHANGE REQUEST IS RAISED FOR
 		notify_reporting_manager(self.employee, self.name, emp_user, current_user)
 
-
+	def before_validate(self):
+		if self.workflow_state in ["Rejected by Reporting Manager", "Rejected by HR"]:
+			self.status = "Rejected"
+		elif self.workflow_state == "Approved by HR":
+			self.status = "Approved"
 
 def notify_reporting_manager(employee_id, docname, emp_user, current_user):
 	"""Method to check if the current user is the employee whose weekoff change request is, if it is the same user then, sending an email to  employee's reporting manager
