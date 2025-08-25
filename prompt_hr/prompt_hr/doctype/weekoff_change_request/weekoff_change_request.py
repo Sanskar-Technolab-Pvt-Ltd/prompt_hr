@@ -102,7 +102,7 @@ class WeekOffChangeRequest(Document):
 		notify_reporting_manager(self.employee, self.name, emp_user, current_user)
 
 	def before_validate(self):
-		if self.workflow_state in ["Rejected by Reporting Manager", "Rejected by HR"]:
+		if self.workflow_state == "Rejected by HR":
 			self.status = "Rejected"
 		elif self.workflow_state == "Approved by HR":
 			self.status = "Approved"
