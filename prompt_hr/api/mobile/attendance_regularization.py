@@ -225,23 +225,27 @@ def delete(name=None):
 # ! prompt_hr.api.mobile.attendance_regularization.workflow_actions
 # ? GET UNIQUE WORKFLOW ACTIONS BASED ON STATE
 @frappe.whitelist()
-def get_action_fields(logged_employee_id, requesting_employee_id):
+def get_action_fields(logged_employee_id, requesting_employee_id,doc):
     try:
         actions = []
         
-        user_id = frappe.db.get_value("Employee", logged_employee_id, "user_id")
+        attendance_regularization_status = frappe.db.get_value("Attendance Regularization", doc, "status")
         
-                                        
-        is_hr_or_rh = is_user_reporting_manager_or_hr(user_id, requesting_employee_id)    
-        
-        if is_hr_or_rh.get("error"):
-            frappe.throw(f"Error While Verifying User Role: {is_hr_or_rh.get('message')}")
-        else:
-            if is_hr_or_rh.get("is_rh"):
-                actions.append({"action":"Approved"})
-                actions.append({"action":"Rejected"})
-                    
-        # return actions        
+        if not attendance_regularization_status in ["Approved", "Rejected"]:
+            
+            user_id = frappe.db.get_value("Employee", logged_employee_id, "user_id")
+            
+                                            
+            is_hr_or_rh = is_user_reporting_manager_or_hr(user_id, requesting_employee_id)    
+            
+            if is_hr_or_rh.get("error"):
+                frappe.throw(f"Error While Verifying User Role: {is_hr_or_rh.get('message')}")
+            else:
+                if is_hr_or_rh.get("is_rh"):
+                    actions.append({"action":"Approved"})
+                    actions.append({"action":"Rejected"})
+                        
+            # return actions        
     except Exception as e:
         # ? HANDLE ERRORS
         frappe.log_error("Error While Getting Workflow Actions", str(e))
