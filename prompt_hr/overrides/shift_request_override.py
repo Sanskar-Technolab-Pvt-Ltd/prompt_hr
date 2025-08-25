@@ -25,6 +25,8 @@ class CustomShiftRequest(ShiftRequest):
 	def before_submit(self):
 		if self.workflow_state == "Rejected by HR":
 			self.status = "Rejected"
+		if self.workflow_state == "Approved by HR":
+			self.status = "Approved"
 
 	def on_cancel(self):
 		self.db_set("workflow_state", "Cancelled")
