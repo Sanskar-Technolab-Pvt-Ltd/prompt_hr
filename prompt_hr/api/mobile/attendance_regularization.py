@@ -1,5 +1,7 @@
 import frappe
 from frappe.utils.file_manager import save_file
+from prompt_hr.py.utils import is_user_reporting_manager_or_hr
+
 
 # ! prompt_hr.api.mobile.attendance_regularization.list
 # ? GET Attendance Regularization LIST
@@ -217,4 +219,70 @@ def delete(name=None):
             "success": True,
             "message": "Attendance Regularization Deleted Successfully!",
             "data": {"name": name},
+        }
+
+
+# ! prompt_hr.api.mobile.attendance_regularization.workflow_actions
+# ? GET UNIQUE WORKFLOW ACTIONS BASED ON STATE
+@frappe.whitelist()
+def get_action_fields(logged_employee_id, requesting_employee_id):
+    try:
+        actions = []
+        
+        user_id = frappe.db.get_value("Employee", logged_employee_id, "user_id")
+        
+                                        
+        is_hr_or_rh = is_user_reporting_manager_or_hr(user_id, requesting_employee_id)    
+        
+        if is_hr_or_rh.get("error"):
+            frappe.throw(f"Error While Verifying User Role: {is_hr_or_rh.get('message')}")
+        else:
+            if is_hr_or_rh.get("is_rh"):
+                actions.append({"action":"Approved"})
+                actions.append({"action":"Rejected"})
+                    
+        # return actions        
+    except Exception as e:
+        # ? HANDLE ERRORS
+        frappe.log_error("Error While Getting Workflow Actions", str(e))
+        frappe.clear_messages()
+        frappe.local.response["message"] = {
+            "success": False,
+            "message": str(e),
+            "data": None,
+        }
+
+    else:
+        # ? HANDLE SUCCESS
+        frappe.local.response["message"] = {
+            "success": True,
+            "message": "Workflow Actions Loaded Successfully!",
+            "data": actions,
+        }
+        
+    
+
+@frappe.whitelist()
+def apply_workflow(attendance_regularization, action):
+    try:
+        attendance_regularization_doc = frappe.get_doc("Attendance Regularization", attendance_regularization)        
+        attendance_regularization_doc.status = action        
+        attendance_regularization_doc.save(ignore_permissions=True)
+        frappe.db.commit()
+    except Exception as e:
+        # ? HANDLE ERRORS
+        frappe.log_error("Error While Applying Workflow Action", str(e))
+        frappe.clear_messages()
+        frappe.local.response["message"] = {
+            "success": False,
+            "message": str(e),
+            "data": None,
+        }
+
+    else:
+        # ? HANDLE SUCCESS
+        frappe.local.response["message"] = {
+            "success": True,
+            "message": f"Workflow Action '{action}' Applied Successfully!",
+            "data": attendance_regularization_doc.as_dict(),
         }
