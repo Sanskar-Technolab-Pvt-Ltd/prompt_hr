@@ -1,6 +1,6 @@
 import frappe
 from hrms.hr.doctype.shift_request.shift_request import ShiftRequest
-from hrms.hr.utils import validate_active_employee
+from hrms.hr.utils import validate_active_employee, share_doc_with_approver
 
 class CustomShiftRequest(ShiftRequest):
 	def validate(self):
@@ -16,16 +16,11 @@ class CustomShiftRequest(ShiftRequest):
 				reporting_manager_id  = frappe.db.get_value("Employee", reporting_manager, "user_id")
 				if reporting_manager_id:
 					self.approver = reporting_manager_id
-			
-				if self.workflow_state == "Approved by Reporting Manager":
-					self.status = "Approved"
-				elif self.workflow_state == "Rejected by Reporting Manager":
-					self.status = "Rejected"
 	
 	def before_submit(self):
-		if self.workflow_state == "Rejected by HR":
+		if self.workflow_state == "Rejected":
 			self.status = "Rejected"
-		if self.workflow_state == "Approved by HR":
+		if self.workflow_state == "Approved":
 			self.status = "Approved"
 
 	def on_cancel(self):
@@ -34,3 +29,5 @@ class CustomShiftRequest(ShiftRequest):
 
 	def on_update(self):
 		self.notify_approval_status()
+		if self.approver:
+			share_doc_with_approver(self, self.approver)
