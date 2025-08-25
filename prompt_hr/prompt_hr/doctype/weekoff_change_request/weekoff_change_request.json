@@ -50,6 +50,7 @@
    "fieldtype": "Select",
    "hidden": 1,
    "label": "Status",
+   "no_copy": 1,
    "options": "Pending\nApproved\nRejected",
    "read_only": 1
   },
@@ -69,7 +70,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-08-25 15:32:32.631957",
+ "modified": "2025-08-25 19:49:44.221903",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "WeekOff Change Request",
