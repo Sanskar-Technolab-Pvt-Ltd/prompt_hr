@@ -1,3 +1,4 @@
+frappe.ui.form.off("Leave Allocation", "leave_policy")
 frappe.ui.form.on("Leave Allocation", {
     refresh: function(frm){
         if (frm.doc.employee) {
@@ -42,5 +43,23 @@ frappe.ui.form.on("Leave Allocation", {
                 };
 		});
         }
-    }
+    },
+    leave_policy(frm) {
+        if (frm.doc.leave_policy && frm.doc.leave_type && frm.doc.leave_policy_assignment) {
+            frappe.db.get_value(
+                "Leave Policy Detail",
+                {
+                    parent: frm.doc.leave_policy,
+                    leave_type: frm.doc.leave_type,
+                },
+                "annual_allocation",
+                (r) => {
+                    if (r && !r.exc) {
+                        frm.set_value("new_leaves_allocated", flt(r.annual_allocation));
+                    }
+                },
+                "Leave Policy"
+            );
+        }
+    },
 });
