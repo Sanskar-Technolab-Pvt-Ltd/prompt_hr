@@ -175,7 +175,6 @@ def create(**args):
                 first_file.stream.read(),
                 None,  # not attached to any doc yet
                 None,
-                decode=True,
                 is_private=0
             )
             leave_application_request_doc.custom_attachment = file_doc.file_url
