@@ -288,3 +288,130 @@ def shift_type_list(
             "count": total_count        
         }
         
+        
+
+
+# ! prompt_hr.api.mobile.shift_request.apply_workflow
+# ? APPLY WORKFLOW ACTION ON LEAVE APPLICATION
+from frappe.model.workflow import apply_workflow
+
+@frappe.whitelist()
+def apply_shift_workflow(shift_request, action):
+    try:
+        # ? FETCH THE DOCUMENT
+        
+        if not frappe.db.exists("Shift Request", shift_request):
+            frappe.throw(
+                f"Shift Request: {shift_request} Does Not Exist!",
+                frappe.DoesNotExistError,
+            )
+
+        doc = frappe.get_doc("Shift Request", shift_request)
+
+        # ? APPLY WORKFLOW ACTION
+        updated_doc = apply_workflow(doc, action)
+
+        # ? SAVE CHANGES
+        doc.save(ignore_permissions=True)
+
+    except Exception as e:
+        # ? HANDLE ERRORS
+        frappe.log_error("Error While Applying Workflow Action", str(e))
+        frappe.clear_messages()
+        frappe.local.response["message"] = {
+            "success": False,
+            "message": str(e),
+            "data": None,
+        }
+
+    else:
+        # ? HANDLE SUCCESS
+        frappe.local.response["message"] = {
+            "success": True,
+            "message": f"Workflow Action '{action}' Applied Successfully!",
+            "data": updated_doc.as_dict(),
+        }
+
+
+# ! prompt_hr.api.mobile.shift_request.workflow_actions
+# ? GET UNIQUE WORKFLOW ACTIONS BASED ON STATE
+
+@frappe.whitelist()
+def get_action_fields(workflow_state, employee, shift_request):
+    try:
+        # ? GET USER FROM EMPLOYEE
+        user = frappe.db.get_value("Employee", employee, "user_id")
+        if not user:
+            frappe.throw(f"No User Linked With Employee {employee}")
+
+        # ? FETCH USER ROLES
+        roles = set(frappe.get_roles(user))
+
+        # ? ALLOWED ROLES
+        allowed_roles = {"S - Employee", "S - HR Director (Global Admin)"}
+
+        # ? CHECK IF USER HAS ANY ONE ROLE
+        if not roles.intersection(allowed_roles):
+            frappe.throw("You do not have permission to perform workflow actions")
+
+        # ? FETCH DOC
+        shift_doc = frappe.get_doc("Shift Request", shift_request)
+
+        # If self leave (same employee who applied)
+        if shift_doc.employee == employee:
+            # If user is NOT HR Director → return blank
+            if "S - HR Director (Global Admin)" not in roles:
+                frappe.local.response["message"] = {
+                    "success": True,
+                    "message": "No workflow actions available for self leave",
+                    "data": [],
+                }
+                return
+            
+        # ? FETCH WORKFLOW FOR Shift Request
+        workflow_name = frappe.db.get_value(
+            "Workflow",
+            {"document_type": "Shift Request"},
+            "name"
+        )
+
+        if not workflow_name:
+            frappe.throw(
+                "No Workflow Found For Shift Request",
+                frappe.DoesNotExistError,
+            )
+
+        workflow_doc = frappe.get_doc("Workflow", workflow_name)
+
+        # ? COLLECT UNIQUE ACTIONS
+                
+        actions = []
+        seen = set()
+        for transition in workflow_doc.transitions:
+            if transition.state == workflow_state:
+                if transition.action not in seen:
+                    seen.add(transition.action)
+                    actions.append({"action": transition.action})
+
+
+        if not actions:
+            return
+
+    except Exception as e:
+        # ? HANDLE ERRORS
+        frappe.log_error("Error While Getting Workflow Actions", str(e))
+        frappe.clear_messages()
+        frappe.local.response["message"] = {
+            "success": False,
+            "message": str(e),
+            "data": None,
+        }
+
+    else:
+        # ? HANDLE SUCCESS
+        frappe.local.response["message"] = {
+            "success": True,
+            "message": "Workflow Actions Loaded Successfully!",
+            "data": actions,
+        }
+        
