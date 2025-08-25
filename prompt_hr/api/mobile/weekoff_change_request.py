@@ -243,3 +243,130 @@ def delete(name=None):
             "message": "WeekOff Change Request Deleted Successfully!",
             "data": {"name": name},
         }
+        
+     
+        
+# ! prompt_hr.api.mobile.weekoff_change_request.apply_workflow
+# ? APPLY WORKFLOW ACTION ON LEAVE APPLICATION
+from frappe.model.workflow import apply_workflow
+
+@frappe.whitelist()
+def apply_weekoff_workflow(weekoff_change_request, action):
+    try:
+        # ? FETCH THE DOCUMENT
+        
+        if not frappe.db.exists("WeekOff Change Request", weekoff_change_request):
+            frappe.throw(
+                f"WeekOff Change Request: {weekoff_change_request} Does Not Exist!",
+                frappe.DoesNotExistError,
+            )
+
+        doc = frappe.get_doc("WeekOff Change Request", weekoff_change_request)
+
+        # ? APPLY WORKFLOW ACTION
+        updated_doc = apply_workflow(doc, action)
+
+        # ? SAVE CHANGES
+        doc.save(ignore_permissions=True)
+
+    except Exception as e:
+        # ? HANDLE ERRORS
+        frappe.log_error("Error While Applying Workflow Action", str(e))
+        frappe.clear_messages()
+        frappe.local.response["message"] = {
+            "success": False,
+            "message": str(e),
+            "data": None,
+        }
+
+    else:
+        # ? HANDLE SUCCESS
+        frappe.local.response["message"] = {
+            "success": True,
+            "message": f"Workflow Action '{action}' Applied Successfully!",
+            "data": updated_doc.as_dict(),
+        }
+
+
+# ! prompt_hr.api.mobile.weekoff_change_request.workflow_actions
+# ? GET UNIQUE WORKFLOW ACTIONS BASED ON STATE
+
+@frappe.whitelist()
+def get_action_fields(workflow_state, employee, weekoff_change_request):
+    try:
+        # ? GET USER FROM EMPLOYEE
+        user = frappe.db.get_value("Employee", employee, "user_id")
+        if not user:
+            frappe.throw(f"No User Linked With Employee {employee}")
+
+        # ? FETCH USER ROLES
+        roles = set(frappe.get_roles(user))
+
+        # ? ALLOWED ROLES
+        allowed_roles = {"S - Employee", "S - HR Director (Global Admin)"}
+
+        # ? CHECK IF USER HAS ANY ONE ROLE
+        if not roles.intersection(allowed_roles):
+            frappe.throw("You do not have permission to perform workflow actions")
+
+        # ? FETCH DOC
+        weekoff_doc = frappe.get_doc("WeekOff Change Request", weekoff_change_request)
+
+        # If self leave (same employee who applied)
+        if weekoff_doc.employee == employee:
+            # If user is NOT HR Director → return blank
+            if "S - HR Director (Global Admin)" not in roles:
+                frappe.local.response["message"] = {
+                    "success": True,
+                    "message": "No workflow actions available for self leave",
+                    "data": [],
+                }
+                return
+            
+        # ? FETCH WORKFLOW FOR LEAVE APPLICATION
+        workflow_name = frappe.db.get_value(
+            "Workflow",
+            {"document_type": "WeekOff Change Request"},
+            "name"
+        )
+
+        if not workflow_name:
+            frappe.throw(
+                "No Workflow Found For WeekOff Change Request",
+                frappe.DoesNotExistError,
+            )
+
+        workflow_doc = frappe.get_doc("Workflow", workflow_name)
+
+        # ? COLLECT UNIQUE ACTIONS
+                
+        actions = []
+        seen = set()
+        for transition in workflow_doc.transitions:
+            if transition.state == workflow_state:
+                if transition.action not in seen:
+                    seen.add(transition.action)
+                    actions.append({"action": transition.action})
+
+
+        if not actions:
+            return
+
+    except Exception as e:
+        # ? HANDLE ERRORS
+        frappe.log_error("Error While Getting Workflow Actions", str(e))
+        frappe.clear_messages()
+        frappe.local.response["message"] = {
+            "success": False,
+            "message": str(e),
+            "data": None,
+        }
+
+    else:
+        # ? HANDLE SUCCESS
+        frappe.local.response["message"] = {
+            "success": True,
+            "message": "Workflow Actions Loaded Successfully!",
+            "data": actions,
+        }
+                
