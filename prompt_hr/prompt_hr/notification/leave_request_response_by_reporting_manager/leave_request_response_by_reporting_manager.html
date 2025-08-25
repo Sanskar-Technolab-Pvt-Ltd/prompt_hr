@@ -9,7 +9,7 @@ Your compensatory leave request submitted for the period from <b>{{ frappe.utils
 {% else %}
 Your leave application for <b>{{ doc.leave_type }}</b>
 {% endif %}
-has been <b>{{ doc.workflow_state }}</b> by your Reporting Manager {{manager}}.<br><br>
+has been <b>{{ doc.workflow_state }}</b> by {{manager}}.<br><br>
 
 <b>Request Summary:</b><br>
 - <b>Leave Type:</b> {{ doc.leave_type }}<br>

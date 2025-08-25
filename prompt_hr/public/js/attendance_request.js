@@ -31,6 +31,9 @@ frappe.ui.form.on('Attendance Request', {
                 callback: function (res) {
                     if (!res.message.error) {
                         if (res.message.is_rh) {
+                            frm.fields.filter(field => field.has_input).forEach(field => {
+                                frm.set_df_property(field.df.fieldname, "read_only", 1);
+                            });
                             frm.set_df_property("custom_status", "hidden", 0)
                         }
 
