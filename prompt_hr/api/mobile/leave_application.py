@@ -165,48 +165,37 @@ def create(**args):
             **args
         })
         
-        leave_application_request_doc.insert()
-        frappe.db.commit()
-        
-        # ? HANDLE FILE UPLOADS
         uploaded_files = frappe.request.files.getlist("file")
 
         if uploaded_files:
-            # if single attachment -> save into custom_attachment
-            if len(uploaded_files) == 1:
-                uploaded_file = uploaded_files[0]
-                file_doc = save_file(
-                    uploaded_file.filename,
-                    uploaded_file.stream.read(),
-                    "Leave Application",
-                    leave_application_request_doc.name,
-                    is_private=0
-                )
-                # update the custom_attachment field with file url
-                leave_application_request_doc.db_set("custom_attachment", file_doc.file_url)
+            # First file -> store in custom_attachment before insert
+            first_file = uploaded_files[0]
+            file_doc = save_file(
+                first_file.filename,
+                first_file.stream.read(),
+                None,  # not attached to any doc yet
+                None,
+                decode=True,
+                is_private=0
+            )
+            leave_application_request_doc.custom_attachment = file_doc.file_url
 
-            else:
-                # multiple files: first -> custom_attachment, rest -> normal attach
-                first_file = uploaded_files[0]
-                first_file_doc = save_file(
-                    first_file.filename,
-                    first_file.stream.read(),
-                    "Leave Application",
-                    leave_application_request_doc.name,
-                    is_private=0
-                )
-                leave_application_request_doc.db_set("custom_attachment", first_file_doc.file_url)
+        # Insert doc
+        leave_application_request_doc.insert()
+        frappe.db.commit()
 
-                for uploaded_file in uploaded_files[1:]:
-                    save_file(
-                        uploaded_file.filename,
-                        uploaded_file.stream.read(),
-                        "Leave Application",
-                        leave_application_request_doc.name,
-                        is_private=0
-                    )
-            frappe.db.commit()
+        # Now attach the rest to the doc (after insert)
+        for uploaded_file in uploaded_files[1:]:
+            save_file(
+                uploaded_file.filename,
+                uploaded_file.stream.read(),
+                "Leave Application",
+                leave_application_request_doc.name,
+                is_private=0
+            )
 
+        
+        
     except Exception as e:
         # ? HANDLE ERRORS
         frappe.log_error("Error While Creating Leave Application", str(e))
