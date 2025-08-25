@@ -184,6 +184,7 @@ override_doctype_class = {
     'Process Loan Interest Accrual': 'prompt_hr.overrides.process_loan_interest_accrual_override.CustomProcessLoanInterestAccrual',
     "Leave Encashment": "prompt_hr.overrides.leave_encashment_override.CustomLeaveEncashment",
     "Leave Application": "prompt_hr.overrides.leave_application_override.CustomLeaveApplication",
+    "Shift Request": "prompt_hr.overrides.shift_request_override.CustomShiftRequest"
 }
 
 # Document Events
@@ -496,9 +497,9 @@ fixtures = [
     # {
     #     "dt":"Role", "filters": [["name", "in", ["Job Requisition", "Head of Department", "Managing Director"]]]
     # },
-    # {
-    #     "dt":"Workflow", "filters": [["name", "in", ["Job Requisition","Loan Application", "Compensatory Leave Request", "Leave Application", "Expense Claim", "Travel Request"]]]
-    # },
+    {
+        "dt":"Workflow", "filters": [["name", "in", ["Job Requisition","Loan Application", "Compensatory Leave Request", "Leave Application", "Expense Claim", "Travel Request", "Shift Request", "WeekOff Change Request"]]]
+    },
     # {
     #     "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled", "Confirmed", "Approved by HR", "Rejected by HR", "Approved by BU Head", "Rejected by BU Head", "Extension Approved", "Extension Confirmed", "Extension Rejected", "Extension Requested"]]]
     # },
