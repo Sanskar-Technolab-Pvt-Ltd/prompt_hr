@@ -102,10 +102,11 @@ class WeekOffChangeRequest(Document):
 		notify_reporting_manager(self.employee, self.name, emp_user, current_user)
 
 	def before_validate(self):
-		if self.workflow_state == "Rejected by HR":
-			self.status = "Rejected"
-		elif self.workflow_state == "Approved by HR":
-			self.status = "Approved"
+		if not self.is_new():
+			if self.workflow_state == "Rejected":
+				self.status = "Rejected"
+			elif self.workflow_state == "Approved":
+				self.status = "Approved"
 
 def notify_reporting_manager(employee_id, docname, emp_user, current_user):
 	"""Method to check if the current user is the employee whose weekoff change request is, if it is the same user then, sending an email to  employee's reporting manager

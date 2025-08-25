@@ -73,8 +73,8 @@ doctype_js = {
     "Travel Request": "public/js/travel_request.js",
     "Leave Allocation": "public/js/leave_allocation.js",
     "Leave Policy Assignment": "public/js/leave_policy_assignment.js",
-    "Salary Slip": "public/js/salary_slip.js"
-
+    "Salary Slip": "public/js/salary_slip.js",
+    "Compensatory Leave Request": "public/js/compensatory_leave_request.js"
 }
 
 doctype_list_js = {
@@ -497,9 +497,9 @@ fixtures = [
     # {
     #     "dt":"Role", "filters": [["name", "in", ["Job Requisition", "Head of Department", "Managing Director"]]]
     # },
-    # {
-    #     "dt":"Workflow", "filters": [["name", "in", ["Job Requisition","Loan Application", "Compensatory Leave Request", "Leave Application", "Expense Claim", "Travel Request", "Shift Request", "WeekOff Change Request"]]]
-    # },
+    {
+        "dt":"Workflow", "filters": [["name", "in", ["Job Requisition","Loan Application", "Compensatory Leave Request", "Leave Application", "Expense Claim", "Travel Request", "Shift Request", "WeekOff Change Request", "Attendance Regularization", "Attendance Request"]]]
+    },
     # {
     #     "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled", "Confirmed", "Approved by HR", "Rejected by HR", "Approved by BU Head", "Rejected by BU Head", "Extension Approved", "Extension Confirmed", "Extension Rejected", "Extension Requested"]]]
     # },

@@ -1,6 +1,6 @@
-Dear HR Manager,<br><br>
+Dear {{hr_manager or "HR Manager"}},<br><br>
 
-The Reporting Manager {{ manager }} has <b>{{ doc.workflow_state }}</b> a {{ doc.leave_type }} request. Please find the details below:<br><br>
+The Reporting Manager {{ manager }} has <b> {{ workflow_state }}</b> a {{ doc.leave_type }} request. Please find the details below:<br><br>
 {% set employee = frappe.get_doc("Employee",doc.employee) %}
 <b>Employee Details:</b><br>
 - <b>Name:</b> {{ doc.employee_name }}<br>
@@ -19,8 +19,11 @@ The Reporting Manager {{ manager }} has <b>{{ doc.workflow_state }}</b> a {{ doc
 
 <b>Request Link:</b> <a href="{{ frappe.utils.get_url() }}/app/{{ doc.doctype|lower|replace(' ', '-') }}/{{ doc.name }}">View Request</a><br><br>
 
-{% if doc.workflow_state == "Approved" %}
-As this request has been approved by the Reporting Manager, it is now pending your action. Kindly proceed to <b>Confirm</b> the request.<br><br>
+{% if doc.workflow_state == "Approved by Reporting Manager" %}
+As this request has been Approved by the Reporting Manager, it is now pending your action.<br><br>
+{% elif doc.workflow_state == "Rejected by Reporting Manager" %}
+As this request has been Rejected by the Reporting Manager, it is now pending your action.<br><br>
+
 {% endif %}
 
 Thank you,<br>

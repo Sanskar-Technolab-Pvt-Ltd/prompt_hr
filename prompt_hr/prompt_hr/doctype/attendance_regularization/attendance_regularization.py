@@ -113,3 +113,10 @@ class AttendanceRegularization(Document):
 			# ! VALIDATE IF ATTENDANCE DATE IS WITHIN THE LIMIT
 			if attendance_doc.attendance_date < limit_date:
 				frappe.throw(f"Attendance Regularization cannot be raised for past dates more than {attendance_regularization_limit} days.")
+
+	def before_validate(self):
+		if not self.is_new():
+			if self.workflow_state == "Rejected":
+				self.status = "Rejected"
+			elif self.workflow_state == "Approved":
+				self.status = "Approved"
