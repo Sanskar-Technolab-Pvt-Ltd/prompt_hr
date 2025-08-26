@@ -409,10 +409,12 @@ from prompt_hr.py.workflow import get_workflow_transitions
 def get_action_fields(workflow_state, employee, leave_application):
     try:
         
-        actions = get_workflow_transitions("Leave Application", leave_application)
+        transitions = get_workflow_transitions("Leave Application", leave_application)
 
-        if not actions:
-            return
+        # Format actions into dicts
+        actions = []
+        for transition in transitions:
+            actions.append({"action": transition})
 
     except Exception as e:
         # ? HANDLE ERRORS
