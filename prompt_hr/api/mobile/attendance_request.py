@@ -231,29 +231,19 @@ def delete(name=None):
             "data": {"name": name},
         }
 
+from prompt_hr.py.workflow import get_workflow_transitions
 # ! prompt_hr.api.mobile.attendance_request.workflow_actions
 # ? GET UNIQUE WORKFLOW ACTIONS BASED ON STATE
 @frappe.whitelist()
-def get_action_fields(logged_employee_id, requesting_employee_id,doc):
+def get_action_fields(doc, logged_employee_id=None, requesting_employee_id=None):
     try:
+        transitions = get_workflow_transitions("Attendance Request", doc)
+
+        # Format actions into dicts
         actions = []
-        
-        attendance_status = frappe.db.get_value("Attendance Request", doc, "custom_status")
-        if not attendance_status in ["Approved","Rejected"]:
-            user_id = frappe.db.get_value("Employee", logged_employee_id, "user_id")
-            
-                                            
-            is_hr_or_rh = is_user_reporting_manager_or_hr(user_id, requesting_employee_id)    
-            
-            if is_hr_or_rh.get("error"):
-                frappe.throw(f"Error While Verifying User Role: {is_hr_or_rh.get('message')}")
-            else:
-                if is_hr_or_rh.get("is_rh"):
-                    actions.append({"action":"Approved"})
-                    actions.append({"action":"Rejected"})
-                        
-            # return actions        
-            
+        for transition in transitions:
+            actions.append({"action": transition})
+    
     except Exception as e:
         # ? HANDLE ERRORS
         frappe.log_error("Error While Getting Workflow Actions", str(e))
@@ -273,14 +263,26 @@ def get_action_fields(logged_employee_id, requesting_employee_id,doc):
         }
         
     
-
+from frappe.model.workflow import apply_workflow as attendance_request_workflow
 @frappe.whitelist()
 def apply_workflow(attendance_request, action):
     try:
-        attendance_request_doc = frappe.get_doc("Attendance Request", attendance_request)        
-        attendance_request_doc.custom_status = action        
-        attendance_request_doc.submit()
-        frappe.db.commit()
+        # ? FETCH THE DOCUMENT
+        
+        if not frappe.db.exists("Attendance Request", attendance_request):
+            frappe.throw(
+                f"Attendance Request: {attendance_request} Does Not Exist!",
+                frappe.DoesNotExistError,
+            )
+
+        doc = frappe.get_doc("Attendance Request", attendance_request)
+
+        # ? APPLY WORKFLOW ACTION
+        updated_doc = attendance_request_workflow(doc, action)
+
+        # ? SAVE CHANGES
+        doc.save(ignore_permissions=True)
+
     except Exception as e:
         # ? HANDLE ERRORS
         frappe.log_error("Error While Applying Workflow Action", str(e))
@@ -296,5 +298,5 @@ def apply_workflow(attendance_request, action):
         frappe.local.response["message"] = {
             "success": True,
             "message": f"Workflow Action '{action}' Applied Successfully!",
-            "data": attendance_request_doc.as_dict(),
+            "data": updated_doc.as_dict(),
         }
