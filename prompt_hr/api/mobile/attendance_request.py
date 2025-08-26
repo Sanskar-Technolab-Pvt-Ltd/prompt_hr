@@ -1,5 +1,5 @@
 import frappe
-
+from prompt_hr.py.utils import is_user_reporting_manager_or_hr
 
 # ! prompt_hr.api.mobile.attendance_request.list
 # ? GET ATTENDANCE REQUEST LIST
@@ -230,4 +230,73 @@ def delete(name=None):
             "message": "Attendance Request Deleted Successfully!",
             "data": {"name": name},
         }
-         
+
+from prompt_hr.py.workflow import get_workflow_transitions
+# ! prompt_hr.api.mobile.attendance_request.workflow_actions
+# ? GET UNIQUE WORKFLOW ACTIONS BASED ON STATE
+@frappe.whitelist()
+def get_action_fields(doc, logged_employee_id=None, requesting_employee_id=None):
+    try:
+        transitions = get_workflow_transitions("Attendance Request", doc)
+
+        # Format actions into dicts
+        actions = []
+        for transition in transitions:
+            actions.append({"action": transition})
+    
+    except Exception as e:
+        # ? HANDLE ERRORS
+        frappe.log_error("Error While Getting Workflow Actions", str(e))
+        frappe.clear_messages()
+        frappe.local.response["message"] = {
+            "success": False,
+            "message": str(e),
+            "data": None,
+        }
+
+    else:
+        # ? HANDLE SUCCESS
+        frappe.local.response["message"] = {
+            "success": True,
+            "message": "Workflow Actions Loaded Successfully!",
+            "data": actions,
+        }
+        
+    
+from frappe.model.workflow import apply_workflow as attendance_request_workflow
+@frappe.whitelist()
+def apply_workflow(attendance_request, action):
+    try:
+        # ? FETCH THE DOCUMENT
+        
+        if not frappe.db.exists("Attendance Request", attendance_request):
+            frappe.throw(
+                f"Attendance Request: {attendance_request} Does Not Exist!",
+                frappe.DoesNotExistError,
+            )
+
+        doc = frappe.get_doc("Attendance Request", attendance_request)
+
+        # ? APPLY WORKFLOW ACTION
+        updated_doc = attendance_request_workflow(doc, action)
+
+        # ? SAVE CHANGES
+        doc.save(ignore_permissions=True)
+
+    except Exception as e:
+        # ? HANDLE ERRORS
+        frappe.log_error("Error While Applying Workflow Action", str(e))
+        frappe.clear_messages()
+        frappe.local.response["message"] = {
+            "success": False,
+            "message": str(e),
+            "data": None,
+        }
+
+    else:
+        # ? HANDLE SUCCESS
+        frappe.local.response["message"] = {
+            "success": True,
+            "message": f"Workflow Action '{action}' Applied Successfully!",
+            "data": updated_doc.as_dict(),
+        }

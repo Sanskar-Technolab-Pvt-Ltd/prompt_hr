@@ -165,48 +165,34 @@ def create(**args):
             **args
         })
         
-        leave_application_request_doc.insert()
-        frappe.db.commit()
-        
-        # ? HANDLE FILE UPLOADS
         uploaded_files = frappe.request.files.getlist("file")
 
         if uploaded_files:
-            # if single attachment -> save into custom_attachment
-            if len(uploaded_files) == 1:
-                uploaded_file = uploaded_files[0]
-                file_doc = save_file(
-                    uploaded_file.filename,
-                    uploaded_file.stream.read(),
-                    "Leave Application",
-                    leave_application_request_doc.name,
-                    is_private=0
-                )
-                # update the custom_attachment field with file url
-                leave_application_request_doc.db_set("custom_attachment", file_doc.file_url)
+            # First file -> store in custom_attachment before insert
+            first_file = uploaded_files[0]
+            file_doc = save_file(
+                first_file.filename,
+                first_file.stream.read(),
+                None,  # not attached to any doc yet
+                None,
+                is_private=0
+            )
+            leave_application_request_doc.custom_attachment = file_doc.file_url
 
-            else:
-                # multiple files: first -> custom_attachment, rest -> normal attach
-                first_file = uploaded_files[0]
-                first_file_doc = save_file(
-                    first_file.filename,
-                    first_file.stream.read(),
-                    "Leave Application",
-                    leave_application_request_doc.name,
-                    is_private=0
-                )
-                leave_application_request_doc.db_set("custom_attachment", first_file_doc.file_url)
+        # Insert doc
+        leave_application_request_doc.insert()
+        frappe.db.commit()
 
-                for uploaded_file in uploaded_files[1:]:
-                    save_file(
-                        uploaded_file.filename,
-                        uploaded_file.stream.read(),
-                        "Leave Application",
-                        leave_application_request_doc.name,
-                        is_private=0
-                    )
-            frappe.db.commit()
-
+        # Now attach the rest to the doc (after insert)
+        for uploaded_file in uploaded_files[1:]:
+            save_file(
+                uploaded_file.filename,
+                uploaded_file.stream.read(),
+                "Leave Application",
+                leave_application_request_doc.name,
+                is_private=0
+            )
+        
     except Exception as e:
         # ? HANDLE ERRORS
         frappe.log_error("Error While Creating Leave Application", str(e))
@@ -414,72 +400,21 @@ def apply_leave_workflow(leave_application, action):
         }
 
 
+from prompt_hr.py.workflow import get_workflow_transitions
+
 # ! prompt_hr.api.mobile.leave_application.workflow_actions
 # ? GET UNIQUE WORKFLOW ACTIONS BASED ON STATE
 
 @frappe.whitelist()
 def get_action_fields(workflow_state, employee, leave_application):
     try:
-        # ? GET USER FROM EMPLOYEE
-        user = frappe.db.get_value("Employee", employee, "user_id")
-        if not user:
-            frappe.throw(f"No User Linked With Employee {employee}")
+        
+        transitions = get_workflow_transitions("Leave Application", leave_application)
 
-        # ? FETCH USER ROLES
-        roles = set(frappe.get_roles(user))
-
-        # ? ALLOWED ROLES
-        allowed_roles = {"S - Employee", "S - HR Director (Global Admin)"}
-
-        # ? CHECK IF USER HAS ANY ONE ROLE
-        if not roles.intersection(allowed_roles):
-            frappe.throw("You do not have permission to perform workflow actions")
-
-        # ? FETCH LEAVE APPLICATION DOC
-        leave_doc = frappe.get_doc("Leave Application", leave_application)
-
-        # If self leave (same employee who applied)
-        if leave_doc.employee == employee:
-            # If user is NOT HR Director → return blank
-            if "S - HR Director (Global Admin)" not in roles:
-                frappe.local.response["message"] = {
-                    "success": True,
-                    "message": "No workflow actions available for self leave",
-                    "data": [],
-                }
-                return
-            
-        # ? FETCH WORKFLOW FOR LEAVE APPLICATION
-        workflow_name = frappe.db.get_value(
-            "Workflow",
-            {"document_type": "Leave Application"},
-            "name"
-        )
-
-        if not workflow_name:
-            frappe.throw(
-                "No Workflow Found For Leave Application",
-                frappe.DoesNotExistError,
-            )
-
-        workflow_doc = frappe.get_doc("Workflow", workflow_name)
-
-        # ? COLLECT UNIQUE ACTIONS
-                
+        # Format actions into dicts
         actions = []
-        seen = set()
-        for transition in workflow_doc.transitions:
-            if transition.state == workflow_state:
-                if transition.action not in seen:
-                    seen.add(transition.action)
-                    actions.append({"action": transition.action})
-
-
-        if not actions:
-            frappe.throw(
-                f"No Actions Found For State: {workflow_state}",
-                frappe.DoesNotExistError,
-            )
+        for transition in transitions:
+            actions.append({"action": transition})
 
     except Exception as e:
         # ? HANDLE ERRORS

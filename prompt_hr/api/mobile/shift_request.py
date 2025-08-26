@@ -288,3 +288,81 @@ def shift_type_list(
             "count": total_count        
         }
         
+        
+
+
+# ! prompt_hr.api.mobile.shift_request.apply_workflow
+# ? APPLY WORKFLOW ACTION ON LEAVE APPLICATION
+from frappe.model.workflow import apply_workflow
+
+@frappe.whitelist()
+def apply_shift_workflow(shift_request, action):
+    try:
+        # ? FETCH THE DOCUMENT
+        
+        if not frappe.db.exists("Shift Request", shift_request):
+            frappe.throw(
+                f"Shift Request: {shift_request} Does Not Exist!",
+                frappe.DoesNotExistError,
+            )
+
+        doc = frappe.get_doc("Shift Request", shift_request)
+
+        # ? APPLY WORKFLOW ACTION
+        updated_doc = apply_workflow(doc, action)
+
+        # ? SAVE CHANGES
+        doc.save(ignore_permissions=True)
+
+    except Exception as e:
+        # ? HANDLE ERRORS
+        frappe.log_error("Error While Applying Workflow Action", str(e))
+        frappe.clear_messages()
+        frappe.local.response["message"] = {
+            "success": False,
+            "message": str(e),
+            "data": None,
+        }
+
+    else:
+        # ? HANDLE SUCCESS
+        frappe.local.response["message"] = {
+            "success": True,
+            "message": f"Workflow Action '{action}' Applied Successfully!",
+            "data": updated_doc.as_dict(),
+        }
+
+
+# ! prompt_hr.api.mobile.shift_request.workflow_actions
+# ? GET UNIQUE WORKFLOW ACTIONS BASED ON STATE
+from prompt_hr.py.workflow import get_workflow_transitions
+
+@frappe.whitelist()
+def get_action_fields(workflow_state, employee, shift_request):
+    try:
+       
+        transitions = get_workflow_transitions("Shift Request", shift_request)
+
+        # Format actions into dicts
+        actions = []
+        for transition in transitions:
+            actions.append({"action": transition})
+
+    except Exception as e:
+        # ? HANDLE ERRORS
+        frappe.log_error("Error While Getting Workflow Actions", str(e))
+        frappe.clear_messages()
+        frappe.local.response["message"] = {
+            "success": False,
+            "message": str(e),
+            "data": None,
+        }
+
+    else:
+        # ? HANDLE SUCCESS
+        frappe.local.response["message"] = {
+            "success": True,
+            "message": "Workflow Actions Loaded Successfully!",
+            "data": actions,
+        }
+        
