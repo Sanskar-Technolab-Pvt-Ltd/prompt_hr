@@ -30,6 +30,8 @@ app_include_js = [
     "assets/prompt_hr/js/welcome_page_check.js",
     "assets/prompt_hr/js/utils.js",
     "assets/prompt_hr/js/frappe/form/workflow.js",
+    "assets/prompt_hr/js/employee_leave_balance.js",
+    "assets/prompt_hr/js/employee_leave_balance_summary.js"
 ]
 
 
