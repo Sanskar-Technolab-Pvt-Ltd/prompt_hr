@@ -221,31 +221,19 @@ def delete(name=None):
             "data": {"name": name},
         }
 
-
+from prompt_hr.py.workflow import get_workflow_transitions
 # ! prompt_hr.api.mobile.attendance_regularization.workflow_actions
 # ? GET UNIQUE WORKFLOW ACTIONS BASED ON STATE
 @frappe.whitelist()
-def get_action_fields(logged_employee_id, requesting_employee_id,doc):
+def get_action_fields(doc,logged_employee_id=None, requesting_employee_id=None):
     try:
+                                
+        transitions = get_workflow_transitions("Attendance Regularization", doc)
+
+        # Format actions into dicts
         actions = []
-        
-        attendance_regularization_status = frappe.db.get_value("Attendance Regularization", doc, "status")
-        
-        if not attendance_regularization_status in ["Approved", "Rejected"]:
-            
-            user_id = frappe.db.get_value("Employee", logged_employee_id, "user_id")
-            
-                                            
-            is_hr_or_rh = is_user_reporting_manager_or_hr(user_id, requesting_employee_id)    
-            
-            if is_hr_or_rh.get("error"):
-                frappe.throw(f"Error While Verifying User Role: {is_hr_or_rh.get('message')}")
-            else:
-                if is_hr_or_rh.get("is_rh"):
-                    actions.append({"action":"Approved"})
-                    actions.append({"action":"Rejected"})
-                        
-            # return actions        
+        for transition in transitions:
+            actions.append({"action": transition})        
     except Exception as e:
         # ? HANDLE ERRORS
         frappe.log_error("Error While Getting Workflow Actions", str(e))
@@ -265,14 +253,26 @@ def get_action_fields(logged_employee_id, requesting_employee_id,doc):
         }
         
     
+from frappe.model.workflow import apply_workflow as attendance_regularization_workflow
 
 @frappe.whitelist()
 def apply_workflow(attendance_regularization, action):
     try:
-        attendance_regularization_doc = frappe.get_doc("Attendance Regularization", attendance_regularization)        
-        attendance_regularization_doc.status = action        
-        attendance_regularization_doc.save(ignore_permissions=True)
-        frappe.db.commit()
+        # ? FETCH THE DOCUMENT
+        
+        if not frappe.db.exists("Attendance Regularization", attendance_regularization):
+            frappe.throw(
+                f"Attendance Regularization: {attendance_regularization} Does Not Exist!",
+                frappe.DoesNotExistError,
+            )
+
+        doc = frappe.get_doc("Attendance Regularization", attendance_regularization)
+
+        # ? APPLY WORKFLOW ACTION
+        updated_doc = attendance_regularization_workflow(doc, action)
+
+        # ? SAVE CHANGES
+        doc.save(ignore_permissions=True)
     except Exception as e:
         # ? HANDLE ERRORS
         frappe.log_error("Error While Applying Workflow Action", str(e))
@@ -288,5 +288,5 @@ def apply_workflow(attendance_regularization, action):
         frappe.local.response["message"] = {
             "success": True,
             "message": f"Workflow Action '{action}' Applied Successfully!",
-            "data": attendance_regularization_doc.as_dict(),
+            "data": updated_doc.as_dict(),
         }
