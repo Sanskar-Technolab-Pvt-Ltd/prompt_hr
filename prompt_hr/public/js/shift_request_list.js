@@ -1,4 +1,4 @@
-frappe.listview_settings["Leave Application"] = {
+frappe.listview_settings["Shift Request"] = {
     onload: function (listview) {
         const actions_menu_items = [];
 
@@ -43,6 +43,7 @@ frappe.listview_settings["Leave Application"] = {
             standard: true,
         };
 
+        // Bulk Cancel Action
         const bulk_cancel = {
             label: __("Cancel"),
             action: () => {
@@ -62,6 +63,7 @@ frappe.listview_settings["Leave Application"] = {
                         task_id: task_id
                     }).then((failed_docnames) => {
                         if (failed_docnames?.length) {
+                            // ✅ Single combined message
                             const failed_list = frappe.utils.comma_and(failed_docnames);
                             frappe.msgprint({
                                 title: __("Bulk Cancel Failed"),
@@ -82,7 +84,6 @@ frappe.listview_settings["Leave Application"] = {
             },
             standard: true,
         };
-
 
         // Add Cancel button if user can cancel Doctype
         if (frappe.model.can_cancel(listview.doctype)) {
@@ -105,5 +106,4 @@ frappe.listview_settings["Leave Application"] = {
             }
         });
     },
-    hide_name_column: true,
-};
+}

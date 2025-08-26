@@ -21,7 +21,7 @@ frappe.ui.form.on('Attendance Request', {
     },
 
     refresh: function (frm) {
-        if (frm.doc.employee) {
+        if (frm.doc.employee && !frm.is_new()){
             frappe.call({
                 method: "prompt_hr.py.utils.check_user_is_reporting_manager",
                 args: {
@@ -31,9 +31,19 @@ frappe.ui.form.on('Attendance Request', {
                 callback: function (res) {
                     if (!res.message.error) {
                         if (res.message.is_rh) {
-                            frm.set_df_property("custom_status", "hidden", 0)
+                            if (!has_common(frappe.user_roles, ["S - HR Director (Global Admin)", "System Manager"])) {
+                                frm.fields.filter(field => field.has_input).forEach(field => {
+                                    frm.set_df_property(field.df.fieldname, "read_only", 1);
+                                });
+                            }
                         }
-
+                        else {
+                            if (!has_common(frappe.user_roles, ["S - HR Director (Global Admin)", "System Manager"])) {
+                                frm.fields.filter(field => field.has_input).forEach(field => {                                    
+                                    frm.set_df_property(field.df.fieldname, "read_only", 1);
+                                });                                       
+                            }
+                        }
                     } else if (res.message.error) {
                         frappe.throw(res.message.message)
                     }

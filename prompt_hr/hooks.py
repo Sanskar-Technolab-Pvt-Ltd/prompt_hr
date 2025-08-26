@@ -30,6 +30,8 @@ app_include_js = [
     "assets/prompt_hr/js/welcome_page_check.js",
     "assets/prompt_hr/js/utils.js",
     "assets/prompt_hr/js/frappe/form/workflow.js",
+    "assets/prompt_hr/js/employee_leave_balance.js",
+    "assets/prompt_hr/js/employee_leave_balance_summary.js"
 ]
 
 
@@ -73,19 +75,26 @@ doctype_js = {
     "Travel Request": "public/js/travel_request.js",
     "Leave Allocation": "public/js/leave_allocation.js",
     "Leave Policy Assignment": "public/js/leave_policy_assignment.js",
-    "Salary Slip": "public/js/salary_slip.js"
-
+    "Salary Slip": "public/js/salary_slip.js",
+    "Compensatory Leave Request": "public/js/compensatory_leave_request.js"
 }
 
 doctype_list_js = {
     "Job Applicant": "public/js/job_applicant_list.js",
     "Attendance": "public/js/attendance_list.js",
     "Leave Application": "public/js/leave_application_list.js",
-    "Employee Checkin": "public/js/employee_checkin_list.js"
+    "Employee Checkin": "public/js/employee_checkin_list.js",
+    "Shift Request": "public/js/shift_request_list.js",
+    "Attendance Request": "public/js/attendance_request_list.js",
+    "Compensatory Leave Request": "public/js/compensatory_leave_request_list.js",
+    "Loan Application": "public/js/loan_application_list.js",
+    "Job Requisition": "public/js/job_requisition_list.js",
+    "Travel Request": "public/js/travel_request_list.js",
+    "Expense Claim": "public/js/expense_claim_list.js",
 }
 
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
-# doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
+doctype_calendar_js = {"Attendance" : "public/js/attendance_calendar.js"}
 
 # Svg Icons
 # ------------------
@@ -498,7 +507,7 @@ fixtures = [
     #     "dt":"Role", "filters": [["name", "in", ["Job Requisition", "Head of Department", "Managing Director"]]]
     # },
     # {
-    #     "dt":"Workflow", "filters": [["name", "in", ["Job Requisition","Loan Application", "Compensatory Leave Request", "Leave Application", "Expense Claim", "Travel Request", "Shift Request", "WeekOff Change Request"]]]
+    #     "dt":"Workflow", "filters": [["name", "in", ["Job Requisition","Loan Application", "Compensatory Leave Request", "Leave Application", "Expense Claim", "Travel Request", "Shift Request", "WeekOff Change Request", "Attendance Regularization", "Attendance Request"]]]
     # },
     # {
     #     "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled", "Confirmed", "Approved by HR", "Rejected by HR", "Approved by BU Head", "Rejected by BU Head", "Extension Approved", "Extension Confirmed", "Extension Rejected", "Extension Requested"]]]

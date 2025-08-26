@@ -1,4 +1,4 @@
-frappe.listview_settings["Leave Application"] = {
+frappe.listview_settings["Attendance Regularization"] = {
     onload: function (listview) {
         const actions_menu_items = [];
 
@@ -62,6 +62,7 @@ frappe.listview_settings["Leave Application"] = {
                         task_id: task_id
                     }).then((failed_docnames) => {
                         if (failed_docnames?.length) {
+                            // ✅ Single combined message
                             const failed_list = frappe.utils.comma_and(failed_docnames);
                             frappe.msgprint({
                                 title: __("Bulk Cancel Failed"),
@@ -105,5 +106,4 @@ frappe.listview_settings["Leave Application"] = {
             }
         });
     },
-    hide_name_column: true,
-};
+}
