@@ -341,10 +341,12 @@ from prompt_hr.py.workflow import get_workflow_transitions
 def get_action_fields(workflow_state, employee, shift_request):
     try:
        
-        actions = get_workflow_transitions("Shift Request", shift_request)
+        transitions = get_workflow_transitions("Shift Request", shift_request)
 
-        if not actions:
-            return
+        # Format actions into dicts
+        actions = []
+        for transition in transitions:
+            actions.append({"action": transition})
 
     except Exception as e:
         # ? HANDLE ERRORS
