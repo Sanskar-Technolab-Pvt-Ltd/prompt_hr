@@ -185,7 +185,6 @@ def custom_mark_bulk_attendance(data):
             "half_day_status": "Absent" if data.status == "Half Day" else None,
             "late_entry": data.get("late_entry"),
             "early_exit": data.get("early_exit"),
-            "custom_apply_penalty": data.get("apply_penalty")
         }
 
         if data.get("checkin_time") and data.get("checkout_time"):
