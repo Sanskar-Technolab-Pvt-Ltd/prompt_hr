@@ -295,7 +295,14 @@ from prompt_hr.py.workflow import get_workflow_transitions
 @frappe.whitelist()
 def get_action_fields(workflow_state, employee, weekoff_change_request):
     try:
-        actions = get_workflow_transitions("WeekOff Change Request", weekoff_change_request)
+        # Get workflow transitions
+        transitions = get_workflow_transitions("WeekOff Change Request", weekoff_change_request)
+
+        # Format actions into dicts
+        actions = []
+        for transition in transitions:
+            actions.append({"action": transition})
+        
 
     except Exception as e:
         # ? HANDLE ERRORS
