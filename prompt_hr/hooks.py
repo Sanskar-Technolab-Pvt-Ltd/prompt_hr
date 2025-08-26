@@ -83,7 +83,14 @@ doctype_list_js = {
     "Job Applicant": "public/js/job_applicant_list.js",
     "Attendance": "public/js/attendance_list.js",
     "Leave Application": "public/js/leave_application_list.js",
-    "Employee Checkin": "public/js/employee_checkin_list.js"
+    "Employee Checkin": "public/js/employee_checkin_list.js",
+    "Shift Request": "public/js/shift_request_list.js",
+    "Attendance Request": "public/js/attendance_request_list.js",
+    "Compensatory Leave Request": "public/js/compensatory_leave_request_list.js",
+    "Loan Application": "public/js/loan_application_list.js",
+    "Job Requisition": "public/js/job_requisition_list.js",
+    "Travel Request": "public/js/travel_request_list.js",
+    "Expense Claim": "public/js/expense_claim_list.js",
 }
 
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}

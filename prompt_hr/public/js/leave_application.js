@@ -19,7 +19,7 @@ frappe.ui.form.on("Leave Application", {
 									frm.set_df_property(field.df.fieldname, "read_only", 1);
 								});
                         }
-
+						frm.set_df_property("custom_email_cc", "read_only", 1);
                     } else if (res.message.error) {
                         frappe.throw(res.message.message)
                     }
