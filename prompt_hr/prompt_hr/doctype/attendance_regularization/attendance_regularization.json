@@ -73,6 +73,7 @@
    "fieldtype": "Select",
    "hidden": 1,
    "label": "Status",
+   "no_copy": 1,
    "options": "Pending\nApproved\nRejected"
   },
   {
@@ -91,7 +92,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-08-23 22:10:05.904390",
+ "modified": "2025-08-26 11:55:30.934453",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Attendance Regularization",
