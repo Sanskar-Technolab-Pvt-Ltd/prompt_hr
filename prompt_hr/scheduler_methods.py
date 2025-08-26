@@ -21,7 +21,10 @@ from datetime import datetime, timedelta
 
 
 def auto_attendance():
-    mark_attendance(is_scheduler=1)
+    frappe.log_error("custom_auto_attendance_start", "Auto Attendance Scheduler Started")
+    mark_attendance(is_scheduler=1, attendance_date=today())
+    frappe.log_error("custom_auto_attendance_end", "Auto Attendance Scheduler Finished")
+    
 
 
 @frappe.whitelist()
