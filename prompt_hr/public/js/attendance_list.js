@@ -15,7 +15,34 @@ frappe.listview_settings["Attendance"] = {
 			return [__(doc.status), "blue", "status,=," + doc.status];
 		}
 	},
-
+	refresh: function (list_view) {
+		if (list_view.view_name === "Calendar") {
+			if (!list_view.has_set_employee_filter) {
+				list_view.has_set_employee_filter = true;
+	
+				frappe.call({
+					method: "frappe.client.get_value",
+					args: {
+						doctype: "Employee",
+						filters: {
+							user_id: frappe.session.user
+						},
+						fieldname: "name"
+					},
+					callback: function (r) {
+						if (r.message && r.message.name) {
+							list_view.filter_area.add([
+								["Attendance", "employee", "=", r.message.name]
+							]);
+							if (list_view.filter_area.apply) {
+								list_view.filter_area.apply();
+							}
+						}
+					}
+				});
+			}
+		}
+	},
 	onload: function (list_view) {
 		let me = this;
 

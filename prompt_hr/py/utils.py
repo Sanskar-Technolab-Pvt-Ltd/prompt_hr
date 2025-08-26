@@ -8,6 +8,9 @@ from frappe.utils import add_days, date_diff, flt, get_link_to_form, month_diff
 from hrms.hr.utils import get_salary_assignments
 from hrms.payroll.doctype.salary_structure.salary_structure import make_salary_slip
 from hrms.regional.india.utils import calculate_hra_exemption, get_component_pay, get_end_date_for_assignment, has_hra_component
+from hrms.hr.doctype.attendance.attendance import add_holidays, add_attendance
+from frappe.utils import get_datetime
+import re
 
 
 # ? FUNCTION TO GENERATE HMAC HASH FROM INPUT USING SITE SECRET
@@ -915,3 +918,48 @@ def get_component_amt_from_salary_slip(employee, salary_structure, basic_compone
 		if basic_amt and hra_amt and da_amt:
 			return basic_amt, hra_amt, da_amt
 	return basic_amt, hra_amt, da_amt
+
+@frappe.whitelist()
+def get_colored_events(doctype, start, end, field_map, filters=None, fields=None):
+    employee = frappe.db.get_value("Employee", {"user_id":frappe.session.user}, "name")
+    field_map = frappe._dict(json.loads(field_map))
+    fields = frappe.parse_json(fields)
+
+    filters = json.loads(filters) if filters else []
+
+    if not fields:
+        fields = [field_map.start, field_map.end, field_map.title, "name"]
+
+    fields = list({field for field in fields if field})
+    filters.append(["attendance_date", "between", [get_datetime(start).date(), get_datetime(end).date()]])
+    filters.append(["docstatus", "!=", 2])
+    records = add_attendance(filters)
+    add_holidays(records, start, end, employee)
+    status_styles = {
+            "Present": {"bg": "#e4f5e9", "text": "#16784c00"},
+            "Work From Home": {"bg": "#e4f5e9", "text": "#16784c00"},
+            "Absent": {"bg": "#fff0f0", "text": "#b52a2a"},
+            "On Leave": {"bg": "#fff0f0", "text": "#b52a2a"},
+            "Half Day": {"bg": "#fff1e7", "text": "#bd3e0c"},
+            "Mispunch": {"bg": "#fff1e7", "text": "#bd3e0c"},
+            "WeekOff": {"bg": "#edf6fd", "text": "#0070cc"},
+            "Holiday" : {"bg": "#edf6fd", "text": "#0070cc"}
+        }
+
+    for record in records:
+        if record.get("doctype") == "Holiday":
+            match = re.search(r'<p>(.*?)</p>', record.get("title"))
+            if match:
+                status = "Holiday"
+                record["status"] = record.get("title")
+            else:
+                status = "WeekOff"
+                record["status"] = record.get("title").replace("Holiday", "WeekOff")
+        else:
+            status = record.get(field_map.title)
+
+        style = status_styles.get(status, {"bg": "#e2e3e5", "text": "#383d41"})
+        record["color"] = style["bg"]
+        record["textColor"] = style["text"]
+
+    return records
