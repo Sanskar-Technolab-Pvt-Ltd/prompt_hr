@@ -734,12 +734,11 @@ def send_payroll_entry(payroll_entry_id, from_date, to_date, company):
         account_user_users = frappe.db.get_all("Has Role", {"role": "S - Payroll Accounting", "parenttype": "User", "parent": ["not in", ["Administrator"]]}, ["parent"])
         if account_user_users:                                                
             payroll_entry_link = frappe.utils.get_url_to_form("Payroll Entry", payroll_entry_id)
-
+            month_label = frappe.utils.formatdate(from_date, "MMM")  # Extract Month from from_date
+            year = frappe.utils.formatdate(from_date, "YYYY")  # Extract Year from from_date
             salary_report_link = frappe.utils.get_url(
-                f"/app/query-report/Wages%20Register?from_date={from_date}&to_date={to_date}&currency=INR&company={company.replace(' ', '+')}&docstatus=Submitted"
+                f"/app/query-report/Wages%20Register?month={month_label}&year={year}&currency=INR&company={company.replace(' ', '+')}&docstatus=Submitted"
             )            
-
-            month_label = frappe.utils.formatdate(from_date, "MMMM")  # Extract Month from from_date
 
             # LOOP OVER EACH USER
             for user in account_user_users:
@@ -769,8 +768,7 @@ def send_payroll_entry(payroll_entry_id, from_date, to_date, company):
     except Exception as e:
         frappe.log_error("Error while sending Payroll Entry notification", frappe.get_traceback())
         frappe.throw(_("Error while sending Payroll Entry notification: {0}").format(str(e)))
-        
-    
+
 
 @frappe.whitelist()
 def linked_bank_entry(payroll_entry_id):
