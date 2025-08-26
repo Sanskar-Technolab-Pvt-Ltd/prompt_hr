@@ -803,7 +803,6 @@ def check_employee_penalty_criteria(employee=None, penalization_type=None):
         "Insufficient Hours": "For Work Hours",
     }
 
-    # ?
     penalization_type = penalization_type_mapping.get(penalization_type, None)
 
     # Abbreviations
