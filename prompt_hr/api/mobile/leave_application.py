@@ -35,6 +35,7 @@ def list(
             order_by=order_by,
             limit_page_length=limit_page_length,
             limit_start=limit_start,
+            ignore_permissions=False
         )
 
         leave_application_list = []
@@ -54,15 +55,15 @@ def list(
             leave_application_list.append(entry)
 
 
-        # ? GET TOTAL COUNT
-        total_names = frappe.get_list(
-            "Leave Application",
-            filters=filters,
-            or_filters=or_filters,
-            fields=["name"],
-            ignore_permissions=False
-        )
-        total_count = len(total_names)
+        # # ? GET TOTAL COUNT
+        # total_names = frappe.get_list(
+        #     "Leave Application",
+        #     filters=filters,
+        #     or_filters=or_filters,
+        #     fields=["name"],
+        #     ignore_permissions=True
+        # )
+        total_count = len(leave_application_list_raw)
         
 
     except Exception as e:
