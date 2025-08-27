@@ -13,3 +13,8 @@ class CustomAttendanceRequest(AttendanceRequest):
 
     def on_submit(self):
         pass
+
+    def on_cancel(self):
+        if self.workflow_state:
+            self.db_set("workflow_state", "Cancelled")
+        return super().on_cancel()

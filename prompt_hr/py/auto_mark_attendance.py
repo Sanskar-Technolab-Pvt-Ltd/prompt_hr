@@ -180,15 +180,14 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                 frappe.log_error("Error in fetch_company_name method", indifoss_company_name.get("message"))
                 return 0
 
-            
             prompt_company_id = prompt_company_name.get("company_id")
             indifoss_company_id = indifoss_company_name.get("company_id")
             
             employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": ["in", [prompt_company_id, indifoss_company_id]]}, ["name", "holiday_list", "custom_is_overtime_applicable", "company"])
-
+            frappe.log_error("mark_attendance_employee_list", f"\n\n employee list {employee_list} \n\n")
             #? GET ALL EMPLOYEE IDS
             employee_ids = [emp.name for emp in employee_list]
-
+            frappe.log_error("mark_attendance_employee_date", f"Employee Date: {attendance_date}")
             #? FETCH SHIFT ASSIGNMENTS FOR TARGET DATE (INCLUDING OPEN-ENDED SHIFTS)
             if attendance_date:
                 shift_assignments = frappe.get_all(
@@ -251,6 +250,8 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
         mark_attendance_date = getdate(attendance_date) if attendance_date else getdate(today())
         str_mark_attendance_date = mark_attendance_date.strftime("%Y-%m-%d")
         
+        frappe.log_error(f"mark_attendance_update", "Scheduler Mark Attendance Started for date {attendance_date}")
+        
 
         day_start_time = get_datetime(mark_attendance_date)
         day_end_time = get_datetime(str_mark_attendance_date + " 23:59:59")     
@@ -258,7 +259,7 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
         if not regularize_attendance:
             for employee_data in employee_list:
                     if is_scheduler:
-                        print(f"\n\n  is scheduler {employee_data.get('name')}\n\n")
+                        frappe.log_error(f"mark_attendance_processing_employee", f"{employee_data.get('name')}")
                         if employee_data.get("company") == prompt_company_id:
                             grace_time_period_for_late_coming_for_prompt = employee_data.get("late_entry_grace_period", 0)
                             if employee_data.get("shift_type") is not None:

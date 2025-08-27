@@ -17,7 +17,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Penalization Type",
-   "options": "\nFor Late Arrival\nFor Work Hours\nFor No Attendance"
+   "options": "\nFor Late Arrival\nFor Work Hours\nFor No Attendance\nFor Mispunch"
   },
   {
    "fieldname": "select_doctype",
@@ -38,7 +38,7 @@
    "default": "0",
    "fieldname": "is_sub_department",
    "fieldtype": "Check",
-   "in_list_view": 1,
+   "hidden": 1,
    "label": "Is Sub Department"
   }
  ],
@@ -46,7 +46,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-06-04 10:20:36.548452",
+ "modified": "2025-08-26 16:55:44.502080",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Penalization Criteria",
