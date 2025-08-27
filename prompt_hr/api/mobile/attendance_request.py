@@ -7,7 +7,7 @@ from prompt_hr.py.utils import is_user_reporting_manager_or_hr
 def list(
     filters=None,
     or_filters=None,
-    fields=["name","employee","from_date","to_date","reason","custom_status"],
+    fields=["name","employee","from_date","to_date","reason","custom_status","workflow_state"],
     order_by=None,
     limit_page_length=0,
     limit_start=0,
@@ -25,6 +25,9 @@ def list(
             limit_start=limit_start,
         )
 
+        for row in attendance_request_list:
+            row["custom_status"] = row.get("workflow_state")
+            
         # ? GET TOTAL COUNT (manually count the names matching filters)
         total_names = frappe.get_list(
             "Attendance Request",
@@ -75,6 +78,13 @@ def get(name):
 
         # ? GET ATTENDANCE REQUEST  DOC
         attendance_request = frappe.get_doc("Attendance Request", name)
+        
+        # Convert to dict (so we can override values)
+        attendance_request_dict = attendance_request.as_dict()
+
+        # Override custom_status with workflow_state
+        attendance_request_dict["custom_status"] = attendance_request_dict.get("workflow_state")
+
 
     except Exception as e:
         # ? HANDLE ERRORS
@@ -91,7 +101,7 @@ def get(name):
         frappe.local.response["message"] = {
             "success": True,
             "message": "Attendance Request Loaded Successfully!",
-            "data": attendance_request,
+            "data": attendance_request_dict,
         }
         
       
