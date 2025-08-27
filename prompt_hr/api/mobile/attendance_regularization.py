@@ -26,7 +26,9 @@ def list(
             limit_start=limit_start,
         )
         
-       
+        for attendance in attendance_regularization_list:            
+            attendance['status'] = attendance['workflow_state']
+        
         total_count = len(attendance_regularization_list)
 
     except Exception as e:
@@ -55,7 +57,7 @@ def get(name):
     try: 
         # ? CHECK IF ATTENDANCE REGULARIZATION DOC EXISTS OR NOT
         attendance_regularization_exists = frappe.db.exists("Attendance Regularization", name)
-
+        
         # ? IF ATTENDANCE REGULARIZATION DOC NOT
         if not attendance_regularization_exists:
             frappe.throw(
@@ -65,7 +67,8 @@ def get(name):
 
         # ? GET ATTENDANCE REGULARIZATION DOC
         attendance_regularization = frappe.get_doc("Attendance Regularization", name)
-
+        attendance_regularization.status = attendance_regularization.workflow_state
+        # attendance_regularization.status = "Rejected"
     except Exception as e:
         # ? HANDLE ERRORS
         frappe.log_error("While Getting Attendance Regularization Detail", str(e))
