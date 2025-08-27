@@ -1,6 +1,8 @@
 import frappe
 
 import frappe.commands
+import calendar
+
 from frappe.utils import (
     date_diff,
     today,
@@ -2789,129 +2791,203 @@ def send_penalty_warnings(emp_id, penalization_type):
 
 
 def send_attendance_issue():
-    # * Set the date to check (1 day before today)
-    attendance_check_date = add_days(today(), -1)
+    try:
+        frappe.log_error("send_attendance_issue called", "send_attendance_issue")
+        # * Set the date to check (1 day before today)
+        attendance_check_date = add_days(today(), -1)
 
-    # * Fetch PROMPT Company ID
-    company_id = fetch_company_name(prompt=1)
+        # * Fetch PROMPT Company ID
+        company_id = fetch_company_name(prompt=1)
 
-    # * Load the notification template
-    notification = frappe.get_doc("Notification", "Attendance Issue Reminder")
+        # * Load the notification template
+        notification = frappe.get_doc("Notification", "Attendance Issue Reminder")
 
-    # ! Handle company fetch failure
-    if company_id.get("error"):
-        frappe.log_error(
-            "Error in penalize_employee_for_late_entry", frappe.get_traceback()
-        )
-        return
+        # ! Handle company fetch failure
+        if company_id.get("error"):
+            frappe.log_error(
+                "Error in penalize_employee_for_late_entry", frappe.get_traceback()
+            )
+            return
 
-    prompt_employee_list = []
+        prompt_employee_list = []
 
-    # * Proceed if company_id exists
-    if company_id.get("company_id"):
-        prompt_employee_list = frappe.db.get_all(
-            "Employee",
-            filters={"status": "Active", "company": company_id.get("company_id")},
-            fields=["name", "holiday_list", "user_id", "company"],
-        )
+        # * Proceed if company_id exists
+        if company_id.get("company_id"):
+            prompt_employee_list = frappe.db.get_all(
+                "Employee",
+                filters={"status": "Active", "company": company_id.get("company_id")},
+                fields=["name", "holiday_list", "user_id", "company"],
+            )
 
-        if prompt_employee_list:
-            for emp in prompt_employee_list:
+            if prompt_employee_list:
+                frappe.log_error(f"Found {len(prompt_employee_list)} active employees in PROMPT", "send_attendance_issue")
+                for emp in prompt_employee_list:
 
-                # * Use date range for creation field, or use attendance_date if available
-                date_start = attendance_check_date + " 00:00:00"
-                date_end = (
-                    datetime.strptime(attendance_check_date, "%Y-%m-%d")
-                    + timedelta(days=1)
-                ).strftime("%Y-%m-%d 00:00:00")
+                    # * Use date range for creation field, or use attendance_date if available
+                    date_start = attendance_check_date + " 00:00:00"
+                    date_end = (
+                        datetime.strptime(attendance_check_date, "%Y-%m-%d")
+                        + timedelta(days=1)
+                    ).strftime("%Y-%m-%d 00:00:00")
 
-                # * GET ATTENDANCE OF EMPLOYEE
-                attendance = frappe.get_all(
-                    "Attendance",
-                    filters=[
-                        ["employee", "=", emp.get("name")],
-                        ["creation", ">=", date_start],
-                        ["creation", "<", date_end],
-                        ["docstatus", "=", 1],
-                    ],
-                    fields=["*"],
-                    limit=1,
-                )
-
-                # ? CASE 1: No attendance found
-                if not attendance:
+                    # * GET ATTENDANCE OF EMPLOYEE
+                    attendance = frappe.get_all(
+                        "Attendance",
+                        filters=[
+                            ["employee", "=", emp.get("name")],
+                            ["creation", ">=", date_start],
+                            ["creation", "<", date_end],
+                            ["docstatus", "=", 1],
+                        ],
+                        fields=["*"],
+                        limit=1,
+                    ) or []
+                    
+                    frappe.log_error(f"Attendance for {emp.get('name')} on {attendance_check_date}", f"send_attendance_issue {attendance}")
                     # * Check if it's a holiday or weekly off
                     holiday_or_weekoff = is_holiday_or_weekoff(
                         emp.get("name"), attendance_check_date
                     )
 
                     if holiday_or_weekoff.get("is_holiday"):
+                        
+                        frappe.log_error(f"Skipping {emp.get('name')} for {attendance_check_date} as it's a holiday/weekoff", "send_attendance_issue")
                         continue  # ! Skip if it's a holiday
-
-                    employee_name = frappe.db.get_value(
-                        "Employee", emp.get("name"), "employee_name"
-                    )
-                    # * Render subject & message for "No Attendance"
-                    subject = frappe.render_template(
-                        notification.subject,
-                        {
-                            "issue_type": "No Attendance",
-                            "doc": {
-                                "employee_name": employee_name,
-                                "attendance_date": attendance_check_date,
-                            },
-                        },
-                    )
-                    message = frappe.render_template(
-                        notification.message,
-                        {
-                            "issue_type": "No Attendance",
-                            "doc": {
-                                "employee_name": employee_name,
-                                "attendance_date": attendance_check_date,
-                                "company": emp.get("company"),
-                            },
-                        },
-                    )
-
-                    if emp.user_id:
-                        frappe.sendmail(
-                            recipients=[emp.user_id],
-                            subject=subject,
-                            message=message,
-                        )
-
-                # ? CASE 2: Attendance found, check for issues
-                else:
-                    att = attendance[0]
-
-                    if att.status == "Mispunch" or att.late_entry or att.early_exit:
-                        # * Determine attendance issue type
-                        if att.status == "Mispunch":
-                            attendance_issue = "Attendance Mispunch"
-                        elif att.late_entry:
-                            attendance_issue = "Late Entry"
-                        elif att.early_exit:
-                            attendance_issue = "Early Exit"
-                        else:
-                            attendance_issue = "Attendnace MISMATCH"
-
-                        # * Render subject & message based on issue
-                        subject = frappe.render_template(
-                            notification.subject,
-                            {"issue_type": attendance_issue, "doc": att},
-                        )
-                        message = frappe.render_template(
-                            notification.message,
-                            {"issue_type": attendance_issue, "doc": att},
-                        )
-
-                        if emp.user_id:
-                            frappe.sendmail(
-                                recipients=[emp.user_id],
-                                subject=subject,
-                                message=message,
+                    
+                    # ? CASE 1: No attendance found
+                    if not attendance:
+                    # if not attendance:
+                        if is_send_mail_check(emp.get("name"), is_no_attendance=1, attendance_date=attendance_check_date):
+                            
+                            frappe.log_error(f"No attendance found for {emp.get('name')} on {attendance_check_date}", "send_attendance_issue")
+                            
+                            employee_name = frappe.db.get_value(
+                                "Employee", emp.get("name"), "employee_name"
                             )
+                            # * Render subject & message for "No Attendance"
+                            subject = frappe.render_template(
+                                notification.subject,
+                                {
+                                    "issue_type": "No Attendance",
+                                    "doc": {
+                                        "employee_name": employee_name,
+                                        "attendance_date": attendance_check_date,
+                                    },
+                                },
+                            )
+                            message = frappe.render_template(
+                                notification.message,
+                                {
+                                    "issue_type": "No Attendance",
+                                    "doc": {
+                                        "employee_name": employee_name,
+                                        "attendance_date": attendance_check_date,
+                                        "company": emp.get("company"),
+                                    },
+                                },
+                            )
+
+                            if emp.user_id:
+                                frappe.sendmail(
+                                    recipients=[emp.user_id],
+                                    subject=subject,
+                                    message=message,
+                                )
+
+                    # ? CASE 2: Attendance found, check for issues
+                    else:
+                        frappe.log_error(f"Attendance found for {emp.get('name')} on {attendance_check_date}", f"{attendance} send_attendance_issue")
+                        att = attendance[0]
+
+                        if att.status == "Mispunch" or att.late_entry:
+                        # if (att.status == "Mispunch" and mispunch_penalty_enabled) or (att.late_entry and late_coming_penalty_enabled):
+
+                            send_mail = 0
+                            # * Determine attendance issue type
+                            if att.status == "Mispunch":
+                                attendance_issue = "Attendance Mispunch"
+                                send_mail = is_send_mail_check(emp.get("name"), is_mispunch=1, attendance_date=attendance_check_date)
+                            elif att.late_entry:
+                                attendance_issue = "Late Entry"
+                                send_mail = is_send_mail_check(emp.get("name"), is_later_entry=1, attendance_date=attendance_check_date)
+                            
+                                
+                            if not send_mail:
+                                continue
+                            # * Render subject & message based on issue
+                            subject = frappe.render_template(
+                                notification.subject,
+                                {"issue_type": attendance_issue, "doc": att},
+                            )
+                            message = frappe.render_template(
+                                notification.message,
+                                {"issue_type": attendance_issue, "doc": att},
+                            )
+
+                            if emp.user_id:
+                                frappe.sendmail(
+                                    recipients=[emp.user_id],
+                                    subject=subject,
+                                    message=message,
+                                )
+    except Exception as e:
+        frappe.log_error("Error in send_attendance_issue", frappe.get_traceback())
+
+
+def is_send_mail_check(emp_id, is_no_attendance=0, is_mispunch=0, is_later_entry=0, attendance_date=None):
+    try:
+        hr_settings_doc = frappe.get_single("HR Settings")
+        
+        if not is_no_attendance and not is_mispunch and not is_later_entry:
+            return 0
+        
+        frappe.log_error("checking_send mail", "")
+        if is_no_attendance:
+            frappe.log_error("checking_send mail", "No Attendance")
+            if hr_settings_doc.custom_enable_no_attendance_penalty:
+                for row in hr_settings_doc.custom_penalization_criteria_table_for_prompt:
+                    if row.penalization_type == "For No Attendance" and row.get("value") == frappe.db.get_value("Employee", emp_id, row.get("employee_field")):
+                        frappe.log_error("checking_send mail", "No attendance criteria matched")
+                        return 1
+                    frappe.log_error("checking_send mail", "No attendance criteria not matched")
+                    
+                return 0
+            else:
+                frappe.log_error("checking_send mail", "No attendance penalty not enabled")
+                return 0
+        else:
+            if is_mispunch:
+                if hr_settings_doc.custom_enable_mispunch_penalty:
+                    for row in hr_settings_doc.custom_penalization_criteria_table_for_prompt:
+                        if row.penalization_type == "For Mispunch" and row.get("value") == frappe.db.get_value("Employee", emp_id, row.get("employee_field")):
+                            return 1
+                    return 0                                        
+                else:
+                    return 0
+            elif is_later_entry:
+                attendance_date = getdate(attendance_date)
+                first_day = attendance_date.replace(day=1)
+                last_day = attendance_date.replace(day=calendar.monthrange(attendance_date.year, attendance_date.month)[1])
+                
+                late_count = len(frappe.db.get_all("Attendance", {"employee": emp_id, "late_entry": 1, "creation": ["between", [first_day, last_day]] , "docstatus": 1}))
+                
+                frappe.log_error(f"check_mail send", "checking_send  mail inside late entry ")
+                
+                if hr_settings_doc.custom_late_coming_allowed_per_month_for_prompt >= late_count:
+                    return 0
+                else:
+                    frappe.log_error("check_mail send", "checking_send  mail inside late entry ")
+                    if hr_settings_doc.custom_enable_late_coming_penalty:
+                        for row in hr_settings_doc.custom_penalization_criteria_table_for_prompt:
+                            if row.penalization_type == "For Late Arrival" and row.get("value") == frappe.db.get_value("Employee", emp_id, row.get("employee_field")):
+                                return 1
+                        return 0                                        
+                    else:
+                        return 0
+    except Exception as e:
+        frappe.log_error("is_send_mail_check", f"For emp {emp_id} \n{frappe.get_traceback()}")
+        
+
 
 
 # ! DAILY SCHEDULER TO HANDLE ATTENDANCE REQUEST RITUALS
