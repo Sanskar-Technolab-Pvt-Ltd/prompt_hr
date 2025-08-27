@@ -459,15 +459,52 @@ def create_penalty_records(penalty_entries, target_date):
 
     # ? LOOP AND PROCESS PENALTIES
     for employee, details in penalty_entries.items():
-        if employee in existing_penalties_map:
-            penalty_doc = frappe.get_doc("Employee Penalty", existing_penalties_map[employee])
-            existing_reasons = {row.reason for row in penalty_doc.leave_penalty_details}
+        if check_employee_penalty_criteria(employee, details["reason"]):
+            if employee in existing_penalties_map:
+                penalty_doc = frappe.get_doc("Employee Penalty", existing_penalties_map[employee])
+                existing_reasons = {row.reason for row in penalty_doc.leave_penalty_details}
+                if details["reason"] not in existing_reasons:
+                    handle_leave_ledger(details, employee)
+                    penalty_doc.deduct_earned_leave += details.get("earned_leave", 0)
+                    penalty_doc.deduct_leave_without_pay += details.get("leave_without_pay", 0)
+                    penalty_doc.total_leave_penalty = penalty_doc.deduct_earned_leave + penalty_doc.deduct_leave_without_pay
+                    penalty_doc.append("leave_penalty_details", {
+                        "leave_type": details["leave_type"],
+                        "leave_amount": details["leave_amount"],
+                        "reason": details["reason"],
+                        "leave_balance_before_penalty": details.get("leave_balance_before_application", 0),
+                        "leave_ledger_entry": details.get("leave_ledger_entry", ""),
+                        "remarks": details.get("remarks")
+                    })
+                    penalty_doc.save(ignore_permissions=True)
+                    penalty_id = frappe.db.get_value("Attendance", details["attendance"], penalty_doc.name, "custom_employee_penalty_id")
+                    if not penalty_id:
+                        frappe.db.set_value("Attendance", details["attendance"], "custom_employee_penalty_id", penalty_doc.name)
+                    changes_made = True
 
-            if details["reason"] not in existing_reasons:
+            else:
+                if details["attendance"] is None:
+                    att_doc = frappe.get_doc({
+                            "doctype": "Attendance",
+                            "employee": employee,
+                            "attendance_date": target_date,
+                            "status": "Absent",
+                            "company": frappe.db.get_value("Employee", employee, "company"),
+                        })
+                    att_doc.insert(ignore_permissions=True)
+                    att_doc.submit()
+                    frappe.db.commit()
+                    details["attendance"] = att_doc.name
                 handle_leave_ledger(details, employee)
-                penalty_doc.deduct_earned_leave += details.get("earned_leave", 0)
-                penalty_doc.deduct_leave_without_pay += details.get("leave_without_pay", 0)
-                penalty_doc.total_leave_penalty = penalty_doc.deduct_earned_leave + penalty_doc.deduct_leave_without_pay
+                penalty_doc = frappe.new_doc("Employee Penalty")
+                penalty_doc.update({
+                    "employee": employee,
+                    "attendance": details["attendance"],
+                    "penalty_date": target_date,
+                    "deduct_earned_leave": details.get("earned_leave", 0),
+                    "deduct_leave_without_pay": details.get("leave_without_pay", 0),
+                    "total_leave_penalty": details.get("earned_leave", 0) + details.get("leave_without_pay", 0)
+                })
                 penalty_doc.append("leave_penalty_details", {
                     "leave_type": details["leave_type"],
                     "leave_amount": details["leave_amount"],
@@ -476,35 +513,10 @@ def create_penalty_records(penalty_entries, target_date):
                     "leave_ledger_entry": details.get("leave_ledger_entry", ""),
                     "remarks": details.get("remarks")
                 })
-                penalty_doc.save(ignore_permissions=True)
-                penalty_id = frappe.db.get_value("Attendance", details["attendance"], penalty_doc.name, "custom_employee_penalty_id")
-                if not penalty_id:
-                    frappe.db.set_value("Attendance", details["attendance"], "custom_employee_penalty_id", penalty_doc.name)
+                penalty_doc.insert(ignore_permissions=True)
+                frappe.db.set_value("Attendance",details["attendance"], "custom_employee_penalty_id", penalty_doc.name)
+
                 changes_made = True
-
-        else:
-            handle_leave_ledger(details, employee)
-            penalty_doc = frappe.new_doc("Employee Penalty")
-            penalty_doc.update({
-                "employee": employee,
-                "attendance": details["attendance"],
-                "penalty_date": target_date,
-                "deduct_earned_leave": details.get("earned_leave", 0),
-                "deduct_leave_without_pay": details.get("leave_without_pay", 0),
-                "total_leave_penalty": details.get("earned_leave", 0) + details.get("leave_without_pay", 0)
-            })
-            penalty_doc.append("leave_penalty_details", {
-                "leave_type": details["leave_type"],
-                "leave_amount": details["leave_amount"],
-                "reason": details["reason"],
-                "leave_balance_before_penalty": details.get("leave_balance_before_application", 0),
-                "leave_ledger_entry": details.get("leave_ledger_entry", ""),
-                "remarks": details.get("remarks")
-            })
-            penalty_doc.insert(ignore_permissions=True)
-            frappe.db.set_value("Attendance",details["attendance"], "custom_employee_penalty_id", penalty_doc.name)
-
-            changes_made = True
 
     if changes_made:
         frappe.db.commit()
@@ -675,19 +687,6 @@ def process_no_attendance_penalties_for_prompt(employees, penalty_buffer_days, t
             filtered_employees.append(emp)
 
         if filtered_employees:
-            # ! CREATE ABSENT ATTENDANCE RECORDS
-            for emp in filtered_employees:
-                att_doc = frappe.get_doc({
-                    "doctype": "Attendance",
-                    "employee": emp,
-                    "attendance_date": target_date,
-                    "status": "Absent",
-                    "company": frappe.db.get_value("Employee", emp, "company"),
-                })
-                att_doc.insert(ignore_permissions=True)
-                att_doc.submit()
-                frappe.db.commit()
-
             # ! GET LEAVE PENALTY CONFIGURATION FOR NO ATTENDANCE PENALTY
             leave_priority = frappe.db.get_all(
                 "Leave Penalty Configuration",
@@ -714,7 +713,7 @@ def process_no_attendance_penalties_for_prompt(employees, penalty_buffer_days, t
                         attendance_date=target_date,
                         deduction_amount=1.0,
                         reason="No Attendance",
-                        penalizable_attendance=att_doc.name,
+                        penalizable_attendance=None,
                         remarks=f"Penalty for No Attendance Marked on {target_date}",
                         leave_priority=leave_priority
                     )
@@ -779,3 +778,56 @@ def process_mispunch_penalties_for_prompt(employees, penalty_buffer_days, target
 
     
     return penalty_entries
+
+def check_employee_penalty_criteria(employee=None, penalization_type=None):
+    employee = frappe.get_doc("Employee", employee)
+    company_abbr = frappe.db.get_value("Company", employee.company, "abbr")
+    hr_settings = frappe.get_single("HR Settings")
+
+    # Field mapping
+    criteria = {
+        "Business Unit": "custom_business_unit",
+        "Department": "department",
+        "Address": "custom_work_location",
+        "Employment Type": "employment_type",
+        "Employee Grade": "grade",
+        "Designation": "designation",
+        "Product Line": "custom_product_line",
+    }
+
+    # ? PENALIZATION TYPE MAPPING
+    penalization_type_mapping = {
+        "No Attendance": "For No Attendance",
+        "Mispunch": "For Mispunch",
+        "Late Coming": "For Late Arrival",
+        "Insufficient Hours": "For Work Hours",
+    }
+
+    penalization_type = penalization_type_mapping.get(penalization_type, None)
+
+    # Abbreviations
+    prompt_abbr = hr_settings.custom_prompt_abbr
+
+    # Determine which table to use based on company
+    if company_abbr == prompt_abbr:
+        table = hr_settings.custom_penalization_criteria_table_for_prompt
+    else:
+        return True
+
+    if not table:
+        return True  # Allow if table is not configured
+
+    is_penalisation = False
+    for row in table:
+        if row.penalization_type != penalization_type:
+            continue
+
+        is_penalisation = True
+        employee_fieldname = criteria.get(row.select_doctype)
+        if (
+            employee_fieldname
+            and getattr(employee, employee_fieldname, None) == row.value
+        ):
+            return True
+
+    return not is_penalisation or False
