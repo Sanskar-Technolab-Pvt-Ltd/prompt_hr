@@ -1,6 +1,5 @@
 frappe.ui.form.on("HR Settings", {
     refresh: function (frm) {
-
         frm.fields_dict.custom_penalization_criteria_table_for_prompt.grid.get_field('value').get_query = function(doc, cdt, cdn) {
             let row = locals[cdt][cdn];
             if (row.is_sub_department && row.select_doctype == "Department") {
@@ -48,6 +47,10 @@ frappe.ui.form.on("HR Settings", {
         }
     },
     
+    onload: function (frm) { 
+        set_employee_fields_in_penalization_criteria(frm);
+    },  
+
     custom_deduct_leave_penalty_for_indifoss: function (frm) {
         apply_filter_for_leave_type(frm, "custom_deduct_leave_penalty_for_indifoss", "custom_leave_type_for_indifoss", 0, 1);
     },
@@ -112,6 +115,34 @@ function apply_filter_for_leave_type(frm, fieldname, leave_type_fieldname, promp
             }
         }
     });
+}
+
+
+frappe.ui.form.on("Penalization Criteria", {
+    custom_penalization_criteria_table_for_prompt_add: async function (frm, cdt, cdn) {
+        // Fetch fields
+        let options = await getEmployeeFields();
+
+        if (options.length) {
+            // Update the child table field dynamically
+            frm.fields_dict["custom_penalization_criteria_table_for_prompt"].grid.update_docfield_property(
+                "employee_field",   // child table fieldname
+                "options",
+                options.map(o => o.value) // what dropdown will display
+            );
+        }
+    },
+})
+async function set_employee_fields_in_penalization_criteria(frm) {
+    // Also set options when the parent form loads
+    let options = await getEmployeeFields();
+    if (options.length) {
+        frm.fields_dict["custom_penalization_criteria_table_for_prompt"].grid.update_docfield_property(
+            "employee_field",
+            "options",
+            options.map(o => o.value)
+        );
+    }
 }
 
 // Function to fetch Employee DocType fields
