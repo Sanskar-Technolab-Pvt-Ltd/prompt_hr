@@ -1,13 +1,13 @@
 
 import frappe
-
+from frappe.model.workflow import get_workflow
 @frappe.whitelist()
 def get(doctype):
     try:
         if not doctype:
             frappe.throw("doctype is required", frappe.MandatoryError)
 
-        status = ["Open","Draft","Approved","Rejected"]
+        status = get_workflow(doctype).states
 
     except Exception as e:
         # ? HANDLE ERRORS
