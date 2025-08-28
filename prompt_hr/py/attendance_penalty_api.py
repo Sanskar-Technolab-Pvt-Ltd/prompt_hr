@@ -486,7 +486,14 @@ def process_daily_hours_penalties_for_prompt(
     # ? CALCULATE LEAVE DEDUCTIONS BASED ON PRIORITY CONFIGURATION
     # ? AND ADD TO PENALTY ENTRIES
     for employee in below_threshold_employees:
-        
+        if frappe.db.exists(
+            "Attendance Regularization",
+            {
+                "employee": employee,
+                "regularization_date": target_date,
+                "status": "Approved",
+            }, ):
+            continue
         penalty_entries.update(
             calculate_leave_deductions_based_on_priority(
                 employee=employee,
@@ -930,6 +937,16 @@ def process_mispunch_penalties_for_prompt(
 
     # ? PROCESS EACH MIS-PUNCH RECORD
     for emp in mispunch_records.keys():
+
+        if frappe.db.exists(
+            "Attendance Regularization",
+            {
+                "employee": emp,
+                "regularization_date": target_date,
+                "status": "Approved",
+            }, ):
+            continue
+
         penalty_entries.update(
             calculate_leave_deductions_based_on_priority(
                 employee=emp,
