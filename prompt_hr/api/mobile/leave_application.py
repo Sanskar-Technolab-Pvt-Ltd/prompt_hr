@@ -302,9 +302,6 @@ def delete(name=None):
         }
         
         
-        
-from frappe.utils import today
-from prompt_hr.py.leave_application import custom_get_leave_details
 # ! prompt_hr.api.mobile.leave_type.list
 @frappe.whitelist()
 def leave_type_list(
@@ -316,37 +313,27 @@ def leave_type_list(
     limit_start=0,
 ):
     try:
-        user = frappe.session.user
-        employee = frappe.get_value("Employee", {"user_id": user}, "name")
-        date = today()
-        # get raw data from your custom function
-        result = custom_get_leave_details(employee, date)
 
-        leave_allocation = result.get("leave_allocation", {})
-        lwps = result.get("lwps", [])
-        employee_name = frappe.db.get_value("Employee", employee, "employee_name")
-
-        # transform data
-        leave_data = []
-
-        # 1. loop over leave allocations
-        for leave_type, details in leave_allocation.items():
-            leave_data.append({
-                "name": leave_type,
-                # "employee": employee,
-                # "employee_name": employee_name,
-                # "opening_balance": details.get("total_leaves", 0.0),
-                # "leaves_taken": details.get("leaves_taken", 0.0),
-                # "closing_balance": details.get("remaining_leaves", 0.0)
-            })
+        leave_type_list = frappe.get_list(
+            "Leave Type",
+            filters=filters,
+            or_filters=or_filters,
+            fields=frappe.parse_json(fields),
+            order_by=order_by,
+            limit_page_length=limit_page_length,
+            limit_start=limit_start,
+        )
         
-        leave_application_list = frappe.get_list(
-            "Leave Type",fields=["name"],filters={"is_lwp": 1})
+        # ? GET TOTAL COUNT (manually count the names matching filters)
+        total_names = frappe.get_list(
+            "Leave Type",
+            filters=filters,
+            or_filters=or_filters,
+            fields=["name"],
+            ignore_permissions=False
+        )
+        total_count = len(total_names)
         
-        for leave_app in leave_application_list:
-            leave_data.append({
-                "name": leave_app.name,
-            })
     except Exception as e:
         # ? HANDLE ERRORS
         frappe.log_error("Error While Getting Leave Type List", str(e))
@@ -362,8 +349,8 @@ def leave_type_list(
         frappe.local.response["message"] = {
             "success": True,
             "message": "Leave Type List Loaded Successfully!",
-            "data": leave_data,
-            # "count": tota_count        
+            "data": leave_type_list,
+            "count": total_count        
         }
         
         
