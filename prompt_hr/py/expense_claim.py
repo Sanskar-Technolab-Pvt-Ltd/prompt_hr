@@ -1,6 +1,6 @@
 import frappe
 from frappe.auth import today
-from frappe.utils import cint, flt, getdate
+from frappe.utils import cint, flt, getdate, get_datetime, add_days, date_diff
 import frappe.workflow
 from prompt_hr.py.utils import (
     send_notification_email,
@@ -9,7 +9,7 @@ from prompt_hr.py.utils import (
     get_indifoss_company_name,
 )
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta,time
 from dateutil.relativedelta import relativedelta
 
 # Constants for expense types
@@ -1015,3 +1015,468 @@ def get_local_commute_expense_in_expense_claim(employee):
             "Error in get_local_commute_expense_in_expense_claim",
         )
         return {}
+
+
+
+@frappe.whitelist()
+def get_date_wise_da_hours(employee, from_date, to_date, company, expense_claim_name=None, type=None):
+    """
+    #! FETCHES DATE-WISE DAILY ALLOWANCE (DA) AND COMMUTE EXPENSE ENTRIES FOR AN EMPLOYEE
+
+    This function calculates eligible DA and travel reimbursements based on field visits 
+    completed by an employee between a given date range, excluding specific time ranges 
+    defined in HR Settings. It handles:
+    
+    - Fetching eligible Field Visits
+    - Calculating eligible hours after exclusions
+    - Generating DA entries based on full/half day thresholds
+    - Creating or appending to Expense Claim
+    - Generating Local Commute expense entries
+    - Providing a summary of entries added/skipped
+    
+    Args:
+        employee (str): Employee ID.
+        from_date (str): Start date of the range.
+        to_date (str): End date of the range.
+        company (str): Company name.
+        expense_claim_name (str, optional): Existing Expense Claim name (if any).
+
+    Returns:
+        dict: {
+            "expense_claim_name": str,
+            "da_expense_rows": list,
+            "commute_expense_rows": list,
+            "summary_html": str
+        }
+    """
+
+    try:
+
+        meal_configs = fetch_meal_allowance_settings()
+        
+        # Loop through and use the configs
+        for config in meal_configs:
+            from_hours = config["from_hours"]
+            to_hours = config["to_hours"]
+            allowance = config["meal_allowance"]
+
+        
+        #? FETCH FIELD VISIT RECORDS WITHIN THE GIVEN DATE RANGE
+        field_visits = frappe.db.get_all(
+            "Field Visit",
+            filters={
+                "field_visited_by": employee,
+                "status": "Visit Completed",
+                "service_mode": "On Site(Customer Premise)"
+            },
+            or_filters=[
+                ["visit_started", "between", [from_date, to_date]],
+                ["visit_ended", "between", [from_date, to_date]],
+            ],
+            fields=["name", "visit_started", "visit_ended"]
+        )
+       
+        #? INITIALIZE EMPTY LISTS FOR OUTPUT
+        added_travel_entries = []
+        da_expense_rows = []
+        commute_expense_rows = []
+
+        #? FETCH LATEST DA AMOUNT AND TRAVEL RATES FOR EMPLOYEE
+        da_amount, private_service_rate = get_latest_travel_budget_and_rates(employee, company)
+        
+     
+        # calculate daily hours (NO exclusion)
+        date_wise_da_hours = calculate_date_wise_hours(field_visits, from_date, to_date)
+        #? TRACK DUPLICATE TRAVEL ENTRIES (IF ANY)
+        duplicates = []
+
+        #! -------------------------------------------------------------------
+        #! APPEND / CREATE EXPENSE CLAIM FOR DAILY ALLOWANCE (DA) ENTRIES
+        #! -------------------------------------------------------------------
+        expense_claim_doc, da_expense_rows, already_exists_dates, added_da_dates = build_da_expense_rows(
+            date_wise_da_hours=date_wise_da_hours,
+            da_amount=da_amount,
+            employee=employee,
+            expense_claim_name=expense_claim_name,
+            visit_type="Field Visit"
+        )
+       
+        #! -------------------------------------------------------------------
+        #! BUILD MESSAGES TO SHOW ENTRY SUMMARY TO THE USER
+        #! -------------------------------------------------------------------
+        messages = build_expense_notification_messages(
+            added_da_dates=added_da_dates,
+            already_exists_dates=already_exists_dates,
+        )
+
+        #? RETURN FINAL RESULT WITH EXPENSE CLAIM NAME, ENTRIES, AND SUMMARY
+        return {
+            "expense_claim_name": expense_claim_doc.name,
+            "da_expense_rows": da_expense_rows,
+            "commute_expense_rows": commute_expense_rows,
+            "summary_html": "<br><br>".join(messages) if messages else "No entries were added."
+        }
+    except Exception as e:
+        frappe.throw(str(e))
+
+
+
+def fetch_meal_allowance_settings():
+    """
+    FETCHES MEAL ALLOWANCE CONFIGURATIONS FROM HR SETTINGS CHILD TABLE.
+
+    Returns:
+        list[dict]: A list of dicts where each dict contains:
+            - from_hours (float)
+            - to_hours (float)
+            - meal_allowance (float)
+    """
+
+    #! FETCH HR SETTINGS SINGLETON DOCUMENT
+    hr_settings = frappe.get_single("HR Settings")
+
+    #? GET CHILD TABLE
+    meal_allowance_table = hr_settings.get("custom_meal_allowance_table")
+
+    #! THROW ERROR IF CHILD TABLE IS EMPTY
+    if not meal_allowance_table:
+        frappe.throw("Please configure 'Meal Allowance Table' in HR Settings.")
+
+    #? PARSE CHILD TABLE ROWS INTO LIST OF DICTS
+    meal_allowance_configs = []
+    for row in meal_allowance_table:
+        meal_allowance_configs.append({
+            "from_hours": row.from_no_of_hours_travel_per_day,
+            "to_hours": row.to_no_of_hours_travel_per_day,
+            "meal_allowance": row.meal_allowance,
+        })
+
+    return meal_allowance_configs
+
+
+
+def get_latest_travel_budget_and_rates(employee, company):
+    """
+    FETCHES THE LATEST SUBMITTED TRAVEL BUDGET FOR THE GIVEN COMPANY AND RETURNS:
+        - THE DA ALLOWANCE BASED ON EMPLOYEE'S GRADE
+        - A DICTIONARY OF SERVICE TRAVEL TYPES AND THEIR RATE PER KM
+
+    Args:
+        employee (str): The employee ID or name.
+        company (str): The company name to filter Travel Budgets.
+
+    Returns:
+        tuple[float, dict]: 
+            - DA amount (float)
+            - Private service rate dictionary (dict[str, float])
+    """
+
+    #! INITIALIZE RETURN VARIABLES
+    da_amount = 0.0
+    private_service_rate = {}
+
+    #! FETCH LATEST SUBMITTED TRAVEL BUDGET DOCUMENT FOR THE GIVEN COMPANY
+    travel_visit_doc = frappe.get_all(
+        "Travel Budget",
+        filters={"docstatus": 1, "company": company},
+        fields=["name"],
+        order_by="creation desc",
+        limit=1
+    )
+
+    #? IF A TRAVEL BUDGET EXISTS
+    if travel_visit_doc:
+        #? GET EMPLOYEE GRADE
+        employee_grade = frappe.get_value("Employee", employee, "grade")
+
+        #? FETCH FULL TRAVEL BUDGET DOCUMENT
+        travel_budget = frappe.get_doc("Travel Budget", travel_visit_doc[0].name)
+
+        #? MATCH EMPLOYEE GRADE TO FIND APPLICABLE DA ALLOWANCE
+        if employee_grade:
+            for budget in travel_budget.buget_allocation:
+                if employee_grade == budget.grade:
+                    da_amount = budget.da_allowance
+                    break
+
+        #? BUILD PRIVATE SERVICE RATE DICTIONARY
+        for service in travel_budget.service_km_rate:
+            if service.type_of_travel not in private_service_rate:
+                private_service_rate[service.type_of_travel] = service.rate_per_km
+
+    #! RETURN THE DA AMOUNT AND SERVICE RATES
+    return da_amount, private_service_rate
+
+def calculate_date_wise_hours(visits, from_date, to_date, start_key="visit_started", end_key="visit_ended"):
+    """
+    CALCULATE DATE-WISE HOURS FROM VISITS (DISTRIBUTED ACROSS MULTIPLE DAYS).
+    """
+
+    date_wise_data = defaultdict(lambda: {
+        "hours": 0.0,
+        "visits": set(),
+        "earliest_start": None,
+        "latest_end": None
+    })
+
+    for visit in visits:
+        start_dt = get_datetime(max(visit[start_key], get_datetime(from_date)))
+        end_dt = get_datetime(min(visit[end_key], datetime.combine(getdate(to_date), time(23, 59, 59))))
+
+        current = start_dt
+        while current < end_dt:
+            day = current.date()
+            # end of this day or visit end, whichever comes first
+            day_end = datetime.combine(day, time.max)
+            segment_end = min(day_end, end_dt)
+
+            duration_hours = round((segment_end - current).total_seconds() / 3600, 2)
+            date_str = str(day)
+
+            data = date_wise_data[date_str]
+            data["hours"] += duration_hours
+            data["visits"].add(visit["name"])
+
+            start_time = current.time()
+            end_time = segment_end.time()
+
+            if not data["earliest_start"] or start_time < data["earliest_start"]:
+                data["earliest_start"] = start_time
+            if not data["latest_end"] or end_time > data["latest_end"]:
+                data["latest_end"] = end_time
+
+            # move to next day
+            current = segment_end + timedelta(seconds=1)
+
+    return date_wise_data
+
+
+def build_da_expense_rows(
+    date_wise_da_hours,
+    da_amount,
+    employee,
+    expense_claim_name=None,
+    visit_type="Field Visit"
+):
+    """
+    BUILDS DA EXPENSE ROWS BASED ON DATE-WISE HOURS AND MEAL ALLOWANCE CONFIGS.
+    """
+
+    already_exists_dates = []
+    added_da_dates = [] 
+    da_expense_rows = []
+
+    #! FETCH MEAL ALLOWANCE CONFIGS
+    meal_configs = fetch_meal_allowance_settings()
+    meal_configs = sorted(meal_configs, key=lambda x: x["from_hours"])  # ensure ascending order
+
+    #! GET OR CREATE EXPENSE CLAIM DOC
+    if expense_claim_name:
+        expense_claim_doc = frappe.get_doc("Expense Claim", expense_claim_name)
+    else:
+        latest_ec = frappe.get_all(
+            "Expense Claim",
+            filters={"employee": employee, "approval_status": "Draft"},
+            order_by="posting_date desc",
+            limit=1,
+            fields=["name"]
+        )
+        if latest_ec:
+            expense_claim_doc = frappe.get_doc("Expense Claim", latest_ec[0].name)
+        else:
+            expense_claim_doc = frappe.get_doc({
+                "doctype": "Expense Claim",
+                "employee": employee,
+                "approval_status": "Draft",
+                "custom_type": visit_type,
+                "expenses": []
+            })
+
+    #! PROCESS EACH DATE
+    for date, data in date_wise_da_hours.items():
+        hours = data["hours"]
+        if hours <= 0:
+            continue
+
+        #! FIND MATCHED CONFIG
+        matched_config = None
+        for config in meal_configs:
+            if config["from_hours"] <= hours <= config["to_hours"]:
+                matched_config = config
+                break
+
+        if not matched_config:
+            continue  # no config matched → skip
+
+        percentage = matched_config["meal_allowance"]
+        amount = round((da_amount * percentage) / 100, 2)
+
+        #! VALIDATION ONLY WORKS FOR SAME-TYPE ENTRIES
+        if visit_type == "Field Visit":
+            already_exists = any(
+                exp.expense_type == "DA" and str(exp.expense_date) == str(date) and exp.custom_field_visits
+                for exp in expense_claim_doc.expenses
+            )
+        else:
+            already_exists = any(
+                exp.expense_type == "DA" and str(exp.expense_date) == str(date) and not exp.custom_field_visits
+                for exp in expense_claim_doc.expenses
+            )
+
+        if already_exists:
+            already_exists_dates.append(str(date))
+            continue
+
+        #! BASE EXPENSE ROW
+        expense_row = {
+            "expense_type": "DA",
+            "expense_date": getdate(date),
+            "custom_expense_end_date": getdate(date),
+            "amount": amount,
+            "sanctioned_amount": amount,
+            "custom_days": 1,   # now always "per day" since hours are already split
+            "custom_mode_of_vehicle": "",
+            "custom_type_of_vehicle": "",
+            "custom_expense_start_time": data.get("earliest_start"),
+            "custom_expense_end_time": data.get("latest_end"),
+            "description": f"{percentage}% DA - {date}"
+        }
+
+        #? ONLY FOR FIELD VISIT: ADD FIELD VISIT → SERVICE CALL MAPPING + HTML
+        if visit_type == "Field Visit":
+            base_url = frappe.utils.get_url()
+            all_field_visits_set = set()
+            all_service_calls_set = set()
+            field_visit_map = {}
+
+            for fv_name in data["visits"]:
+                field_visit_doc = frappe.get_doc("Field Visit", fv_name)
+                all_field_visits_set.add(fv_name)
+                for row in field_visit_doc.service_calls:
+                    if row.service_call:
+                        field_visit_map.setdefault(fv_name, []).append({
+                            "service_call": row.service_call,
+                            "from_location": row.from_location or "-",
+                            "to_location": row.to_location or "-",
+                            "travelled_km": row.travelled_km or "0"
+                        })
+                        all_service_calls_set.add(row.service_call)
+
+            # build table rows
+            table_rows = ""
+            for field_visit, service_call_rows in sorted(field_visit_map.items()):
+                rowspan = len(service_call_rows)
+                for i, row_data in enumerate(service_call_rows):
+                    service_call = row_data["service_call"]
+                    from_location = row_data["from_location"]
+                    to_location = row_data["to_location"]
+                    travelled_km = row_data["travelled_km"]
+
+                    # fetch customer
+                    customer = "-"
+                    customer_name = "-"
+                    sc_data = frappe.db.get_value(
+                        "Service Call", service_call, ["customer"], as_dict=True
+                    )
+                    if sc_data and sc_data.get("customer"):
+                        customer = sc_data.get("customer")
+                        customer_name = frappe.db.get_value("Customer", customer, "customer_name")
+
+                    table_rows += "<tr>"
+                    if i == 0:
+                        table_rows += f"""
+                            <td rowspan="{rowspan}" style="border: 1px solid #000; padding: 8px;">
+                                <a href="{base_url}/app/field-visit/{field_visit}" target="_blank">{field_visit}</a>
+                            </td>
+                        """
+                    table_rows += f"""
+                        <td style="border: 1px solid #000; padding: 8px;">
+                            <a href="{base_url}/app/service-call/{service_call}" target="_blank">{service_call}</a>
+                        </td>
+                        <td style="border: 1px solid #000; padding: 8px;">{from_location}</td>
+                        <td style="border: 1px solid #000; padding: 8px;">{to_location}</td>
+                        <td style="border: 1px solid #000; padding: 8px;">{travelled_km}</td>
+                        <td style="border: 1px solid #000; padding: 8px;">
+                            <a href="{base_url}/app/customer/{customer}" target="_blank">{customer_name}</a>
+                        </td>
+                    </tr>
+                    """
+
+            html_table = f"""
+            <div class="ql-editor read-mode">
+                <table style="border-collapse: collapse; width: 100%; font-size: 14px;">
+                    <thead>
+                        <tr style="background-color: #f5f5f5;">
+                            <th style="border: 1px solid #000; padding: 8px;">Field Visit</th>
+                            <th style="border: 1px solid #000; padding: 8px;">Service Call</th>
+                            <th style="border: 1px solid #000; padding: 8px;">From Location</th>
+                            <th style="border: 1px solid #000; padding: 8px;">To Location</th>
+                            <th style="border: 1px solid #000; padding: 8px;">Travelled KM</th>
+                            <th style="border: 1px solid #000; padding: 8px;">Customer</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {table_rows}
+                    </tbody>
+                </table>
+            </div>
+            """
+
+            expense_row.update({
+                "custom_field_visit_and_service_call_details": html_table,
+                "custom_field_visits": ", ".join(sorted(all_field_visits_set)),
+                "custom_service_calls": ", ".join(sorted(all_service_calls_set)),
+            })
+
+        da_expense_rows.append(expense_row)
+        added_da_dates.append(str(date))
+
+    return expense_claim_doc, da_expense_rows, already_exists_dates, added_da_dates
+
+
+
+def build_expense_notification_messages(
+    added_da_dates=None,
+    already_exists_dates=None,
+):
+    """
+    BUILDS NOTIFICATION MESSAGES FOR EXPENSE CLAIM OPERATIONS.
+
+    Args:
+        added_da_dates (list): Dates where DA was successfully added.
+        added_travel_entries (list): Dates where travel entries were successfully added.
+        already_exists_dates (list): Dates where DA already existed and was skipped.
+        duplicates (list): Travel entries that already existed and were skipped.
+
+    Returns:
+        list: A list of HTML-formatted notification strings.
+    """
+
+    #! INITIALIZE MESSAGE LIST
+    messages = []
+
+    #? ENSURE NONE ARE NULL
+    added_da_dates = added_da_dates or []
+    already_exists_dates = already_exists_dates or []
+
+    #? SUCCESSFUL DA ENTRIES
+    if added_da_dates:
+        messages.append(
+            "Daily Allowance (DA) has been successfully added for the following dates:<br><b>{}</b>".format(
+                ", ".join(added_da_dates)
+            )
+        )
+
+    #? ALREADY PRESENT DA ENTRIES
+    if already_exists_dates:
+        messages.append(
+            "DA was already recorded for the following dates and was not added again:<br><b>{}</b>".format(
+                ", ".join(already_exists_dates)
+            )
+        )
+
+
+    return messages
+
+
+
