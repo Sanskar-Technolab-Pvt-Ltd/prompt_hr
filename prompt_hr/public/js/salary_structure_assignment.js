@@ -1,4 +1,20 @@
 frappe.ui.form.on("Salary Structure Assignment", {
+    refresh: function(frm) {
+        //? ADD BUTTON FOR VIEWING EMPLOYEE STANDARD SALARY
+        if (frm.doc.employee && !frm.is_new()) {
+            frm.add_custom_button("View Standard Salary", function() {
+                frappe.db.get_value("Employee Standard Salary", { employee: frm.doc.employee }, "name")
+                    .then(r => {
+                        if (r.message && r.message.name) {
+                            frappe.set_route("Form", "Employee Standard Salary", r.message.name);
+                        } else {
+                            frappe.msgprint("No Standard Salary record found for this employee.");
+                        }
+                    });
+
+            });
+        }
+    },
     //? TRIGGER WHEN EMPLOYEE IS SELECTED
     employee: function(frm) {
         set_income_tax_slab_from_ui(frm);
