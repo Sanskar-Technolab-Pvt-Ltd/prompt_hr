@@ -167,13 +167,6 @@ def process_late_entry_penalties_for_prompt(
     if not late_attendance_records:
         return []
 
-    # ? REMOVE EMPLOYEES WHOSE DAY IS NOT VALID
-    late_attendance_records = {
-        emp: data
-        for emp, data in late_attendance_records.items()
-        if check_if_day_is_valid(emp, target_date)
-    }
-
     # ? EMPLOYEES WHO HAD LATE ENTRY ON TARGET DATE
     late_employees = list(late_attendance_records.keys())
 
@@ -222,30 +215,22 @@ def process_late_entry_penalties_for_prompt(
             },
         )
 
-        attendance_regularization_exists = frappe.db.exists(
-            "Attendance Regularization",
-            {
-                "employee": employee,
-                "regularization_date": target_date,
-                "status": "Approved",
-            },
-        )
-
         attendance_request_exists = frappe.db.exists(
             "Attendance Request",
             {
                 "employee": employee,
-                "attendance_date": target_date,
+                "from_date": ["<=", target_date],
+                "to_date": [">=", target_date],
                 "custom_status": "Approved",
+                "docstatus": ["!=", 2],
                 "reason": "Partial Day"
             },
         )
 
         if (
             count >= late_coming_allowed_per_month
-            or leave_application_exists
-            or attendance_regularization_exists
-            or attendance_request_exists
+            and not leave_application_exists
+            and not attendance_request_exists
         ):
             penalty_entries.update(
                 calculate_leave_deductions_based_on_priority(
@@ -397,9 +382,9 @@ def target_date_attendance_exists(
     # ? ADD STATUS FILTERS FOR ALL OTHER CASES EXCEPT NO ATTENDANCE AND MISPUNCH
     if not no_attendance and not mispunch:
         if daily_hour:
-            filters.update({"status": ["not in", ["Absent", "On Leave", "Mispunch"]]})
+            filters.update({"status": ["not in",["Absent","On Leave", "Mispunch", "WeekOff"]]})
         else:
-            filters.update({"status": ["not in", ["Absent", "On Leave"]]})
+            filters.update({"status": ["not in",["Absent","On Leave", "WeekOff"]]})
 
     # ? ADD MISPUNCH STATUS FILTER IF FETCHING MISPUNCH RECORDS
     if mispunch:
@@ -486,14 +471,6 @@ def process_daily_hours_penalties_for_prompt(
     # ? CALCULATE LEAVE DEDUCTIONS BASED ON PRIORITY CONFIGURATION
     # ? AND ADD TO PENALTY ENTRIES
     for employee in below_threshold_employees:
-        if frappe.db.exists(
-            "Attendance Regularization",
-            {
-                "employee": employee,
-                "regularization_date": target_date,
-                "status": "Approved",
-            }, ):
-            continue
         penalty_entries.update(
             calculate_leave_deductions_based_on_priority(
                 employee=employee,
@@ -756,8 +733,10 @@ def get_below_threshold_daily_hours(
             "Attendance Request",
             {
                 "employee": emp,
-                "attendance_date": target_date,
+                "from_date": ["<=", target_date],
+                "to_date": [">=", target_date],
                 "custom_status": "Approved",
+                "docstatus": ["!=", 2],
                 "reason": "Partial Day"
             },
             "custom_partial_day_request_minutes"
@@ -765,6 +744,10 @@ def get_below_threshold_daily_hours(
 
         working_hours = data.get("working_hours", 0)
         shift_type = emp_shift_map.get(emp)
+        # ? SKIP IF WORKING HOUR IS ZERO AND HOLIDAY
+        if working_hours == 0:
+            if get_holiday_dates_for_employee(emp, target_date, target_date):
+                continue
 
         # ? SKIP IF NO SHIFT
         if not shift_type or shift_type not in shift_time_map:
@@ -912,13 +895,6 @@ def process_mispunch_penalties_for_prompt(
     if not mispunch_records:
         return penalty_entries
 
-    # ? REMOVE EMPLOYEES WHOSE DAY IS NOT VALID
-    mispunch_records = {
-        emp: data
-        for emp, data in mispunch_records.items()
-        if check_if_day_is_valid(emp, target_date)
-    }
-
     # ? GET LEAVE PENALTY CONFIGURATION FOR MIS-PUNCH PENALTY
     leave_priority = frappe.db.get_all(
         "Leave Penalty Configuration",
@@ -937,16 +913,9 @@ def process_mispunch_penalties_for_prompt(
 
     # ? PROCESS EACH MIS-PUNCH RECORD
     for emp in mispunch_records.keys():
-
-        if frappe.db.exists(
-            "Attendance Regularization",
-            {
-                "employee": emp,
-                "regularization_date": target_date,
-                "status": "Approved",
-            }, ):
+        # ? CHECK HOLIDAY
+        if get_holiday_dates_for_employee(emp, target_date, target_date):
             continue
-
         penalty_entries.update(
             calculate_leave_deductions_based_on_priority(
                 employee=emp,

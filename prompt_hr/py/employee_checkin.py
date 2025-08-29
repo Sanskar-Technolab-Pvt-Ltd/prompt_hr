@@ -19,6 +19,6 @@ def before_insert(doc, method):
     # ? Call validation function
     is_allowed = check_if_employee_create_checkin_is_validate_via_web(user_id)
 
-    # ? If not allowed, stop the insert
-    if is_allowed == 0:
-        frappe.throw(_("You are not allowed to create Check-in. "))
+    # # ? If not allowed, stop the insert
+    # if is_allowed == 0:
+    #     frappe.throw(_("You are not allowed to create Check-in. "))
