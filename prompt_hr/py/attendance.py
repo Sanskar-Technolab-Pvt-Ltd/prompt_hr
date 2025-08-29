@@ -177,6 +177,8 @@ def custom_mark_bulk_attendance(data):
             working_hours = round(data.get("working_hours"), 1)
             work_seconds = int(working_hours * 3600)
             work_hours = format_duration(work_seconds)
+        else:
+            work_hours = 0
         doc_dict = {
             "doctype": "Attendance",
             "employee": data.employee,
