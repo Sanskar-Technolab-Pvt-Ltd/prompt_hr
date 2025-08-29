@@ -2,6 +2,7 @@
 frappe.ui.form.on('Expense Claim', {
 	refresh(frm) {
 		create_payment_entry_button(frm);
+		add_view_field_visit_expense_button(frm);
 		fetch_commute_data(frm);
 		set_local_commute_monthly_expense(frm);
 		// ? FETCH GENDER OF THE CURRENT EMPLOYEE
@@ -305,4 +306,161 @@ function set_local_commute_monthly_expense(frm) {
     }
 });
 
+}
+
+
+
+//? ADDS "VIEW FIELD VISIT EXPENSES" BUTTON IF USER HAS SPECIFIC ROLE
+function add_view_field_visit_expense_button(frm) {
+    // ? DEFINE ALLOWED ROLES FOR BUTTON VISIBILITY
+    const allowed_roles = ['Service Engineer', 'S - HR Executive', 'S - HR Manager', "S - Service Engineer"];
+
+    // ? CHECK IF CURRENT USER HAS ANY OF THE ALLOWED ROLES
+    let can_show = 0;
+    allowed_roles.forEach(role => {
+        if (frappe.user.has_role(role)) {
+            // ? ONLY SHOWED BUTTON IF STATE IS PENDING
+            if (frm.doc.workflow_state == "Draft") {
+                can_show = 1;
+            }
+        }
+    });
+
+    // //? EXIT IF USER ROLE NOT PERMITTED
+    if (!can_show) return;
+
+    //? ADD CUSTOM BUTTON TO THE FORM
+    frm.add_custom_button(__('Get Field Visit Expenses'), function () {
+        const employee = frm.doc.employee;
+        const is_new = frm.is_new()
+        let expense_claim_name = ""
+        if (!is_new) {
+            expense_claim_name = frm.doc.name
+        }
+        //? CHECK IF CURRENT USER IS HR USER OR HR MANAGER
+        const can_edit_employee = frappe.user.has_role('S - HR Executive') || frappe.user.has_role('S - HR Manager');
+        //? CREATE DIALOG TO ENTER FIELD VISIT DETAILS
+        const dialog = new frappe.ui.Dialog({
+            title: 'Field Visit Details',
+            fields: [
+                {
+                    label: 'Employee',
+                    fieldname: 'employee',
+                    fieldtype: 'Link',
+                    options: 'Employee',
+                    reqd: 1,
+                    default: employee,
+                    hidden: !is_new,
+                    onchange: function () {
+                        if (dialog.get_value("employee")) {
+                            frappe.db.get_value('Employee', dialog.get_value("employee"), 'employee_name')
+                                .then(r => {
+                                    if (r.message) {
+                                        dialog.set_value('employee_name', r.message.employee_name);
+                                    }
+                                });
+                        }
+                        else {
+                            dialog.set_value('employee_name', "")
+                        }
+                    }
+
+                },
+                {
+                    label: 'Employee Name',
+                    fieldname: 'employee_name',
+                    fieldtype: 'Data',
+                    hidden: !is_new,
+                    read_only: 1
+                },
+                {
+                    label: 'From Date',
+                    fieldname: 'from_date',
+                    fieldtype: 'Date',
+                    reqd: 1
+                },
+                {
+                    label: 'To Date',
+                    fieldname: 'to_date',
+                    fieldtype: 'Date',
+                    reqd: 1
+                }
+            ],
+            primary_action_label: 'Fetch Expense Claims',
+            primary_action(values) {
+                // ? VALIDATE DATE RANGE
+                if (values.from_date > values.to_date) {
+                    frappe.throw(__('From Date cannot be after To Date.'));
+                    return;
+                }
+
+                frappe.call({
+                    method: 'prompt_hr.py.expense_claim.get_date_wise_da_hours',
+                    args: {
+                        employee: values.employee,
+                        from_date: values.from_date,
+                        to_date: values.to_date,
+                        company: frm.doc.company || "",
+                        expense_claim_name: expense_claim_name,
+                        type: "Field Visit"
+                    },
+                    callback(r) {
+						try {
+							if (!r.exc && r.message) {
+								const { expense_claim_name, da_expense_rows, commute_expense_rows, summary_html } = r.message;
+
+								if ((da_expense_rows?.length || commute_expense_rows?.length)) {
+									if (frm.is_new()) {
+										frm.doc.employee = values.employee;
+										frm.doc.approval_status = "Draft";
+										frm.doc.custom_type = "Field Visit";
+										frm.doc.expenses = [];
+
+										frm.refresh_field("employee");
+										frm.refresh_field("approval_status");
+										frm.refresh_field("custom_type");
+										frm.refresh_field("expenses");
+									}
+
+									show_summary_and_insert(summary_html, da_expense_rows, commute_expense_rows);
+								} else {
+									frappe.msgprint(__('No entries found for selected date range.'));
+								}
+							}
+						} 
+						finally {
+							dialog.hide();  // ✅ always executed
+						}
+					}
+									});
+
+                function show_summary_and_insert(summary_html, da_expense_rows, commute_expense_rows) {
+                    frappe.msgprint({
+                        title: __('Expense Claim Summary'),
+                        message: summary_html,
+                    });
+
+                    [...(da_expense_rows || []), ...(commute_expense_rows || [])].forEach(row => {
+                        frm.add_child('expenses', row);
+                    });
+                    frm.refresh_field('expenses');
+                    check_and_remove_expense_buttons(frm)
+                }
+            }
+
+        });
+
+        //? FETCH EMPLOYEE NAME FROM EMPLOYEE DOC IF SET
+        if (employee) {
+            frappe.db.get_value('Employee', employee, 'employee_name')
+                .then(r => {
+                    if (r.message) {
+                        dialog.set_value('employee_name', r.message.employee_name);
+                    }
+                });
+        }
+
+        //? SHOW THE DIALOG
+        dialog.show();
+    });
 }
