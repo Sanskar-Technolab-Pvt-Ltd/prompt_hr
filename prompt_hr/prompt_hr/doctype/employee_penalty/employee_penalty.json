@@ -1,4 +1,5 @@
 {
+ "_liked_by": "[\"Administrator\"]",
  "actions": [],
  "allow_rename": 1,
  "autoname": "format:EMP-PEN-{employee}-{####}",
@@ -21,6 +22,7 @@
   {
    "fieldname": "employee",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Employee",
    "options": "Employee"
   },
@@ -44,11 +46,13 @@
   {
    "fieldname": "penalty_date",
    "fieldtype": "Date",
+   "in_list_view": 1,
    "label": "Penalty date"
   },
   {
    "fieldname": "deduct_earned_leave",
    "fieldtype": "Float",
+   "in_list_view": 1,
    "label": "Deduct Earned Leave",
    "precision": "1"
   },
@@ -56,12 +60,14 @@
    "description": "These unpaid leaves will be deducted from salary slip",
    "fieldname": "deduct_leave_without_pay",
    "fieldtype": "Float",
+   "in_list_view": 1,
    "label": "Deduct Leave without pay",
    "precision": "1"
   },
   {
    "fieldname": "total_leave_penalty",
    "fieldtype": "Float",
+   "in_list_view": 1,
    "label": "Total Leave Penalty",
    "precision": "1"
   },
@@ -79,7 +85,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-08-14 15:00:38.445433",
+ "modified": "2025-08-30 19:27:41.540223",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Penalty",

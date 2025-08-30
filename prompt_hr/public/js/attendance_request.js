@@ -51,6 +51,10 @@ frappe.ui.form.on('Attendance Request', {
             })
         }
 
+        if (!frm.is_new() && frm.doc.docstatus == 0){
+            add_custom_workflow_buttons(frm)
+        }
+
         if (frm.doc.company) {
             set_partial_day_option(frm)
         }
@@ -61,6 +65,43 @@ frappe.ui.form.on('Attendance Request', {
     
     }
 });
+
+function add_custom_workflow_buttons(frm) {
+    // HIDE DEFAULT WORKFLOW PRIMARY BUTTONS
+    $('.btn.btn-primary.btn-sm').hide();
+    frappe.call({
+        method: "frappe.model.workflow.get_transitions",
+        args: { doc: frm.doc },
+        callback: function (r) {
+            if (r.message) {
+                let unique_buttons = [...new Set(r.message.map(t => t.action))];
+                setTimeout(() => {
+                    unique_buttons.forEach(action => {
+                        frm.add_custom_button(
+                            __(action),
+                            function () {
+                                frappe.call({
+                                    method: "prompt_hr.overrides.attendance_request_override.handle_custom_workflow_action",
+                                    args: {
+                                        "doc": frm.doc,
+                                        "action": action
+                                    },
+                                    callback: function (r) {
+                                        if (r.message) {
+                                            frappe.set_route("Form", "Attendance Request", r.message);
+                                        }
+                                    }
+                                });
+                            },
+                            __("Actions")
+                        )
+
+                    });
+                }, 10);
+            }
+        }
+    });
+}
 
 
 function set_partial_day_option(frm) {
