@@ -108,7 +108,11 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                             "late_entry_grace_period": frappe.db.get_value("Shift Type", shift_type, "late_entry_grace_period")
                         })
             else:
-                employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": company_id}, ["name", "holiday_list", "custom_is_overtime_applicable"])
+                # ? GET EMPLOYEE
+                if emp_id:
+                    employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": company_id, "name":emp_id}, ["name", "holiday_list", "custom_is_overtime_applicable"])
+                else:
+                    employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": company_id}, ["name", "holiday_list", "custom_is_overtime_applicable"])
 
                 #? GET ALL EMPLOYEE IDS
                 employee_ids = [emp.name for emp in employee_list]
@@ -182,8 +186,10 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
 
             prompt_company_id = prompt_company_name.get("company_id")
             indifoss_company_id = indifoss_company_name.get("company_id")
-            
-            employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": ["in", [prompt_company_id, indifoss_company_id]]}, ["name", "holiday_list", "custom_is_overtime_applicable", "company"])
+            if emp_id:
+                employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": company_id, "name":emp_id}, ["name", "holiday_list", "custom_is_overtime_applicable"])
+            else:
+                employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": ["in", [prompt_company_id, indifoss_company_id]]}, ["name", "holiday_list", "custom_is_overtime_applicable", "company"])
             frappe.log_error("mark_attendance_employee_list", f"\n\n employee list {employee_list} \n\n")
             #? GET ALL EMPLOYEE IDS
             employee_ids = [emp.name for emp in employee_list]
@@ -789,7 +795,9 @@ def create_attendance(
 ):
     """Method to create attendance
     """
-    
+    attendance_request = frappe.db.get_all("Attendance Request", {"custom_status":["in",["Pending"]], "employee": employee, "from_date": ["<=", attendance_date], "to_date":[">=", attendance_date]}, ["name", "reason"], limit=1)
+    if attendance_request:
+        return
     attendance_doc = frappe.new_doc("Attendance")
     attendance_doc.employee = employee
     attendance_doc.attendance_date = attendance_date
