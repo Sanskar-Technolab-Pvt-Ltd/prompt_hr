@@ -33,35 +33,40 @@ class CustomAttendanceRequest(AttendanceRequest):
 
 @frappe.whitelist()
 def handle_custom_workflow_action(doc, action):
-    if isinstance(doc, str):
-        doc = frappe.parse_json(doc)
-    if action == "Approve":
-        #! ENQUEUE BACKGROUND JOB
-        frappe.enqueue(
-            process_attendance_and_penalties,
-            doc=doc,
-            now=False,
-        )
+    try:
+        if isinstance(doc, str):
+            doc = frappe.parse_json(doc)
+        if action == "Approve":
+            #! ENQUEUE BACKGROUND JOB
+            frappe.enqueue(
+                process_attendance_and_penalties,
+                doc=doc,
+                now=False,
+            )
 
-        #! GIVE USER MESSAGE
-        frappe.msgprint(
-            "Your request has been approved and is being processed in the background. "
-            "It may take a few minutes to update attendance and penalties. "
-            "If it is still not approved after some time, please contact the HR Department."
-        )
-    elif action == "Reject":
-        frappe.enqueue(
-            process_rejection_penalties,
-            doc=doc,
-            now=False,
-        )
+            #! GIVE USER MESSAGE
+            frappe.msgprint(
+                "Your request has been approved and is being processed in the background. "
+                "It may take a few minutes to update attendance and penalties. "
+                "If it is still not approved after some time, please contact the HR Department."
+            )
+        elif action == "Reject":
+            frappe.enqueue(
+                process_rejection_penalties,
+                doc=doc,
+                now=False,
+            )
 
-        frappe.msgprint(
-            "Your request has been rejected. No-attendance penalties are being processed "
-            "in the background."
+            frappe.msgprint(
+                "Your request has been rejected. No-attendance penalties are being processed "
+                "in the background."
+            )
+        else:
+            apply_workflow(doc, action)
+    except Exception as e:
+        frappe.log_error(
+            f"Error in handle_custom_workflow_action",str(e)
         )
-    else:
-        apply_workflow(doc, action)
 
 
 def process_attendance_and_penalties(doc):

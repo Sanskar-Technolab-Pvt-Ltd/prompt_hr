@@ -313,14 +313,14 @@ function set_local_commute_monthly_expense(frm) {
 //? ADDS "VIEW FIELD VISIT EXPENSES" BUTTON IF USER HAS SPECIFIC ROLE
 function add_view_field_visit_expense_button(frm) {
     // ? DEFINE ALLOWED ROLES FOR BUTTON VISIBILITY
-    const allowed_roles = ['Service Engineer', 'S - HR Executive', 'S - HR Manager', "S - Service Engineer"];
+    const allowed_roles = ['Service Engineer', 'S - HR Director (Global Admin)', "S - Service Engineer", "System Manager"];
 
     // ? CHECK IF CURRENT USER HAS ANY OF THE ALLOWED ROLES
     let can_show = 0;
     allowed_roles.forEach(role => {
         if (frappe.user.has_role(role)) {
             // ? ONLY SHOWED BUTTON IF STATE IS PENDING
-            if (frm.doc.workflow_state == "Draft") {
+            if (frm.doc.workflow_state == "Pending") {
                 can_show = 1;
             }
         }
@@ -338,7 +338,7 @@ function add_view_field_visit_expense_button(frm) {
             expense_claim_name = frm.doc.name
         }
         //? CHECK IF CURRENT USER IS HR USER OR HR MANAGER
-        const can_edit_employee = frappe.user.has_role('S - HR Executive') || frappe.user.has_role('S - HR Manager');
+        const can_edit_employee = frappe.user.has_role('S - HR Director (Global Admin)') || frappe.user.has_role("System Manager");
         //? CREATE DIALOG TO ENTER FIELD VISIT DETAILS
         const dialog = new frappe.ui.Dialog({
             title: 'Field Visit Details',

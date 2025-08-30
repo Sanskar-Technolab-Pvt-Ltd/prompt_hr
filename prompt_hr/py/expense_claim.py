@@ -1,12 +1,11 @@
 import frappe
 from frappe.auth import today
-from frappe.utils import cint, flt, getdate, get_datetime, add_days, date_diff
+from frappe.utils import cint, flt, getdate, get_datetime, add_days, date_diff, time_diff_in_hours
 import frappe.workflow
 from prompt_hr.py.utils import (
     send_notification_email,
     expense_claim_and_travel_request_workflow_email,
     get_prompt_company_name,
-    get_indifoss_company_name,
 )
 from collections import defaultdict
 from datetime import datetime, timedelta,time
@@ -36,6 +35,75 @@ def before_save(doc, method):
     if doc.expenses:
         validate_attachments_compulsion(doc)
         get_expense_claim_exception(doc)
+        update_da_amount_as_per_time(doc)
+
+def update_da_amount_as_per_time(doc):
+    da_amount = 0
+    hr_settings = frappe.get_single("HR Settings")
+    time_map = {}
+    if hr_settings.custom_meal_allowance_table:
+        for row in hr_settings.custom_meal_allowance_table:
+            time_map.update({f"{row.from_no_of_hours_travel_per_day or 0}:{row.to_no_of_hours_travel_per_day or 0}": row.meal_allowance or 0})
+    else:
+        frappe.throw("Please add meal allowance table in HR Settings")
+
+    #! FETCH LATEST SUBMITTED TRAVEL BUDGET DOCUMENT FOR THE GIVEN COMPANY
+    travel_visit_doc = frappe.get_all(
+                "Travel Budget",
+                filters={"docstatus": 1, "company": doc.company},
+                fields=["name"],
+                order_by="creation desc",
+                limit=1
+            )
+    #? IF A TRAVEL BUDGET EXISTS
+    if travel_visit_doc:
+        #? GET EMPLOYEE GRADE
+        employee_grade = frappe.get_value("Employee", doc.employee, "grade")
+
+        #? FETCH FULL TRAVEL BUDGET DOCUMENT
+        travel_budget = frappe.get_doc("Travel Budget", travel_visit_doc[0].name)
+
+        #? MATCH EMPLOYEE GRADE TO FIND APPLICABLE DA ALLOWANCE
+        if employee_grade:
+            for budget in travel_budget.buget_allocation:
+                if employee_grade == budget.grade:
+                    da_amount = budget.da_allowance
+                    break   
+    for expense in doc.expenses:
+        if expense.expense_type == "DA":
+            if expense.expense_date != expense.custom_expense_end_date:
+                frappe.throw("Expense Start and End Date Must Be Same For DA")
+            if expense.custom_field_visits or expense.custom_service_calls:
+                #? GET FIELD VISITS AS LIST
+                field_visits_list = []
+                if expense.custom_field_visits:
+                    field_visits_list = [v.strip() for v in expense.custom_field_visits.split(",") if v.strip()]
+
+                #? GET SERVICE CALLS AS LIST
+                service_calls_list = []
+                if expense.custom_service_calls:
+                    service_calls_list = [v.strip() for v in expense.custom_service_calls.split(",") if v.strip()]
+
+                if len(field_visits_list) > 1 or len(service_calls_list) > 1:
+                    continue
+
+
+            if expense.custom_expense_start_time and expense.custom_expense_end_time:
+                #? CALCULATE DIFFERENCE IN HOURS
+                diff_in_hours = time_diff_in_hours(expense.custom_expense_end_time, expense.custom_expense_start_time)
+
+                #? FIND MATCHING TIME SLAB FROM HR SETTINGS
+                for time_range, allowance_multiplier in time_map.items():
+                    from_hours, to_hours = map(float, time_range.split(":"))
+                    if from_hours <= diff_in_hours <= to_hours:
+                        expense.amount = da_amount * allowance_multiplier/100
+                        expense.sanctioned_amount = expense.amount
+                        break
+                else:
+                    expense.amount = da_amount
+                    expense.sanctioned_amount = da_amount
+            else:
+                frappe.throw("Start Time and End Time is Mandatory For DA")
 
 
 def on_update(doc, method):
@@ -440,7 +508,8 @@ def _validate_and_process_expense(
             daily_food_lodging_totals_by_type,
             current_doc_daily_food_lodging_totals,
             company,
-            travel_budget
+            travel_budget,
+            doc
         )
 
     elif exp.expense_type == EXPENSE_TYPES["LOCAL_COMMUTE"]:
@@ -483,7 +552,8 @@ def _process_food_lodging_expense(
     approved_daily_food_lodging_totals_by_type,
     current_doc_daily_food_lodging_totals,
     company,
-    travel_budget
+    travel_budget,
+    doc
 ):
     """
     Processes validation for Food and Lodging expenses against their defined allowances.
@@ -498,8 +568,62 @@ def _process_food_lodging_expense(
 
     limit_field = f"{expense_type_for_budget_lookup}_allowance_{'metro' if metro else 'non_metro'}"
     limit = budget_row.get(limit_field, 0)
-    #? IF EXPENSE TYPE IS LODGING
+    #! VALIDATE LODGING EXPENSES TO AVOID DUPLICATES FOR EMPLOYEE OR SHARED ACCOMMODATION
+
+    #? ONLY PROCESS IF EXPENSE TYPE IS LODGING
     if exp.expense_type == EXPENSE_TYPES["LODGING"]:
+        
+        #? DETERMINE EMPLOYEES TO CHECK (INCLUDE SHARED ACCOMMODATION IF PRESENT)
+        employees_to_check = [doc.employee]
+        if exp.custom_shared_accommodation_employee:
+            employees_to_check.append(exp.custom_shared_accommodation_employee)
+
+        #! CHECK IN EXPENSE CLAIM DETAIL DIRECTLY
+        existing_detail = frappe.get_all(
+            "Expense Claim Detail",
+            filters={
+                "parent": ("!=", doc.name),  # EXCLUDE CURRENT EXPENSE CLAIM
+                "expense_type": "Lodging",
+                "expense_date": exp.expense_date,
+                "custom_shared_accommodation_employee": ("in", employees_to_check)
+            },
+            fields=["name","custom_shared_accommodation_employee"],
+            limit=1
+        )
+
+        #? IF FOUND, THROW ERROR
+        if existing_detail:
+            frappe.throw(
+                f"Lodging expense for {exp.expense_date} already exists for employee(s): {existing_detail[0].get('custom_shared_accommodation_employee')}"
+            )
+
+        #! CHECK IN OTHER EXPENSE CLAIMS OF EMPLOYEE(S)
+        other_claims = frappe.get_all(
+            "Expense Claim",
+            filters={
+                "employee": ("in", employees_to_check),
+                "name": ("!=", doc.name)
+            },
+            pluck="name"
+        )
+
+        if other_claims:
+            existing_in_claims = frappe.get_all(
+                "Expense Claim Detail",
+                filters={
+                    "parent": ("in", other_claims),
+                    "expense_type": "Lodging",
+                    "expense_date": exp.expense_date
+                },
+                fields = ["name"],
+                limit=1
+            )
+            if existing_in_claims:
+                frappe.throw(
+                    f"Lodging expense for {exp.expense_date} already exists for employee(s): {doc.get('employee')}"
+                )
+
+
         #? IF SHARED ACCOMMODATION WITH SOMEONE
         if exp.custom_shared_accommodation_employee:
             #? FETCH GRADE OF SHARED ACCOMODATION EMPLOYEE
@@ -544,6 +668,26 @@ def _process_food_lodging_expense(
                     f"Grade not set for employee {exp.custom_shared_accommodation_employee}"
                 )
 
+        if exp.custom_lodging_adjustment_type:
+            #! FETCH ADJUSTMENT PERCENTAGE AND ATTACHMENT MANDATORY FLAG
+            change_percentage, is_attachment_mandatory = frappe.db.get_value(
+                "Lodging Adjustment Type",
+                exp.custom_lodging_adjustment_type,
+                ["adjustment_percentage", "is_attachment_mandatory"]
+            )
+
+            #! VALIDATE ATTACHMENT IF MANDATORY
+            if is_attachment_mandatory and not exp.custom_attachments:
+                frappe.throw(
+                    f"Row #{exp.get('idx')}: Attachment is required as it is mandatory for Lodging Adjustment Type {exp.custom_lodging_adjustment_type}"
+                )
+
+            #! APPLY PERCENTAGE CHANGE TO AMOUNT
+            if change_percentage:
+                exp.amount = (change_percentage * exp.amount) / 100
+                exp.sanctioned_amount = exp.amount
+
+
     exceeded_any_day = False
     for i in range(days):
         current_day = expense_start_date + timedelta(days=i)
@@ -562,9 +706,7 @@ def _process_food_lodging_expense(
             break
 
     if exceeded_any_day:
-        if (not exp.custom_attachments) and company == get_indifoss_company_name().get(
-            "company_name"
-        ):
+        if (not exp.custom_attachments):
             frappe.throw(
                 f"Row #{exp.get('idx')}: Attachment is required as the expense exceeds limits."
             )
@@ -814,9 +956,7 @@ def _process_local_commute_expense(
 
     # Flag as exception if any limit is exceeded
     if exceeded_daily or exceeded_monthly:
-        if (not exp.custom_attachments) and company == get_indifoss_company_name().get(
-            "company_name"
-        ):
+        if (not exp.custom_attachments):
             frappe.throw(
                 f"Row #{exp.get('idx')}: Attachment is required as the expense exceeds limits."
             )
@@ -836,13 +976,12 @@ def validate_attachments_compulsion(doc):
                 "Employee company not found. Please set the employee company first."
             )
 
-        if emp_company == get_indifoss_company_name().get("company_name"):
-            for expense in doc.expenses:
-                if expense.custom_is_exception == 1 and not expense.custom_attachments:
-                    frappe.throw(
-                        f"Attachments are mandatory for the expense type '{expense.expense_type}' "
-                        f"when it exceeds the allowed budget. Please attach the necessary documents."
-                    )
+        for expense in doc.expenses:
+            if expense.custom_is_exception == 1 and not expense.custom_attachments:
+                frappe.throw(
+                    f"Attachments are mandatory for the expense type '{expense.expense_type}' "
+                    f"when it exceeds the allowed budget. Please attach the necessary documents."
+                )
     except Exception as e:
         frappe.throw(f"An error occurred during attachment validation: {e}")
 
@@ -1075,7 +1214,7 @@ def get_date_wise_da_hours(employee, from_date, to_date, company, expense_claim_
             ],
             fields=["name", "visit_started", "visit_ended"]
         )
-       
+
         #? INITIALIZE EMPTY LISTS FOR OUTPUT
         added_travel_entries = []
         da_expense_rows = []
