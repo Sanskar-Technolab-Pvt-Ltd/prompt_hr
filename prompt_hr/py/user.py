@@ -3,10 +3,8 @@ import frappe
 
 def before_save(doc, method=None):
     """ENSURE 'CREATE CHECKIN' ROLE IS SET BASED ON EMPLOYEE'S ATTENDANCE CAPTURE SCHEME."""
-
     if doc.is_new():
         return
-
     target_role = "Create Checkin"
 
     # ? FETCH EMPLOYEE ATTENDANCE CAPTURE SCHEME
