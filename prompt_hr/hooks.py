@@ -245,6 +245,9 @@ doc_events = {
     "LMS Quiz Submission": {
         "validate": "prompt_hr.py.lms_quiz_submission.update_status"
     },
+    "User": {
+        "before_save": "prompt_hr.py.user.before_save"
+    },
     "Interview Feedback": {
         "on_submit": "prompt_hr.py.interview_feedback.on_submit",
         "on_update": "prompt_hr.py.interview_feedback.on_update",
