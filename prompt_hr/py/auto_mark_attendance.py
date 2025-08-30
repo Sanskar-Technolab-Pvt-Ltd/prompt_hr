@@ -527,8 +527,11 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
                 apply_penalty = 1
                 print(f"[DEBUG] Attendance Status set to: {attendance_status}. Penalty will be applied.")
             else:
-                attendance_status = "Present"
-                print(f"[DEBUG] Attendance Status set to: {attendance_status}. No penalty applied.")
+                if not is_half_day:
+                    attendance_status = "Present"
+                    print(f"[DEBUG] Attendance Status set to: {attendance_status}. No penalty applied.")
+                else:
+                    attendance_status = "Half Day"
 
         
         
@@ -605,7 +608,8 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
                 apply_penalty = 1
     
     if is_half_day or attendance_id:
-
+            if not attendance_id:
+                attendance_id = frappe.db.get_value("Attendance", {"employee": employee_data.get("name"), "attendance_date": mark_attendance_date}, "name")
             
             if attendance_id:
                 update_attendance(attendance_id, {
