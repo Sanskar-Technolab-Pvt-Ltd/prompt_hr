@@ -1,6 +1,6 @@
 import frappe
 from frappe import throw
-from frappe.utils import getdate, nowdate
+from frappe.utils import getdate, nowdate, add_years
 from frappe.utils.pdf import get_pdf
 from frappe.www.printview import get_print_format
 from prompt_hr.api.main import notify_signatory_on_email
@@ -126,6 +126,68 @@ def on_update(doc, method):
             frappe.throw(
                 _("You cannot assign a leave policy based on both the Joining Date and Custom Dates at the same time.")
             )
+
+    # ? ASSIGN MATERNITY AND PATERNITY LEAVE POLICY
+    if is_leave_policy_assigned_from_employee_master:
+
+        #? HANDLE MATERNITY LEAVE
+        if doc.custom_assign_maternity_leave:
+            leave_policy = frappe.db.get_single_value("HR Settings", "custom_maternity_leave_policy")
+            if not leave_policy:
+                frappe.msgprint("Please set Maternity Leave Policy in HR Settings")
+            else:
+                if doc.has_value_changed("custom_assign_maternity_leave") or doc.has_value_changed("custom_maternity_assignment_from_date"):
+                    existing_assignment = frappe.db.exists(
+                        "Leave Policy Assignment",
+                        {
+                            "employee": doc.name,
+                            "leave_policy": leave_policy,
+                            "effective_from": ["<=", doc.custom_maternity_assignment_from_date],
+                            "effective_to": [">=", doc.custom_maternity_assignment_from_date]
+                        }
+                    )
+                    if existing_assignment:
+                        frappe.msgprint("Maternity Leave Policy Already Exist")
+                    else:
+                        assignment_doc = frappe.new_doc("Leave Policy Assignment")
+                        assignment_doc.employee = doc.name
+                        assignment_doc.assignment_based_on = ""
+                        assignment_doc.leave_policy = leave_policy
+                        assignment_doc.effective_from = doc.custom_maternity_assignment_from_date
+                        assignment_doc.effective_to= add_years(getdate(doc.custom_maternity_assignment_from_date), 60)
+                        assignment_doc.save()
+                        assignment_doc.submit()
+                        frappe.msgprint("Maternity Leave Policy Assigned")
+
+        #? HANDLE PATERNITY LEAVE
+        if doc.custom_assign_paternity_leave:
+            leave_policy = frappe.db.get_single_value("HR Settings", "custom_paternity_leave_policy")
+            if not leave_policy:
+                frappe.msgprint("Please set Paternity Leave Policy in HR Settings")
+            else:
+                if doc.has_value_changed("custom_assign_paternity_leave") or doc.has_value_changed("custom_paternity_assignment_from_date"):
+                    existing_assignment = frappe.db.exists(
+                        "Leave Policy Assignment",
+                        {
+                            "employee": doc.name,
+                            "leave_policy": leave_policy,
+                            "effective_from": ["<=", doc.custom_paternity_assignment_from_date],
+                            "effective_to": [">=", doc.custom_paternity_assignment_from_date]
+                        }
+                    )
+                    if existing_assignment:
+                        frappe.msgprint("Paternity Leave Policy Already Exist")
+                    else:
+                        assignment_doc = frappe.new_doc("Leave Policy Assignment")
+                        assignment_doc.employee = doc.name
+                        assignment_doc.assignment_based_on = ""
+                        assignment_doc.leave_policy = leave_policy
+                        assignment_doc.effective_from = doc.custom_paternity_assignment_from_date
+                        assignment_doc.effective_to = add_years(getdate(doc.custom_paternity_assignment_from_date), 60)
+                        assignment_doc.save()
+                        assignment_doc.submit()
+                        frappe.msgprint("Paternity Leave Policy Assigned")
+
     # ? ASSIGN LEAVE POLICY TO EMPLOYEE ON CHANGE OF LEAVE POLICY ON EMPLOYEE
     if doc.custom_leave_policy and doc.has_value_changed("custom_leave_policy"):
 
