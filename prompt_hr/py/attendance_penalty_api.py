@@ -74,6 +74,7 @@ def prompt_employee_attendance_penalties():
             late_coming_penalty_buffer_days,
             "custom_late_coming_leave_penalty_configuration",
             late_coming_target_date,
+            False
         )
 
     # ? DAILY HOURS PERCENTAGE FOR PENALTY
@@ -90,6 +91,7 @@ def prompt_employee_attendance_penalties():
             daily_hours_target_date,
             percentage_for_daily_hour_penalty,
             "custom_daily_hour_leave_penalty_configuration",
+            False
         )
 
     # ! FETCH ALL NO ATTENDANCE PENALTY RECORDS FOR THE LAST BUFFER DAYS IF IT IS ENABLE
@@ -100,6 +102,7 @@ def prompt_employee_attendance_penalties():
             no_attendance_penalty_buffer_days,
             no_attendance_target_date,
             "custom_no_attendance_leave_penalty_configuration",
+            False
         )
 
     # ! FETCH ALL MIS-PUNCH PENALTY RECORDS FOR THE LAST BUFFER DAYS IF IT IS ENABLE
@@ -110,6 +113,7 @@ def prompt_employee_attendance_penalties():
             mispunch_penalty_buffer_days,
             mispunch_penalty_target_date,
             "custom_attendance_mispunch_leave_penalty_configuration",
+            False
         )
 
     # ! CREATE OR UPDATE PENALTY RECORDS IN THE DATABASE
@@ -132,6 +136,7 @@ def process_late_entry_penalties_for_prompt(
     penalty_buffer_days,
     priority_field,
     target_date,
+    custom_buffer_days
 ):
     """
     Process late entry penalties for a given employee based on buffer days and attendance records.
@@ -155,9 +160,11 @@ def process_late_entry_penalties_for_prompt(
         order_by="idx asc",
     )
 
-    # ? RETURN IF BUFFER NOT CONFIGURED
-    if not penalty_buffer_days:
+    # ? RETURN IF BUFFER NOT CONFIGURED AND NOT CUSTOM BUFFER DAYS
+    if not penalty_buffer_days and not custom_buffer_days:
         return penalty_entries
+    if custom_buffer_days:
+        penalty_buffer_days = 0
 
     # ! CHECK TARGET DATE'S ATTENDANCE IS LATE OR NOT
     late_attendance_records = target_date_attendance_exists(
@@ -198,6 +205,10 @@ def process_late_entry_penalties_for_prompt(
         for rec in prev_late_attendance_list:
             emp = rec["employee"]
             prev_late_attendance_count[emp] += 1
+
+    # ? IF PREV LATE ATTENDANCE COUNT IS EMPTY, RETURN EMPTY PENALTY LIST
+    if not prev_late_attendance_count:
+        return penalty_entries
 
     # ? PROCESS EACH EMPLOYEE WHO HAD LATE ENTRY
     # ? AND CHECK IF THEY EXCEED THE ALLOWED LATE COMING COUNT
@@ -417,6 +428,7 @@ def process_daily_hours_penalties_for_prompt(
     target_date,
     percentage_for_daily_hour_penalty,
     priority_field,
+    custom_buffer_days
 ):
     """
     Process daily hours penalties for a given employee based on buffer days and attendance records.
@@ -424,9 +436,12 @@ def process_daily_hours_penalties_for_prompt(
     """
     penalty_entries = {}
 
-    # ? RETURN IF BUFFER NOT CONFIGURED
-    if not penalty_buffer_days:
+    
+    # ? RETURN IF BUFFER NOT CONFIGURED AND NOT CUSTOM BUFFER DAYS
+    if not penalty_buffer_days and not custom_buffer_days:
         return penalty_entries
+    if custom_buffer_days:
+        penalty_buffer_days = 0
 
     # ! FETCH ATTENDANCE RECORDS FOR TARGET DATE
     daily_hours_records = target_date_attendance_exists(
@@ -467,7 +482,9 @@ def process_daily_hours_penalties_for_prompt(
         ],
         order_by="idx asc",
     )
-
+    # ? IF NOT BELOW THRESHOLD EMPLOYEES
+    if not below_threshold_employees:
+        return penalty_entries
     # ? CALCULATE LEAVE DEDUCTIONS BASED ON PRIORITY CONFIGURATION
     # ? AND ADD TO PENALTY ENTRIES
     for employee in below_threshold_employees:
@@ -545,8 +562,28 @@ def create_penalty_records(penalty_entries, target_date):
             )
             details["leave_ledger_entry"] = ledger_entry_id
 
+    #! FETCH ALL PENDING ATTENDANCE REQUESTS IN ONE QUERY
+    pending_requests = frappe.get_all(
+        "Attendance Request",
+        filters={
+            "employee": ["in", employee_list],
+            "from_date": ["<=", target_date],
+            "to_date": [">=", target_date],
+            "custom_status": "Pending"
+        },
+        fields=["name", "employee"]
+    )
+
+    #! BUILD HASH MAP -> {employee: request_name}
+    attendance_request_map = {}
+    for req in pending_requests:
+        attendance_request_map[req.employee] = req.name
+
     # ? LOOP AND PROCESS PENALTIES
     for employee, details in penalty_entries.items():
+        # ? SKIP IF ATTENDANCE REQUEST EXIST AND IT IS PENDING
+        if attendance_request_map.get(employee):
+            continue
         if check_employee_penalty_criteria(employee, details["reason"]):
             if employee in existing_penalties_map:
                 penalty_doc = frappe.get_doc(
@@ -764,11 +801,11 @@ def get_below_threshold_daily_hours(
 
         # ? CALCULATE THRESHOLD HOURS BASED ON PERCENTAGE
         threshold_hours = (
-            percentage_for_daily_hour_penalty / 100
+            float(percentage_for_daily_hour_penalty) / 100
         ) * shift_duration_hours
 
         # ? ONLY ADD IF BELOW THRESHOLD
-        if (working_hours + partial_days_request_minutes/60) < threshold_hours:
+        if (working_hours + float(partial_days_request_minutes)/60) < threshold_hours:
             below_threshold_records[emp] = data
 
     return below_threshold_records
@@ -793,7 +830,7 @@ def get_leave_allocation_id(employee, leave_type, attendance_date):
 
 
 def process_no_attendance_penalties_for_prompt(
-    employees, penalty_buffer_days, target_date, priority_field
+    employees, penalty_buffer_days, target_date, priority_field, custom_buffer_days
 ):
     """
     PROCESS NO ATTENDANCE PENALTIES FOR EMPLOYEES WHO WERE NOT PRESENT
@@ -801,10 +838,12 @@ def process_no_attendance_penalties_for_prompt(
     """
     penalty_entries = {}
 
-    # ? RETURN IF BUFFER NOT CONFIGURED
-    if not penalty_buffer_days:
+    # ? RETURN IF BUFFER NOT CONFIGURED AND NOT CUSTOM BUFFER DAYS
+    if not penalty_buffer_days and not custom_buffer_days:
         return penalty_entries
-
+    if custom_buffer_days:
+        penalty_buffer_days = 0
+    
     # ! CHECK TARGET DATE'S ATTENDANCE IS EXISTS OR NOT
     attendance_records = target_date_attendance_exists(
         employees, target_date, 0, 1, 0, 0
@@ -877,7 +916,7 @@ def process_no_attendance_penalties_for_prompt(
 
 
 def process_mispunch_penalties_for_prompt(
-    employees, penalty_buffer_days, target_date, priority_field
+    employees, penalty_buffer_days, target_date, priority_field, custom_buffer_days
 ):
     """
     PROCESS MIS-PUNCH PENALTIES FOR EMPLOYEES WHO HAD MIS-PUNCHES
@@ -885,15 +924,13 @@ def process_mispunch_penalties_for_prompt(
     """
     penalty_entries = {}
 
-    # ? RETURN IF BUFFER NOT CONFIGURED
-    if not penalty_buffer_days:
-        return penalty_entries
-
     # ! CHECK TARGET DATE'S MISPUNCH ATTENDANCE IS EXISTS OR NOT
     mispunch_records = target_date_attendance_exists(employees, target_date, 0, 0, 1, 0)
-    # ! SKIP IF TARGET DATE ATTENDANCE IS NOT MISPUNCH
-    if not mispunch_records:
+    # ? RETURN IF BUFFER NOT CONFIGURED AND NOT CUSTOM BUFFER DAYS
+    if not penalty_buffer_days and not custom_buffer_days:
         return penalty_entries
+    if custom_buffer_days:
+        penalty_buffer_days = 0
 
     # ? GET LEAVE PENALTY CONFIGURATION FOR MIS-PUNCH PENALTY
     leave_priority = frappe.db.get_all(
@@ -910,7 +947,9 @@ def process_mispunch_penalties_for_prompt(
         ],
         order_by="idx asc",
     )
-
+    # ? IF MISPUNCH RECORD FOUND
+    if not mispunch_records:
+        return penalty_entries
     # ? PROCESS EACH MIS-PUNCH RECORD
     for emp in mispunch_records.keys():
         # ? CHECK HOLIDAY
