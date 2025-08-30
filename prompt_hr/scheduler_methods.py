@@ -3014,8 +3014,7 @@ def daily_attendance_request_rituals():
     all_attendance_requests = frappe.get_all(
         "Attendance Request",
         filters={
-            "docstatus": 1,
-            "custom_status": "Approved",
+            "custom_status": ["in", ["Approved", "Pending"]],
             "employee": ["in", list(employee_map.keys())],
             "from_date": ["<=", today()],
             "to_date": [">=", today()],
