@@ -3,6 +3,7 @@ from frappe.auth import today
 from frappe.utils import cint, flt, getdate, get_datetime, add_days, date_diff, time_diff_in_hours
 import frappe.workflow
 import json
+from datetime import time
 from frappe import _
 from prompt_hr.py.utils import (
     send_notification_email,
@@ -17,7 +18,7 @@ from dateutil.relativedelta import relativedelta
 # Constants for expense types
 EXPENSE_TYPES = {"FOOD": "Food", "LODGING": "Lodging", "LOCAL_COMMUTE": "Local Commute"}
 
-COMMUTE_MODES = {"PUBLIC": "Public", "NON_PUBLIC": "Non-Public"}
+COMMUTE_MODES = {"PUBLIC": "Public", "NON_PUBLIC": "Private"}
 
 
 # Hooks for Expense Claim lifecycle events
@@ -1076,8 +1077,8 @@ def _process_local_commute_expense(
     # Check if attachment is mandatory
     # ? GET IF ATTACHMENT IS REQUIRED BASED ON COMMUTE RULES
     custom_mode_of_vehicle = exp.custom_mode_of_vehicle
-    if custom_mode_of_vehicle == "Non-Public":
-        custom_mode_of_vehicle = "Non Public"
+    if custom_mode_of_vehicle == "Non-Public" or custom_mode_of_vehicle == "Non Public":
+        custom_mode_of_vehicle = "Private"
     attach_required = frappe.db.get_value(
         "Local Commute Details",
         {
@@ -1096,10 +1097,10 @@ def _process_local_commute_expense(
 
     # Calculate amount for non-public transport if not provided
     if exp.custom_mode_of_vehicle == COMMUTE_MODES["NON_PUBLIC"]:
-        km = flt(exp.custom_km or 0)
+        km = flt(exp.custom_km or 0) if exp.custom_manual_km <=0 else flt(exp.custom_manual_km)
         rate = km_rate_map.get(exp.custom_type_of_vehicle, 0)
-
-        if not exp.amount:
+        
+        if exp.amount != rate*km:
             exp.amount = exp.sanctioned_amount = rate * km
             exp_amount = flt(exp.amount)
 
@@ -1213,7 +1214,7 @@ def get_data_from_expense_claim_as_per_grade(employee, company):
         for option in commute_options:
             if option.mode_of_commute == COMMUTE_MODES["PUBLIC"]:
                 public.append(option.type_of_commute)
-            elif option.mode_of_commute == "Non Public":
+            elif option.mode_of_commute == "Private":
                 non_public.append(option.type_of_commute)
 
         return {
@@ -1431,13 +1432,26 @@ def get_date_wise_da_hours(employee, from_date, to_date, company, expense_claim_
             expense_claim_name=expense_claim_name,
             visit_type="Field Visit"
         )
-       
+
+        #! -------------------------------------------------------------------
+        #! GENERATE TRAVEL (LOCAL COMMUTE) EXPENSE CLAIM ENTRIES
+        #! -------------------------------------------------------------------
+        commute_expense_rows, added_travel_entries, duplicates = build_commute_expense_entries(
+            field_visits=field_visits,
+            private_service_rate=private_service_rate,
+            expense_claim_doc=expense_claim_doc,
+            from_date=from_date,
+            to_date=to_date,
+        )
+
         #! -------------------------------------------------------------------
         #! BUILD MESSAGES TO SHOW ENTRY SUMMARY TO THE USER
         #! -------------------------------------------------------------------
         messages = build_expense_notification_messages(
             added_da_dates=added_da_dates,
+            added_travel_entries=added_travel_entries,
             already_exists_dates=already_exists_dates,
+            duplicates=duplicates
         )
 
         #? RETURN FINAL RESULT WITH EXPENSE CLAIM NAME, ENTRIES, AND SUMMARY
@@ -1485,6 +1499,245 @@ def fetch_meal_allowance_settings():
     return meal_allowance_configs
 
 
+def build_commute_expense_entries(
+    field_visits,
+    private_service_rate,
+    expense_claim_doc,
+    from_date,
+    to_date,
+):
+    """
+    Build commute (local travel) expense entries from field visit data.
+
+    Args:
+        field_visits (list): List of Field Visit docs.
+        private_service_rate (dict): Dictionary mapping vehicle types to per-km rates.
+        expense_claim_doc (Document): The parent expense claim document.
+        from_date (str): Start date (inclusive) for filtering expense dates.
+        to_date (str): End date (inclusive) for filtering expense dates.
+
+    Returns:
+        tuple: (commute_expense_rows, added_travel_entries, duplicates)
+    """
+
+    # ? GET NAMES OF ALL FIELD VISITS
+    field_visit_names = [fv.name for fv in field_visits]
+    commute_expense_rows = []
+    added_travel_entries = []
+    duplicates = []
+    # ? RETURN BLANK LIST IF NOT FIELD VISIT PRESENT
+    if not field_visit_names:
+        return commute_expense_rows, added_travel_entries, duplicates
+
+    # ? GET CHILD TABLE DATAS FROM FIELD VISITS
+    child_table_rows = frappe.get_all(
+        "Field Visit Child Table",
+        filters={"parent": ["in", field_visit_names]},
+        fields=[
+            "name", "service_call", "start_time", "end_time",
+            "mode_of_vehicle", "type_of_vehicle", "travelled_km", "amount", "parent", "from_location", "to_location"
+        ]
+    )
+
+    #! SET DEFAULT START AND END TIME TO FULL DAY RANGE
+    default_start_time = time(0, 0, 0)       # 00:00:00
+    default_end_time   = time(23, 59, 59)    # 23:59:59
+
+    #? CREATE DEFAULT DICT FOR CALCULATING AMOUNT, KM, TIME, LOCATIONS,START TIME, END TIME FIELD VISITS AND SERVICE CALLS
+    visit_map = defaultdict(lambda: {
+        "amount": 0.0,
+        "child_rows": set(),
+        "travelled_km": 0.0,
+        "start_time": default_start_time,
+        "end_time": default_end_time,
+        "from_location": None,
+        "to_location": None
+    })
+
+    for row in child_table_rows:
+        start_date = getdate(row.start_time)
+        end_date = getdate(row.end_time)
+        total_days = date_diff(end_date, start_date) + 1
+        # ? GET START DAY INITIAL TIME AND END DAY FINAL TIME
+        start_time = get_datetime(row.start_time).time()
+        end_time = get_datetime(row.end_time).time()
+        #? FOR PUBLIC VEHICLE AMOUNT IS ZERO AND TRAVEL KM IS ZERO (ADD MANUALLY)
+        if row.mode_of_vehicle == "Public":
+            daily_amount = 0.0
+            daily_km = 0.0
+
+        #? FOR OTHER VEHICLE TYPES CALCULATE PER DAY AMOUNT AND TRAVELLED KM
+        elif row.mode_of_vehicle:
+            rate = flt(private_service_rate.get(row.type_of_vehicle, 0))
+            total_amount = flt(row.travelled_km) * rate
+            daily_amount = total_amount / total_days
+            daily_km = flt(row.travelled_km) / total_days
+        else:
+            daily_amount = 0.0
+            daily_km = 0.0
+
+        #? ADD AMOUNT, TRAVEL KM, SERVICE CALL, TIME, LOCATION IN VISIT_MAP DICT
+        for i in range(total_days):
+            visit_date = add_days(start_date, i)
+            key = (visit_date, row.mode_of_vehicle, row.type_of_vehicle)
+            visit_map[key]["amount"] += daily_amount
+            visit_map[key]["travelled_km"] += daily_km
+            visit_map[key]["child_rows"].add((row.service_call, row.parent, row.travelled_km, row.from_location, row.to_location))
+
+            # ? ADD LOCATION TO DICT IF NOT ALREADY SET
+            if not visit_map[key].get("from_location"):
+                visit_map[key]["from_location"] = row.from_location
+
+            if not visit_map[key].get("to_location"):
+                visit_map[key]["to_location"] = row.to_location
+
+
+            #? CHECK AND SET EARLIEST START TIME AND FROM LOCATION
+            if visit_date == start_date:
+                if (
+                    start_time < visit_map[key].get("start_time") or visit_map[key].get("start_time") == default_start_time
+                ):
+                    visit_map[key]["start_time"] = start_time
+                    visit_map[key]["from_location"] = row.from_location
+
+            #? CHECK AND SET LATEST END TIME AND TO LOCATION
+            if visit_date == end_date:
+                if (
+                    (end_time > visit_map[key].get("end_time") or visit_map[key].get("end_time") == default_end_time
+                    )
+                ):
+                    visit_map[key]["end_time"] = end_time
+                    visit_map[key]["to_location"] = row.to_location
+
+    existing_keys = set()
+    # ? FETCH ALL EXISTING EXPENSE CLAIM DETAIL OF CURRENT EXPENSE CLAIM
+    existing_details = frappe.get_all(
+        "Expense Claim Detail",
+        filters={"parent": expense_claim_doc.name},
+        fields=["expense_date", "custom_mode_of_vehicle", "custom_type_of_vehicle"]
+    )
+    for d in existing_details:
+        existing_keys.add((
+            getdate(d.expense_date),
+            d.custom_mode_of_vehicle or "",
+            d.custom_type_of_vehicle or "",
+        ))
+
+    base_url = frappe.utils.get_url()
+
+    for key, data in visit_map.items():
+        visit_date, mode, type_ = key
+        # ? MAKE MODE PRIVATE FOR EXPENSE CLAIM DETAIL IF MODE IS NON PUBLIC OR PRIVATE
+        if mode == "Non Public" or mode == "Private":
+            mode = "Private"
+
+        secondary_key = (visit_date, mode, type_)
+        if secondary_key in existing_keys:
+            duplicates.append(f"{visit_date} - {type_} - {mode}")
+            continue
+
+        if not (getdate(from_date) <= getdate(visit_date) <= getdate(to_date)):
+            continue
+
+        description = f"Travelled on {visit_date} via {mode} ({type_}) for local commute."
+
+        field_visit_map = {}
+        all_field_visits_set = set()
+        all_service_calls_set = set()
+
+        #? MAP FIELD VISITS TO SERVICE CALLS
+        for service_call, field_visit, travelled_km, from_location, to_location in data["child_rows"]:
+            field_visit_map.setdefault(field_visit, []).append({
+                "service_call": service_call,
+                "travelled_km": travelled_km or "0",
+                "from_location": from_location or "-",
+                "to_location": to_location or "-"
+            })
+            all_field_visits_set.add(field_visit)
+            all_service_calls_set.add(service_call)
+
+        #? HTML table generation
+        table_rows = ""
+        for field_visit, service_call_rows in sorted(field_visit_map.items()):
+            rowspan = len(service_call_rows)
+            for i, row_data in enumerate(service_call_rows):
+                service_call = row_data["service_call"]
+                from_location = row_data["from_location"]
+                to_location = row_data["to_location"]
+                travelled_km = row_data["travelled_km"]
+
+                #? FETCH CUSTOMER ONLY
+                customer = "-"
+                sc_data = frappe.db.get_value(
+                    "Service Call", service_call, ["customer"], as_dict=True
+                )
+                if sc_data and sc_data.get("customer"):
+                    customer = sc_data.get("customer")
+                    customer_name = frappe.db.get_value("Customer", customer, "customer_name")
+
+                table_rows += "<tr>"
+                if i == 0:
+                    table_rows += f"""
+                        <td rowspan="{rowspan}" style="border: 1px solid #000; padding: 8px;">
+                            <a href="{base_url}/app/field-visit/{field_visit}" target="_blank">{field_visit}</a>
+                        </td>
+                    """
+                table_rows += f"""
+                    <td style="border: 1px solid #000; padding: 8px;">
+                        <a href="{base_url}/app/service-call/{service_call}" target="_blank">{service_call}</a>
+                    </td>
+                    <td style="border: 1px solid #000; padding: 8px;">{from_location}</td>
+                    <td style="border: 1px solid #000; padding: 8px;">{to_location}</td>
+                    <td style="border: 1px solid #000; padding: 8px;">{travelled_km}</td>
+                    <td style="border: 1px solid #000; padding: 8px;">
+                        <a href="{base_url}/app/customer/{customer}" target="_blank">{customer_name}</a>
+                    </td>
+                </tr>
+                """
+
+        #? Final HTML Table
+        html_table = f"""
+        <div class="ql-editor read-mode">
+            <table style="border-collapse: collapse; width: 100%; font-size: 14px;">
+                <thead>
+                    <tr style="background-color: #f5f5f5;">
+                        <th style="border: 1px solid #000; padding: 8px; text-align: left;">Field Visit</th>
+                        <th style="border: 1px solid #000; padding: 8px; text-align: left;">Service Call</th>
+                        <th style="border: 1px solid #000; padding: 8px; text-align: left;">From Location</th>
+                        <th style="border: 1px solid #000; padding: 8px; text-align: left;">To Location</th>
+                        <th style="border: 1px solid #000; padding: 8px; text-align: left;">Travelled KM</th>
+                        <th style="border: 1px solid #000; padding: 8px; text-align: left;">Customer</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {table_rows}
+                </tbody>
+            </table>
+        </div>
+        """
+
+        commute_expense_rows.append({
+            "expense_date": visit_date,
+            'custom_expense_end_date': visit_date,
+            "expense_type": "Local Commute",
+            "custom_mode_of_vehicle": mode,
+            "custom_type_of_vehicle": type_,
+            "custom_expense_start_time": data["start_time"],
+            "custom_expense_end_time": data["end_time"],
+            "custom_from_location": data["from_location"],
+            "custom_to_location": data["to_location"],
+            "custom_days": 1,
+            "description": description,
+            "custom_field_visit_and_service_call_details": html_table,
+            "amount": data["amount"],
+            "sanctioned_amount": data["amount"],
+            "custom_km": data.get("travelled_km"),
+            "custom_field_visits": ", ".join(sorted(all_field_visits_set)),
+            "custom_service_calls": ", ".join(sorted(all_service_calls_set))
+        })
+        added_travel_entries.append(f"{visit_date} - {type_} - {mode}")
+
+    return commute_expense_rows, added_travel_entries, duplicates
 
 def get_latest_travel_budget_and_rates(employee, company):
     """
@@ -2043,3 +2296,66 @@ def sort_expense_claim_data(doc, method=None):
     for i, row in enumerate(sorted_expenses, start=1):
         row.idx = i
         doc.append("expenses", row)
+
+
+def build_expense_notification_messages(
+    added_da_dates=None,
+    added_travel_entries=None,
+    already_exists_dates=None,
+    duplicates=None
+):
+    """
+    BUILDS NOTIFICATION MESSAGES FOR EXPENSE CLAIM OPERATIONS.
+
+    Args:
+        added_da_dates (list): Dates where DA was successfully added.
+        added_travel_entries (list): Dates where travel entries were successfully added.
+        already_exists_dates (list): Dates where DA already existed and was skipped.
+        duplicates (list): Travel entries that already existed and were skipped.
+
+    Returns:
+        list: A list of HTML-formatted notification strings.
+    """
+
+    #! INITIALIZE MESSAGE LIST
+    messages = []
+
+    #? ENSURE NONE ARE NULL
+    added_da_dates = added_da_dates or []
+    added_travel_entries = added_travel_entries or []
+    already_exists_dates = already_exists_dates or []
+    duplicates = duplicates or []
+
+    #? SUCCESSFUL DA ENTRIES
+    if added_da_dates:
+        messages.append(
+            "Daily Allowance (DA) has been successfully added for the following dates:<br><b>{}</b>".format(
+                ", ".join(added_da_dates)
+            )
+        )
+
+    #? SUCCESSFUL LOCAL COMMUTE ENTRIES
+    if added_travel_entries:
+        messages.append(
+            "Local Commute travel entries have been added for the following dates:<br><b>{}</b>".format(
+                "<br>".join(added_travel_entries)
+            )
+        )
+
+    #? ALREADY PRESENT DA ENTRIES
+    if already_exists_dates:
+        messages.append(
+            "DA was already recorded for the following dates and was not added again:<br><b>{}</b>".format(
+                ", ".join(already_exists_dates)
+            )
+        )
+
+    #? DUPLICATE LOCAL COMMUTE ENTRIES
+    if duplicates:
+        messages.append(
+            "Local Commute entries already existed for the following and were not added again:<br><br>{}".format(
+                "<br>".join(duplicates)
+            )
+        )
+
+    return messages
