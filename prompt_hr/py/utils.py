@@ -963,3 +963,36 @@ def get_colored_events(doctype, start, end, field_map, filters=None, fields=None
         record["textColor"] = style["text"]
 
     return records
+
+
+# ! PROMPT_HR.PY.UTILS.SHARE_DOC_WITH_EMPLOYEE
+@frappe.whitelist()
+def share_doc_with_employee(employee, doctype, docname):
+    """
+    API TO SHARE A DOCUMENT WITH THE USER LINKED TO THE GIVEN EMPLOYEE.
+    GRANTS FULL PERMISSIONS: READ, WRITE, SUBMIT, SHARE.
+    """
+
+    if not employee or not doctype or not docname:
+        frappe.throw(_("Missing required arguments."))
+
+    # ? FETCH USER LINKED TO EMPLOYEE
+    user_id = frappe.db.get_value("Employee", employee, "user_id")
+    if not user_id:
+        frappe.throw(_("Selected Employee has no linked User."))
+
+    # ! SHARE THE DOCUMENT WITH THE USER
+    frappe.share.add(
+        doctype=doctype,
+        name=docname,
+        user=user_id,
+        read=1,
+        write=1,
+        submit=1,
+        share=1,
+    )
+
+    return {
+        "status": "success",
+        "user_id": user_id
+    }
