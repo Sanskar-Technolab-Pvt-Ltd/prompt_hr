@@ -20,7 +20,7 @@ frappe.ui.form.on("Travel Budget", {
 function update_type_of_commute_options(frm, mode) {
 	const options_map = {
 		"": [""],
-		"Public": ["Auto", "Bus", "Taxi"],
+		"Public": ["Auto", "Bus", "Taxi", "Train", "Flight"],
 		"Non Public": ["Car", "Bike"]
 	};
 	const options = ["", ...(options_map[mode] || [])];
