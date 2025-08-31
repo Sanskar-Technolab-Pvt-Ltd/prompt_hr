@@ -13,6 +13,35 @@ from prompt_hr.py.attendance_penalty_api import (
 from frappe.model.workflow import apply_workflow
 
 class CustomAttendanceRequest(AttendanceRequest):
+
+    from frappe.utils import getdate
+
+    def after_insert(self):
+        # === SAFE PARSING ===
+        if not self.from_date or not self.to_date:
+            frappe.msgprint("From Date and To Date are mandatory for Attendance Request.")
+            return
+
+        from_date = getdate(self.from_date)
+        to_date = getdate(self.to_date)
+        today = getdate()
+
+        # === EDGE CASE: FROM > TO ===
+        if from_date > to_date:
+            frappe.throw("From Date cannot be after To Date.")
+
+        # === MAIN LOGIC: ONLY SWITCH IF TODAY FALLS IN RANGE ===
+        if from_date <= today <= to_date:
+            if self.reason in ["On Duty", "Work From Home"]:
+                frappe.db.set_value(
+                    "Employee",
+                    self.employee,
+                    "custom_attendance_capture_scheme",
+                    "Mobile-Web Checkin-Checkout",
+                    update_modified=False
+                )
+
+
     def on_submit(self):
         pass
 
