@@ -9,6 +9,24 @@
   "workflow_state_name": "Filled"
  },
  {
+    "docstatus": 0,
+    "doctype": "Workflow State",
+    "icon": "",
+    "modified": "2025-08-31 19:34:36.218684",
+    "name": "Send For Approval",
+    "style": "Primary",
+    "workflow_state_name": "Send For Approval"
+ },
+    {
+    "docstatus": 0,
+    "doctype": "Workflow State",
+    "icon": "",
+    "modified": "2025-08-31 19:34:40.026168",
+    "name": "Pending For Approval",
+    "style": "Primary",
+    "workflow_state_name": "Pending For Approval"
+    },
+ {
   "docstatus": 0,
   "doctype": "Workflow State",
   "icon": "",
