@@ -13,6 +13,34 @@ from prompt_hr.py.attendance_penalty_api import (
 from frappe.model.workflow import apply_workflow
 
 class CustomAttendanceRequest(AttendanceRequest):
+
+    from frappe.utils import getdate
+
+    def after_insert(self):
+        # === SAFE PARSING ===
+        if not self.from_date or not self.to_date:
+            frappe.msgprint("From Date and To Date are mandatory for Attendance Request.")
+            return
+
+        from_date = getdate(self.from_date)
+        to_date = getdate(self.to_date)
+        today = getdate()
+
+        # === EDGE CASE: FROM > TO ===
+        if from_date > to_date:
+            frappe.throw("From Date cannot be after To Date.")
+
+        # === MAIN LOGIC: ONLY SWITCH IF TODAY FALLS IN RANGE ===
+        if from_date <= today <= to_date:
+            if self.reason in ["On Duty", "Work From Home"]:
+                frappe.db.set_value(
+                    "Employee",
+                    self.employee,
+                    "custom_attendance_capture_scheme",
+                    "Mobile-Web Checkin-Checkout",
+                )
+
+
     def on_submit(self):
         pass
 
@@ -63,7 +91,38 @@ def process_attendance_and_penalties(doc):
     from_date = getdate(doc["from_date"])
     to_date = min(getdate(doc["to_date"]), getdate())
     frappe.db.set_value("Attendance Request", doc.get("name"), "custom_status", "Approved")
+    process_attendance_request(from_date, to_date, doc)
+    apply_workflow(doc, "Approve")
 
+def process_rejection_penalties(doc):
+    from_date = getdate(doc.get("from_date"))
+    to_date = min(getdate(doc.get("to_date")), getdate())
+    frappe.db.set_value("Attendance Request", doc.get("name"), "custom_status", "Rejected")
+    no_attendance_penalty_enable = frappe.db.get_single_value("HR Settings", "custom_enable_no_attendance_penalty")
+
+    if doc.get("reason") == "Partial Day":
+        process_attendance_request(from_date, to_date, doc)
+    else:
+        if no_attendance_penalty_enable:
+            dates = [
+                add_days(from_date, i)
+                for i in range(date_diff(to_date, from_date) + 1)
+            ]
+            for date in dates:
+                penalty_entries = process_no_attendance_penalties_for_prompt(
+                    [doc["employee"]],
+                    0,
+                    date,
+                    "custom_no_attendance_leave_penalty_configuration",
+                    True,
+                )
+                if penalty_entries:
+                    create_penalty_records(penalty_entries, date)
+    
+    apply_workflow(doc, "Reject")
+
+
+def process_attendance_request(from_date, to_date, doc):
     late_coming_penalty_enable = frappe.db.get_single_value("HR Settings", "custom_enable_late_coming_penalty")
     daily_hours_penalty_enable = frappe.db.get_single_value("HR Settings", "custom_enable_daily_hours_penalty")
     mispunch_penalty_enable = frappe.db.get_single_value("HR Settings", "custom_enable_mispunch_penalty")
@@ -133,34 +192,3 @@ def process_attendance_and_penalties(doc):
             )
             if late_penalty:
                 create_penalty_records(late_penalty, date)
-    
-    apply_workflow(doc, "Approve")
-
-def process_rejection_penalties(doc):
-    from_date = getdate(doc.get("from_date"))
-    to_date = min(getdate(doc.get("to_date")), getdate())
-    frappe.db.set_value("Attendance Request", doc.get("name"), "custom_status", "Rejected")
-    penalty_settings = frappe.db.get_value(
-        "HR Settings",
-        None,
-        ["custom_enable_no_attendance_penalty"],
-        as_dict=True,
-    )
-
-    if penalty_settings.custom_enable_no_attendance_penalty:
-        dates = [
-            add_days(from_date, i)
-            for i in range(date_diff(to_date, from_date) + 1)
-        ]
-        for date in dates:
-            penalty_entries = process_no_attendance_penalties_for_prompt(
-                [doc["employee"]],
-                0,
-                date,
-                "custom_no_attendance_leave_penalty_configuration",
-                True,
-            )
-            if penalty_entries:
-                create_penalty_records(penalty_entries, date)
-    
-    apply_workflow(doc, "Reject")

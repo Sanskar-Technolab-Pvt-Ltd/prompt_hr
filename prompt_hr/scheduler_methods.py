@@ -3002,54 +3002,138 @@ def is_send_mail_check(emp_id, is_no_attendance=0, is_mispunch=0, is_later_entry
 # ! DAILY SCHEDULER TO HANDLE ATTENDANCE REQUEST RITUALS
 @frappe.whitelist()
 def daily_attendance_request_rituals():
+    
+    try:
+        
+        all_employees = frappe.get_all(
+            "Employee",
+            filters={"status": "Active"},
+            fields=["name", "custom_attendance_capture_scheme"],
+        )
 
-    all_employees = frappe.get_all(
-        "Employee",
-        filters={"status": "Active"},
-        fields=["name", "custom_attendance_capture_scheme"],
-    )
+        # ? ATTENDANCE CAPTURE SCHEME MAP BASED ON WORK MODE
+        attendance_capture_scheme_map = {
+            "Work From Home": "Mobile-Web Checkin-Checkout",
+            "On Duty": "Mobile-Web Checkin-Checkout",
+        }
 
-    # ? ATTENDANCE CAPTURE SCHEME MAP BASED ON WORK MODE
-    attendance_capture_scheme_map = {
-        "Work From Home": "Mobile-Web Checkin-Checkout",
-        "On Duty": "Mobile-Web Checkin-Checkout",
-    }
+        # ? EMPLOYEE -> current scheme
+        employee_map = {
+            emp.name: emp.custom_attendance_capture_scheme for emp in all_employees
+        }
 
-    # ? CREATE EMPLOYEE HASHMAP FOR QUICK ACCESS (NAME AS KEY AND SCHEME AS VALUE)
-    employee_map = {
-        emp.name: emp.custom_attendance_capture_scheme for emp in all_employees
-    }
+        all_attendance_requests = frappe.get_all(
+            "Attendance Request",
+            filters={
+                "custom_status": ["in", ["Approved", "Pending"]],
+                "employee": ["in", list(employee_map.keys())],
+            },
+            fields=["name", "employee", "reason", "from_date", "to_date", "custom_old_attendance_capture_scheme"],
+            order_by="from_date asc",
+        )
 
-    all_attendance_requests = frappe.get_all(
-        "Attendance Request",
-        filters={
-            "custom_status": ["in", ["Approved", "Pending"]],
-            "employee": ["in", list(employee_map.keys())],
-            "from_date": ["<=", today()],
-            "to_date": [">=", today()],
-        },
-        fields=["name", "employee", "reason"],
-    )
+        request_map = {}
+        for req in all_attendance_requests:
+            request_map.setdefault(req.employee, []).append(req)
 
-    attendance_request_hashmap = {}
-    for request in all_attendance_requests:
-        employee_name = request.employee
-        if employee_name not in attendance_request_hashmap:
-            attendance_request_hashmap[employee_name] = []
-        attendance_request_hashmap[employee_name].append(request)
 
-    for employee, scheme in employee_map.items():
-        attendance_request = attendance_request_hashmap.get(employee)
-        if attendance_request:
-            reason = attendance_request[0].get("reason")
-            scheme = attendance_capture_scheme_map.get(reason)
-            if employee_map.get(employee) != scheme:
-                # ? UPDATE EMPLOYEE SCHEME IF IT DOES NOT MATCH
-                frappe.db.set_value(
-                    "Employee", employee, "custom_attendance_capture_scheme", scheme
-                )
-                frappe.db.commit()
+        frappe.log_error("daily_attendance_request_rituals_error", f"\n\n request_map {request_map} \n\n")
+        for employee, requests in request_map.items():
+            current_scheme = employee_map.get(employee)
+            active_request = None
+            last_expired_request = None
 
+            for req in requests:
+                if getdate(req.from_date) <= getdate(today()) <= getdate(req.to_date):
+                    active_request = req
+                    break
+                elif getdate(req.to_date) < getdate(today()):
+                    last_expired_request = req
+
+            # * FOR CUURENT ONE
+            if active_request:
+                if active_request.reason in attendance_capture_scheme_map:
+                    new_scheme = attendance_capture_scheme_map.get(active_request.reason)
+                    if new_scheme and current_scheme != new_scheme:
+                        # Save old scheme only once
+                        if not active_request.custom_old_attendance_capture_scheme:
+                            frappe.db.set_value(
+                                "Attendance Request",
+                                active_request.name,
+                                "custom_old_attendance_capture_scheme",
+                                current_scheme,
+                            )
+
+                        frappe.db.set_value(
+                            "Employee", employee, "custom_attendance_capture_scheme", new_scheme
+                        )
+                        employee_map[employee] = new_scheme
+
+            # * FOR THE EXPIRED
+            elif last_expired_request and last_expired_request.custom_old_attendance_capture_scheme:
+                if current_scheme != last_expired_request.custom_old_attendance_capture_scheme:
+                    frappe.db.set_value(
+                        "Employee", employee, "custom_attendance_capture_scheme", last_expired_request.custom_old_attendance_capture_scheme
+                    )
+                    employee_map[employee] = last_expired_request.custom_old_attendance_capture_scheme
+
+        frappe.db.commit()
+    except Exception as e:
+        frappe.log_error("daily_attendance_request_rituals_error", frappe.get_traceback())
+    
+# *OLD CODE
+    # all_employees = frappe.get_all(
+    #     "Employee",
+    #     filters={"status": "Active"},
+    #     fields=["name", "custom_attendance_capture_scheme"],
+    # )
+    
+    
+    
+        
+    # # ? ATTENDANCE CAPTURE SCHEME MAP BASED ON WORK MODE
+    # attendance_capture_scheme_map = {
+    #     "Work From Home": "Mobile-Web Checkin-Checkout",
+    #     "On Duty": "Mobile-Web Checkin-Checkout",
+    # }
+
+    # # ? CREATE EMPLOYEE HASHMAP FOR QUICK ACCESS (NAME AS KEY AND SCHEME AS VALUE)
+    # employee_map = {
+    #     emp.name: emp.custom_attendance_capture_scheme for emp in all_employees
+    # }
+
+    # all_attendance_requests = frappe.get_all(
+    #     "Attendance Request",
+    #     filters={
+    #         "custom_status": ["in", ["Approved", "Pending"]],
+    #         "employee": ["in", list(employee_map.keys())],
+    #         "from_date": ["<=", today()],
+    #         "to_date": [">=", today()],
+    #     },
+    #     fields=["name", "employee", "reason"],
+    # )
+
+    # attendance_request_hashmap = {}
+            
+    # for request in all_attendance_requests:
+    #     employee_name = request.employee
+    #     if employee_name not in attendance_request_hashmap:
+    #         attendance_request_hashmap[employee_name] = []
+    #     attendance_request_hashmap[employee_name].append(request)            
+
+    # for employee, scheme in employee_map.items():
+    #     attendance_request = attendance_request_hashmap.get(employee)
+    #     if attendance_request:
+    #         reason = attendance_request[0].get("reason")
+    #         scheme = attendance_capture_scheme_map.get(reason)
+    #         if employee_map.get(employee) != scheme:
+    #             # ? UPDATE EMPLOYEE SCHEME IF IT DOES NOT MATCH
+    #             frappe.db.set_value(
+    #                 "Employee", employee, "custom_attendance_capture_scheme", scheme
+    #             )
+    #             frappe.db.commit()
+
+    
 
 """
 # ! THIS WILL CREATE EMPLOYEE PENALTY EVEN IF EMPLOYEE PENALTY IS MARKED 0, IT WILL CHECK IF THE ATTENDANCE STATUS IS 'MISPUNCH'
