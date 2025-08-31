@@ -130,11 +130,15 @@ def create(**args):
                 or args.get(field) == "[]"
                 or args.get(field) == "[{}]"
             ):
+                
                 frappe.throw(
                     f"Please Fill {field_name} Field!",
                     frappe.MandatoryError,
                 )
 
+        
+        if "custom_partial_day_request_minutes" in args:
+            args["custom_partial_day_request_minutes"] = int(args["custom_partial_day_request_minutes"])
             
         # ? CREATE ATTENDANCE REQUEST DOC
         attendance_request_doc = frappe.get_doc({
@@ -146,7 +150,7 @@ def create(**args):
 
     except Exception as e:
         # ? HANDLE ERRORS
-        frappe.log_error("Error While Creating Attendance Request", str(e))
+        frappe.log_error("Error While Creating Attendance Request", frappe.get_traceback())
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
