@@ -13,16 +13,6 @@ from prompt_hr.py.attendance_penalty_api import (
 from frappe.model.workflow import apply_workflow
 
 class CustomAttendanceRequest(AttendanceRequest):
-
-    def before_submit(self):
-        if self.workflow_state == "Approved":
-            self.custom_status = "Approved"
-
-
-
-        elif self.workflow_state == "Rejected":
-            self.custom_status = "Rejected"
-
     def on_submit(self):
         pass
 
@@ -33,62 +23,53 @@ class CustomAttendanceRequest(AttendanceRequest):
 
 @frappe.whitelist()
 def handle_custom_workflow_action(doc, action):
-    if isinstance(doc, str):
-        doc = frappe.parse_json(doc)
-    if action == "Approve":
-        #! ENQUEUE BACKGROUND JOB
-        frappe.enqueue(
-            process_attendance_and_penalties,
-            doc=doc,
-            now=False,
-        )
+    try:
+        if isinstance(doc, str):
+            doc = frappe.parse_json(doc)
+        if action == "Approve":
+            #! ENQUEUE BACKGROUND JOB
+            frappe.enqueue(
+                process_attendance_and_penalties,
+                doc=doc,
+                now=False,
+            )
 
-        #! GIVE USER MESSAGE
-        frappe.msgprint(
-            "Your request has been approved and is being processed in the background. "
-            "It may take a few minutes to update attendance and penalties. "
-            "If it is still not approved after some time, please contact the HR Department."
-        )
-    elif action == "Reject":
-        frappe.enqueue(
-            process_rejection_penalties,
-            doc=doc,
-            now=False,
-        )
+            #! GIVE USER MESSAGE
+            frappe.msgprint(
+                "Your request has been approved and is being processed in the background. "
+                "It may take a few minutes to update attendance and penalties. "
+                "If it is still not approved after some time, please contact the HR Department."
+            )
+        elif action == "Reject":
+            frappe.enqueue(
+                process_rejection_penalties,
+                doc=doc,
+                now=False,
+            )
 
-        frappe.msgprint(
-            "Your request has been rejected. No-attendance penalties are being processed "
-            "in the background."
+            frappe.msgprint(
+                "Your request has been rejected. No-attendance penalties are being processed "
+                "in the background."
+            )
+        else:
+            apply_workflow(doc, action)
+    except Exception as e:
+        frappe.log_error(
+            f"Error in handle_custom_workflow_action",str(e)
         )
-    else:
-        apply_workflow(doc, action)
 
 
 def process_attendance_and_penalties(doc):
     from_date = getdate(doc["from_date"])
     to_date = min(getdate(doc["to_date"]), getdate())
+    frappe.db.set_value("Attendance Request", doc.get("name"), "custom_status", "Approved")
 
-    penalty_settings = frappe.db.get_value(
-        "HR Settings",
-        None,
-        [
-            "custom_enable_late_coming_penalty",
-            "custom_enable_daily_hours_penalty",
-            "custom_enable_mispunch_penalty",
-            "custom_enable_no_attendance_penalty",
-            "custom_daily_hours_criteria_for_penalty_for_prompt",
-            "custom_late_coming_allowed_per_month_for_prompt",
-        ],
-        as_dict=True,
-    )
-
-    #! ACCESS VALUES
-    late_coming_penalty_enable = penalty_settings.custom_enable_late_coming_penalty
-    daily_hours_penalty_enable = penalty_settings.custom_enable_daily_hours_penalty
-    mispunch_penalty_enable = penalty_settings.custom_enable_mispunch_penalty
-    no_attendance_penalty_enable = penalty_settings.custom_enable_no_attendance_penalty
-    percentage_for_daily_hour_penalty = penalty_settings.custom_daily_hours_criteria_for_penalty_for_prompt
-    late_coming_allowed_per_month = int(penalty_settings.custom_late_coming_allowed_per_month_for_prompt)
+    late_coming_penalty_enable = frappe.db.get_single_value("HR Settings", "custom_enable_late_coming_penalty")
+    daily_hours_penalty_enable = frappe.db.get_single_value("HR Settings", "custom_enable_daily_hours_penalty")
+    mispunch_penalty_enable = frappe.db.get_single_value("HR Settings", "custom_enable_mispunch_penalty")
+    no_attendance_penalty_enable = frappe.db.get_single_value("HR Settings", "custom_enable_no_attendance_penalty")
+    percentage_for_daily_hour_penalty = frappe.db.get_single_value("HR Settings", "custom_daily_hours_criteria_for_penalty_for_prompt")
+    late_coming_allowed_per_month = int(frappe.db.get_single_value("HR Settings", "custom_late_coming_allowed_per_month_for_prompt"))
 
     dates = [
         add_days(from_date, i)
@@ -157,8 +138,8 @@ def process_attendance_and_penalties(doc):
 
 def process_rejection_penalties(doc):
     from_date = getdate(doc.get("from_date"))
-    to_date = min(getdate(doc.get("to_date")), getdate("2025-10-05"))
-
+    to_date = min(getdate(doc.get("to_date")), getdate())
+    frappe.db.set_value("Attendance Request", doc.get("name"), "custom_status", "Rejected")
     penalty_settings = frappe.db.get_value(
         "HR Settings",
         None,

@@ -1,0 +1,59 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:adjustment_reason",
+ "creation": "2025-08-30 16:05:01.009859",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "adjustment_reason",
+  "adjustment_percentage",
+  "is_attachment_mandatory"
+ ],
+ "fields": [
+  {
+   "fieldname": "adjustment_reason",
+   "fieldtype": "Data",
+   "label": "Adjustment Reason",
+   "unique": 1
+  },
+  {
+   "fieldname": "adjustment_percentage",
+   "fieldtype": "Percent",
+   "label": "Adjustment Percentage"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_attachment_mandatory",
+   "fieldtype": "Check",
+   "label": "Is Attachment Mandatory?"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-08-30 16:14:04.260042",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Lodging Adjustment Type",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
