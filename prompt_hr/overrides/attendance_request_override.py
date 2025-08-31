@@ -64,27 +64,12 @@ def process_attendance_and_penalties(doc):
     to_date = min(getdate(doc["to_date"]), getdate())
     frappe.db.set_value("Attendance Request", doc.get("name"), "custom_status", "Approved")
 
-    penalty_settings = frappe.db.get_value(
-        "HR Settings",
-        None,
-        [
-            "custom_enable_late_coming_penalty",
-            "custom_enable_daily_hours_penalty",
-            "custom_enable_mispunch_penalty",
-            "custom_enable_no_attendance_penalty",
-            "custom_daily_hours_criteria_for_penalty_for_prompt",
-            "custom_late_coming_allowed_per_month_for_prompt",
-        ],
-        as_dict=True,
-    )
-
-    #! ACCESS VALUES
-    late_coming_penalty_enable = penalty_settings.custom_enable_late_coming_penalty
-    daily_hours_penalty_enable = penalty_settings.custom_enable_daily_hours_penalty
-    mispunch_penalty_enable = penalty_settings.custom_enable_mispunch_penalty
-    no_attendance_penalty_enable = penalty_settings.custom_enable_no_attendance_penalty
-    percentage_for_daily_hour_penalty = penalty_settings.custom_daily_hours_criteria_for_penalty_for_prompt
-    late_coming_allowed_per_month = int(penalty_settings.custom_late_coming_allowed_per_month_for_prompt)
+    late_coming_penalty_enable = frappe.db.get_single_value("HR Settings", "custom_enable_late_coming_penalty")
+    daily_hours_penalty_enable = frappe.db.get_single_value("HR Settings", "custom_enable_daily_hours_penalty")
+    mispunch_penalty_enable = frappe.db.get_single_value("HR Settings", "custom_enable_mispunch_penalty")
+    no_attendance_penalty_enable = frappe.db.get_single_value("HR Settings", "custom_enable_no_attendance_penalty")
+    percentage_for_daily_hour_penalty = frappe.db.get_single_value("HR Settings", "custom_daily_hours_criteria_for_penalty_for_prompt")
+    late_coming_allowed_per_month = int(frappe.db.get_single_value("HR Settings", "custom_late_coming_allowed_per_month_for_prompt"))
 
     dates = [
         add_days(from_date, i)
