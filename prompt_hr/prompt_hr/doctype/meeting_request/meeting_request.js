@@ -1,6 +1,15 @@
 frappe.ui.form.on("Meeting Request", {
     onload(frm) {
         updateRelatedToOptions(frm);
+        frappe.call({
+            method:"prompt_marketing.prompt_marketing.doctype.tour_visit.tour_visit.get_employee_for_user",
+            callback:function(r){
+                if(r.message){
+                    frm.set_value("organizor_name",r.message.name)
+                    frm.set_value("organizer_name",r.message.employee_name)
+                }
+            }
+        });
     }
 });
 
