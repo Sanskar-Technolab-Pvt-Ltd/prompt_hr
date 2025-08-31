@@ -38,7 +38,6 @@ class CustomAttendanceRequest(AttendanceRequest):
                     self.employee,
                     "custom_attendance_capture_scheme",
                     "Mobile-Web Checkin-Checkout",
-                    update_modified=False
                 )
 
 
