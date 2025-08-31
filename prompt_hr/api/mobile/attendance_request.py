@@ -118,10 +118,10 @@ def create(**args):
             "employee": "Employee",
             "from_date": "From Date",
             "to_date": "To Date",
-            "reason": "Reason"
-            
-
+            "reason": "Reason"        
         }
+        
+        frappe.log_error("Attendance_Request_ARGS", args)
 
         # ? CHECK IF THE MANDATORY FIELD IS FILLED OR NOT IF NOT THROW ERROR
         for field, field_name in mandatory_fields.items():
