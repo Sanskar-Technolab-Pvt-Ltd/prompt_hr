@@ -1,21 +1,44 @@
 <p>Dear <b>{{ employee_name }}</b>,</p>
 
 <p>
-    This is a reminder that you are scheduled for a 
-    <strong>{{ penalization_type }}</strong> Penalization on 
-    <strong>{{ frappe.format_date(penalization_date,"dd-MM-yyyy") }}</strong> due to policy violation.
+    This is a gentle reminder regarding the following scheduled penalizations, arising from policy guidelines, on <b>{{ frappe.utils.format_date(penalization_date,"dd-MM-yyyy") }}</b>:
+</p>
+
+<table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 14px;">
+    <thead style="background-color: #f2f2f2;">
+        <tr>
+            <th style="text-align: left;">Penalty Type</th>
+            <th style="text-align: left;">Scheduled Date</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for penalty_type, details in penalization_data.items() %}
+        <tr>
+            <td>{{ penalty_type }}</td>
+            <td>{{ frappe.format_date(details.penalty_date, "dd-MM-yyyy") }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if attendance_link %}
+<p>
+    You can review your attendance for this date here: <a href="{{ attendance_link }}" target="_blank">View Attendance</a>
+</p>
+{% endif %}
+
+<p>
+    We kindly request you to take any necessary corrective action to avoid or minimize these penalizations.
 </p>
 
 <p>
-    Please take the necessary corrective action before the penalization is enforced.
-</p>
-
-<p>
-    If you have any queries or concerns, kindly contact the HR department.
+    Should you have any questions or need clarification, please do not hesitate to contact the HR department.
 </p>
 
 <p><br></p>
 
-<p>Regards,<br>
-HR Team<br>
-{{ company }}</p>
+<p>
+    Warm regards,<br>
+    HR Team<br>
+    {{ company }}
+</p>
