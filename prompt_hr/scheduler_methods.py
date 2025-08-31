@@ -2749,9 +2749,11 @@ def process_exit_approvals():
     print("\n=== Scheduler Execution Complete ===\n")
 
 
-def send_penalty_warnings(emp_id, penalization_type):
+def send_penalty_warnings(emp_id, penalization_data, penalization_date=None):
     try:
-        penalization_date = add_days(today(), 1)  # one day before penalization
+        if not penalization_date:
+            penalization_date = add_days(today(), 1)
+
         notification = frappe.get_doc("Notification", "Alert For Penalization")
 
         # Fetch employee
@@ -2769,6 +2771,12 @@ def send_penalty_warnings(emp_id, penalization_type):
 
         if notification:
             # Render and send email
+            attendance_link = None
+            for data in penalization_data.values():
+                if data.get("attendance"):
+                    attendance_link = f"{frappe.utils.get_url()}/app/attendance/{data.get('attendance')}"
+                    break
+
             subject = frappe.render_template(
                 notification.subject, {"employee_name": employee.employee_name}
             )
@@ -2777,8 +2785,9 @@ def send_penalty_warnings(emp_id, penalization_type):
                 {
                     "employee_name": employee.employee_name,
                     "penalization_date": penalization_date,
-                    "penalization_type": penalization_type,
+                    "penalization_data": penalization_data,
                     "company": employee.company,
+                    "attendance_link": attendance_link
                 },
             )
             frappe.sendmail(

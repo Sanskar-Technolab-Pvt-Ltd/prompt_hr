@@ -118,11 +118,22 @@ def create(**args):
             "employee": "Employee",
             "from_date": "From Date",
             "to_date": "To Date",
-            "reason": "Reason"
-            
-
+            "reason": "Reason",      
         }
-
+        
+        
+        frappe.log_error("Attendance_Request_ARGS", args)
+        
+        
+        if args.get('reason') == "Partial Day":
+            if args.get("explanation"):
+                if (1 <= len(args.get("explanation")) <= 3) and args.get("explanation").isdigit():
+                    args["custom_partial_day_request_minutes"] = int(args.get("explanation"))
+                else:
+                    frappe.throw("Please enter Explanation in minutes only (numeric value between 0 and 120, e.g. 55)")                    
+            else:
+                frappe.throw("Please enter Explanation in minutes only (numeric value between 0 and 120, e.g. 55)")                                                
+            
         # ? CHECK IF THE MANDATORY FIELD IS FILLED OR NOT IF NOT THROW ERROR
         for field, field_name in mandatory_fields.items():
             if (
@@ -130,11 +141,15 @@ def create(**args):
                 or args.get(field) == "[]"
                 or args.get(field) == "[{}]"
             ):
+                
                 frappe.throw(
                     f"Please Fill {field_name} Field!",
                     frappe.MandatoryError,
                 )
 
+        
+        if "custom_partial_day_request_minutes" in args:
+            args["custom_partial_day_request_minutes"] = int(args["custom_partial_day_request_minutes"])
             
         # ? CREATE ATTENDANCE REQUEST DOC
         attendance_request_doc = frappe.get_doc({
@@ -146,7 +161,7 @@ def create(**args):
 
     except Exception as e:
         # ? HANDLE ERRORS
-        frappe.log_error("Error While Creating Attendance Request", str(e))
+        frappe.log_error("Error While Creating Attendance Request", frappe.get_traceback())
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,
