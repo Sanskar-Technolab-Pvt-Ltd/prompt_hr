@@ -2,19 +2,23 @@ import frappe
 from frappe.auth import today
 from frappe.utils import cint, flt, getdate, get_datetime, add_days, date_diff, time_diff_in_hours
 import frappe.workflow
+import json
+from datetime import time
+from frappe import _
 from prompt_hr.py.utils import (
     send_notification_email,
     expense_claim_and_travel_request_workflow_email,
     get_prompt_company_name,
 )
 from collections import defaultdict
+from hrms.hr.doctype.expense_claim.expense_claim import ExpenseClaim
 from datetime import datetime, timedelta,time
 from dateutil.relativedelta import relativedelta
 
 # Constants for expense types
 EXPENSE_TYPES = {"FOOD": "Food", "LODGING": "Lodging", "LOCAL_COMMUTE": "Local Commute"}
 
-COMMUTE_MODES = {"PUBLIC": "Public", "NON_PUBLIC": "Non-Public"}
+COMMUTE_MODES = {"PUBLIC": "Public", "NON_PUBLIC": "Private"}
 
 
 # Hooks for Expense Claim lifecycle events
@@ -34,8 +38,160 @@ def before_save(doc, method):
     print(doc.expenses[0].get("custom_attachments"), "Hii\n\n\n")
     if doc.expenses:
         validate_attachments_compulsion(doc)
+        validate_number_of_days(doc)
         get_expense_claim_exception(doc)
+        validate_expenses_entry(doc)
+        validate_expense_claim_detail_rules(doc)
         update_da_amount_as_per_time(doc)
+        ExpenseClaim.calculate_total_amount(doc)
+        sort_expense_claim_data(doc)
+
+
+def validate_number_of_days(doc):
+    try:
+        meal_configs = fetch_meal_allowance_settings()
+        meal_configs = sorted(meal_configs, key=lambda x: x["from_hours"])
+        #? ENSURE THAT EACH EXPENSE ENTRY HAS custom_days <= 1
+        for expense in doc.expenses:
+            expense_days = expense.custom_days or 0
+            #! THROW AN ERROR IF MORE THAN 1 DAY IS SELECTED FOR A SINGLE EXPENSE ROW
+            if expense_days > 1:
+                raise frappe.ValidationError(
+                    _("Row #{0}: Each expense entry must have Days 1 or less. Found {1} days.")
+                    .format(expense.idx, expense.custom_days)
+                )
+
+            if expense.expense_type == "DA":
+                if expense.expense_date != expense.custom_expense_end_date:
+                    raise frappe.ValidationError(
+                        _("Row #{0}: Start Date and End Date must be the same for Daily Allowance (DA). Multi-day claims are not allowed.")
+                        .format(expense.idx)
+                    )
+
+            # ! VALIDATION FOR END TIME CANNOT BE EARLIER THAN START TIME FOR SAME DATE
+            if expense.expense_date == expense.custom_expense_end_date:
+                start_time = get_datetime(expense.custom_expense_start_time)
+                end_time = get_datetime(expense.custom_expense_end_time)
+
+                if start_time > end_time:
+                    raise frappe.ValidationError(
+                        _("Row #{0}: End Time cannot be earlier than Start Time.").format(expense.idx)
+                    )
+
+            if expense.expense_type == "DA" and expense.custom_expense_start_time and expense.custom_expense_end_time:
+                #? CALCULATE DIFFERENCE IN HOURS
+                hours = time_diff_in_hours(expense.custom_expense_end_time, expense.custom_expense_start_time)
+
+                if expense.custom_field_visits or expense.custom_service_calls:
+                    #? GET FIELD VISITS AS LIST
+                    field_visits_list = []
+                    if expense.custom_field_visits:
+                        field_visits_list = [v.strip() for v in expense.custom_field_visits.split(",") if v.strip()]
+
+                    #? GET SERVICE CALLS AS LIST
+                    service_calls_list = []
+                    if expense.custom_service_calls:
+                        service_calls_list = [v.strip() for v in expense.custom_service_calls.split(",") if v.strip()]
+
+                    if len(field_visits_list) > 1 or len(service_calls_list) > 1:
+                        continue
+
+                #! FIND MATCHED CONFIG
+                for config in meal_configs:
+                    if config["from_hours"] <= hours <= config["to_hours"]:
+                        expense.custom_days = config["meal_allowance"]/100
+                        break
+            else:
+                #! FOR NON-DA EXPENSE TYPES, ASSUME FULL DAY
+                expense.custom_days = 1
+                
+    except Exception as e:
+        frappe.throw(str(e))
+
+def validate_expenses_entry(doc):
+    try:
+        #! GET ALL NON-CANCELLED EXPENSE CLAIMS FOR EMPLOYEE EXCLUDING CURRENT DOC
+        employee_expense_claims = frappe.get_all(
+            "Expense Claim",
+            filters={"employee": doc.employee, "docstatus": ["!=", 2], "name": ["!=", doc.name]},
+            pluck="name"
+        )
+
+        #! TRACK ENTRIES IN CURRENT DOC FOR DUPLICATES
+        seen_entries = set()
+        da_day_map = {}  #? MAP TO TRACK TOTAL CUSTOM_DAYS PER DATE IN CURRENT DOC
+
+        for row in doc.expenses:
+            key = None
+
+            if row.expense_type == "DA":
+                #? USE DATE AS KEY FOR DA
+                key = ("DA", row.expense_date)
+
+                #! ACCUMULATE DA DAYS FOR THIS DATE
+                da_day_map.setdefault(row.expense_date, 0)
+                da_day_map[row.expense_date] += row.custom_days or 0
+
+                #! IF TOTAL DAYS FOR DATE EXCEED 1, THROW ERROR
+                if da_day_map[row.expense_date] > 1:
+                    frappe.throw(f"Total DA days exceed 1 for <b>{row.expense_date}</b>.")
+
+            #! CHECK FOR EXISTING DUPLICATES IN OTHER DOCS
+            filters = {
+                "expense_date": row.expense_date,
+                "parent": ["in", employee_expense_claims],
+                "expense_type": row.expense_type
+            }
+
+            if row.expense_type in ["DA"]:
+                duplicate = frappe.db.exists("Expense Claim Detail", filters)
+
+                if duplicate:
+                    if row.expense_type == "DA":
+                        #! GET TOTAL custom_days FROM MATCHING EXPENSE CLAIM DETAILS
+                        existing_days = sum(
+                            frappe.db.get_all(
+                                "Expense Claim Detail",
+                                filters=filters,
+                                pluck="custom_days"  #? PLUCK AS SINGLE FIELD, NOT A LIST
+                            )
+                        )
+                        total_days = existing_days + da_day_map.get(row.expense_date, 0)
+                        if total_days > 1:
+                            raise frappe.ValidationError(
+                                f"Duplicate DA entry already exists for <b>{row.expense_date}</b> and will exceed 1 day."
+                            )
+                    else:
+                        frappe.throw(
+                            f"Duplicate {row.expense_type} entry already exists in another Expense Claim for "
+                            f"<b>{doc.employee}</b> on <b>{row.expense_date}</b>."
+                        )
+    except Exception as e:
+        frappe.throw(str(e))
+
+def validate_expense_claim_detail_rules(doc):
+    try:
+        #! LOOP THROUGH ALL CHILD ROWS IN EXPENSE CLAIM
+        for row in doc.expenses:
+            expense_days = row.custom_days or 0
+            #? RULE 1: CITY IS MANDATORY IF EXPENSE TYPE IS 'Lodging'
+            if row.expense_type == "Lodging" and not row.custom_city:
+                frappe.throw(
+                    _(f"City is mandatory for Lodging expense. Please fill 'City' in row {row.idx}.")
+                )
+
+            #? RULE 2: DAYS GREATER THAN ZERO FOR DA
+            if row.expense_type == "DA" and not expense_days and expense_days <= 0:
+                frappe.throw(
+                    _(f"Days Must Be Greater Than Zero For DA in row {row.idx}.")
+                )
+            
+            if row.custom_field_visits:
+                error = validate_field_visits_timing(row.expense_date, row.custom_expense_end_date, row.custom_expense_start_time, row.custom_expense_end_time, row.custom_field_visits)
+                if error:
+                    raise frappe.ValidationError(f"Row #{row.idx}: {error}")
+    except Exception as e:
+        frappe.throw(str(e))
 
 def update_da_amount_as_per_time(doc):
     da_amount = 0
@@ -88,7 +244,7 @@ def update_da_amount_as_per_time(doc):
                     continue
 
 
-            if expense.custom_expense_start_time and expense.custom_expense_end_time:
+            if expense.custom_expense_start_time is not None and expense.custom_expense_end_time is not None:
                 #? CALCULATE DIFFERENCE IN HOURS
                 diff_in_hours = time_diff_in_hours(expense.custom_expense_end_time, expense.custom_expense_start_time)
 
@@ -597,6 +753,12 @@ def _process_food_lodging_expense(
                 f"Lodging expense for {exp.expense_date} already exists for employee(s): {existing_detail[0].get('custom_shared_accommodation_employee')}"
             )
 
+        # ! VALIDATION FOR START AND END DATE
+        if exp.expense_date != exp.custom_expense_end_date:
+            frappe.throw(
+                f"Start date and end date must be the same for lodging expense (Row #{exp.idx})."
+            )
+
         #! CHECK IN OTHER EXPENSE CLAIMS OF EMPLOYEE(S)
         other_claims = frappe.get_all(
             "Expense Claim",
@@ -712,6 +874,33 @@ def _process_food_lodging_expense(
             )
         exp.custom_is_exception = 1
 
+@frappe.whitelist()
+def get_employees_by_role(doctype, txt, searchfield, start, page_len, filters):
+    
+    if not filters.get("role"):
+        return []
+
+    role = filters.get("role")
+
+    # ? GET THE LIST OF USER IDS WHO HAVE THE GIVEN ROLE
+    user_with_role = frappe.get_all("Has Role",
+        filters={"role": role},
+        fields=["parent"]
+    )
+    user_ids = [d.parent for d in user_with_role]
+    if not user_ids:
+        return []
+
+    # ? GET ACTIVE EMPLOYEES WHOSE USER_ID IS IN THE USER_IDS LIST
+    employees = frappe.get_all("Employee",
+        filters={
+            "status": "Active",
+            "user_id": ("in", user_ids)
+        },
+        fields=["name", "employee_name"],
+    )
+
+    return [(e.name, e.employee_name) for e in employees]
 
 def _get_approved_food_lodging_daily_totals(
     employee, from_date, to_date, current_doc_name=None
@@ -888,8 +1077,8 @@ def _process_local_commute_expense(
     # Check if attachment is mandatory
     # ? GET IF ATTACHMENT IS REQUIRED BASED ON COMMUTE RULES
     custom_mode_of_vehicle = exp.custom_mode_of_vehicle
-    if custom_mode_of_vehicle == "Non-Public":
-        custom_mode_of_vehicle = "Non Public"
+    if custom_mode_of_vehicle == "Non-Public" or custom_mode_of_vehicle == "Non Public":
+        custom_mode_of_vehicle = "Private"
     attach_required = frappe.db.get_value(
         "Local Commute Details",
         {
@@ -908,10 +1097,10 @@ def _process_local_commute_expense(
 
     # Calculate amount for non-public transport if not provided
     if exp.custom_mode_of_vehicle == COMMUTE_MODES["NON_PUBLIC"]:
-        km = flt(exp.custom_km or 0)
+        km = flt(exp.custom_km or 0) if exp.custom_manual_km <=0 else flt(exp.custom_manual_km)
         rate = km_rate_map.get(exp.custom_type_of_vehicle, 0)
-
-        if not exp.amount:
+        
+        if exp.amount != rate*km:
             exp.amount = exp.sanctioned_amount = rate * km
             exp_amount = flt(exp.amount)
 
@@ -977,13 +1166,17 @@ def validate_attachments_compulsion(doc):
             )
 
         for expense in doc.expenses:
-            if expense.custom_is_exception == 1 and not expense.custom_attachments:
-                frappe.throw(
-                    f"Attachments are mandatory for the expense type '{expense.expense_type}' "
-                    f"when it exceeds the allowed budget. Please attach the necessary documents."
-                )
+            if (expense.custom_is_exception == 1 or expense.expense_type == "Lodging") and not expense.custom_attachments:
+                if expense.expense_type == "Lodging":
+                    raise frappe.ValidationError(
+                        f"Attachments are mandatory for the expense type '{expense.expense_type}' ")
+                else:
+                    raise frappe.ValidationError(
+                        f"Attachments are mandatory for the expense type '{expense.expense_type}' "
+                        f"when it exceeds the allowed budget. Please attach the necessary documents."
+                    )
     except Exception as e:
-        frappe.throw(f"An error occurred during attachment validation: {e}")
+        frappe.throw(str(e))
 
 
 @frappe.whitelist()
@@ -1021,7 +1214,7 @@ def get_data_from_expense_claim_as_per_grade(employee, company):
         for option in commute_options:
             if option.mode_of_commute == COMMUTE_MODES["PUBLIC"]:
                 public.append(option.type_of_commute)
-            elif option.mode_of_commute == "Non Public":
+            elif option.mode_of_commute == "Private":
                 non_public.append(option.type_of_commute)
 
         return {
@@ -1239,13 +1432,26 @@ def get_date_wise_da_hours(employee, from_date, to_date, company, expense_claim_
             expense_claim_name=expense_claim_name,
             visit_type="Field Visit"
         )
-       
+
+        #! -------------------------------------------------------------------
+        #! GENERATE TRAVEL (LOCAL COMMUTE) EXPENSE CLAIM ENTRIES
+        #! -------------------------------------------------------------------
+        commute_expense_rows, added_travel_entries, duplicates = build_commute_expense_entries(
+            field_visits=field_visits,
+            private_service_rate=private_service_rate,
+            expense_claim_doc=expense_claim_doc,
+            from_date=from_date,
+            to_date=to_date,
+        )
+
         #! -------------------------------------------------------------------
         #! BUILD MESSAGES TO SHOW ENTRY SUMMARY TO THE USER
         #! -------------------------------------------------------------------
         messages = build_expense_notification_messages(
             added_da_dates=added_da_dates,
+            added_travel_entries=added_travel_entries,
             already_exists_dates=already_exists_dates,
+            duplicates=duplicates
         )
 
         #? RETURN FINAL RESULT WITH EXPENSE CLAIM NAME, ENTRIES, AND SUMMARY
@@ -1293,6 +1499,245 @@ def fetch_meal_allowance_settings():
     return meal_allowance_configs
 
 
+def build_commute_expense_entries(
+    field_visits,
+    private_service_rate,
+    expense_claim_doc,
+    from_date,
+    to_date,
+):
+    """
+    Build commute (local travel) expense entries from field visit data.
+
+    Args:
+        field_visits (list): List of Field Visit docs.
+        private_service_rate (dict): Dictionary mapping vehicle types to per-km rates.
+        expense_claim_doc (Document): The parent expense claim document.
+        from_date (str): Start date (inclusive) for filtering expense dates.
+        to_date (str): End date (inclusive) for filtering expense dates.
+
+    Returns:
+        tuple: (commute_expense_rows, added_travel_entries, duplicates)
+    """
+
+    # ? GET NAMES OF ALL FIELD VISITS
+    field_visit_names = [fv.name for fv in field_visits]
+    commute_expense_rows = []
+    added_travel_entries = []
+    duplicates = []
+    # ? RETURN BLANK LIST IF NOT FIELD VISIT PRESENT
+    if not field_visit_names:
+        return commute_expense_rows, added_travel_entries, duplicates
+
+    # ? GET CHILD TABLE DATAS FROM FIELD VISITS
+    child_table_rows = frappe.get_all(
+        "Field Visit Child Table",
+        filters={"parent": ["in", field_visit_names]},
+        fields=[
+            "name", "service_call", "start_time", "end_time",
+            "mode_of_vehicle", "type_of_vehicle", "travelled_km", "amount", "parent", "from_location", "to_location"
+        ]
+    )
+
+    #! SET DEFAULT START AND END TIME TO FULL DAY RANGE
+    default_start_time = time(0, 0, 0)       # 00:00:00
+    default_end_time   = time(23, 59, 59)    # 23:59:59
+
+    #? CREATE DEFAULT DICT FOR CALCULATING AMOUNT, KM, TIME, LOCATIONS,START TIME, END TIME FIELD VISITS AND SERVICE CALLS
+    visit_map = defaultdict(lambda: {
+        "amount": 0.0,
+        "child_rows": set(),
+        "travelled_km": 0.0,
+        "start_time": default_start_time,
+        "end_time": default_end_time,
+        "from_location": None,
+        "to_location": None
+    })
+
+    for row in child_table_rows:
+        start_date = getdate(row.start_time)
+        end_date = getdate(row.end_time)
+        total_days = date_diff(end_date, start_date) + 1
+        # ? GET START DAY INITIAL TIME AND END DAY FINAL TIME
+        start_time = get_datetime(row.start_time).time()
+        end_time = get_datetime(row.end_time).time()
+        #? FOR PUBLIC VEHICLE AMOUNT IS ZERO AND TRAVEL KM IS ZERO (ADD MANUALLY)
+        if row.mode_of_vehicle == "Public":
+            daily_amount = 0.0
+            daily_km = 0.0
+
+        #? FOR OTHER VEHICLE TYPES CALCULATE PER DAY AMOUNT AND TRAVELLED KM
+        elif row.mode_of_vehicle:
+            rate = flt(private_service_rate.get(row.type_of_vehicle, 0))
+            total_amount = flt(row.travelled_km) * rate
+            daily_amount = total_amount / total_days
+            daily_km = flt(row.travelled_km) / total_days
+        else:
+            daily_amount = 0.0
+            daily_km = 0.0
+
+        #? ADD AMOUNT, TRAVEL KM, SERVICE CALL, TIME, LOCATION IN VISIT_MAP DICT
+        for i in range(total_days):
+            visit_date = add_days(start_date, i)
+            key = (visit_date, row.mode_of_vehicle, row.type_of_vehicle)
+            visit_map[key]["amount"] += daily_amount
+            visit_map[key]["travelled_km"] += daily_km
+            visit_map[key]["child_rows"].add((row.service_call, row.parent, row.travelled_km, row.from_location, row.to_location))
+
+            # ? ADD LOCATION TO DICT IF NOT ALREADY SET
+            if not visit_map[key].get("from_location"):
+                visit_map[key]["from_location"] = row.from_location
+
+            if not visit_map[key].get("to_location"):
+                visit_map[key]["to_location"] = row.to_location
+
+
+            #? CHECK AND SET EARLIEST START TIME AND FROM LOCATION
+            if visit_date == start_date:
+                if (
+                    start_time < visit_map[key].get("start_time") or visit_map[key].get("start_time") == default_start_time
+                ):
+                    visit_map[key]["start_time"] = start_time
+                    visit_map[key]["from_location"] = row.from_location
+
+            #? CHECK AND SET LATEST END TIME AND TO LOCATION
+            if visit_date == end_date:
+                if (
+                    (end_time > visit_map[key].get("end_time") or visit_map[key].get("end_time") == default_end_time
+                    )
+                ):
+                    visit_map[key]["end_time"] = end_time
+                    visit_map[key]["to_location"] = row.to_location
+
+    existing_keys = set()
+    # ? FETCH ALL EXISTING EXPENSE CLAIM DETAIL OF CURRENT EXPENSE CLAIM
+    existing_details = frappe.get_all(
+        "Expense Claim Detail",
+        filters={"parent": expense_claim_doc.name},
+        fields=["expense_date", "custom_mode_of_vehicle", "custom_type_of_vehicle"]
+    )
+    for d in existing_details:
+        existing_keys.add((
+            getdate(d.expense_date),
+            d.custom_mode_of_vehicle or "",
+            d.custom_type_of_vehicle or "",
+        ))
+
+    base_url = frappe.utils.get_url()
+
+    for key, data in visit_map.items():
+        visit_date, mode, type_ = key
+        # ? MAKE MODE PRIVATE FOR EXPENSE CLAIM DETAIL IF MODE IS NON PUBLIC OR PRIVATE
+        if mode == "Non Public" or mode == "Private":
+            mode = "Private"
+
+        secondary_key = (visit_date, mode, type_)
+        if secondary_key in existing_keys:
+            duplicates.append(f"{visit_date} - {type_} - {mode}")
+            continue
+
+        if not (getdate(from_date) <= getdate(visit_date) <= getdate(to_date)):
+            continue
+
+        description = f"Travelled on {visit_date} via {mode} ({type_}) for local commute."
+
+        field_visit_map = {}
+        all_field_visits_set = set()
+        all_service_calls_set = set()
+
+        #? MAP FIELD VISITS TO SERVICE CALLS
+        for service_call, field_visit, travelled_km, from_location, to_location in data["child_rows"]:
+            field_visit_map.setdefault(field_visit, []).append({
+                "service_call": service_call,
+                "travelled_km": travelled_km or "0",
+                "from_location": from_location or "-",
+                "to_location": to_location or "-"
+            })
+            all_field_visits_set.add(field_visit)
+            all_service_calls_set.add(service_call)
+
+        #? HTML table generation
+        table_rows = ""
+        for field_visit, service_call_rows in sorted(field_visit_map.items()):
+            rowspan = len(service_call_rows)
+            for i, row_data in enumerate(service_call_rows):
+                service_call = row_data["service_call"]
+                from_location = row_data["from_location"]
+                to_location = row_data["to_location"]
+                travelled_km = row_data["travelled_km"]
+
+                #? FETCH CUSTOMER ONLY
+                customer = "-"
+                sc_data = frappe.db.get_value(
+                    "Service Call", service_call, ["customer"], as_dict=True
+                )
+                if sc_data and sc_data.get("customer"):
+                    customer = sc_data.get("customer")
+                    customer_name = frappe.db.get_value("Customer", customer, "customer_name")
+
+                table_rows += "<tr>"
+                if i == 0:
+                    table_rows += f"""
+                        <td rowspan="{rowspan}" style="border: 1px solid #000; padding: 8px;">
+                            <a href="{base_url}/app/field-visit/{field_visit}" target="_blank">{field_visit}</a>
+                        </td>
+                    """
+                table_rows += f"""
+                    <td style="border: 1px solid #000; padding: 8px;">
+                        <a href="{base_url}/app/service-call/{service_call}" target="_blank">{service_call}</a>
+                    </td>
+                    <td style="border: 1px solid #000; padding: 8px;">{from_location}</td>
+                    <td style="border: 1px solid #000; padding: 8px;">{to_location}</td>
+                    <td style="border: 1px solid #000; padding: 8px;">{travelled_km}</td>
+                    <td style="border: 1px solid #000; padding: 8px;">
+                        <a href="{base_url}/app/customer/{customer}" target="_blank">{customer_name}</a>
+                    </td>
+                </tr>
+                """
+
+        #? Final HTML Table
+        html_table = f"""
+        <div class="ql-editor read-mode">
+            <table style="border-collapse: collapse; width: 100%; font-size: 14px;">
+                <thead>
+                    <tr style="background-color: #f5f5f5;">
+                        <th style="border: 1px solid #000; padding: 8px; text-align: left;">Field Visit</th>
+                        <th style="border: 1px solid #000; padding: 8px; text-align: left;">Service Call</th>
+                        <th style="border: 1px solid #000; padding: 8px; text-align: left;">From Location</th>
+                        <th style="border: 1px solid #000; padding: 8px; text-align: left;">To Location</th>
+                        <th style="border: 1px solid #000; padding: 8px; text-align: left;">Travelled KM</th>
+                        <th style="border: 1px solid #000; padding: 8px; text-align: left;">Customer</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {table_rows}
+                </tbody>
+            </table>
+        </div>
+        """
+
+        commute_expense_rows.append({
+            "expense_date": visit_date,
+            'custom_expense_end_date': visit_date,
+            "expense_type": "Local Commute",
+            "custom_mode_of_vehicle": mode,
+            "custom_type_of_vehicle": type_,
+            "custom_expense_start_time": data["start_time"],
+            "custom_expense_end_time": data["end_time"],
+            "custom_from_location": data["from_location"],
+            "custom_to_location": data["to_location"],
+            "custom_days": 1,
+            "description": description,
+            "custom_field_visit_and_service_call_details": html_table,
+            "amount": data["amount"],
+            "sanctioned_amount": data["amount"],
+            "custom_km": data.get("travelled_km"),
+            "custom_field_visits": ", ".join(sorted(all_field_visits_set)),
+            "custom_service_calls": ", ".join(sorted(all_service_calls_set))
+        })
+        added_travel_entries.append(f"{visit_date} - {type_} - {mode}")
+
+    return commute_expense_rows, added_travel_entries, duplicates
 
 def get_latest_travel_budget_and_rates(employee, company):
     """
@@ -1619,3 +2064,298 @@ def build_expense_notification_messages(
 
 
 
+@frappe.whitelist()
+def get_service_calls_from_field_visits(field_visits, txt=None):
+    """
+    Return unique Service Calls from child table of selected Field Visit records.
+    """
+    if isinstance(field_visits, str):
+        field_visits = json.loads(field_visits)
+
+    if not field_visits:
+        return []
+
+    service_calls = frappe.get_all(
+        "Field Visit Child Table",
+        filters={"parent": ["in", field_visits]},
+        fields=["service_call"],
+    )
+
+    unique_service_calls = list({sc.service_call for sc in service_calls if sc.service_call})
+
+    if txt:
+        unique_service_calls = [sc for sc in unique_service_calls if txt.lower() in sc.lower()]
+
+    return [{"name": sc} for sc in unique_service_calls]
+
+
+@frappe.whitelist()
+def get_field_visit_service_call_details(field_visits, service_calls):
+    """
+    Returns:
+    - custom_field_visit (comma-separated)
+    - custom_service_call (comma-separated)
+    - html_table: rowspan-based service call table
+    """
+
+    if isinstance(field_visits, str):
+        field_visits = json.loads(field_visits)
+    if isinstance(service_calls, str):
+        service_calls = json.loads(service_calls)
+
+    base_url = frappe.utils.get_url()
+    details = []
+    table_rows = ""
+
+    for field_visit in field_visits:
+        #? Get matching child records for this field visit
+        children = frappe.get_all(
+            "Field Visit Child Table",
+            filters={
+                "parent": field_visit,
+                "service_call": ["in", service_calls]
+            },
+            fields=[
+                "service_call",
+                "from_location",
+                "to_location",
+                "travelled_km"
+            ],
+            order_by="service_call asc"
+        )
+
+        rowspan = len(children) or 1
+
+        if children:
+            for i, child in enumerate(children):
+                service_call = child.service_call
+                from_location = child.from_location or ""
+                to_location = child.to_location or ""
+                travelled_km = child.travelled_km or 0
+
+                #? Get customer from Service Call
+                customer = frappe.db.get_value("Service Call", service_call, "customer") or "None"
+                customer_name = frappe.db.get_value("Customer", customer, "customer_name")
+
+                #? Build details dict
+                details.append({
+                    "field_visit": field_visit,
+                    "service_call": service_call,
+                    "from_location": from_location,
+                    "to_location": to_location,
+                    "travelled_km": travelled_km,
+                    "customer": customer
+                })
+
+                #? Build HTML row
+                table_rows += "<tr>"
+                if i == 0:
+                    table_rows += f"""
+                        <td rowspan="{rowspan}" style="border: 1px solid #000; padding: 8px;">
+                            <a href="{base_url}/app/field-visit/{field_visit}" target="_blank">{field_visit}</a>
+                        </td>
+                    """
+                table_rows += f"""
+                    <td style="border: 1px solid #000; padding: 8px;">
+                        <a href="{base_url}/app/service-call/{service_call}" target="_blank">{service_call}</a>
+                    </td>
+                    <td style="border: 1px solid #000; padding: 8px;">{from_location}</td>
+                    <td style="border: 1px solid #000; padding: 8px;">{to_location}</td>
+                    <td style="border: 1px solid #000; padding: 8px;">{travelled_km}</td>
+                    <td style="border: 1px solid #000; padding: 8px;">
+                        <a href="{base_url}/app/customer/{customer}" target="_blank">{customer_name}</a>
+                    </td>
+                </tr>
+                """
+        else:
+            #? No matching service call for this field visit, render "None"
+            details.append({
+                "field_visit": field_visit,
+                "service_call": "",
+                "from_location": "",
+                "to_location": "",
+                "travelled_km": 0,
+                "customer": ""
+            })
+            table_rows += f"""
+                <tr>
+                    <td rowspan="1" style="border: 1px solid #000; padding: 8px;">
+                        <a href="{base_url}/app/field-visit/{field_visit}" target="_blank">{field_visit}</a>
+                    </td>
+                    <td style="border: 1px solid #000; padding: 8px;">None</td>
+                    <td style="border: 1px solid #000; padding: 8px;">None</td>
+                    <td style="border: 1px solid #000; padding: 8px;">None</td>
+                    <td style="border: 1px solid #000; padding: 8px;">0</td>
+                    <td style="border: 1px solid #000; padding: 8px;">None</td>
+                </tr>
+            """
+
+    html_table = f"""
+        <div class="ql-editor read-mode">
+            <table style="border-collapse: collapse; width: 100%; font-size: 14px;">
+                <thead>
+                    <tr style="background-color: #f5f5f5;">
+                        <th style="border: 1px solid #000; padding: 8px; text-align: left;">Field Visit</th>
+                        <th style="border: 1px solid #000; padding: 8px; text-align: left;">Service Call</th>
+                        <th style="border: 1px solid #000; padding: 8px; text-align: left;">From Location</th>
+                        <th style="border: 1px solid #000; padding: 8px; text-align: left;">To Location</th>
+                        <th style="border: 1px solid #000; padding: 8px; text-align: left;">Travelled KM</th>
+                        <th style="border: 1px solid #000; padding: 8px; text-align: left;">Customer</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {table_rows}
+                </tbody>
+            </table>
+        </div>
+    """
+
+    return {
+        "custom_field_visit": ", ".join(field_visits),
+        "custom_service_call": ", ".join(service_calls),
+        "custom_field_visit_and_service_call_details": html_table
+    }
+
+def validate_field_visits_timing(start_date, end_date, start_time, end_time, field_visits_csv):
+    """
+    VALIDATE WHETHER THE GIVEN DATE AND TIME RANGE IS WITHIN THE BOUNDS
+    OF THE PROVIDED COMMA-SEPARATED FIELD VISIT NAMES.
+
+    ARGS:
+        START_DATE (STR): START DATE (YYYY-MM-DD)
+        END_DATE (STR): END DATE (YYYY-MM-DD)
+        START_TIME (STR): START TIME (HH:MM:SS)
+        END_TIME (STR): END TIME (HH:MM:SS)
+        FIELD_VISITS_CSV (STR): COMMA-SEPARATED STRING OF FIELD VISIT NAMES
+
+    RAISES:
+        FRAPPE.VALIDATIONERROR: IF THE GIVEN TIME RANGE IS NOT FULLY WITHIN THE BOUNDS OF ALL FIELD VISITS
+    """
+
+    field_visits = [fv.strip() for fv in field_visits_csv.split(",") if fv.strip()]
+    if not field_visits:
+        return
+
+    #! FETCH ALL START AND END DATETIMES
+    visit_times = frappe.get_all(
+        "Field Visit",
+        filters={"name": ["in", field_visits]},
+        fields=["visit_started", "visit_ended"]
+    )
+
+    #! INITIALIZE EARLIEST/LATEST
+    earliest_start = None
+    latest_end = None
+
+    for vt in visit_times:
+        if vt.visit_started and (earliest_start is None or vt.visit_started < earliest_start):
+            earliest_start = vt.visit_started
+        if vt.visit_ended and (latest_end is None or vt.visit_ended > latest_end):
+            latest_end = vt.visit_ended
+
+    #? PARSE GIVEN RANGE
+    given_start = get_datetime(f"{start_date} {start_time or '00:00:00'}")
+    given_end = get_datetime(f"{end_date} {end_time or '23:59:59'}")
+
+    #! VALIDATE
+    if not (earliest_start and latest_end):
+        return "One or more Field Visits have missing start or end times."
+
+    if not (earliest_start <= given_start <= latest_end) or not (earliest_start <= given_end <= latest_end):
+        return (
+            f"The provided time range ({given_start} to {given_end}) "
+            f"is not within the bounds of the linked Field Visits:\n"
+            f"Earliest Start: {earliest_start}, Latest End: {latest_end}"
+        )
+
+    return None
+
+def parse_date_safely(date_value):
+    """
+    SAFELY PARSES A DATE STRING OR OBJECT USING GETDATE.
+    RETURNS A DEFAULT CURRENT DATE IF PARSING FAILS.
+    """
+    if not date_value:
+        return getdate()
+
+    try:
+        return getdate(date_value)
+    except Exception:
+        return getdate()
+
+def sort_expense_claim_data(doc, method=None):
+    if not doc.expenses:
+        return
+
+    sorted_expenses = sorted(
+        doc.expenses,
+        key=lambda x: parse_date_safely(x.expense_date)
+    )
+
+    doc.expenses = []
+    for i, row in enumerate(sorted_expenses, start=1):
+        row.idx = i
+        doc.append("expenses", row)
+
+
+def build_expense_notification_messages(
+    added_da_dates=None,
+    added_travel_entries=None,
+    already_exists_dates=None,
+    duplicates=None
+):
+    """
+    BUILDS NOTIFICATION MESSAGES FOR EXPENSE CLAIM OPERATIONS.
+
+    Args:
+        added_da_dates (list): Dates where DA was successfully added.
+        added_travel_entries (list): Dates where travel entries were successfully added.
+        already_exists_dates (list): Dates where DA already existed and was skipped.
+        duplicates (list): Travel entries that already existed and were skipped.
+
+    Returns:
+        list: A list of HTML-formatted notification strings.
+    """
+
+    #! INITIALIZE MESSAGE LIST
+    messages = []
+
+    #? ENSURE NONE ARE NULL
+    added_da_dates = added_da_dates or []
+    added_travel_entries = added_travel_entries or []
+    already_exists_dates = already_exists_dates or []
+    duplicates = duplicates or []
+
+    #? SUCCESSFUL DA ENTRIES
+    if added_da_dates:
+        messages.append(
+            "Daily Allowance (DA) has been successfully added for the following dates:<br><b>{}</b>".format(
+                ", ".join(added_da_dates)
+            )
+        )
+
+    #? SUCCESSFUL LOCAL COMMUTE ENTRIES
+    if added_travel_entries:
+        messages.append(
+            "Local Commute travel entries have been added for the following dates:<br><b>{}</b>".format(
+                "<br>".join(added_travel_entries)
+            )
+        )
+
+    #? ALREADY PRESENT DA ENTRIES
+    if already_exists_dates:
+        messages.append(
+            "DA was already recorded for the following dates and was not added again:<br><b>{}</b>".format(
+                ", ".join(already_exists_dates)
+            )
+        )
+
+    #? DUPLICATE LOCAL COMMUTE ENTRIES
+    if duplicates:
+        messages.append(
+            "Local Commute entries already existed for the following and were not added again:<br><br>{}".format(
+                "<br>".join(duplicates)
+            )
+        )
+
+    return messages
