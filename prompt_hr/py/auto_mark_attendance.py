@@ -838,7 +838,6 @@ def create_attendance(
     attendance_doc.custom_employee_checkout = custom_employee_checkout
     
     attendance_doc.custom_employee_penalty_id = custom_employee_penalty_id
-    print("Attendance Request", attendance_request)
     if approved_attendance_request:
         attendance_doc.attendance_request = approved_attendance_request
     attendance_doc.insert(ignore_permissions=True)
