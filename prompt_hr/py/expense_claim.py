@@ -44,6 +44,7 @@ def before_save(doc, method):
         validate_expense_claim_detail_rules(doc)
         update_da_amount_as_per_time(doc)
         ExpenseClaim.calculate_total_amount(doc)
+        ExpenseClaim.calculate_taxes(doc)
         sort_expense_claim_data(doc)
 
 
@@ -843,9 +844,10 @@ def _process_food_lodging_expense(
                 frappe.throw(
                     f"Row #{exp.get('idx')}: Attachment is required as it is mandatory for Lodging Adjustment Type {exp.custom_lodging_adjustment_type}"
                 )
-
-            #! APPLY PERCENTAGE CHANGE TO AMOUNT
-            if change_percentage:
+            # ? GET PREVIOUS VALUE FROM DB
+            prev_lodging_adjustment_type = frappe.db.get_value("Expense Claim Detail", exp.name, "custom_lodging_adjustment_type")
+            #! APPLY PERCENTAGE CHANGE TO AMOUNT IF LODGING ADJUSTMENT TYPE IS CHANGED
+            if change_percentage and prev_lodging_adjustment_type != change_percentage:
                 exp.amount = (change_percentage * exp.amount) / 100
                 exp.sanctioned_amount = exp.amount
 

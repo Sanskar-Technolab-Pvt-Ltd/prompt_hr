@@ -29,7 +29,7 @@ from prompt_hr.py.utils import fetch_company_name
 
 
 @frappe.whitelist()
-def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regularize_attendance = 0, attendance_id=None, regularize_start_time = None, regularize_end_time=0, emp_id=None):
+def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regularize_attendance = 0, attendance_id=None, regularize_start_time = None, regularize_end_time=0, emp_id=None, approved_attendance_request=None):
     """Method to mark attendance for prompt employee
     """
     try:
@@ -277,7 +277,13 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                                     day_end_time,
                                     grace_time_period_for_late_coming_for_prompt,
                                     grace_time_for_insufficient_hours = grace_time_for_insufficient_hours_for_prompt,
-                                    prompt = 1
+                                    prompt = 1,
+                                    indifoss=0,
+                                    regularize_attendance=0, 
+                                    attendance_id=None,
+                                    regularize_start_time=None,
+                                    regularize_end_time=None,
+                                    approved_attendance_request = approved_attendance_request
                                 )
                             else:
                                 if is_scheduler:
@@ -297,7 +303,13 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                                 day_end_time,
                                 grace_time_period_for_late_coming_for_indifoss,
                                 grace_time_for_insufficient_hours = grace_time_period_for_late_coming_for_indifoss,
-                                indifoss = 1
+                                prompt=0,
+                                indifoss = 1,
+                                regularize_attendance=0, 
+                                attendance_id=None,
+                                regularize_start_time=None,
+                                regularize_end_time=None,
+                                approved_attendance_request=approved_attendance_request
                             )
                     else:
                         grace_time_period_for_late_coming = employee_data.get("late_entry_grace_period", 0)
@@ -311,7 +323,12 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                                 grace_time_period_for_late_coming,
                                 grace_time_for_insufficient_hours if prompt else 0,
                                 prompt = prompt,
-                                indifoss = indifoss
+                                indifoss = indifoss,
+                                regularize_attendance=0, 
+                                attendance_id=None,
+                                regularize_start_time=None,
+                                regularize_end_time=None,
+                                approved_attendance_request=approved_attendance_request
                             )
                         else:
                             if is_scheduler:
@@ -337,7 +354,8 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                                 regularize_attendance = regularize_attendance,
                                 attendance_id = attendance_id,
                                 regularize_start_time = regularize_start_time,
-                                regularize_end_time = regularize_end_time
+                                regularize_end_time = regularize_end_time,
+                                approved_attendance_request = approved_attendance_request
                                 )
                 else:
                     print(f"\n\n no shift type for this employee {employee_data.get('name')} \n\n")
@@ -359,7 +377,7 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
             frappe.log_error("Error While Marking Attendance", frappe.get_traceback())
             throw(str(e))
             
-def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, day_start_time, day_end_time, grace_time_period_for_late_coming, grace_time_for_insufficient_hours=0, prompt=0, indifoss=0, regularize_attendance=0, attendance_id=None,   regularize_start_time=None, regularize_end_time=None):
+def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, day_start_time, day_end_time, grace_time_period_for_late_coming, grace_time_for_insufficient_hours=0, prompt=0, indifoss=0, regularize_attendance=0, attendance_id=None,   regularize_start_time=None, regularize_end_time=None, approved_attendance_request=None):
 
     # Prepare filters dictionary first
     shift_filters = {
@@ -657,7 +675,7 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
                     "custom_remarks" : remarks,
                     "custom_employee_checkin" : in_type_emp_checkin_id if in_type_emp_checkin else None,
                     "custom_employee_checkout" : out_type_emp_checkin_id if out_type_emp_checkin else None
-                    
+
                 },
                 employee_id=employee_data.get("name"),
                 indifoss=indifoss,
@@ -688,7 +706,8 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
             custom_employee_penalty_id = penalty_id,
             regularize_attendance=regularize_attendance,
             prompt=prompt,
-            indifoss=indifoss
+            indifoss=indifoss,
+            approved_attendance_request = approved_attendance_request
         )            
     return 1
 
@@ -790,8 +809,8 @@ def create_attendance(
     custom_employee_penalty_id = None,
     regularize_attendance = 0,
     prompt=0,
-    indifoss=0
-    
+    indifoss=0,
+    approved_attendance_request = None   
 ):
     """Method to create attendance
     """
@@ -819,7 +838,9 @@ def create_attendance(
     attendance_doc.custom_employee_checkout = custom_employee_checkout
     
     attendance_doc.custom_employee_penalty_id = custom_employee_penalty_id
-    
+    print("Attendance Request", attendance_request)
+    if approved_attendance_request:
+        attendance_doc.attendance_request = approved_attendance_request
     attendance_doc.insert(ignore_permissions=True)
     
     if indifoss and regularize_attendance:
