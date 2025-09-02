@@ -15,6 +15,7 @@ from frappe.utils import (
     formatdate,
     getdate,
     date_diff,
+    nowdate,
     cint,
 )
 from dateutil import relativedelta
@@ -27,9 +28,10 @@ from hrms.hr.doctype.leave_application.leave_application import (
     get_holidays,
     get_leave_allocation_records,
     get_leave_approver,
-    get_leave_balance_on,
     get_leaves_for_period,
     get_leaves_pending_approval_for_period,
+    get_remaining_leaves,
+    get_allocation_expiry_for_cf_leaves
 )
 from hrms.hr.utils import get_leave_period
 from hrms.hr.doctype.leave_allocation.leave_allocation import get_previous_allocation
@@ -92,8 +94,152 @@ def before_validate(doc, method=None):
         doc.set("from_date", frappe.utils.add_days(doc.custom_original_to_date,1))
         doc.set("half_day", 0)
 
+import frappe
+from frappe.utils import getdate, add_days
+
+
+def apply_sandwich_rule(doc):
+    """
+    Apply sandwich leave rule logic for approved leaves.
+    This checks holidays and weekoffs adjoining the leave period
+    and extends the leave accordingly.
+    """
+
+    #? CHECK ONLY IF LEAVE IS APPROVED
+    if doc.workflow_state != "Approved":
+        return 0, 0, 0
+
+    #! FETCH RULES FROM LEAVE TYPE
+    leave_type = doc.leave_type
+    is_sandwich_rule = frappe.db.get_value("Leave Type", leave_type, "custom_is_sandwich_rule_applicable")
+    apply_on_holiday = frappe.db.get_value("Leave Type", leave_type, "custom_adjoins_holiday")
+    apply_on_weekoff = frappe.db.get_value("Leave Type", leave_type, "custom_adjoins_weekoff")
+    ignore_half_day = frappe.db.get_value("Leave Type", leave_type, "custom_ignore_if_half_day_leave_for_day_before_or_day_after")
+    allow_half_day_before_second_half = frappe.db.get_value("Leave Type", leave_type, "custom_half_day_leave_taken_in_second_half_on_day_before")
+    allow_half_day_after_first_half = frappe.db.get_value("Leave Type", leave_type, "custom_half_day_leave_taken_in_first_half_on_day_after")
+
+    if not is_sandwich_rule:
+        return 0, 0, 0
+
+    #! PREPARE DATE VARIABLES
+    leave_start = getdate(doc.from_date)
+    leave_end = getdate(doc.to_date)
+    year_start = leave_start.replace(month=1, day=1)
+    year_end = leave_end.replace(month=12, day=31)
+    holiday_list = get_holiday_list_for_employee(doc.employee)
+    if not holiday_list:
+        return 0, 0 ,0
+    extra_leave_days_prev = 0
+    extra_leave_days_next = 0
+    extra_leave_days = 0
+    final_extra_day_prev = 0
+    # -------------------------------------------------------------------
+    #? HELPER: CHECK IF DATE IS HOLIDAY/WEEKOFF BASED ON RULES
+    def is_non_working_day(date):
+        if apply_on_holiday and apply_on_weekoff:
+            return next_day_is_holiday_or_weekoff(date, holiday_list)
+        if apply_on_holiday:
+            return next_day_is_holiday(date, holiday_list)
+        if apply_on_weekoff:
+            return next_day_is_weekoff(date, holiday_list)
+        return False
+
+    # -------------------------------------------------------------------
+    #? HELPER: HANDLE HALF DAY RULES
+    def should_ignore_half_day(leave_record, is_before):
+        if ignore_half_day:
+            return True
+
+        if leave_record.get("type") == "Half Day":
+            if is_before and leave_record.get("time") == "First" and allow_half_day_before_second_half:
+                return True
+            if not is_before and leave_record.get("time") == "Second" and allow_half_day_after_first_half:
+                return True
+        return False
+
+    # -------------------------------------------------------------------
+    #? GENERIC LOGIC TO SCAN BEFORE OR AFTER LEAVE
+    def scan_adjacent_days(start_date, end_date, step, is_before):
+        possible_days = 0
+        nonlocal extra_leave_days
+        for date in range_loop(start_date, end_date, step):
+            if is_non_working_day(date):
+                possible_days += 1
+            elif possible_days > 0:
+                leave_record = get_leave_for_date(doc.employee, date)
+
+                if leave_record:
+                    if leave_record.get("type") == "Half Day":
+                        if should_ignore_half_day(leave_record, is_before):
+                            break
+                        else:
+                            extra_leave_days += possible_days
+                            break
+                    else:  # FULL DAY LEAVE
+                        extra_leave_days += possible_days
+                        break
+                else:  # NO LEAVE FOUND
+                    possible_days = 0
+                    break
+            else:
+                break
+
+    # -------------------------------------------------------------------
+    #? RANGE LOOP HANDLER (FORWARD OR BACKWARD DATE ITERATION)
+    def range_loop(start_date, end_date, step):
+        current = start_date
+
+        #? MOVE FORWARD (step = +1)
+        if step > 0:
+            while current <= end_date:
+                yield current
+                current = add_days(current, step)
+
+        #? MOVE BACKWARD (step = -1)
+        elif step < 0:
+            while current >= end_date:
+                yield current
+                current = add_days(current, step)
+
+    # -------------------------------------------------------------------
+    #? CHECK BEFORE LEAVE FROM DATE
+    extra_leaves = 0
+    if not (doc.half_day and doc.half_day_date == doc.from_date and
+            doc.custom_half_day_time == "Second" and allow_half_day_after_first_half and not is_non_working_day(doc.from_date)):
+        original_leave_start = leave_start
+        while leave_start <= leave_end:
+            if is_non_working_day(leave_start):
+                leave_start = add_days(leave_start, 1)
+                extra_leaves += 1
+            else:
+                if doc.half_day and leave_start == doc.half_day_date and doc.custom_half_day_time == "Second" and allow_half_day_after_first_half:
+                    extra_leaves = 0
+                    leave_start = original_leave_start
+                break
+        scan_adjacent_days(add_days(leave_start,-1), year_start, -1, is_before=True)
+        final_extra_day_prev = extra_leave_days - extra_leaves
+        extra_leave_days_prev = extra_leave_days
+    #? CHECK AFTER LEAVE FROM DATE
+    extra_leaves = 0
+    if not (doc.half_day and doc.half_day_date == doc.to_date and
+            doc.custom_half_day_time == "First" and allow_half_day_before_second_half and not is_non_working_day(doc.to_date)):
+        original_leave_end = leave_end       
+        while leave_end >= leave_start:
+            if is_non_working_day(leave_end):
+                leave_end = add_days(leave_end, -1)
+                extra_leaves += 1
+            else:
+                if doc.half_day and leave_end == doc.half_day_date and doc.custom_half_day_time == "First" and allow_half_day_before_second_half:
+                    extra_leaves = 0
+                    leave_end = original_leave_end
+                break
+        scan_adjacent_days(add_days(leave_end,1), year_end, 1, is_before=False)
+        extra_leave_days_next = extra_leave_days - extra_leave_days_prev - extra_leaves
+    return extra_leave_days, final_extra_day_prev, extra_leave_days_next
+
 def before_submit(doc, method):
-    if doc.custom_leave_status == "Approved":
+    extra_leave_days, extra_leave_days_prev, extra_leave_days_next = apply_sandwich_rule(doc)
+    if doc.custom_leave_status == "Approved":    
         if hasattr(doc, '_original_date'):
             doc.set("from_date", doc._original_date)
             if hasattr(doc, '_half_day'):
@@ -122,6 +268,19 @@ def before_submit(doc, method):
                 entry_doc = frappe.get_doc("Leave Ledger Entry", entry_name)
                 entry_doc.db_set("docstatus", 2)
                 frappe.delete_doc("Leave Ledger Entry", entry_name)
+
+    if extra_leave_days > 0:
+        doc.total_leave_days = (doc.total_leave_days or 0) + extra_leave_days
+        doc.custom_leave_deducted_sandwich_rule = extra_leave_days
+        if extra_leave_days_prev > 0:
+            doc.from_date = add_days(doc.from_date, -extra_leave_days_prev)
+        if extra_leave_days_next > 0:
+            doc.to_date = add_days(doc.to_date, extra_leave_days_next)
+        frappe.msgprint(
+            msg=f"{extra_leave_days} additional day(s) have been included as per the Sandwich Rule.",
+            title="Leave Adjustment Notice",
+            indicator="blue"
+        )
 
 def on_submit(doc,method=None):
 
@@ -768,6 +927,8 @@ def custom_get_number_of_leave_days(
                     custom_half_day_time
                 )
         else:
+            if number_of_days < 0:
+                number_of_days = 0
             return number_of_days
 
     return get_additional_days(
@@ -807,6 +968,7 @@ def get_additional_days(leave_type_doc, employee, from_date, to_date, number_of_
     ))
 
     additional_days = 0
+    print(from_date, "HELLLLLLLl")
     # Ignore Holidays for First and Last Days
     while next_day_is_holiday_or_weekoff(from_date, holiday_list) and from_date<= to_date:
             from_date = add_days(from_date, 1)
@@ -827,7 +989,7 @@ def get_additional_days(leave_type_doc, employee, from_date, to_date, number_of_
             # Always include full weekoffs in range
             additional_days += len(get_all_weekoff_days(from_date, to_date, holiday_list))
 
-    
+    print(additional_days)
     # Process holiday days
     if leave_type_doc.custom_adjoins_holiday:
         if leave_type_doc.custom_ignore_if_half_day_leave_for_day_before_or_day_after and cint(half_day):
@@ -840,6 +1002,7 @@ def get_additional_days(leave_type_doc, employee, from_date, to_date, number_of_
         else:
             # Get all holidays between leave dates which is not weekoff
             additional_days += len(get_all_holidays(from_date, to_date, holiday_list))
+    print(additional_days)
 
     if (leave_type_doc.custom_half_day_leave_taken_in_second_half_on_day_before or leave_type_doc.custom_half_day_leave_taken_in_first_half_on_day_after) and not leave_type_doc.custom_ignore_if_half_day_leave_for_day_before_or_day_after:
         
@@ -860,6 +1023,7 @@ def get_additional_days(leave_type_doc, employee, from_date, to_date, number_of_
                         while next_day_is_weekoff(next_day, holiday_list) and next_day<= to_date:
                             additional_days -= 1
                             next_day = add_days(next_day, 1)
+        print(additional_days)
 
         # Handle half-day in first half on day after
         if leave_type_doc.custom_half_day_leave_taken_in_first_half_on_day_after and str(half_day_date) not in all_holidays:
@@ -879,7 +1043,10 @@ def get_additional_days(leave_type_doc, employee, from_date, to_date, number_of_
                             additional_days -= 1
                             prev_day = add_days(prev_day, -1)
     # Add the additional days to the total
-    number_of_days += additional_days
+    if additional_days > 0:
+        number_of_days += additional_days
+    if number_of_days < 0:
+        number_of_days = 0
 
     return number_of_days
 
@@ -1037,7 +1204,7 @@ def custom_get_leave_details(employee, date, for_salary_slip=False):
 		to_date = date if for_salary_slip else allocation.to_date
 
 		#! CALCULATE REMAINING LEAVES AS OF THE GIVEN DATE
-		remaining_leaves = get_leave_balance_on(
+		remaining_leaves = custom_get_leave_balance_on(
 			employee,
 			d,
 			date,
@@ -1073,6 +1240,10 @@ def custom_get_leave_details(employee, date, for_salary_slip=False):
 
 		#! CALCULATE LEAVES TAKEN AND PENDING APPROVAL
 		leaves_taken = get_leaves_for_period(employee, d, allocation.from_date, to_date) * -1
+		extra_sandwich_leaves_taken = get_extra_sandwich_days(employee, d, allocation.from_date, to_date)
+		if extra_sandwich_leaves_taken:
+			leaves_taken += extra_sandwich_leaves_taken
+
 		leaves_pending = get_leaves_pending_approval_for_period(employee, d, allocation.from_date, to_date)
 
 		#! FETCH LEAVE TYPE DETAILS IF DEFINED
@@ -1383,6 +1554,11 @@ def custom_get_allocated_and_expired_leaves(
 				leaves_for_period = get_leaves_for_period(
 					employee, leave_type, record.from_date, record.to_date
 				)
+				extra_sandwich_leaves = get_extra_sandwich_days(
+					employee, leave_type, record.from_date, record.to_date
+				)
+				if extra_sandwich_leaves:
+					leaves_for_period -= extra_sandwich_leaves
 				expired_leaves -= min(abs(leaves_for_period), record.leaves)
 
 			#! HANDLE ALLOCATIONS OR CARRY FORWARDS FROM FROM_DATE ONWARD
@@ -1637,7 +1813,7 @@ def custom_get_opening_balance(
         opening_balance = carry_forwarded_leaves
     else:
         #? OTHERWISE: GET ACTUAL BALANCE ON PREVIOUS DAY
-        opening_balance = get_leave_balance_on(employee, leave_type, opening_balance_date)
+        opening_balance = custom_get_leave_balance_on(employee, leave_type, opening_balance_date)
 
     #! RETURN DEFAULT OPENING BALANCE FOR NON-COMPENSATORY TYPES
     return opening_balance
@@ -1671,6 +1847,11 @@ def custom_get_data(filters: Filters) -> list:
             leaves_taken = (
                 get_leaves_for_period(employee.name, leave_type, filters.from_date, filters.to_date) * -1
             )
+            extra_sandwich_leaves = get_extra_sandwich_days(
+					employee.name, leave_type, filters.from_date, filters.to_date
+				)
+            if extra_sandwich_leaves:
+                leaves_taken += extra_sandwich_leaves
 
             new_allocation, expired_leaves, carry_forwarded_leaves = custom_get_allocated_and_expired_leaves(
                 filters.from_date, filters.to_date, employee.name, leave_type
@@ -1693,3 +1874,100 @@ def custom_get_data(filters: Filters) -> list:
             data.append(row)
 
     return data
+
+def get_leave_for_date(employee, date):
+    """
+    #! CHECK IF LEAVE APPLICATION EXISTS FOR GIVEN EMPLOYEE AND DATE
+    #? RETURNS ('Half Day' | 'Full Day' | None)
+    """
+    leave = frappe.db.get_value(
+        "Leave Application",
+        {
+            "employee": employee,
+            "from_date": ("<=", date),
+            "to_date": (">=", date),
+            "docstatus": 1  # ONLY SUBMITTED LEAVES
+        },
+        ["half_day", "half_day_date", "custom_half_day_time"],
+        as_dict=True
+    )
+
+    if leave:
+        if leave.half_day and getdate(leave.half_day_date) == date:
+            return {"type":"Half Day", "time":leave.custom_half_day_time}
+        return {"type":"Full Day", "time":leave.custom_half_day_time}
+
+    return None
+
+def get_extra_sandwich_days(employee, leave_type, from_date, to_date):
+    """
+    Returns the total number of sandwich-deducted days
+    for an employee in the given period.
+    """
+
+    result = frappe.db.sql(
+        """
+        SELECT SUM(custom_leave_deducted_sandwich_rule) as total_sandwich_days
+        FROM `tabLeave Application`
+        WHERE employee = %(employee)s
+          AND leave_type = %(leave_type)s
+          AND docstatus = 1
+          AND custom_leave_deducted_sandwich_rule > 0
+          AND (from_date between %(from_date)s AND %(to_date)s
+				OR to_date between %(from_date)s AND %(to_date)s
+				OR (from_date < %(from_date)s AND to_date > %(to_date)s))
+        """,
+        {"employee": employee, "leave_type": leave_type, "from_date": from_date, "to_date": to_date},
+        as_dict=1,
+    )
+
+    return result[0].total_sandwich_days or 0
+
+@frappe.whitelist()
+def custom_get_leave_balance_on(
+	employee: str,
+	leave_type: str,
+	date: datetime.date,
+	to_date: datetime.date | None = None,
+	consider_all_leaves_in_the_allocation_period: bool = False,
+	for_consumption: bool = False,
+):
+	"""
+	Returns leave balance till date
+	:param employee: employee name
+	:param leave_type: leave type
+	:param date: date to check balance on
+	:param to_date: future date to check for allocation expiry
+	:param consider_all_leaves_in_the_allocation_period: consider all leaves taken till the allocation end date
+	:param for_consumption: flag to check if leave balance is required for consumption or display
+	        eg: employee has leave balance = 10 but allocation is expiring in 1 day so employee can only consume 1 leave
+	        in this case leave_balance = 10 but leave_balance_for_consumption = 1
+	        if True, returns a dict eg: {'leave_balance': 10, 'leave_balance_for_consumption': 1}
+	        else, returns leave_balance (in this case 10)
+	"""
+
+	if not to_date:
+		to_date = nowdate()
+
+	allocation_records = get_leave_allocation_records(employee, date, leave_type)
+	allocation = allocation_records.get(leave_type, frappe._dict())
+
+	end_date = allocation.to_date if cint(consider_all_leaves_in_the_allocation_period) else date
+	cf_expiry = get_allocation_expiry_for_cf_leaves(employee, leave_type, to_date, allocation.from_date)
+
+	#! GET LEAVES TAKEN
+	leaves_taken = get_leaves_for_period(employee, leave_type, allocation.from_date, end_date)
+	print("AAAAAAAAAA")
+
+	#! ADD EXTRA SANDWICH LEAVES
+	extra_sandwich_leaves_taken = get_extra_sandwich_days(employee, date, allocation.from_date, to_date)
+	if extra_sandwich_leaves_taken:
+		leaves_taken -= extra_sandwich_leaves_taken
+
+	#! CALCULATE REMAINING LEAVES
+	remaining_leaves = get_remaining_leaves(allocation, leaves_taken, date, cf_expiry)
+
+	if for_consumption:
+		return remaining_leaves
+	else:
+		return remaining_leaves.get("leave_balance")
