@@ -340,6 +340,9 @@ doc_events = {
     },
     "Employee Checkin": {
         "before_insert": "prompt_hr.py.employee_checkin.before_insert"
+    },
+    "HR Settings":{
+        "before_save": "prompt_hr.py.hr_settings.set_employee_field_names"
     }
 }
 
