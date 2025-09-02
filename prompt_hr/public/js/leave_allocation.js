@@ -1,6 +1,13 @@
 frappe.ui.form.off("Leave Allocation", "leave_policy")
 frappe.ui.form.on("Leave Allocation", {
     refresh: function(frm){
+        if (!frm.doc.__islocal) {
+			frappe.db.get_value("Leave Type", frm.doc.leave_type, "is_earned_leave", (r) => {
+				if (!r?.is_earned_leave) return;
+				frm.set_df_property("new_leaves_allocated", "read_only", 1);
+				frm.trigger("add_allocate_leaves_button");
+			});
+		}
         if (frm.doc.employee) {
             frappe.db.get_value("Employee", frm.doc.employee, "gender", function(r) {
                 if (r && r.gender) {
