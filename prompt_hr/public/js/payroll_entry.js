@@ -65,7 +65,7 @@ frappe.ui.form.on("Payroll Entry", {
         send_salary_slip(frm)
 
         if(frm.doc.docstatus === 0) {
-            frm.add_custom_button(__('Data Import'), function() {
+            frm.add_custom_button(__('Import Adhoc Salary Details'), function() {
                 let dialog = new frappe.ui.Dialog({
                     title: 'Import Adhoc Salary Details',
                     fields: [
@@ -134,7 +134,149 @@ frappe.ui.form.on("Payroll Entry", {
                 });
 
                 dialog.show();
-            }).addClass("btn-primary");
+            }, __("Data Import"))
+
+            frm.add_custom_button(__('Import LOP Summary Details'), function() {
+                let dialog = new frappe.ui.Dialog({
+                    title: 'Import LOP Summary Details',
+                    fields: [
+                        {
+                            label: 'Upload Excel File',
+                            fieldname: 'excel_file',
+                            fieldtype: 'Attach',
+                            reqd: 1
+                        }
+                    ],
+                    primary_action_label: 'Import',
+                    primary_action(values) {
+                        if (!values.excel_file) {
+                            frappe.msgprint('Please upload a Excel file.');
+                            return;
+                        }
+                        // Fetch file content using frappe.call
+                        frappe.call({
+                            method: "frappe.client.get_value",
+                            args: {
+                                doctype: "File",
+                                filters: { file_url: values.excel_file },
+                                fieldname: "file_url"
+                            },
+                            callback: function(r) {
+                                if (r.message && r.message.file_url) {
+                                    const file_url = r.message.file_url;
+                                    
+                                    frappe.call({
+                                        method: "prompt_hr.py.payroll_entry.import_lop_summary_details",
+                                        args: {
+                                            payroll_entry_id: frm.doc.name,
+                                            file_url: file_url
+                                        },
+                                        freeze: true,
+                                        callback: function(r) {
+                                            dialog.hide();
+                                            frm.reload_doc();
+                                        }
+                                    });
+                                            
+                                }
+                            }
+                        });
+                    }
+                });
+
+                // Add Download Template button
+                dialog.$wrapper
+                    .find('.modal-footer')
+                    .prepend(
+                        `<button class="btn btn-secondary btn-download-template" style="margin-right: 8px;">
+                            Download Template
+                        </button>`
+                    );
+
+                // Handle Download Template click
+                dialog.$wrapper.find('.btn-download-template').on('click', function() {
+                    if (!frm.doc.name) {
+                        frappe.msgprint("Please save the Payroll Entry first.");
+                        return;
+                    }
+                    window.open(
+                        `/api/method/prompt_hr.py.payroll_entry.download_lop_summary_template?payroll_entry_id=${frm.doc.name}`
+                    );
+                });
+
+                dialog.show();
+            }, __("Data Import"))
+
+            frm.add_custom_button(__('Import LOP Reversal Details'), function() {
+                let dialog = new frappe.ui.Dialog({
+                    title: 'Import LOP Reversal Details',
+                    fields: [
+                        {
+                            label: 'Upload Excel File',
+                            fieldname: 'excel_file',
+                            fieldtype: 'Attach',
+                            reqd: 1
+                        }
+                    ],
+                    primary_action_label: 'Import',
+                    primary_action(values) {
+                        if (!values.excel_file) {
+                            frappe.msgprint('Please upload a Excel file.');
+                            return;
+                        }
+                        // Fetch file content using frappe.call
+                        frappe.call({
+                            method: "frappe.client.get_value",
+                            args: {
+                                doctype: "File",
+                                filters: { file_url: values.excel_file },
+                                fieldname: "file_url"
+                            },
+                            callback: function(r) {
+                                if (r.message && r.message.file_url) {
+                                    const file_url = r.message.file_url;
+                                    
+                                    frappe.call({
+                                        method: "prompt_hr.py.payroll_entry.import_lop_reversal_details",
+                                        args: {
+                                            payroll_entry_id: frm.doc.name,
+                                            file_url: file_url
+                                        },
+                                        freeze: true,
+                                        callback: function(r) {
+                                            dialog.hide();
+                                            frm.reload_doc();
+                                        }
+                                    });
+                                            
+                                }
+                            }
+                        });
+                    }
+                });
+
+                // Add Download Template button
+                dialog.$wrapper
+                    .find('.modal-footer')
+                    .prepend(
+                        `<button class="btn btn-secondary btn-download-template" style="margin-right: 8px;">
+                            Download Template
+                        </button>`
+                    );
+
+                // Handle Download Template click
+                dialog.$wrapper.find('.btn-download-template').on('click', function() {
+                    if (!frm.doc.name) {
+                        frappe.msgprint("Please save the Payroll Entry first.");
+                        return;
+                    }
+                    window.open(
+                        `/api/method/prompt_hr.py.payroll_entry.download_lop_reversal_template?payroll_entry_id=${frm.doc.name}`
+                    );
+                });
+
+                dialog.show();
+            }, __("Data Import"))
         }
         // ? ADD CUSTOM BUTTONS FOR LEAVE ACTIONS
         frm.add_custom_button(
