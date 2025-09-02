@@ -2799,11 +2799,17 @@ def send_penalty_warnings(emp_id, penalization_data, penalization_date=None):
         frappe.log_error(f"Error in send_penalty_warnings: {str(e)}")
 
 
-def send_attendance_issue():
+
+@frappe.whitelist()
+def send_attendance_issue_mail_check(attendance_check_date):
+    send_attendance_issue(attendance_check_date)
+
+def send_attendance_issue(attendance_check_date=None):
     try:
         frappe.log_error("send_attendance_issue called", "send_attendance_issue")
         # * Set the date to check (1 day before today)
-        attendance_check_date = add_days(today(), -1)
+        if not attendance_check_date:
+            attendance_check_date = add_days(today(), -1)
 
         # * Fetch PROMPT Company ID
         company_id = fetch_company_name(prompt=1)
@@ -2955,7 +2961,7 @@ def is_send_mail_check(emp_id, is_no_attendance=0, is_mispunch=0, is_later_entry
             frappe.log_error("checking_send mail", "No Attendance")
             if hr_settings_doc.custom_enable_no_attendance_penalty:
                 for row in hr_settings_doc.custom_penalization_criteria_table_for_prompt:
-                    if row.penalization_type == "For No Attendance" and row.get("value") == frappe.db.get_value("Employee", emp_id, row.get("employee_field")):
+                    if row.penalization_type == "For No Attendance" and row.get("value") == frappe.db.get_value("Employee", emp_id, row.get("employee_field_name")):
                         frappe.log_error("checking_send mail", "No attendance criteria matched")
                         return 1
                     frappe.log_error("checking_send mail", "No attendance criteria not matched")
@@ -2966,10 +2972,18 @@ def is_send_mail_check(emp_id, is_no_attendance=0, is_mispunch=0, is_later_entry
                 return 0
         else:
             if is_mispunch:
+                frappe.log_error(f"checking_send mail for {emp_id}", "Mispunch")
                 if hr_settings_doc.custom_enable_mispunch_penalty:
+                    frappe.log_error(f"checking_send mail for {emp_id}", "Mispunch Enabled")
+                    
                     for row in hr_settings_doc.custom_penalization_criteria_table_for_prompt:
-                        if row.penalization_type == "For Mispunch" and row.get("value") == frappe.db.get_value("Employee", emp_id, row.get("employee_field")):
+                        
+                        if emp_id == "PE0051":
+                            frappe.log_error(f"checking_send mail for{emp_id}", f"row {row.penalization_type} {row.get('value')} {frappe.db.get_value('Employee', emp_id, row.get('employee_field_name'))}")
+                        if row.penalization_type == "For Mispunch" and row.get("value") == frappe.db.get_value("Employee", emp_id, row.get("employee_field_name")):
+                            frappe.log_error(f"checking_send mail for{emp_id}", "Mispunch criteria matched")
                             return 1
+                    frappe.log_error(f"checking_send mail{emp_id}", "Mispunch criteria not matched")
                     return 0                                        
                 else:
                     return 0
@@ -2980,7 +2994,7 @@ def is_send_mail_check(emp_id, is_no_attendance=0, is_mispunch=0, is_later_entry
                 
                 late_count = len(frappe.db.get_all("Attendance", {"employee": emp_id, "late_entry": 1, "creation": ["between", [first_day, last_day]] , "docstatus": 1}))
                 
-                frappe.log_error(f"check_mail send", "checking_send  mail inside late entry ")
+                frappe.log_error(f"send", "checking_send  mail inside late entry ")
                 
                 if hr_settings_doc.custom_late_coming_allowed_per_month_for_prompt >= late_count:
                     return 0
@@ -2988,13 +3002,13 @@ def is_send_mail_check(emp_id, is_no_attendance=0, is_mispunch=0, is_later_entry
                     frappe.log_error("check_mail send", "checking_send  mail inside late entry ")
                     if hr_settings_doc.custom_enable_late_coming_penalty:
                         for row in hr_settings_doc.custom_penalization_criteria_table_for_prompt:
-                            if row.penalization_type == "For Late Arrival" and row.get("value") == frappe.db.get_value("Employee", emp_id, row.get("employee_field")):
+                            if row.penalization_type == "For Late Arrival" and row.get("value") == frappe.db.get_value("Employee", emp_id, row.get("employee_field_name")):
                                 return 1
                         return 0                                        
                     else:
                         return 0
     except Exception as e:
-        frappe.log_error("is_send_mail_check", f"For emp {emp_id} \n{frappe.get_traceback()}")
+        frappe.log_error(f"is_send_mail_check{emp_id}", f"For emp {emp_id} \n{frappe.get_traceback()}")
         
 
 
