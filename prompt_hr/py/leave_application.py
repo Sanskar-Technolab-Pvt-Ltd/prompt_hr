@@ -276,6 +276,21 @@ def before_submit(doc, method):
             doc.from_date = add_days(doc.from_date, -extra_leave_days_prev)
         if extra_leave_days_next > 0:
             doc.to_date = add_days(doc.to_date, extra_leave_days_next)
+        precision = cint(frappe.db.get_single_value("System Settings", "float_precision")) or 2
+
+        leave_balance = custom_get_leave_balance_on(
+                doc.employee,
+                doc.leave_type,
+                doc.from_date,
+                doc.to_date,
+                consider_all_leaves_in_the_allocation_period=True,
+                for_consumption=True,
+            )
+        leave_balance_for_consumption = flt(
+            leave_balance.get("leave_balance_for_consumption"), precision
+        )
+        if not leave_balance_for_consumption or doc.total_leave_days > leave_balance_for_consumption:
+            frappe.throw(f"Extra {extra_leave_days} Sandwich Leaves will be Added, Hence Total Apply Leave is More Than Leave Balance")
         frappe.msgprint(
             msg=f"{extra_leave_days} additional day(s) have been included as per the Sandwich Rule.",
             title="Leave Adjustment Notice",
@@ -1957,10 +1972,11 @@ def custom_get_leave_balance_on(
 
 	#! GET LEAVES TAKEN
 	leaves_taken = get_leaves_for_period(employee, leave_type, allocation.from_date, end_date)
-	print("AAAAAAAAAA")
 
 	#! ADD EXTRA SANDWICH LEAVES
-	extra_sandwich_leaves_taken = get_extra_sandwich_days(employee, date, allocation.from_date, to_date)
+	extra_sandwich_leaves_taken = get_extra_sandwich_days(employee, leave_type, allocation.from_date, end_date)
+	print(leaves_taken,extra_sandwich_leaves_taken)
+
 	if extra_sandwich_leaves_taken:
 		leaves_taken -= extra_sandwich_leaves_taken
 
