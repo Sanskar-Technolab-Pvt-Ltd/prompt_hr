@@ -1,5 +1,6 @@
 import frappe
 from frappe.utils.file_manager import save_file
+from prompt_hr.api.mobile.attendance_regularization import get_employees_with_session_user
 
 # ! prompt_hr.api.mobile.leave_application.list
 # ? GET LEAVE APPLICATION REQUEST LIST
@@ -14,7 +15,25 @@ def list(
 ):
     try:
 
-        current_user = frappe.session.user
+        # --- Get employees allowed for session user ---
+        employees_data = get_employees_with_session_user()
+        if not employees_data.get("success"):
+            frappe.throw(employees_data.get("message", "Unable to fetch employees"))
+
+        employee_list = [emp["name"] for emp in employees_data["employees"]]
+
+        # --- Parse filters from request ---
+        if filters:
+            filters = frappe.parse_json(filters)
+        else:
+            filters = []
+
+        # Convert filters to list-of-lists always
+        if isinstance(filters, dict):
+            filters = [[k, "=", v] for k, v in filters.items()]
+
+        # Always enforce employee filter (session + request)
+        filters.append(["employee", "in", employee_list])
         parsed_fields = frappe.parse_json(fields)
 
         # Ensure required fields are included
@@ -23,9 +42,7 @@ def list(
             if field not in parsed_fields:
                 parsed_fields.append(field)
 
-        # Get current user's employee ID
-        current_employee = frappe.get_value("Employee", {"user_id": current_user}, "name")
-
+        
         # Fetch leave applications
         leave_application_list_raw = frappe.get_list(
             "Leave Application",
@@ -37,22 +54,6 @@ def list(
             limit_start=limit_start,
             ignore_permissions=False
         )
-
-        leave_application_list = []
-
-        for entry in leave_application_list_raw:
-            leave_employee = entry.get("employee")
-
-            if leave_employee == current_employee:
-                entry["request"] = "My Request"
-            else:
-                # Fetch reports_to for the employee in this leave application
-                reports_to = frappe.get_value("Employee", leave_employee, "reports_to")
-                if reports_to == current_employee:
-                    entry["request"] = "Team Request"
-                else:
-                    entry["request"] = "Other"
-            leave_application_list.append(entry)
 
 
         # # ? GET TOTAL COUNT
@@ -81,7 +82,7 @@ def list(
         frappe.local.response["message"] = {
             "success": True,
             "message": "Leave Application List Loaded Successfully!",
-            "data": leave_application_list,
+            "data": leave_application_list_raw,
             "count": total_count        
         }
 
