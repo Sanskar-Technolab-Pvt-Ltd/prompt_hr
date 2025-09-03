@@ -129,6 +129,66 @@ def apply_sandwich_rule(doc):
     holiday_list = get_holiday_list_for_employee(doc.employee)
     if not holiday_list:
         return 0, 0 ,0
+    # ? Sandwich Rule Extension
+    leave_type_doc = frappe.get_doc("Leave Type", leave_type)
+    sandwich_rule_applicable = 0
+    if any([
+        leave_type_doc.custom_sw_applicable_to_business_unit,
+        leave_type_doc.custom_sw_applicable_to_department,
+        leave_type_doc.custom_sw_applicable_to_location,
+        leave_type_doc.custom_sw_applicable_to_employment_type,
+        leave_type_doc.custom_sw_applicable_to_grade,
+        leave_type_doc.custom_sw_applicable_to_product_line
+    ]):
+        employee_doc = frappe.get_doc("Employee", doc.employee)
+
+        criteria = [
+            ("custom_sw_applicable_to_business_unit", "custom_business_unit"),
+            ("custom_sw_applicable_to_department", "department"),
+            ("custom_sw_applicable_to_location", "custom_work_location"),
+            ("custom_sw_applicable_to_employment_type", "employment_type"),
+            ("custom_sw_applicable_to_grade", "grade"),
+            ("custom_sw_applicable_to_product_line", "custom_product_line"),
+        ]
+
+        for leave_field, employee_field in criteria:
+            leave_values = getattr(leave_type_doc, leave_field)
+            employee_value = getattr(employee_doc, employee_field)
+
+            if not leave_values:
+                continue
+
+            leave_ids = []
+
+            if isinstance(leave_values, list) and isinstance(leave_values[0], frappe.model.document.Document):
+                for d in leave_values:
+                    if not d:
+                        continue
+
+                    if leave_field == "custom_sw_applicable_to_product_line":
+                        leave_ids.append(frappe.get_doc("Product Line Multiselect", d.name).indifoss_product)
+                    elif leave_field == "custom_sw_applicable_to_business_unit":
+                        leave_ids.append(frappe.get_doc("Business Unit Multiselect", d.name).business_unit)
+                    elif leave_field == "custom_sw_applicable_to_department":
+                        leave_ids.append(frappe.get_doc("Department Multiselect", d.name).department)
+                    elif leave_field == "custom_sw_applicable_to_location":
+                        leave_ids.append(frappe.get_doc("Work Location Multiselect", d.name).work_location)
+                    elif leave_field == "custom_sw_applicable_to_employment_type":
+                        leave_ids.append(frappe.get_doc("Employment Type Multiselect", d.name).employment_type)
+                    elif leave_field == "custom_sw_applicable_to_grade":
+                        leave_ids.append(frappe.get_doc("Grade Multiselect", d.name).grade)
+            
+            if employee_value in leave_ids:
+                sandwich_rule_applicable = 1
+        else:
+            sandwich_rule_applicable = 0
+
+    else:
+        sandwich_rule_applicable = 1
+
+    if not sandwich_rule_applicable:
+        return 0,0,0
+
     extra_leave_days_prev = 0
     extra_leave_days_next = 0
     extra_leave_days = 0
@@ -405,7 +465,6 @@ def on_update(doc, method):
             if "S - HR Director (Global Admin)" in frappe.get_roles(hr_manager_user):
                 hr_manager_email = frappe.db.get_value("User", hr_manager_user, "email")
                 hr_manager_name = frappe.db.get_value("Employee", {"user_id":hr_manager_user}, "employee_name")
-                print(hr_manager_name)
 
     if not reporting_manager_name:
         reporting_manager_name = hr_manager_name
@@ -983,7 +1042,6 @@ def get_additional_days(leave_type_doc, employee, from_date, to_date, number_of_
     ))
 
     additional_days = 0
-    print(from_date, "HELLLLLLLl")
     # Ignore Holidays for First and Last Days
     while next_day_is_holiday_or_weekoff(from_date, holiday_list) and from_date<= to_date:
             from_date = add_days(from_date, 1)
@@ -1004,7 +1062,6 @@ def get_additional_days(leave_type_doc, employee, from_date, to_date, number_of_
             # Always include full weekoffs in range
             additional_days += len(get_all_weekoff_days(from_date, to_date, holiday_list))
 
-    print(additional_days)
     # Process holiday days
     if leave_type_doc.custom_adjoins_holiday:
         if leave_type_doc.custom_ignore_if_half_day_leave_for_day_before_or_day_after and cint(half_day):
@@ -1017,7 +1074,6 @@ def get_additional_days(leave_type_doc, employee, from_date, to_date, number_of_
         else:
             # Get all holidays between leave dates which is not weekoff
             additional_days += len(get_all_holidays(from_date, to_date, holiday_list))
-    print(additional_days)
 
     if (leave_type_doc.custom_half_day_leave_taken_in_second_half_on_day_before or leave_type_doc.custom_half_day_leave_taken_in_first_half_on_day_after) and not leave_type_doc.custom_ignore_if_half_day_leave_for_day_before_or_day_after:
         
@@ -1038,7 +1094,6 @@ def get_additional_days(leave_type_doc, employee, from_date, to_date, number_of_
                         while next_day_is_weekoff(next_day, holiday_list) and next_day<= to_date:
                             additional_days -= 1
                             next_day = add_days(next_day, 1)
-        print(additional_days)
 
         # Handle half-day in first half on day after
         if leave_type_doc.custom_half_day_leave_taken_in_first_half_on_day_after and str(half_day_date) not in all_holidays:
@@ -1975,7 +2030,6 @@ def custom_get_leave_balance_on(
 
 	#! ADD EXTRA SANDWICH LEAVES
 	extra_sandwich_leaves_taken = get_extra_sandwich_days(employee, leave_type, allocation.from_date, end_date)
-	print(leaves_taken,extra_sandwich_leaves_taken)
 
 	if extra_sandwich_leaves_taken:
 		leaves_taken -= extra_sandwich_leaves_taken
