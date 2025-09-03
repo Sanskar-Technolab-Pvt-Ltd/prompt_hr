@@ -265,14 +265,14 @@ def apply_sandwich_rule(doc):
     #? CHECK BEFORE LEAVE FROM DATE
     extra_leaves = 0
     if not (doc.half_day and doc.half_day_date == doc.from_date and
-            doc.custom_half_day_time == "Second" and allow_half_day_after_first_half and not is_non_working_day(doc.from_date)):
+            ((doc.custom_half_day_time == "Second" and allow_half_day_after_first_half and not is_non_working_day(doc.from_date)) or ignore_half_day)):
         original_leave_start = leave_start
         while leave_start <= leave_end:
             if is_non_working_day(leave_start):
                 leave_start = add_days(leave_start, 1)
                 extra_leaves += 1
             else:
-                if doc.half_day and leave_start == doc.half_day_date and doc.custom_half_day_time == "Second" and allow_half_day_after_first_half:
+                if doc.half_day and leave_start == doc.half_day_date and ((doc.custom_half_day_time == "Second" and allow_half_day_after_first_half) or ignore_half_day):
                     extra_leaves = 0
                     leave_start = original_leave_start
                 break
@@ -282,14 +282,14 @@ def apply_sandwich_rule(doc):
     #? CHECK AFTER LEAVE FROM DATE
     extra_leaves = 0
     if not (doc.half_day and doc.half_day_date == doc.to_date and
-            doc.custom_half_day_time == "First" and allow_half_day_before_second_half and not is_non_working_day(doc.to_date)):
+            ((doc.custom_half_day_time == "First" and allow_half_day_before_second_half and not is_non_working_day(doc.to_date)) or ignore_half_day)):
         original_leave_end = leave_end       
         while leave_end >= leave_start:
             if is_non_working_day(leave_end):
                 leave_end = add_days(leave_end, -1)
                 extra_leaves += 1
             else:
-                if doc.half_day and leave_end == doc.half_day_date and doc.custom_half_day_time == "First" and allow_half_day_before_second_half:
+                if doc.half_day and leave_end == doc.half_day_date and ((doc.custom_half_day_time == "First" and allow_half_day_before_second_half) or ignore_half_day):
                     extra_leaves = 0
                     leave_end = original_leave_end
                 break

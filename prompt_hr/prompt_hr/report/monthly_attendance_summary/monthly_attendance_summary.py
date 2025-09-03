@@ -284,6 +284,23 @@ def get_attendance_status_for_detailed_view(
 			status = get_holiday_status(day, holidays)
 		abbr = status_map.get(status, "")
 		row[cstr(day)] = abbr
+	
+	# ? GET PENALTY LOPS FROM EMPLOYEE PENALTY
+	employee_penalty = frappe.get_list(
+		"Employee Penalty",
+		fields=["deduct_leave_without_pay"],
+		filters={
+			"employee": employee,
+			"company": filters.company,
+			"penalty_date": ["between", [start_date, end_date]],
+		},
+	)
+	penalty_lops = 0
+	if employee_penalty:
+		penalty_lops = sum([d.deduct_leave_without_pay for d in employee_penalty])
+
+	# ? ADD PENALTY LOPS TO TOTAL LOPS
+	total_lop_days += penalty_lops
 
 	# ? CALCULATE PAYMENT DAYS BASED ON WORKING DAYS AND LOP DAYS
 	if total_lop_days > total_working_days:

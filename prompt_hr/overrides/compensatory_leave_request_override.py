@@ -85,8 +85,6 @@ class CustomCompensatoryLeaveRequest(CompensatoryLeaveRequest):
             # ? SET VALIDITY DATES FROM APPROVED DATE
             from_date = add_days(self.custom_approved_date, 0)
             leave_type_doc = frappe.get_doc("Leave Type", self.leave_type)
-            to_date = add_days(from_date, cint(leave_type_doc.custom_leave_validity_days or 0) - 1)
-
             # ? FETCH LEAVE PERIOD
             leave_period = get_leave_period(from_date, from_date, company)
             if not leave_period:
@@ -102,6 +100,11 @@ class CustomCompensatoryLeaveRequest(CompensatoryLeaveRequest):
                 frappe.throw(msg, title=_("No Leave Period Found"))
 
             leave_period_end_date = leave_period[0].get("to_date")
+            # ? SET TO DATE ACCORDING TO DATE SET IN LEAVE TYPE SETTINGS ELSE SET END DATE OF CURRENT LEAVE PERIOD
+            if cint(leave_type_doc.custom_leave_validity_days):
+                to_date = add_days(from_date, cint(leave_type_doc.custom_leave_validity_days or 2) - 1)
+            else:
+                to_date = leave_period_end_date
             # ? TRY TO FETCH EXISTING ALLOCATION FOR OVERLAPPING PERIOD
             existing_allocation = frappe.db.sql("""
                 SELECT name FROM `tabLeave Allocation`
@@ -211,7 +214,7 @@ class CustomCompensatoryLeaveRequest(CompensatoryLeaveRequest):
                     )
 
             elif self.workflow_state == "Approved":
-                self.db_set("custom_approved_date", getdate("2025-07-13"))
+                self.db_set("custom_approved_date", getdate())
                 employee_notification = frappe.get_doc("Notification", "Leave Request Response By Reporting Manager")
                 if employee_notification:
                     subject = frappe.render_template(employee_notification.subject, {"doc":self,"manager":reporting_manager_name,"request_type":"Compensatory Leave Request"})
