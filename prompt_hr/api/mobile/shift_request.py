@@ -1,5 +1,5 @@
 import frappe
-
+from prompt_hr.api.mobile.attendance_regularization import get_employees_with_session_user
 
 # ! prompt_hr.api.mobile.shift_request.list
 # ? GET SHIFT REQUEST LIST
@@ -13,7 +13,25 @@ def list(
     limit_start=0,
 ):
     try:
+        # --- Get employees allowed for session user ---
+        employees_data = get_employees_with_session_user()
+        if not employees_data.get("success"):
+            frappe.throw(employees_data.get("message", "Unable to fetch employees"))
 
+        employee_list = [emp["name"] for emp in employees_data["employees"]]
+
+        # --- Parse filters from request ---
+        if filters:
+            filters = frappe.parse_json(filters)
+        else:
+            filters = []
+
+        # Convert filters to list-of-lists always
+        if isinstance(filters, dict):
+            filters = [[k, "=", v] for k, v in filters.items()]
+
+        # Always enforce employee filter (session + request)
+        filters.append(["employee", "in", employee_list])
         # ? GET SHIFT REQUEST LIST
         shift_request_list = frappe.get_list(
             "Shift Request",
