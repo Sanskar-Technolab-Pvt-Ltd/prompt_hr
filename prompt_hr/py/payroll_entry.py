@@ -8,6 +8,7 @@ from frappe.utils.xlsxutils import make_xlsx, read_xlsx_file_from_attached_file
 from frappe.utils.response import build_response
 from frappe import _
 import traceback
+import calendar
 
 
 # ? ON UPDATE CONTROLLER METHOD
@@ -487,6 +488,84 @@ def append_lop_summary(doc, method=None):
 
 
 @frappe.whitelist()
+def download_lop_summary_template(payroll_entry_id):
+    # * Fetch the Payroll Entry document
+    payroll_entry = frappe.get_doc("Payroll Entry", payroll_entry_id)
+
+    # * Get the list of employees in this Payroll Entry
+    employee_list = [(emp.employee, emp.employee_name) for emp in payroll_entry.employees]
+
+    # * Prepare Excel header
+    excel_data = [["Employee", "Employee Name", "Actual LOP", "Penalty Leave Days", "Total LOP", "Final LOP", "Remarks"]]
+
+    # * Add existing adhoc salary details if they exist
+    if payroll_entry.custom_lop_summary:
+        for detail in payroll_entry.custom_lop_summary:
+            excel_data.append([
+                detail.employee,
+                detail.employee_name,
+                detail.actual_lop,
+                detail.penalty_leave_days,
+                detail.total_lop,
+                detail.lop_adjustment,
+                detail.remarks
+            ])
+    else:
+        # * Otherwise, generate empty rows for manual entry
+        for emp_id, emp_name in employee_list:
+            excel_data.append([emp_id, emp_name, 0,0,0,0, ""])
+
+    # * Generate the XLSX file from the data
+    xlsx_file = make_xlsx(excel_data, "LOP Summary Details Template")
+    xlsx_file.seek(0)
+
+    # * Set response for file download
+    frappe.local.response.filename = "LOP Summary Details Template.xlsx"
+    frappe.local.response.filecontent = xlsx_file.read()
+    frappe.local.response.type = "download"
+
+    return build_response("download")
+
+@frappe.whitelist()
+def download_lop_reversal_template(payroll_entry_id):
+    # * Fetch the Payroll Entry document
+    payroll_entry = frappe.get_doc("Payroll Entry", payroll_entry_id)
+
+    # * Get the list of employees in this Payroll Entry
+    employee_list = [(emp.employee, emp.employee_name) for emp in payroll_entry.employees]
+
+    # * Prepare Excel header
+    excel_data = [["Employee", "Employee Name", "LOP Month", "Actual LOP Days", "Final LOP Reversal", "Remarks"]]
+
+    # * Add existing adhoc salary details if they exist
+    if payroll_entry.custom_lop_reversal_details:
+        for detail in payroll_entry.custom_lop_reversal_details:
+            excel_data.append([
+                detail.employee,
+                detail.employee_name,
+                detail.lop_month,
+                detail.actual_lop_days,
+                detail.lop_reversal_days,
+                detail.remarks
+            ])
+    else:
+        # * Otherwise, generate empty rows for manual entry
+        for emp_id, emp_name in employee_list:
+            excel_data.append([emp_id, emp_name, "", 0, 0, ""])
+
+    # * Generate the XLSX file from the data
+    xlsx_file = make_xlsx(excel_data, "LOP Reversal Details Template")
+    xlsx_file.seek(0)
+
+    # * Set response for file download
+    frappe.local.response.filename = "LOP Reversal Details Template.xlsx"
+    frappe.local.response.filecontent = xlsx_file.read()
+    frappe.local.response.type = "download"
+
+    return build_response("download")
+
+
+@frappe.whitelist()
 def download_adhoc_salary_template(payroll_entry_id):
     # * Fetch the Payroll Entry document
     payroll_entry = frappe.get_doc("Payroll Entry", payroll_entry_id)
@@ -522,6 +601,260 @@ def download_adhoc_salary_template(payroll_entry_id):
 
     return build_response("download")
 
+@frappe.whitelist()
+def import_lop_summary_details(payroll_entry_id, file_url):
+    # * Fetch the Payroll Entry document
+    payroll_entry = frappe.get_doc("Payroll Entry", payroll_entry_id)
+
+    # * Prepare trackers for success & errors
+    import_errors = []
+    records_added = 0
+    update_count = 0
+    payroll_employee_ids = [emp.employee for emp in payroll_entry.employees]
+
+    # * Read rows from the uploaded Excel file
+    rows = read_xlsx_file_from_attached_file(file_url)
+
+    if not rows:
+        # ! No data found in file
+        frappe.throw(_("No data found in the uploaded file. Please check and try again."))
+
+    # * Skip header row and process each line
+    for row_index, row in enumerate(rows[1:], start=2):
+        if len(row) < 7:
+            # ! Row is incomplete
+            import_errors.append(f"Row {row_index}: Missing required columns")
+            continue
+
+        employee_id, employee_name, actual_lop, penalty_leave_days, total_lop,lop_adjustment,remarks = row[:7]
+
+        # * Check for required values and list what’s missing
+        missing_fields = []
+
+        if not employee_id:
+            missing_fields.append("Employee ID")
+        if not employee_name:
+            missing_fields.append("Employee Name")
+        if actual_lop is None:
+            missing_fields.append("Actual LOP")
+        if penalty_leave_days is None:
+            missing_fields.append("Penalty Leave Days")
+        if total_lop is None:
+            missing_fields.append("Total LOP")
+        if lop_adjustment is None:
+            missing_fields.append("Final LOP")
+
+        if missing_fields:
+            # ! One or more required fields are missing — show which ones
+            import_errors.append(
+                f"Row {row_index}: Missing required field(s): {', '.join(missing_fields)}"
+            )
+            continue
+
+        # * Ensure employee is in the current Payroll Entry
+        if employee_id not in payroll_employee_ids:
+            # ! Employee not valid for this payroll
+            import_errors.append(f"Row {row_index}: Employee {employee_id} is not part of this payroll entry")
+            continue
+
+        try:
+            actual_lop = float(actual_lop)
+        except ValueError:
+            import_errors.append(f"Row {row_index}: Invalid amount '{actual_lop}' for Actual LOP")
+            continue
+
+        try:
+            penalty_leave_days = float(penalty_leave_days)
+        except ValueError:
+            import_errors.append(f"Row {row_index}: Invalid amount '{penalty_leave_days}' for Penalty Leave Days")
+            continue
+
+        try:
+            total_lop = float(total_lop)
+        except ValueError:
+            import_errors.append(f"Row {row_index}: Invalid amount '{total_lop}' for Total LOP")
+            continue
+
+        try:
+            lop_adjustment = float(lop_adjustment)
+        except ValueError:
+            import_errors.append(f"Row {row_index}: Invalid amount '{lop_adjustment}' for Final LOP")
+            continue
+
+
+        # * Check if this salary detail already exists to update
+        record_updated = False
+        for existing in payroll_entry.custom_lop_summary:
+            if existing.employee == employee_id:
+                if existing.lop_adjustment != lop_adjustment or existing.remarks != remarks:
+                    update_count += 1
+
+                existing.lop_adjustment = lop_adjustment
+                existing.remarks = remarks
+                record_updated = True
+                break
+
+        # * Append new entry if no match found
+        if not record_updated:
+            payroll_entry.append("custom_lop_summary", {
+                "employee": employee_id,
+                "employee_name": employee_name,
+                "actual_lop": 0,
+                "penalty_leave_days": 0,
+                "total_lop": 0,
+                "lop_adjustment":lop_adjustment,
+                "remarks": remarks
+            })
+            records_added += 1
+
+    # * If there were errors, show them to the user
+    if import_errors:
+        # ! Data import failed
+        frappe.throw(_("Import failed due to the following issues:<br>") + "<br>".join(import_errors))
+
+    # * Save the Payroll Entry with the new details
+    payroll_entry.save()
+
+    if records_added or update_count:
+        message = "Import completed successfully."
+
+        if records_added:
+            message += f"<br>{records_added} new record(s) were added."
+
+        if update_count:
+            message += f"<br>{update_count} existing record(s) were updated."
+    else:
+        message = "No changes were made. The file may not contain any new or updated data."
+
+    frappe.msgprint(_(message))
+
+    return {"added": records_added}
+
+@frappe.whitelist()
+def import_lop_reversal_details(payroll_entry_id, file_url):
+    # * Fetch the Payroll Entry document
+    payroll_entry = frappe.get_doc("Payroll Entry", payroll_entry_id)
+
+    # * Prepare trackers for success & errors
+    import_errors = []
+    records_added = 0
+    update_count = 0
+    payroll_employee_ids = [emp.employee for emp in payroll_entry.employees]
+
+    # * Read rows from the uploaded Excel file
+    rows = read_xlsx_file_from_attached_file(file_url)
+
+    if not rows:
+        # ! No data found in file
+        frappe.throw(_("No data found in the uploaded file. Please check and try again."))
+
+    # * Skip header row and process each line
+    for row_index, row in enumerate(rows[1:], start=2):
+        if len(row) < 6:
+            # ! Row is incomplete
+            import_errors.append(f"Row {row_index}: Missing required columns")
+            continue
+
+        employee_id, employee_name, lop_month, actual_lop_days, lop_reversal_days,remarks = row[:6]
+
+        # * Check for required values and list what’s missing
+        missing_fields = []
+
+        if not employee_id:
+            missing_fields.append("Employee ID")
+        if not employee_name:
+            missing_fields.append("Employee Name")
+        if lop_month is None:
+            missing_fields.append("LOP Month")
+        if actual_lop_days is None:
+            missing_fields.append("Actual LOP Days")
+        if lop_reversal_days is None:
+            missing_fields.append("Final LOP Reversal")
+
+        if missing_fields:
+            # ! One or more required fields are missing — show which ones
+            import_errors.append(
+                f"Row {row_index}: Missing required field(s): {', '.join(missing_fields)}"
+            )
+            continue
+
+        # * Ensure employee is in the current Payroll Entry
+        if employee_id not in payroll_employee_ids:
+            # ! Employee not valid for this payroll
+            import_errors.append(f"Row {row_index}: Employee {employee_id} is not part of this payroll entry")
+            continue
+
+        try:
+            actual_lop_days = float(actual_lop_days)
+        except ValueError:
+            import_errors.append(f"Row {row_index}: Invalid amount '{actual_lop_days}' for Actual LOP Days")
+            continue
+
+        try:
+            lop_reversal_days = float(lop_reversal_days)
+        except ValueError:
+            import_errors.append(f"Row {row_index}: Invalid amount '{lop_reversal_days}' for Final LOP Reversal")
+            continue
+
+        allowed_options = get_month_options_up_to_current()
+        if lop_month not in allowed_options:
+            try:
+                date_obj = getdate(lop_month)
+            except ValueError:
+                import_errors.append(f"Row {row_index}: Invalid LOP month format.")
+                continue
+            month_year_str = f"{date_obj.strftime('%B')}-{date_obj.year}"
+            if month_year_str not in allowed_options:
+                import_errors.append(f"Row {row_index}: Invalid LOP month format.")
+                continue
+            lop_month = month_year_str
+        # * Check if this salary detail already exists to update
+        record_updated = False
+        for existing in payroll_entry.custom_lop_reversal_details:
+            if existing.employee == employee_id and existing.lop_month == lop_month:
+                if existing.lop_reversal_days != lop_reversal_days or existing.remarks != remarks or existing.lop_month != lop_month:
+                    update_count += 1
+
+                existing.lop_reversal_days = lop_reversal_days
+                existing.remarks = remarks
+                existing.lop_month = lop_month
+                record_updated = True
+                break
+
+        # * Append new entry if no match found
+        if not record_updated:
+            payroll_entry.append("custom_lop_reversal_details", {
+                "employee": employee_id,
+                "employee_name": employee_name,
+                "lop_month": lop_month,
+                "actual_lop_days": 0,
+                "lop_reversal_days": lop_reversal_days,
+                "remarks": remarks
+            })
+            records_added += 1
+
+    # * If there were errors, show them to the user
+    if import_errors:
+        # ! Data import failed
+        frappe.throw(_("Import failed due to the following issues:<br>") + "<br>".join(import_errors))
+
+    # * Save the Payroll Entry with the new details
+    payroll_entry.save()
+
+    if records_added or update_count:
+        message = "Import completed successfully."
+
+        if records_added:
+            message += f"<br>{records_added} new record(s) were added."
+
+        if update_count:
+            message += f"<br>{update_count} existing record(s) were updated."
+    else:
+        message = "No changes were made. The file may not contain any new or updated data."
+
+    frappe.msgprint(_(message))
+
+    return {"added": records_added}
 
 @frappe.whitelist()
 def import_adhoc_salary_details(payroll_entry_id, file_url):
@@ -856,3 +1189,16 @@ def linked_bank_entry(payroll_entry_id):
 #     #? LINK PAYROLL ENTRY TO ALL THE FNF RECORDS LINKED IN THE PENDING FNF DETAILS TABLE
 #     for fnf_id in fnf_records:
 #         frappe.db.set_value("Full and Final Statement", fnf_id.get("name"), "custom_payroll_entry", doc.name)
+
+def get_month_options_up_to_current():
+    now = datetime.now()
+    current_year = now.year
+    current_month = now.month
+
+    # Generate month-year options starting from January to current month
+    options = []
+    for month_index in range(1, current_month + 1):
+        month_name = calendar.month_name[month_index]  # Full month name, e.g., "January"
+        options.append(f"{month_name}-{current_year}")
+
+    return options

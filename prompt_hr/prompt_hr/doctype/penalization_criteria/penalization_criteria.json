@@ -10,6 +10,7 @@
   "value",
   "penalization_type",
   "employee_field",
+  "employee_field_name",
   "is_sub_department"
  ],
  "fields": [
@@ -47,18 +48,24 @@
    "fieldtype": "Autocomplete",
    "in_list_view": 1,
    "label": "Employee Field"
+  },
+  {
+   "fieldname": "employee_field_name",
+   "fieldtype": "Data",
+   "label": "Employee Field Name"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-08-27 15:34:04.726335",
+ "modified": "2025-09-02 16:31:03.949199",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Penalization Criteria",
  "owner": "Administrator",
  "permissions": [],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []

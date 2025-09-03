@@ -68,7 +68,7 @@ frappe.ui.form.on('Attendance Request', {
 
 function add_custom_workflow_buttons(frm) {
     // HIDE DEFAULT WORKFLOW PRIMARY BUTTONS
-    $('.btn.btn-primary.btn-sm').hide();
+    $('.btn.btn-primary.btn-sm').not('.primary-action').hide();
     frappe.call({
         method: "frappe.model.workflow.get_transitions",
         args: { doc: frm.doc },

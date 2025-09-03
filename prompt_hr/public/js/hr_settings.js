@@ -75,7 +75,19 @@ frappe.ui.form.on("HR Settings", {
     // Button for Prompt child table  
     custom_set_allowed_fields_for_prompt: function(frm) {
         openSetAllowedFieldsDialog(frm, 'custom_employee_changes_allowed_fields_for_prompt', 'Prompt');
+    },
+
+    custom_send_mails_for_prompt: function (frm) { 
+        if (frm.doc.custom_attendance_issue_mail_check_date_for_prompt) {
+            frappe.call({
+                method: "prompt_hr.scheduler_methods.send_attendance_issue_mail_check",
+                args: {
+                    attendance_check_date: frm.doc.custom_attendance_issue_mail_check_date_for_prompt
+                }
+            })
+        }
     }
+
 });
 
 function apply_filter_for_leave_type(frm, fieldname, leave_type_fieldname, prompt_comp, indifoss) {
@@ -120,28 +132,41 @@ function apply_filter_for_leave_type(frm, fieldname, leave_type_fieldname, promp
 
 frappe.ui.form.on("Penalization Criteria", {
     custom_penalization_criteria_table_for_prompt_add: async function (frm, cdt, cdn) {
-        // Fetch fields
         let options = await getEmployeeFields();
 
         if (options.length) {
-            // Update the child table field dynamically
+        
             frm.fields_dict["custom_penalization_criteria_table_for_prompt"].grid.update_docfield_property(
-                "employee_field",   // child table fieldname
+                "employee_field",
                 "options",
-                options.map(o => o.value) // what dropdown will display
+                options.map(o => o.label)
             );
         }
     },
+    employee_field: function (frm, cdt, cdn) {
+        let row = locals[cdt][cdn];
+        if (frm.employee_field_map && row.employee_field) {
+            row.employee_field_name = frm.employee_field_map[row.employee_field];
+            frm.refresh_field("custom_penalization_criteria_table_for_prompt");
+        }
+    }
 })
 async function set_employee_fields_in_penalization_criteria(frm) {
-    // Also set options when the parent form loads
+    
     let options = await getEmployeeFields();
     if (options.length) {
         frm.fields_dict["custom_penalization_criteria_table_for_prompt"].grid.update_docfield_property(
             "employee_field",
             "options",
-            options.map(o => o.value)
+            options.map(o => o.label)
         );
+
+        frm.employee_field_map = {};
+        options.forEach(o => {
+            frm.employee_field_map[o.label] = o.fieldname;
+        });
+        frm.refresh_field("custom_penalization_criteria_table_for_prompt");
+
     }
 }
 
@@ -154,7 +179,8 @@ async function getEmployeeFields() {
 
         return response.message.map(field => ({
             label: field.label,
-            value: field.label
+            value: field.label,
+            fieldname: field.fieldname,
         }));
     } catch (error) {
         console.error("Error fetching Employee fields:", error);
@@ -204,6 +230,7 @@ async function openSetAllowedFieldsDialog(frm, child_table_fieldname, company_ty
 // Function to add selected field to respective child table
 function addFieldToChildTable(frm, child_table_fieldname, company_type, values, dialog) {
     try {
+        console.log("VALUES",values)
         // Check if field already exists in child table
         const existing_field = frm.doc[child_table_fieldname]?.find(
             row => row.field_label === values.field_label
