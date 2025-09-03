@@ -1,6 +1,6 @@
 import frappe
 from prompt_hr.py.utils import is_user_reporting_manager_or_hr
-
+from prompt_hr.api.mobile.attendance_regularization import get_employees_with_session_user
 # ! prompt_hr.api.mobile.attendance_request.list
 # ? GET ATTENDANCE REQUEST LIST
 @frappe.whitelist()
@@ -13,6 +13,25 @@ def list(
     limit_start=0,
 ):
     try:
+        # --- Get employees allowed for session user ---
+        employees_data = get_employees_with_session_user()
+        if not employees_data.get("success"):
+            frappe.throw(employees_data.get("message", "Unable to fetch employees"))
+
+        employee_list = [emp["name"] for emp in employees_data["employees"]]
+
+        # --- Parse filters from request ---
+        if filters:
+            filters = frappe.parse_json(filters)
+        else:
+            filters = []
+
+        # Convert filters to list-of-lists always
+        if isinstance(filters, dict):
+            filters = [[k, "=", v] for k, v in filters.items()]
+
+        # Always enforce employee filter (session + request)
+        filters.append(["employee", "in", employee_list])
 
         # ? GET ATTENDANCE REQUEST LIST
         attendance_request_list = frappe.get_list(
@@ -78,7 +97,7 @@ def get(name):
 
         # ? GET ATTENDANCE REQUEST  DOC
         attendance_request = frappe.get_doc("Attendance Request", name)
-        
+        1
         # Convert to dict (so we can override values)
         attendance_request_dict = attendance_request.as_dict()
 
@@ -118,22 +137,11 @@ def create(**args):
             "employee": "Employee",
             "from_date": "From Date",
             "to_date": "To Date",
-            "reason": "Reason",      
-        }
-        
-        
-        frappe.log_error("Attendance_Request_ARGS", args)
-        
-        
-        if args.get('reason') == "Partial Day":
-            if args.get("explanation"):
-                if (1 <= len(args.get("explanation")) <= 3) and args.get("explanation").isdigit():
-                    args["custom_partial_day_request_minutes"] = int(args.get("explanation"))
-                else:
-                    frappe.throw("Please enter Explanation in minutes only (numeric value between 0 and 120, e.g. 55)")                    
-            else:
-                frappe.throw("Please enter Explanation in minutes only (numeric value between 0 and 120, e.g. 55)")                                                
+            "reason": "Reason"
             
+
+        }
+
         # ? CHECK IF THE MANDATORY FIELD IS FILLED OR NOT IF NOT THROW ERROR
         for field, field_name in mandatory_fields.items():
             if (
@@ -141,15 +149,11 @@ def create(**args):
                 or args.get(field) == "[]"
                 or args.get(field) == "[{}]"
             ):
-                
                 frappe.throw(
                     f"Please Fill {field_name} Field!",
                     frappe.MandatoryError,
                 )
 
-        
-        if "custom_partial_day_request_minutes" in args:
-            args["custom_partial_day_request_minutes"] = int(args["custom_partial_day_request_minutes"])
             
         # ? CREATE ATTENDANCE REQUEST DOC
         attendance_request_doc = frappe.get_doc({
@@ -161,7 +165,7 @@ def create(**args):
 
     except Exception as e:
         # ? HANDLE ERRORS
-        frappe.log_error("Error While Creating Attendance Request", frappe.get_traceback())
+        frappe.log_error("Error While Creating Attendance Request", str(e))
         frappe.clear_messages()
         frappe.local.response["message"] = {
             "success": False,

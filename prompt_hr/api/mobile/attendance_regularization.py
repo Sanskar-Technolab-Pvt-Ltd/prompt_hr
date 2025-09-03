@@ -15,6 +15,26 @@ def list(
     limit_start=0,
 ):
     try:
+        # --- Get employees allowed for session user ---
+        employees_data = get_employees_with_session_user()
+        if not employees_data.get("success"):
+            frappe.throw(employees_data.get("message", "Unable to fetch employees"))
+
+        employee_list = [emp["name"] for emp in employees_data["employees"]]
+
+        # --- Parse filters from request ---
+        if filters:
+            filters = frappe.parse_json(filters)
+        else:
+            filters = []
+
+        # Convert filters to list-of-lists always
+        if isinstance(filters, dict):
+            filters = [[k, "=", v] for k, v in filters.items()]
+
+        # Always enforce employee filter (session + request)
+        filters.append(["employee", "in", employee_list])
+        
         # ? GET Attendance Regularization List
         attendance_regularization_list = frappe.get_list(
             "Attendance Regularization",
@@ -28,6 +48,7 @@ def list(
         
         for attendance in attendance_regularization_list:            
             attendance['status'] = attendance['workflow_state']
+        
         
         total_count = len(attendance_regularization_list)
 
@@ -292,4 +313,51 @@ def apply_workflow(attendance_regularization, action):
             "success": True,
             "message": f"Workflow Action '{action}' Applied Successfully!",
             "data": updated_doc.as_dict(),
+        }
+        
+        
+@frappe.whitelist()
+def get_employees_with_session_user():
+    try:
+        # user = frappe.session.user
+        user = "mobileapi@gmail.com"  
+
+        # Find employee linked to this session user
+        session_employee = frappe.get_value("Employee", {"user_id": user}, "name")
+
+        if not session_employee:
+            return {
+                "success": False,
+                "message": "No employee linked with current user",
+                "employees": []
+            }
+
+        # Always include session employee
+        employees = [{
+            "name": session_employee,
+            "employee_name": frappe.get_value("Employee", session_employee, "employee_name")
+        }]
+
+        # Get employees reporting to session employee
+        subordinates = frappe.get_all(
+            "Employee",
+            fields=["name", "employee_name"],
+            filters={"reports_to": session_employee}
+        )
+
+        employees.extend(subordinates)
+
+        return {
+            "success": True,
+            "session_user": user,
+            "session_employee": session_employee,
+            "employees": employees,  # always has at least session employee
+        }
+
+    except Exception as e:
+        frappe.log_error("Error in get_employees_with_session_user", str(e))
+        return {
+            "success": False,
+            "message": str(e),
+            "employees": [],
         }
