@@ -31,7 +31,7 @@ def cancel_penalties(ids):
 
     penalties = frappe.get_all(
         "Employee Penalty",
-        filters={"name": ["in", ids]},
+        filters={"name": ["in", ids], "is_leave_balance_restore":0},
         fields=["name", "attendance"],
     )
 
