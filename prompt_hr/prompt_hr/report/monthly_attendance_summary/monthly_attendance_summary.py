@@ -293,6 +293,7 @@ def get_attendance_status_for_detailed_view(
 			"employee": employee,
 			"company": filters.company,
 			"penalty_date": ["between", [start_date, end_date]],
+			"is_leave_balance_restore":0
 		},
 	)
 	penalty_lops = 0
