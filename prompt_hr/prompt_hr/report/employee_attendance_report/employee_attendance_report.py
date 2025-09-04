@@ -58,6 +58,7 @@ def execute(filters=None):
         penalty_records = frappe.get_all("Employee Penalty", filters={
                 "employee": emp.name,
                 "penalty_date": ["between", [from_date, to_date]],
+                "is_leave_balance_restore":0,
             },
             fields=["*"])
 
@@ -95,8 +96,8 @@ def execute(filters=None):
 
             elif status == "on leave":
                 if record.leave_type:
-                    leave_type_doc = frappe.get_doc("Leave Type", record.leave_type)
-                    if leave_type_doc.is_lwp:
+                    is_lwp = frappe.db.get_value("Leave Type", record.leave_type, "is_lwp")
+                    if is_lwp:
                         summary["unpaid_leave"] += 1
                     else:
                         summary["paid_leave"] += 1
