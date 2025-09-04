@@ -422,6 +422,7 @@ async function loadDialogBox(frm) {
             {
                 label: 'New Value',
                 fieldname: 'new_value',
+                reqd: 1,
                 fieldtype: 'Data' // ? DYNAMICALLY REPLACED BASED ON FIELD TYPE
             }
         ],
@@ -467,6 +468,7 @@ async function loadDialogBox(frm) {
             label: 'New Value',
             fieldname: 'new_value',
             fieldtype: field_df?.fieldtype || 'Data',
+            reqd: 1,
             options: field_df?.options || undefined
         };
 
