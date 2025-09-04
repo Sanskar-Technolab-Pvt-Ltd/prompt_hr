@@ -926,6 +926,15 @@ def get_employee_changable_fields(emp_id):
         fields=["fieldname", "label", "fieldtype"],
         ignore_permissions=True,
     )
+    # ? FETCH CUSTOM DOCFIELD METADATA USING FIELD LABELS AS FIELDNAME
+    custom_fields = frappe.get_all(
+        "Custom Field",
+        filters={"dt": "Employee", "label": ["in", field_labels]},
+        fields=["fieldname", "label", "fieldtype"],
+        ignore_permissions=True,
+    )
+    
+    fields.extend(custom_fields)
 
     return fields
 
