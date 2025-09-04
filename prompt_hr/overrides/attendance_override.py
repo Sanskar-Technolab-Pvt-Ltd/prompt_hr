@@ -1,6 +1,6 @@
 import frappe
 from hrms.hr.doctype.attendance.attendance import Attendance, validate_active_employee
-
+from frappe.utils import get_link_to_form, format_date
 
 
 class CustomAttendance(Attendance):
@@ -14,6 +14,7 @@ class CustomAttendance(Attendance):
         self.validate_overlapping_shift_attendance()
         self.validate_employee_status()
         self.check_leave_record()
+        self.validate_attendance_request()
 
     def on_submit(self):
         if self.status == "Half Day" and self.leave_application:
@@ -37,3 +38,29 @@ class CustomAttendance(Attendance):
                     frappe.throw(
                         "Only HR Manager can modify the status of the attendance."
                     )
+
+    def validate_attendance_request(self):
+        """
+        Prevents creating a new Attendance Request if a pending request
+        exists for the same employee within the given date range.
+        """
+        exist_requests = frappe.get_all(
+            "Attendance Request",
+            filters={
+                "employee": self.employee,
+                "custom_status": "Pending",
+                "docstatus": 0,
+                "from_date": ["<=", self.attendance_date],
+                "to_date": [">=", self.attendance_date]
+            },
+            fields=["name", "from_date", "to_date"]
+        )
+
+        if exist_requests:
+            # ? Create readable message
+            request_list = "<br>".join(
+                [f"{format_date(r['from_date'])} to {format_date(r['to_date'])} (Attendance Request: {get_link_to_form('Attendance Request',r['name'])})" for r in exist_requests]
+            )
+            frappe.throw(
+                f"A pending Attendance Request already exists for the following date(s):<br>{request_list}",
+            )
