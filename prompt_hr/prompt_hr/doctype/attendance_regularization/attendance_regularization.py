@@ -4,7 +4,7 @@
 import frappe
 from frappe.model.document import Document
 from prompt_hr.py.utils import send_notification_email, is_user_reporting_manager_or_hr
-from frappe.utils import get_datetime, getdate
+from frappe.utils import get_datetime, getdate, format_date, get_link_to_form
 from prompt_hr.py.auto_mark_attendance import mark_attendance
 from frappe.utils import get_datetime, add_days
 
@@ -22,7 +22,27 @@ class AttendanceRegularization(Document):
     
 				in_time = min(in_times) if in_times else None
 				out_time = max(out_times) if out_times else None
-    
+				exist_requests = frappe.get_all(
+					"Attendance Request",
+					filters={
+						"employee": self.employee,
+						"custom_status": "Pending",
+						"docstatus": 0,
+						"from_date": ["<=", self.regularization_date],
+						"to_date": [">=", self.regularization_date]
+					},
+					fields=["name", "from_date", "to_date"],
+					limit = 1
+				)
+				if exist_requests:
+					# ? Create readable message
+						request_list = "<br>".join(
+							[f"{format_date(r['from_date'])} to {format_date(r['to_date'])} (Attendance Request: {get_link_to_form('Attendance Request',r['name'])})" for r in exist_requests]
+						)
+						frappe.throw(
+							f"A pending Attendance Request already exists for the following date(s):<br>{request_list}",
+						)
+
 				# * CODE FOR CALCULATING WORKING HOURS COMMENTED FOR NOW
 				# working_hours = 0
 				# last_in_time = None
