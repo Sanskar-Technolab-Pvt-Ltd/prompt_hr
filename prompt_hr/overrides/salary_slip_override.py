@@ -116,7 +116,8 @@ class CustomSalarySlip(SalarySlip):
                 filters={
                     "employee": self.employee,
                     "company": self.company,
-                    "penalty_date": ["between", [self.start_date, self.end_date]]
+                    "penalty_date": ["between", [self.start_date, self.end_date]],
+                    "is_leave_balance_restore":0
                 },
                 fields=["deduct_leave_without_pay"]
             )
