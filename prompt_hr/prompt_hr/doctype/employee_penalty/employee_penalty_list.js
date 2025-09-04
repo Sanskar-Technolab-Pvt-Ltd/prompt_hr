@@ -15,6 +15,8 @@ frappe.listview_settings["Employee Penalty"] = {
                     frappe.call({
                         method: "prompt_hr.prompt_hr.doctype.employee_penalty.employee_penalty.cancel_penalties",
                         args: { ids },
+                        freeze: true,
+                        freeze_message: __("Cancelling penalties, please wait..."),
                         callback: function (r) {
                             if (r.message) {
                                 frappe.msgprint(__("Penalties cancelled successfully"));

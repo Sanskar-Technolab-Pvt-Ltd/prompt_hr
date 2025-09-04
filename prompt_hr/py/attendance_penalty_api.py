@@ -618,7 +618,7 @@ def create_penalty_records(penalty_entries, target_date):
     # ? FETCH EXISTING PENALTIES FOR THE TARGET DATE
     existing_penalties = frappe.get_all(
         "Employee Penalty",
-        filters={"employee": ["in", employee_list], "penalty_date": target_date},
+        filters={"employee": ["in", employee_list], "penalty_date": target_date, "is_leave_balance_restore":0},
         fields=["name", "employee"],
     )
     existing_penalties_map = {ep["employee"]: ep["name"] for ep in existing_penalties}
