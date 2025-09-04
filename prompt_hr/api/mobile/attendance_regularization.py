@@ -319,8 +319,7 @@ def apply_workflow(attendance_regularization, action):
 @frappe.whitelist()
 def get_employees_with_session_user():
     try:
-        # user = frappe.session.user
-        user = "mobileapi@gmail.com"  
+        user = frappe.session.user
 
         # Find employee linked to this session user
         session_employee = frappe.get_value("Employee", {"user_id": user}, "name")
