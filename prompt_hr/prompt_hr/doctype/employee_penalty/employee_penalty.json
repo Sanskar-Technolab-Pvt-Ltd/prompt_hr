@@ -86,13 +86,14 @@
    "fieldname": "is_leave_balance_restore",
    "fieldtype": "Check",
    "label": "Is Leave Balance Restore",
+   "no_copy": 1,
    "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-09-04 19:49:48.397541",
+ "modified": "2025-09-04 20:10:44.641922",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Penalty",
