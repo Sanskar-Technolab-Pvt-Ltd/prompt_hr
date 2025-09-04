@@ -9,7 +9,6 @@ frappe.listview_settings["Employee Penalty"] = {
             }
 
             let ids = checked_items.map(item => item.name);
-            console.log(ids)
             frappe.confirm(
                 __("Are you sure you want to cancel the selected penalties?"),
                 () => {
