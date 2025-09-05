@@ -67,7 +67,7 @@ class CustomAttendanceRequest(AttendanceRequest):
         return super().on_cancel()
 
 @frappe.whitelist()
-def handle_custom_workflow_action(doc, action):
+def handle_custom_workflow_action(doc, action, reason_for_rejection=None):
     try:
         if isinstance(doc, str):
             doc = frappe.parse_json(doc)
@@ -91,7 +91,9 @@ def handle_custom_workflow_action(doc, action):
                 doc=doc,
                 now=False,
             )
-
+            if doc.get("doctype") == "Attendance Request" and doc.get("name") and reason_for_rejection:
+                frappe.db.set_value("Attendance Request", doc.get("name"),"custom_reason_for_rejection", reason_for_rejection)
+                
             frappe.msgprint(
                 "Your request has been rejected. No-attendance penalties are being processed "
                 "in the background."

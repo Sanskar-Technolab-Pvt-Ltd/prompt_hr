@@ -12,6 +12,7 @@
   "status",
   "company",
   "reason",
+  "reason_for_rejection",
   "weekoff_details_section",
   "weekoff_details"
  ],
@@ -65,12 +66,17 @@
    "fieldtype": "Small Text",
    "label": "Reason",
    "reqd": 1
+  },
+  {
+   "fieldname": "reason_for_rejection",
+   "fieldtype": "Small Text",
+   "label": "Reason for rejection"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-08-25 19:49:44.221903",
+ "modified": "2025-09-05 19:14:13.856724",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "WeekOff Change Request",

@@ -37,5 +37,31 @@ frappe.ui.form.on("Attendance Regularization", {
                 }
             })
         }
-    }
+    },
+    before_workflow_action: async (frm) => {
+		
+		if (frm.selected_workflow_action === "Reject" && frm.doc.reason_for_rejection.length < 1){
+            let promise = new Promise((resolve, reject) => {
+				frappe.dom.unfreeze()
+				
+				frappe.prompt({
+					label: 'Reason for rejection',
+					fieldname: 'reason_for_rejection',
+					fieldtype: 'Small Text',
+					reqd: 1
+				}, (values) => {
+					if (values.reason_for_rejection) {
+						frm.set_value("reason_for_rejection", values.reason_for_rejection)
+						frm.save().then(() => {
+							resolve();
+						}).catch(reject);						
+					}
+					else {
+						reject()
+					}
+				})
+            });
+            await promise.catch(() => frappe.throw());
+        }
+    },
 });
