@@ -80,18 +80,46 @@ function add_custom_workflow_buttons(frm) {
                         frm.add_custom_button(
                             __(action),
                             function () {
-                                frappe.call({
-                                    method: "prompt_hr.overrides.attendance_request_override.handle_custom_workflow_action",
-                                    args: {
-                                        "doc": frm.doc,
-                                        "action": action
-                                    },
-                                    callback: function (r) {
-                                        if (r.message) {
-                                            frappe.set_route("Form", "Attendance Request", r.message);
+                                if (action === "Reject" && frm.doc.custom_reason_for_rejection.length < 1) {
+                                    frappe.prompt({
+                                        label: 'Reason for rejection',
+                                        fieldname: 'reason_for_rejection',
+                                        fieldtype: 'Small Text',
+                                        reqd: 1
+                                    }, (values) => {
+                                        if (values.reason_for_rejection) {
+                                            frappe.call({
+                                                method: "prompt_hr.overrides.attendance_request_override.handle_custom_workflow_action",
+                                                args: {
+                                                    "doc": frm.doc,
+                                                    "action": action,
+                                                    "reason_for_rejection": values.reason_for_rejection
+                                        
+                                                },
+                                                callback: function (r) {
+                                                    if (r.message) {
+                                                        frappe.set_route("Form", "Attendance Request", r.message);
+                                                    }
+                                                }
+                                            });
                                         }
-                                    }
-                                });
+                                    })
+                                }
+                                else {
+                                    frappe.call({
+                                        method: "prompt_hr.overrides.attendance_request_override.handle_custom_workflow_action",
+                                        args: {
+                                            "doc": frm.doc,
+                                            "action": action
+                                        },
+                                        callback: function (r) {
+                                            if (r.message) {
+                                                frappe.set_route("Form", "Attendance Request", r.message);
+                                            }
+                                        }
+                                    });
+                                }
+                                
                             },
                             __("Actions")
                         )

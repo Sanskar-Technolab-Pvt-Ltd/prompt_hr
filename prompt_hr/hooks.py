@@ -76,7 +76,8 @@ doctype_js = {
     "Leave Allocation": "public/js/leave_allocation.js",
     "Leave Policy Assignment": "public/js/leave_policy_assignment.js",
     "Salary Slip": "public/js/salary_slip.js",
-    "Compensatory Leave Request": "public/js/compensatory_leave_request.js"
+    "Compensatory Leave Request": "public/js/compensatory_leave_request.js",
+    "Shift Request": "public/js/shift_request.js"
 }
 
 doctype_list_js = {
