@@ -1,5 +1,4 @@
 {
- "_liked_by": "[\"Administrator\"]",
  "actions": [],
  "allow_rename": 1,
  "autoname": "format:EMP-PEN-{employee}-{####}",
@@ -15,6 +14,7 @@
   "penalty_date",
   "attendance",
   "total_leave_penalty",
+  "is_leave_balance_restore",
   "section_break_tpof",
   "leave_penalty_details"
  ],
@@ -80,12 +80,20 @@
    "fieldtype": "Table",
    "label": "Leave Penalty Details",
    "options": "Employee Leave Penalty Details"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_leave_balance_restore",
+   "fieldtype": "Check",
+   "label": "Is Leave Balance Restore",
+   "no_copy": 1,
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-08-30 19:27:41.540223",
+ "modified": "2025-09-04 20:10:44.641922",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Penalty",

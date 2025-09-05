@@ -436,6 +436,7 @@ def append_lop_summary(doc, method=None):
                 "employee": emp_id,
                 "company": doc.company,
                 "penalty_date": ["between", [doc.start_date, doc.end_date]],
+                "is_leave_balance_restore":0
             },
             fields=["deduct_leave_without_pay"],
         )

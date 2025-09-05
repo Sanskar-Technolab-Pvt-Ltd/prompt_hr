@@ -104,9 +104,7 @@ class CustomSalarySlip(SalarySlip):
             for entry in payroll_entry.get("custom_lop_summary", []):
                 summary = frappe.get_doc("LOP Summary", entry.name)
                 if summary.employee == self.employee:
-                    self.leave_without_pay = summary.lop_adjustment or (
-                        (summary.actual_lop or 0) + (summary.penalty_leave_days or 0)
-                    )
+                    self.leave_without_pay = summary.lop_adjustment or 0
                     self.custom_penalty_leave_days = summary.penalty_leave_days or 0
                     return  # ! Exit if matched
         else:
@@ -116,7 +114,8 @@ class CustomSalarySlip(SalarySlip):
                 filters={
                     "employee": self.employee,
                     "company": self.company,
-                    "penalty_date": ["between", [self.start_date, self.end_date]]
+                    "penalty_date": ["between", [self.start_date, self.end_date]],
+                    "is_leave_balance_restore":0
                 },
                 fields=["deduct_leave_without_pay"]
             )

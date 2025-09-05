@@ -10,6 +10,7 @@
   "employee_name",
   "company",
   "reason",
+  "reason_for_rejection",
   "column_break_yyxg",
   "status",
   "attendance",
@@ -86,12 +87,17 @@
    "fieldname": "reason",
    "fieldtype": "Small Text",
    "label": "Reason"
+  },
+  {
+   "fieldname": "reason_for_rejection",
+   "fieldtype": "Small Text",
+   "label": "Reason for rejection"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-08-27 17:42:26.291089",
+ "modified": "2025-09-05 19:05:18.481582",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Attendance Regularization",
@@ -111,6 +117,7 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],

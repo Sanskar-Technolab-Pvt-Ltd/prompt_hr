@@ -180,8 +180,7 @@ def apply_sandwich_rule(doc):
             
             if employee_value in leave_ids:
                 sandwich_rule_applicable = 1
-        else:
-            sandwich_rule_applicable = 0
+                break
 
     else:
         sandwich_rule_applicable = 1

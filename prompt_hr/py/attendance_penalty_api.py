@@ -196,20 +196,21 @@ def prompt_employee_attendance_penalties():
                 continue
 
             for emp_id, emp_penalties in records.items():
-                att_date = emp_penalties.get("attendance_date")
-                attendance = emp_penalties.get("attendance", None)
-                if not att_date:
-                    continue
-                # compute buffered email date
-                email_date_with_buffer = add_days(att_date, int(buffer_days))
+                if check_employee_penalty_criteria(emp_id, emp_penalties.get("reason")):
+                    att_date = emp_penalties.get("attendance_date")
+                    attendance = emp_penalties.get("attendance", None)
+                    if not att_date:
+                        continue
+                    # compute buffered email date
+                    email_date_with_buffer = add_days(att_date, int(buffer_days))
 
-                if emp_id not in consolidated_email_records:
-                    consolidated_email_records[emp_id] = {}
+                    if emp_id not in consolidated_email_records:
+                        consolidated_email_records[emp_id] = {}
 
-                consolidated_email_records[emp_id][penalty_type] = {
-                    "penalty_date": email_date_with_buffer,
-                    "attendance": attendance,
-                }
+                    consolidated_email_records[emp_id][penalty_type] = {
+                        "penalty_date": email_date_with_buffer,
+                        "attendance": attendance,
+                    }
 
         # ! SEND CONSOLIDATED WARNINGS
         for emp_id, penalties in consolidated_email_records.items():
@@ -618,7 +619,7 @@ def create_penalty_records(penalty_entries, target_date):
     # ? FETCH EXISTING PENALTIES FOR THE TARGET DATE
     existing_penalties = frappe.get_all(
         "Employee Penalty",
-        filters={"employee": ["in", employee_list], "penalty_date": target_date},
+        filters={"employee": ["in", employee_list], "penalty_date": target_date, "is_leave_balance_restore":0},
         fields=["name", "employee"],
     )
     existing_penalties_map = {ep["employee"]: ep["name"] for ep in existing_penalties}
@@ -1065,17 +1066,6 @@ def check_employee_penalty_criteria(employee=None, penalization_type=None):
     company_abbr = frappe.db.get_value("Company", employee.company, "abbr")
     hr_settings = frappe.get_single("HR Settings")
 
-    # Field mapping
-    criteria = {
-        "Business Unit": "custom_business_unit",
-        "Department": "department",
-        "Address": "custom_work_location",
-        "Employment Type": "employment_type",
-        "Employee Grade": "grade",
-        "Designation": "designation",
-        "Product Line": "custom_product_line",
-    }
-
     # ? PENALIZATION TYPE MAPPING
     penalization_type_mapping = {
         "No Attendance": "For No Attendance",
@@ -1097,6 +1087,13 @@ def check_employee_penalty_criteria(employee=None, penalization_type=None):
 
     if not table:
         return True  # Allow if table is not configured
+
+    # ? MAP EMPLOYEE FIELD AND ITS DOCTYPE
+    criteria = {
+        row.select_doctype: row.employee_field_name
+        for row in table
+        if row.select_doctype and row.employee_field_name
+    }
 
     is_penalisation = False
     for row in table:

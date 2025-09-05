@@ -76,7 +76,8 @@ doctype_js = {
     "Leave Allocation": "public/js/leave_allocation.js",
     "Leave Policy Assignment": "public/js/leave_policy_assignment.js",
     "Salary Slip": "public/js/salary_slip.js",
-    "Compensatory Leave Request": "public/js/compensatory_leave_request.js"
+    "Compensatory Leave Request": "public/js/compensatory_leave_request.js",
+    "Shift Request": "public/js/shift_request.js"
 }
 
 doctype_list_js = {
@@ -529,6 +530,26 @@ fixtures = [
     #             "Proof of Identity",
     #             "Proof of Address",
     #             "Proof of Qualification"
+    #         ]]
+    #     }
+    # },
+    # {
+    #     "doctype": "Workspace",
+    #     "filters": {
+    #         "name": ["in", [
+    #             "Employee ESS"
+    #         ]]
+    #     }
+    # },
+    # {
+    #     "doctype": "Number Card",
+    #     "filters": {
+    #         "name": ["in", [
+    #             "Leave Application - Pending Approval",
+    #             "Attendance Regularization - Pending Approval",
+    #             "Attendance Request - Pending Approval",
+    #             "Shift Request - Pending Approval",
+    #             "WeekOff Change Request - Pending Approval"
     #         ]]
     #     }
     # }
