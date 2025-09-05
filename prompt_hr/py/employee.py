@@ -72,6 +72,29 @@ def before_insert(doc, method):
     # ? SET IMPREST ALLOCATION AMOUNT FROM EMPLOYEE ONBOARDING FORM
     set_imprest_allocation_amount(doc)
 
+    # ? SET EMPLOYEE QUESTIONAIRE
+    set_employee_questionnaire(doc)
+
+def set_employee_questionnaire(doc):
+    """SET EMPLOYEE QUESTIONNAIRE RESPONSES FROM HR SETTINGS"""
+    hr_settings = frappe.get_single("HR Settings")
+    questionnaire = getattr(hr_settings, "custom_pre_login_questionnaire", None)
+
+    # RESET CHILD TABLE
+    doc.custom_pre_login_questionnaire_response = []
+
+    if not questionnaire:
+        return
+
+    for row in questionnaire:
+        if not row.field_name:
+            continue
+        doc.append("custom_pre_login_questionnaire_response", {
+            "field_label": row.field_name,
+            "field_type": row.field_type,
+            "status": "Pending",
+        })
+
 
 # ? FUNCTION TO SET IMPREST ALLOCATION AMOUNT FROM EMPLOYEE ONBOARDING FORM
 def set_imprest_allocation_amount(doc):
