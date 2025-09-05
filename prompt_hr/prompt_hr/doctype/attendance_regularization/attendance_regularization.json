@@ -9,6 +9,7 @@
   "employee",
   "employee_name",
   "company",
+  "department",
   "reason",
   "reason_for_rejection",
   "column_break_yyxg",
@@ -86,7 +87,18 @@
   {
    "fieldname": "reason",
    "fieldtype": "Small Text",
-   "label": "Reason"
+   "label": "Reason",
+   "reqd": 1
+  },
+  {
+  "fetch_from": "employee.department",
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Department",
+   "no_copy": 1,
+   "options": "Department"
   },
   {
    "fieldname": "reason_for_rejection",
@@ -97,7 +109,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-09-05 19:05:18.481582",
+ "modified": "2025-09-05 21:21:43.122279",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Attendance Regularization",
