@@ -531,5 +531,25 @@ fixtures = [
     #             "Proof of Qualification"
     #         ]]
     #     }
+    # },
+    # {
+    #     "doctype": "Workspace",
+    #     "filters": {
+    #         "name": ["in", [
+    #             "Employee ESS"
+    #         ]]
+    #     }
+    # },
+    # {
+    #     "doctype": "Number Card",
+    #     "filters": {
+    #         "name": ["in", [
+    #             "Leave Application - Pending Approval",
+    #             "Attendance Regularization - Pending Approval",
+    #             "Attendance Request - Pending Approval",
+    #             "Shift Request - Pending Approval",
+    #             "WeekOff Change Request - Pending Approval"
+    #         ]]
+    #     }
     # }
 ]
