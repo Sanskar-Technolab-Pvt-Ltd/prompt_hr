@@ -28,5 +28,13 @@ frappe.ui.form.on("Employee Checkin", {
                 });
             }
         }
+        if (!frm.is_new()) {
+            // ? CHECK IF USER DOES NOT HAVE PRIVILEGED ROLES
+            const privileged_roles = ["S - HR Director (Global Admin)", "System Manager", "Administrator"];
+            const is_privileged = privileged_roles.some(role => frappe.user_roles.includes(role));
+            if (!is_privileged) {
+                frm.disable_form()
+            }
+        }
     },
 });
