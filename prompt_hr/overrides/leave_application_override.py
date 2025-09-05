@@ -1,8 +1,10 @@
 import frappe
-from frappe.utils import getdate, today, flt
+from frappe.utils import getdate, today, flt, time_diff_in_hours
 from frappe import _
 from hrms.hr.doctype.leave_application.leave_application import LeaveApplication, get_leave_period, is_lwp
 from prompt_hr.py.leave_application import custom_get_number_of_leave_days
+from prompt_hr.prompt_hr.doctype.employee_penalty.employee_penalty import cancel_penalties
+from datetime import timedelta
 
 
 class CustomLeaveApplication(LeaveApplication):
@@ -129,3 +131,90 @@ class CustomLeaveApplication(LeaveApplication):
         )
         if not remaining_leaves or self.total_leave_days > remaining_leaves:
             self.show_insufficient_balance_message(remaining_leaves)
+
+    def validate_attendance(self):
+        return
+
+    def create_or_update_attendance(self, attendance_name, date):
+        status = (
+            "Half Day" if self.half_day_date and getdate(date) == getdate(self.half_day_date) else "On Leave"
+        )
+        if attendance_name:
+            # update existing attendance, change absent to on leave or half day
+            doc = frappe.get_doc("Attendance", attendance_name)
+            half_day_status = None if status == "On Leave" else "Present"
+            half_day_time = None
+
+            if half_day_status:
+                half_day_time = self.custom_half_day_time
+            
+            modify_half_day_status = 1 if doc.status == "Absent" and status == "Half Day" else 0
+            if half_day_status:
+                # ? FETCH SHIFT ASSIGNMENTS FOR TARGET DATE (INCLUDING OPEN-ENDED)
+                shift_assignments = frappe.get_all(
+                    "Shift Assignment",
+                    filters={
+                        "employee": doc.employee,
+                        "docstatus": 1,
+                        "start_date": ["<=", doc.attendance_date],
+                    },
+                    or_filters=[{"end_date": [">=", doc.attendance_date]}, {"end_date": ["is", "not set"]}],
+                    fields=["employee", "shift_type"],
+                )
+
+                if shift_assignments:
+                    # ? GET SHIFT TYPE FOR TARGET DATE
+                    shift_type = shift_assignments[0].shift_type
+
+                    # ? GET SHIFT DETAILS
+                    shift_absent_threshold = frappe.db.get_value(
+                        "Shift Type", shift_type, "working_hours_threshold_for_absent"
+                    )
+
+                    if doc.working_hours and doc.working_hours < shift_absent_threshold:
+                        # ? SET HALF DAY STATUS TO ABSENT
+                        half_day_status = "Absent"
+                        modify_half_day_status = 0
+                        status = "Absent"
+
+                    elif not doc.working_hours:
+                        if doc.custom_checkin_time and doc.custom_checkout_time:
+                            time_diff = time_diff_in_hours(doc.custom_checkout_time,doc.custom_checkin_time)
+                            if time_diff < shift_absent_threshold:
+                                half_day_status = "Absent"
+                                modify_half_day_status = 0
+                                status = "Absent"
+
+                        else:
+                            half_day_status = "Absent"
+                            modify_half_day_status = 0
+                            status = "Absent"
+
+            if doc.custom_employee_penalty_id:
+                cancel_penalties([doc.custom_employee_penalty_id])
+
+            doc.db_set(
+                {
+                    "status": status,
+                    "leave_type": self.leave_type,
+                    "leave_application": self.name,
+                    "half_day_status": half_day_status,
+                    "modify_half_day_status": modify_half_day_status,
+                    "custom_half_day_time": half_day_time
+                }
+            )
+        else:
+            # make new attendance and submit it
+            doc = frappe.new_doc("Attendance")
+            doc.employee = self.employee
+            doc.employee_name = self.employee_name
+            doc.attendance_date = date
+            doc.company = self.company
+            doc.leave_type = self.leave_type
+            doc.leave_application = self.name
+            doc.status = status
+            doc.half_day_status = "Present" if status == "Half Day" else None
+            doc.modify_half_day_status = 1 if status == "Half Day" else 0
+            doc.flags.ignore_validate = True  # ignores check leave record validation in attendance
+            doc.insert(ignore_permissions=True)
+            doc.submit()
