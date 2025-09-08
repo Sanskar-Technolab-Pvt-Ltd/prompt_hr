@@ -724,20 +724,26 @@ def create_penalty_records(penalty_entries, target_date):
 
             else:
                 if details["attendance"] is None:
-                    att_doc = frappe.get_doc(
-                        {
-                            "doctype": "Attendance",
-                            "employee": employee,
-                            "attendance_date": target_date,
-                            "status": "Absent",
-                            "company": frappe.db.get_value(
-                                "Employee", employee, "company"
-                            ),
-                        }
-                    )
-                    att_doc.insert(ignore_permissions=True)
-                    att_doc.submit()
-                    frappe.db.commit()
+                    try:
+                        att_doc = frappe.get_doc(
+                            {
+                                "doctype": "Attendance",
+                                "employee": employee,
+                                "attendance_date": target_date,
+                                "status": "Absent",
+                                "company": frappe.db.get_value(
+                                    "Employee", employee, "company"
+                                ),
+                            }
+                        )
+                        att_doc.insert(ignore_permissions=True)
+                        att_doc.submit()
+                        frappe.db.commit()
+                    except Exception as e:
+                        frappe.log_error(
+                            f"Error creating attendance for employee {employee} on {target_date}: {e}"
+                        )
+                        continue
                     details["attendance"] = att_doc.name
                 handle_leave_ledger(details, employee)
                 penalty_doc = frappe.new_doc("Employee Penalty")
