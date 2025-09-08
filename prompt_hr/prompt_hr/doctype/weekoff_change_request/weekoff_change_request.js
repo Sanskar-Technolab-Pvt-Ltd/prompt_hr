@@ -47,7 +47,7 @@ frappe.ui.form.on("WeekOff Change Request", {
 
     },
     before_workflow_action: async (frm) => {		
-		if (frm.selected_workflow_action === "Reject" && frm.doc.reason_for_rejection.length < 1){
+		if (frm.selected_workflow_action === "Reject" && (frm.doc.reason_for_rejection || "").length < 1){
             let promise = new Promise((resolve, reject) => {
 				frappe.dom.unfreeze()
 				
