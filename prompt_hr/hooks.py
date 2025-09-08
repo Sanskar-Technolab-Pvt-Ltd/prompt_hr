@@ -287,6 +287,7 @@ doc_events = {
         "before_save": "prompt_hr.py.leave_application.before_save",
         "before_insert": "prompt_hr.py.leave_application.before_insert",
         "before_validate": "prompt_hr.py.leave_application.before_validate",
+        "validate": "prompt_hr.py.leave_application.validate",
         "before_submit": "prompt_hr.py.leave_application.before_submit",
         "on_submit": "prompt_hr.py.leave_application.on_submit"
     },
