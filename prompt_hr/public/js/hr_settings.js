@@ -49,6 +49,7 @@ frappe.ui.form.on("HR Settings", {
     
     onload: function (frm) { 
         set_employee_fields_in_penalization_criteria(frm);
+        set_employee_fields_in_pre_login_questionnaire(frm)
     },  
 
     custom_deduct_leave_penalty_for_indifoss: function (frm) {
@@ -157,12 +158,22 @@ frappe.ui.form.on("Pre Login Questionnaire", {
         let options = await getEmployeeFields();
 
         if (options.length) {
-            frm.fields["custom_pre_login_questionnaire"].grid.update_docfield_property(
+            frm.fields_dict["custom_pre_login_questionnaire"].grid.update_docfield_property(
                 "field_name",
                 "options",
                 options.map(o => o.label)
             );
         }
+    },
+    field_name: function (frm, cdt, cdn) {
+        let row = locals[cdt][cdn];
+        if (frm.employee_field_map && row.field_name) {
+            row.employee_field_name = frm.employee_field_map[row.field_name];
+        }
+        if (frm.employee_field_type_map && row.field_name) {
+            row.field_type = frm.employee_field_type_map[row.field_name];
+        }
+        frm.refresh_field("custom_pre_login_questionnaire");
     }
 })
 async function set_employee_fields_in_penalization_criteria(frm) {
@@ -184,6 +195,31 @@ async function set_employee_fields_in_penalization_criteria(frm) {
     }
 }
 
+async function set_employee_fields_in_pre_login_questionnaire(frm) {
+    
+    let options = await getEmployeeFields();
+    let type_options = await getEmployeeFieldTypes();
+    if (options.length) {
+        frm.fields_dict["custom_pre_login_questionnaire"].grid.update_docfield_property(
+            "field_name",
+            "options",
+            options.map(o => o.label)
+        );
+
+        frm.employee_field_map = {};
+        frm.employee_field_type_map = {};
+        options.forEach(o => {
+            frm.employee_field_map[o.label] = o.fieldname;
+        });
+        type_options.forEach(o => {
+            frm.employee_field_type_map[o.label] = o.fieldtype;
+        });
+        frm.refresh_field("custom_pre_login_questionnaire");
+
+    }
+}
+
+
 // Function to fetch Employee DocType fields
 async function getEmployeeFields() {
     try {
@@ -195,6 +231,25 @@ async function getEmployeeFields() {
             label: field.label,
             value: field.label,
             fieldname: field.fieldname,
+        }));
+    } catch (error) {
+        console.error("Error fetching Employee fields:", error);
+        frappe.msgprint(__('Could not load Employee fields.'));
+        return [];
+    }
+}
+
+// Function to fetch Employee DocType fields
+async function getEmployeeFieldTypes() {
+    try {
+        const response = await frappe.call({
+            method: "prompt_hr.py.employee.get_employee_doctype_fields"
+        });
+
+        return response.message.map(field => ({
+            label: field.label,
+            value: field.label,
+            fieldtype: field.fieldtype,
         }));
     } catch (error) {
         console.error("Error fetching Employee fields:", error);

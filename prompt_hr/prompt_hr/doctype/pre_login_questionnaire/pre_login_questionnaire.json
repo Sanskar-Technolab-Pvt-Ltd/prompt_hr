@@ -7,28 +7,35 @@
  "engine": "InnoDB",
  "field_order": [
   "field_name",
-  "field_type"
+  "field_type",
+  "employee_field_name"
  ],
  "fields": [
   {
    "fieldname": "field_name",
-   "fieldtype": "Data",
+   "fieldtype": "Autocomplete",
    "in_list_view": 1,
-   "label": "Field Name"
+   "label": "Employee Field"
   },
   {
    "fieldname": "field_type",
-   "fieldtype": "Select",
+   "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Field Type",
-   "options": "Attach\nAttach Image\nCheck\nCurrency\nColor\nData\nDate\nDatetime\nDuration\nFloat\nHTML\nInt\nLink\nPassword\nPhone\nRating\nSelect\nSignature\nSmall Text\nText\nText Editor\nTable\nTime\nSection Break\nColumn Break\nPage Break"
+   "read_only": 1
+  },
+  {
+   "fieldname": "employee_field_name",
+   "fieldtype": "Data",
+   "label": "Employee Field Name",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-09-05 20:42:27.910493",
+ "modified": "2025-09-08 13:28:04.507463",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Pre Login Questionnaire",
