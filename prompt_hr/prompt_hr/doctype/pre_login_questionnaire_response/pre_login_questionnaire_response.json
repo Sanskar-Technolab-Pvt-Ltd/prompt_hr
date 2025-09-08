@@ -1,0 +1,55 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-09-05 17:41:31.894146",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "field_label",
+  "field_type",
+  "employee_response",
+  "status"
+ ],
+ "fields": [
+  {
+   "fieldname": "field_label",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Field Label"
+  },
+  {
+   "fieldname": "field_type",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Field Type"
+  },
+  {
+   "fieldname": "employee_response",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Employee Response"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Pending\nApprove",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-09-05 20:04:03.418396",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Pre Login Questionnaire Response",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

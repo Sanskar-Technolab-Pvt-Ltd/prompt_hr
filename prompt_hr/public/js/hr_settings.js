@@ -151,6 +151,20 @@ frappe.ui.form.on("Penalization Criteria", {
         }
     }
 })
+
+frappe.ui.form.on("Pre Login Questionnaire", {
+    custom_pre_login_questionnaire_add: async function (frm, cdt, cdn) {
+        let options = await getEmployeeFields();
+
+        if (options.length) {
+            frm.fields["custom_pre_login_questionnaire"].grid.update_docfield_property(
+                "field_name",
+                "options",
+                options.map(o => o.label)
+            );
+        }
+    }
+})
 async function set_employee_fields_in_penalization_criteria(frm) {
     
     let options = await getEmployeeFields();
