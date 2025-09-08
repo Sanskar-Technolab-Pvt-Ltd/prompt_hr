@@ -1237,80 +1237,6 @@ def validate_employee_holiday_list():
             "Error while checking for weeklyoff assignment", frappe.get_traceback()
         )
 
-
-@frappe.whitelist()
-def assign_checkin_role():
-    """Method to assign create checkin role to the employee if that employee has attendance request and the current date falls within the from and to date of that attendance request"""
-
-    try:
-
-        today_date = getdate(today())
-        checkin_role = "Create Checkin"
-        attendance_request_list = frappe.db.get_all(
-            "Attendance Request",
-            {
-                "docstatus": 1,
-                "custom_status": "Approved",
-                "from_date": ["<=", today_date],
-                "to_date": [">=", today_date],
-            },
-            ["name", "employee"],
-        )
-
-        print(f"\n\n attendance request list {attendance_request_list} \n\n")
-
-        valid_users = set()
-
-        if attendance_request_list:
-            for attendance_request_data in attendance_request_list:
-                emp_user_id = frappe.db.get_value(
-                    "Employee", attendance_request_data.get("employee"), "user_id"
-                )
-                valid_users.add(emp_user_id)
-                if not user_has_role(emp_user_id, checkin_role):
-                    print(f"\n\n applying checkin role {emp_user_id} \n\n")
-                    user_doc = frappe.get_doc("User", emp_user_id)
-                    user_doc.append("roles", {"role": checkin_role})
-                    user_doc.save(ignore_permissions=True)
-
-            frappe.db.commit()
-        print(f"\n\n valid users {valid_users} \n\n")
-        # * REMOVING CHECKIN ROLE IF THE USER IS NOT QUALIFIED
-        all_employee_list = frappe.db.get_all(
-            "Employee",
-            {"status": "Active", "user_id": ["is", "set"]},
-            ["name", "user_id"],
-        )
-
-        if all_employee_list:
-            print(f"\n\n all employee list {all_employee_list} \n\n")
-            for employee_id in all_employee_list:
-
-                if (
-                    employee_id.get("user_id")
-                    and employee_id.get("user_id") not in valid_users
-                    and user_has_role(employee_id.get("user_id"), checkin_role)
-                ):
-                    # frappe.remove_role(employee_id.get("user_id", checkin_role))
-                    user_doc = frappe.get_doc("User", employee_id.get("user_id"))
-
-                    for role in user_doc.get("roles"):
-                        if role.role == checkin_role:
-                            print(
-                                f"\n\n removing checkin role {employee_id.get('user_id')} \n\n"
-                            )
-                            user_doc.remove(role)
-
-                            break
-
-                    user_doc.save(ignore_permissions=True)
-            frappe.db.commit()
-    except Exception as e:
-        frappe.log_error(
-            "Error in assign_checkin_role scheduler method", frappe.get_traceback()
-        )
-
-
 def user_has_role(user, role):
     """Method to check if the user has the given role or not"""
     return frappe.db.exists("Has Role", {"parent": user, "role": role})
@@ -3013,6 +2939,77 @@ def is_send_mail_check(emp_id, is_no_attendance=0, is_mispunch=0, is_later_entry
 
 
 
+# @frappe.whitelist()
+# def assign_checkin_role():
+#     """Method to assign create checkin role to the employee if that employee has attendance request and the current date falls within the from and to date of that attendance request"""
+
+#     try:
+
+#         today_date = getdate(today())
+#         checkin_role = "Create Checkin"
+#         attendance_request_list = frappe.db.get_all(
+#             "Attendance Request",
+#             {
+#                 "docstatus": 1,
+#                 "custom_status": "Approved",
+#                 "from_date": ["<=", today_date],
+#                 "to_date": [">=", today_date],
+#             },
+#             ["name", "employee"],
+#         )
+
+#         frappe.log_error(f"assign_checkin_role_on{today_date}", f"{attendance_request_list}")
+
+#         valid_users = set()
+
+#         if attendance_request_list:
+#             for attendance_request_data in attendance_request_list:
+#                 emp_user_id = frappe.db.get_value(
+#                     "Employee", attendance_request_data.get("employee"), "user_id"
+#                 )
+#                 valid_users.add(emp_user_id)
+#                 if not user_has_role(emp_user_id, checkin_role):
+#                     frappe.log_error(f"assign_checkin_role_to{emp_user_id}", "assigning user create checkin role")
+#                     user_doc = frappe.get_doc("User", emp_user_id)
+#                     user_doc.append("roles", {"role": checkin_role})
+#                     user_doc.save(ignore_permissions=True)
+
+#             frappe.db.commit()
+#         # print(f"\n\n valid users {valid_users} \n\n")
+#         # * REMOVING CHECKIN ROLE IF THE USER IS NOT QUALIFIED
+#         all_employee_list = frappe.db.get_all(
+#             "Employee",
+#             {"status": "Active", "user_id": ["is", "set"]},
+#             ["name", "user_id"],
+#         )
+
+#         if all_employee_list:
+#             print(f"\n\n all employee list {all_employee_list} \n\n")
+#             for employee_id in all_employee_list:
+
+#                 if (
+#                     employee_id.get("user_id")
+#                     and employee_id.get("user_id") not in valid_users
+#                     and user_has_role(employee_id.get("user_id"), checkin_role)
+#                 ):
+#                     # frappe.remove_role(employee_id.get("user_id", checkin_role))
+#                     user_doc = frappe.get_doc("User", employee_id.get("user_id"))
+
+#                     for role in user_doc.get("roles"):
+#                         if role.role == checkin_role:
+#                             print(
+#                                 f"\n\n removing checkin role {employee_id.get('user_id')} \n\n"
+#                             )
+#                             user_doc.remove(role)
+
+#                             break
+
+#                     user_doc.save(ignore_permissions=True)
+#             frappe.db.commit()
+#     except Exception as e:
+#         frappe.log_error(
+#             "Error in assign_checkin_role scheduler method", frappe.get_traceback()
+#         )
 # ! DAILY SCHEDULER TO HANDLE ATTENDANCE REQUEST RITUALS
 @frappe.whitelist()
 def daily_attendance_request_rituals():
@@ -3056,7 +3053,6 @@ def daily_attendance_request_rituals():
             current_scheme = employee_map.get(employee)
             active_request = None
             last_expired_request = None
-
             for req in requests:
                 if getdate(req.from_date) <= getdate(today()) <= getdate(req.to_date):
                     active_request = req
@@ -3078,19 +3074,25 @@ def daily_attendance_request_rituals():
                                 current_scheme,
                             )
 
-                        frappe.db.set_value(
-                            "Employee", employee, "custom_attendance_capture_scheme", new_scheme
-                        )
+                        emp_doc = frappe.get_doc("Employee", employee) or None
+                        emp_doc.custom_attendance_capture_scheme = new_scheme
+                        emp_doc.save(ignore_permissions=True)
+                        # frappe.db.set_value(
+                        #     "Employee", employee, "custom_attendance_capture_scheme", new_scheme
+                        # )
                         employee_map[employee] = new_scheme
-
+                            
             # * FOR THE EXPIRED
             elif last_expired_request and last_expired_request.custom_old_attendance_capture_scheme:
                 if current_scheme != last_expired_request.custom_old_attendance_capture_scheme:
-                    frappe.db.set_value(
-                        "Employee", employee, "custom_attendance_capture_scheme", last_expired_request.custom_old_attendance_capture_scheme
-                    )
+                    emp_doc = frappe.get_doc("Employee", employee)
+                    emp_doc.custom_attendance_capture_scheme = last_expired_request.custom_old_attendance_capture_scheme
+                    emp_doc.save(ignore_permissions=True)
+                    # frappe.db.set_value(
+                    #     "Employee", employee, "custom_attendance_capture_scheme", last_expired_request.custom_old_attendance_capture_scheme
+                    # )
                     employee_map[employee] = last_expired_request.custom_old_attendance_capture_scheme
-
+                    
         frappe.db.commit()
     except Exception as e:
         frappe.log_error("daily_attendance_request_rituals_error", frappe.get_traceback())
