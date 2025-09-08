@@ -629,8 +629,22 @@ def get_raise_resignation_questions(company):
             filters={"parent": quiz_name},
             fields=["question", "question_detail"],
         )
-        return questions
+        
+        questions_with_type = []
+        for q in questions:
+            # Fetch full LMS Question doc
+            question_doc = frappe.get_doc("LMS Question", q.question)
 
+            questions_with_type.append({
+                "question": q.question,
+                "question_detail": q.question_detail,
+                "type": question_doc.type,
+                "custom_input_type": question_doc.custom_input_type,
+                "custom_multi_checkselect_options": question_doc.custom_multi_checkselect_options,
+            })
+            
+        return questions_with_type
+    
     except Exception as e:
         frappe.log_error(f"Error fetching resignation questions: {str(e)}")
         return []
