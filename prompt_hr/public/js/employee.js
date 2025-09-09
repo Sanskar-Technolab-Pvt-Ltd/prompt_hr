@@ -31,6 +31,10 @@ frappe.ui.form.on("Employee", {
         set_text_field_height();
 
         addEmployeeDetailsChangesButton(frm);
+        // ? ADD APPROVAL BUTTON FOR LOGIN QUESTIONNAIRE TO EMPLOYEE
+        if (!frm.is_new() && !frm.doc.custom_employees_all_response_approve){
+            addApproveEmployeeDetailsButton(frm);
+        }
         frappe.db.get_value('Employee', {'name': frm.doc.name}, 'user_id').then(r => {
             if (!frappe.user_roles.includes("S - HR Director (Global Admin)") && !frappe.user_roles.includes("System Manager") && !frappe.user_roles.includes("S - HR L1") && !frappe.user_roles.includes("S - HR L2")) {
                 if (frappe.session.user != r.message.user_id) {
@@ -269,6 +273,106 @@ frappe.ui.form.on("Employee", {
     // }
 
 });
+
+// ? FUNCTION TO APPROVE/REJECT DETAILS UPLOADED BY EMPLOYEE
+function addApproveEmployeeDetailsButton(frm) {
+    frm.add_custom_button(__("Approve Employee Responses"), function () {
+        let pendingRows = (frm.doc.custom_pre_login_questionnaire_response || []).filter(r => r.status === "Pending");
+        // ? RETURN IF NO DATA IS IN PENDING STATE
+        if (!pendingRows.length) {
+            frappe.msgprint("No pending responses to approve or reject.");
+            return;
+        }
+
+        let dialogFields = pendingRows.map((row, idx) => {
+            const employeeResponseIsFile = typeof row.employee_response === 'string' &&
+                (row.employee_response.startsWith('http') || /\.(pdf|docx?|xlsx?|png|jpg|jpeg|gif)$/i.test(row.employee_response));
+
+            return [
+                {
+                    fieldname: `field_label_${idx}`,
+                    fieldtype: 'Data',
+                    label: 'Field',
+                    default: row.field_label,
+                    read_only: 1
+                },
+                ...(employeeResponseIsFile ? [
+                    {
+                        fieldname: `employee_response_button_${idx}`,
+                        fieldtype: 'Button',
+                        label: 'Open Employee Response File',
+                        click: () => window.open(row.employee_response, '_blank')
+                    }
+                ] : [
+                    {
+                        fieldname: `employee_response_${idx}`,
+                        fieldtype: 'Data',
+                        label: 'Employee Response',
+                        default: row.employee_response,
+                        read_only: 1
+                    }
+                ]),
+                {
+                    fieldname: `status_${idx}`,
+                    fieldtype: 'Select',
+                    label: 'Action',
+                    options: ['Approve', 'Reject'],
+                    default: '',
+                    reqd: 1
+                },
+                ...(row.attach ? [{
+                    fieldname: `attachment_${idx}`,
+                    fieldtype: 'Button',
+                    label: 'Open Attachment',
+                    click: () => window.open(row.attach, '_blank')
+                }] : [])
+            ];
+        }).flat();
+
+        let dialog = new frappe.ui.Dialog({
+            title: 'Approve/Reject Employee Responses',
+            fields: dialogFields,
+            primary_action_label: 'Submit',
+            primary_action(values) {
+                pendingRows.forEach((row, idx) => {
+                    let action = values[`status_${idx}`];
+                    if (!action) return;
+
+                    if (action === 'Rejected') {
+                        row.status = 'Pending';
+                        row.employee_response = '';
+                    } else if (action === 'Approve') {
+                        row.status = 'Approve';
+                        console.log(row.employee_field_name, row.employee_response)
+                        frm.set_value(row.employee_field_name, row.employee_response);
+                    }
+                });
+
+                frm.refresh_field('custom_pre_login_questionnaire_response');
+                dialog.hide();
+
+                // ? SAVE THE DOC TO DB
+                frm.save().then(() => {
+                    // ? SET CUSTOM_EMPLOYEES_ALL_RESPONSE_APPROVE IF ALL RESPONSES APPROVED
+                    let allApproved = (frm.doc.custom_pre_login_questionnaire_response || [])
+                        .every(r => r.status === "Approve");
+
+                    if (allApproved) {
+                        frm.set_value("custom_employees_all_response_approve", 1);
+                        frm.save().then(() => {
+                            frappe.msgprint("All responses approved. Employee fields updated successfully.");
+                        });
+                    } else {
+                        frappe.msgprint("Responses updated and saved successfully.");
+                    }
+                });
+            }
+        });
+
+        dialog.show();
+    });
+}
+
 function set_state_options(frm, state_field_name, country_field_name) {
     const state_field = frm.get_field(state_field_name);
     const country = frm.get_field(country_field_name).value;
