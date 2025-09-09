@@ -1750,38 +1750,37 @@ def employee_questionnaire_submit(responses):
         for row in emp_doc.custom_pre_login_questionnaire_response:
             for response in responses:
                 if row.employee_field_name == response.get("fieldname"):
-                    if row.employee_field_name == response.get("fieldname"):
-                        if response.get("fieldtype") == "Table":
-                            table_data = response.get("value") or []
+                    if response.get("fieldtype") == "Table":
+                        table_data = response.get("value") or []
 
-                            clean_data = []
-                            for i, row_data in enumerate(table_data, start=1):
-                                flat_row = {"_row_id": i}  # UNIQUE ROW IDENTIFIER
+                        clean_data = []
+                        for i, row_data in enumerate(table_data, start=1):
+                            flat_row = {"_row_id": i}  # UNIQUE ROW IDENTIFIER
 
-                                for k, v in row_data.items():
-                                    if k in ("__islocal", "idx", "name", "owner", "creation", "modified", "modified_by"):
-                                        continue
-                                    if v in (None, "", []):
-                                        v = ""
+                            for k, v in row_data.items():
+                                if k in ("__islocal", "idx", "name", "owner", "creation", "modified", "modified_by"):
+                                    continue
+                                if v in (None, "", []):
+                                    v = ""
 
-                                    # ? GET LABEL FOR DISPLAY
+                                # ? GET LABEL FOR DISPLAY
+                                label = frappe.db.get_value(
+                                    "DocField", {"parent": response.get("options"), "fieldname": k}, "label"
+                                )
+                                if not label:
                                     label = frappe.db.get_value(
-                                        "DocField", {"parent": response.get("options"), "fieldname": k}, "label"
+                                        "Custom Field", {"dt": response.get("options"), "fieldname": k}, "label"
                                     )
-                                    if not label:
-                                        label = frappe.db.get_value(
-                                            "Custom Field", {"dt": response.get("options"), "fieldname": k}, "label"
-                                        )
 
-                                    flat_row[k] = {            # ? STORE BOTH FIELDNAME AND LABEL/VALUE
-                                        "label": label or k,
-                                        "value": v
-                                    }
+                                flat_row[k] = {            # ? STORE BOTH FIELDNAME AND LABEL/VALUE
+                                    "label": label or k,
+                                    "value": v
+                                }
 
-                                clean_data.append(flat_row)
+                            clean_data.append(flat_row)
 
-                            # ? STORE CLEANED TABLE DATA AS JSON STRING
-                            row.employee_response = frappe.as_json(clean_data)
+                        # ? STORE CLEANED TABLE DATA AS JSON STRING
+                        row.employee_response = frappe.as_json(clean_data)
 
                     else:
                         # ? NORMAL FIELDS DIRECTLY AS VALUE
