@@ -278,7 +278,6 @@ frappe.ui.form.on("Employee", {
 function addApproveEmployeeDetailsButton(frm) {
     frm.add_custom_button(__("Approve Employee Responses"), function () {
         let pendingRows = (frm.doc.custom_pre_login_questionnaire_response || []).filter(r => r.status === "Pending");
-        // ? RETURN IF NO DATA IS IN PENDING STATE
         if (!pendingRows.length) {
             frappe.msgprint("No pending responses to approve or reject.");
             return;
@@ -287,6 +286,14 @@ function addApproveEmployeeDetailsButton(frm) {
         let dialogFields = pendingRows.map((row, idx) => {
             const employeeResponseIsFile = typeof row.employee_response === 'string' &&
                 (row.employee_response.startsWith('http') || /\.(pdf|docx?|xlsx?|png|jpg|jpeg|gif)$/i.test(row.employee_response));
+            const employeeResponseIsTable = (() => {
+                try {
+                    let parsed = JSON.parse(row.employee_response);
+                    return Array.isArray(parsed);
+                } catch {
+                    return false;
+                }
+            })();
 
             return [
                 {
@@ -302,6 +309,73 @@ function addApproveEmployeeDetailsButton(frm) {
                         fieldtype: 'Button',
                         label: 'Open Employee Response File',
                         click: () => window.open(row.employee_response, '_blank')
+                    }
+                ] : employeeResponseIsTable ? [
+                    {
+                        fieldname: `employee_response_table_btn_${idx}`,
+                        fieldtype: 'Button',
+                        label: 'View Table Response',
+                        click: () => {
+                            try {
+                                let parsed = JSON.parse(row.employee_response || "[]");
+                                let tableDialog = new frappe.ui.Dialog({
+                                    title: `Table Response - ${row.field_label}`,
+                                    fields: [{
+                                        fieldname: 'html_preview',
+                                        fieldtype: 'HTML'
+                                    }]
+                                });
+                                // BUILD SIMPLE HTML TABLE
+                                let html = `<div style="max-height:400px; overflow:auto;"><table class="table table-bordered">`;
+
+                                if (parsed.length) {
+                                    // ? META FIELDS TO IGNORE
+                                    const ignoreFields = ["_row_id", "idx", "name", "__islocal"];
+
+                                    // ? DETERMINE COLUMNS TO SHOW (ONLY NON-EMPTY AND NOT META FIELDS)
+                                    let columnsToShow = [];
+                                    Object.keys(parsed[0]).forEach(key => {
+                                        if (!ignoreFields.includes(key)) {
+                                            let hasValue = parsed.some(row => row[key] && row[key].value !== "");
+                                            if (hasValue) columnsToShow.push(key);
+                                        }
+                                    });
+
+                                    // ? BUILD TABLE HEADER
+                                    html += "<thead><tr>";
+                                    columnsToShow.forEach(colKey => {
+                                        html += `<th>${frappe.utils.escape_html(parsed[0][colKey].label)}</th>`;
+                                    });
+                                    html += "</tr></thead><tbody>";
+
+                                    // ? BUILD TABLE ROWS
+                                    parsed.forEach(row => {
+                                        html += "<tr>";
+                                        columnsToShow.forEach(colKey => {
+                                            let value = row[colKey]?.value || "";
+
+                                            // ? IF VALUE LOOKS LIKE AN ATTACHMENT PATH, RENDER AS LINK
+                                            if (typeof value === "string" && value.startsWith("/private/files/")) {
+                                                let fileUrl = frappe.urllib.get_full_url(value);
+                                                value = `<a href="${fileUrl}" target="_blank">${frappe.utils.escape_html(value.split("/").pop())}</a>`;
+                                            }
+
+                                            html += `<td>${value}</td>`;
+                                        });
+                                        html += "</tr>";
+                                    });
+
+                                    html += "</tbody></table></div>";
+                                } else {
+                                    html = "<p>No rows found in table response.</p>";
+                                }
+
+                                tableDialog.fields_dict.html_preview.$wrapper.html(html);
+                                tableDialog.show();
+                            } catch (e) {
+                                frappe.msgprint("Invalid table data");
+                            }
+                        }
                     }
                 ] : [
                     {
@@ -338,22 +412,52 @@ function addApproveEmployeeDetailsButton(frm) {
                     let action = values[`status_${idx}`];
                     if (!action) return;
 
-                    if (action === 'Rejected') {
+                    if (action === 'Reject') {
                         row.status = 'Pending';
-                        row.employee_response = '';
+                        frappe.model.set_value(row.doctype, row.name, "employee_response", "");
                     } else if (action === 'Approve') {
                         row.status = 'Approve';
-                        console.log(row.employee_field_name, row.employee_response)
-                        frm.set_value(row.employee_field_name, row.employee_response);
+
+                        // ? HANDLE TABLE RESPONSES
+                        try {
+                            let parsed = JSON.parse(row.employee_response);
+                            if (Array.isArray(parsed)) {
+                                // CLEAR EXISTING CHILD TABLE AND REPOPULATE
+                                frm.clear_table(row.employee_field_name);
+
+                                parsed.forEach(r => {
+                                    // CREATE CLEAN CHILD ENTRY
+                                    let child = frm.add_child(row.employee_field_name);
+
+                                    // LOOP THROUGH KEYS AND SET ONLY VALID FIELDS
+                                    Object.keys(r).forEach(key => {
+                                        if (["_row_id", "idx", "name", "__islocal"].includes(key)) return;
+
+                                        if (r[key] && typeof r[key] === "object" && "value" in r[key]) {
+                                            // SET FIELD VALUE
+                                            child[key] = r[key].value;
+                                        }
+                                    });
+                                });
+
+                                // REFRESH CHILD TABLE
+                                frm.refresh_field(row.employee_field_name);
+                            } else {
+                                // NORMAL FIELD
+                                frm.set_value(row.employee_field_name, row.employee_response);
+                            }
+                        } catch {
+                            // FALLBACK TO NORMAL FIELD
+                            frm.set_value(row.employee_field_name, row.employee_response);
+                        }
+
                     }
                 });
 
                 frm.refresh_field('custom_pre_login_questionnaire_response');
                 dialog.hide();
 
-                // ? SAVE THE DOC TO DB
                 frm.save().then(() => {
-                    // ? SET CUSTOM_EMPLOYEES_ALL_RESPONSE_APPROVE IF ALL RESPONSES APPROVED
                     let allApproved = (frm.doc.custom_pre_login_questionnaire_response || [])
                         .every(r => r.status === "Approve");
 

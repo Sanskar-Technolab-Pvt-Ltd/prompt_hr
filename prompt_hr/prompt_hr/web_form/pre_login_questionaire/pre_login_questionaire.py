@@ -1,5 +1,6 @@
 import frappe
-
+from frappe.website.doctype.web_form.web_form import get_in_list_view_fields
+import json 
 def get_context(context):
     """BUILD CONTEXT FOR WEB FORM WITH EMPLOYEE PRE-LOGIN QUESTIONNAIRE"""
     user = frappe.session.user
@@ -21,6 +22,27 @@ def get_context(context):
     for idx, entry in enumerate(child_table_entries, start=1):
         fieldtype = entry.field_type or "Data"
         options = None
+        fields= None
+        data = []
+
+        # ? IF FIELD IS CHILD TABLE
+        if fieldtype == "Table":
+            # ? GET CHILD DOCTYPE
+            child_doctype = frappe.db.get_value(
+                "DocField",
+                {"parent": "Employee", "fieldname": entry.employee_field_name},
+                "options"
+            ) or frappe.db.get_value(
+                "Custom Field",
+                {"dt": "Employee", "fieldname": entry.employee_field_name},
+                "options"
+            )
+
+            if child_doctype:
+                options = child_doctype
+                fields = get_in_list_view_fields(options)
+                data = unwrap_child_table_data(entry)
+
 
         # ? IF FIELD IS LINK OR SELECT, GET THE LINKED OPTIONS
         if fieldtype in ["Link", "Select"]:
@@ -49,10 +71,11 @@ def get_context(context):
             "default": entry.employee_response,                    # PREFILLED RESPONSE
             "read_only": 1 if entry.status == "Approve" else 0,   # READONLY FLAG
             # ? ONLY ADD OPTIONS IF THEY EXIST
-            **({"options": options} if options else {})
+            **({"options": options} if options else {}),
+            **({"fields": fields} if fields else {}),
+            "data": data if data else None
         })
 
-    print(dynamic_fields)
     # ? ATTACH FIELDS INTO WEB FORM DOC
     if hasattr(context, 'web_form_doc'):
         if not context.web_form_doc.get("web_form_fields"):
@@ -96,3 +119,26 @@ def make_autocomplete_options(fieldname, searchtxt=None):
         pluck="name"
     )
     return options
+
+
+def unwrap_child_table_data(entry):
+    try:
+        parsed = json.loads(entry.employee_response or "[]")
+    except Exception:
+        return []
+
+    clean_rows = []
+    for i, row in enumerate(parsed, start=1):
+        clean_row = {}
+        for k, v in row.items():
+            if isinstance(v, dict) and "value" in v:
+                clean_row[k] = v.get("value")
+            else:
+                clean_row[k] = v
+        # ensure frappe-required props
+        clean_row.setdefault("idx", i)
+        clean_row.setdefault("__islocal", True)
+        clean_row.setdefault("name", f"row {i}")
+        clean_rows.append(clean_row)
+
+    return clean_rows

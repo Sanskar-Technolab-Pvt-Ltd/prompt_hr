@@ -28,7 +28,6 @@ app_license = "mit"
 # app_include_css = "/assets/prompt_hr/css/prompt_hr.css"
 app_include_js = [
     "assets/prompt_hr/js/web_form_redirect.js",
-    "assets/prompt_hr/js/welcome_page_check.js",
     "assets/prompt_hr/js/utils.js",
     "assets/prompt_hr/js/frappe/form/workflow.js",
     "assets/prompt_hr/js/employee_leave_balance.js",
