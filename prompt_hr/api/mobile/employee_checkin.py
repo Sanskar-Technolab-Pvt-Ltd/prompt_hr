@@ -149,7 +149,18 @@ def create(**args):
         # ? IF 'time' NOT PROVIDED, USE CURRENT TIME
         if not args.get("time"):
             args["time"] = frappe.utils.now_datetime()
-            
+        print(args.get("latitude"))
+        
+        print(type(args.get("latitude")))
+        # After mandatory field validation
+        if args.get("latitude"):
+            args["latitude"] = frappe.utils.flt(args["latitude"])
+        if args.get("longitude"):
+            args["longitude"] = frappe.utils.flt(args["longitude"])
+        print(args.get("latitude"))
+        print(type(args.get("latitude")))
+        
+
         # ? FETCH EMPLOYEE DOC
         emp_doc = frappe.get_doc("Employee", args.get("employee"))    
         
