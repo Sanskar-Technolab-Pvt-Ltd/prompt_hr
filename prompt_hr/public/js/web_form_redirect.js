@@ -12,26 +12,48 @@ $(document).ready(function () {
 
 // ? FUNCTION TO REDIRECT USER TO WELCOME FORM IF VALIDATION PASSES
 function redirect_to_web_form_if_needed() {
-    if (frappe.session.user === 'Guest') return;
-    console.log(frappe.session.user)
-    // ? SKIP REDIRECT IF ALREADY ON WELCOME FORM
-    if (window.location.pathname.includes('/pre-login-questionaire/new')) return;
+    // ? SKIP FOR GUEST OR ADMIN
+    if (frappe.session.user === "Guest" || frappe.session.user === "Administrator") return;
 
+    // ? SKIP IF ALREADY ON WELCOME FORM
+    if (window.location.pathname.includes("/pre-login-questionaire/new")) return;
+
+    // ? CHECK IF USER IS HR MANAGER OR SYSTEM MANAGER
+    if (frappe.user.has_role("HR Manager") || frappe.user.has_role("System Manager") || frappe.user.has_role("S - HR Director (Global Admin)")) {
+        return;
+    }
+
+    // ? CHECK IF EMPLOYEE EXISTS FOR THIS USER
     frappe.call({
-        method: "prompt_hr.py.employee.check_web_form_validation",
+        method: "frappe.client.get_value",
         args: {
-            user_id: frappe.session.user,
+            doctype: "Employee",
+            filters: { user_id: frappe.session.user },
+            fieldname: "name"
         },
-        callback: function (r) {
-            console.log(r)
-            if (r.message && r.message.success !== 1) {
-                const { is_completed } = r.message.data;
-                if (!is_completed) {
-                    const route = `/pre-login-questionaire/new`;
-                    console.log("Redirecting to Welcome Page:", route);
-                    window.location.href = route;
-                }
+        callback: function (res) {
+            let employee = res.message ? res.message.name : null;
+
+            if (!employee) {
+                return;
             }
+
+            // ? CALL YOUR CUSTOM VALIDATION METHOD
+            frappe.call({
+                method: "prompt_hr.py.employee.check_web_form_validation",
+                args: {
+                    user_id: frappe.session.user,
+                },
+                callback: function (r) {
+                    if (r.message && r.message.success !== 1) {
+                        const { is_completed } = r.message.data;
+                        if (!is_completed) {
+                            const route = `/pre-login-questionaire/new`;
+                            window.location.href = route;
+                        }
+                    }
+                }
+            });
         }
     });
 }
