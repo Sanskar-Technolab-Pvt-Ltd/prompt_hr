@@ -1,7 +1,8 @@
 import frappe
-from frappe.utils import flt
+from frappe.utils import flt, getdate, formatdate
 from frappe import _
-from hrms.hr.doctype.leave_allocation.leave_allocation import get_carry_forwarded_leaves
+from hrms.hr.utils import create_additional_leave_ledger_entry
+from hrms.hr.doctype.leave_allocation.leave_allocation import get_carry_forwarded_leaves, get_link_to_form
 
 @frappe.whitelist()
 def before_validate(doc, method=None):
@@ -170,3 +171,60 @@ def before_submit(doc, method):
             if len(prev_allocation_count) > 0:
                 frappe.throw(_("Manual allocation for this leave type is allowed only once"))
 
+
+@frappe.whitelist()
+def custom_allocate_leaves_manually(doc, new_leaves, from_date=None):
+    if isinstance(doc, str):
+        doc = frappe.get_doc("Leave Allocation", doc)
+    if from_date and not (getdate(doc.from_date) <= getdate(from_date) <= getdate(doc.to_date)):
+        frappe.throw(
+            _("Cannot allocate leaves outside the allocation period {0} - {1}").format(
+                frappe.bold(formatdate(doc.from_date)), frappe.bold(formatdate(doc.to_date))
+            ),
+            title=_("Invalid Dates"),
+        )
+
+    new_allocation = flt(doc.total_leaves_allocated) + flt(new_leaves)
+    new_allocation_without_cf = flt(
+        flt(doc.get_existing_leave_count()) + flt(new_leaves),
+        doc.precision("total_leaves_allocated"),
+    )
+
+    max_leaves_allowed = frappe.db.get_value("Leave Type", doc.leave_type, "max_leaves_allowed")
+    if new_allocation > max_leaves_allowed and max_leaves_allowed > 0:
+        new_allocation = max_leaves_allowed
+
+    annual_allocation = frappe.db.get_value(
+        "Leave Type",
+        {"name": doc.leave_type},
+        "max_leaves_allowed",
+    )
+    annual_allocation = flt(annual_allocation, doc.precision("total_leaves_allocated"))
+
+    if (
+        new_allocation != doc.total_leaves_allocated
+        # annual allocation as per policy should not be exceeded
+        and new_allocation_without_cf <= annual_allocation
+    ):
+        doc.db_set("total_leaves_allocated", new_allocation, update_modified=False)
+
+        date = from_date or frappe.flags.current_date or getdate()
+        create_additional_leave_ledger_entry(doc, new_leaves, date)
+
+        text = _("{0} leaves were manually allocated by {1} on {2}").format(
+            frappe.bold(new_leaves), frappe.session.user, frappe.bold(formatdate(date))
+        )
+        doc.add_comment(comment_type="Info", text=text)
+        frappe.msgprint(
+            _("{0} leaves allocated successfully").format(frappe.bold(new_leaves)),
+            indicator="green",
+            alert=True,
+        )
+
+    else:
+        msg = _("Total leaves allocated cannot exceed annual allocation of {0}.").format(
+            frappe.bold(_(annual_allocation))
+        )
+        msg += "<br><br>"
+        msg += _("Reference: {0}").format(get_link_to_form("Leave Policy", doc.leave_policy))
+        frappe.throw(msg, title=_("Annual Allocation Exceeded"))
