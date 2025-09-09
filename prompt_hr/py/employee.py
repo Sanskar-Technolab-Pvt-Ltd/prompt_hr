@@ -1746,11 +1746,46 @@ def employee_questionnaire_submit(responses):
 
         emp_doc = frappe.get_doc("Employee", employee)
 
-        # ? LOOP THROUGH CHILD TABLE & UPDATE RESPONSES
+        #! LOOP THROUGH CHILD TABLE RESPONSES
         for row in emp_doc.custom_pre_login_questionnaire_response:
             for response in responses:
                 if row.employee_field_name == response.get("fieldname"):
-                    row.employee_response = response.get("value")
+                    if row.employee_field_name == response.get("fieldname"):
+                        if response.get("fieldtype") == "Table":
+                            table_data = response.get("value") or []
+
+                            clean_data = []
+                            for i, row_data in enumerate(table_data, start=1):
+                                flat_row = {"_row_id": i}  # UNIQUE ROW IDENTIFIER
+
+                                for k, v in row_data.items():
+                                    if k in ("__islocal", "idx", "name", "owner", "creation", "modified", "modified_by"):
+                                        continue
+                                    if v in (None, "", []):
+                                        v = ""
+
+                                    # ? GET LABEL FOR DISPLAY
+                                    label = frappe.db.get_value(
+                                        "DocField", {"parent": response.get("options"), "fieldname": k}, "label"
+                                    )
+                                    if not label:
+                                        label = frappe.db.get_value(
+                                            "Custom Field", {"dt": response.get("options"), "fieldname": k}, "label"
+                                        )
+
+                                    flat_row[k] = {            # ? STORE BOTH FIELDNAME AND LABEL/VALUE
+                                        "label": label or k,
+                                        "value": v
+                                    }
+
+                                clean_data.append(flat_row)
+
+                            # ? STORE CLEANED TABLE DATA AS JSON STRING
+                            row.employee_response = frappe.as_json(clean_data)
+
+                    else:
+                        # ? NORMAL FIELDS DIRECTLY AS VALUE
+                        row.employee_response = response.get("value")
 
         emp_doc.save(ignore_permissions=True)
         frappe.db.commit()
@@ -1772,7 +1807,15 @@ def check_web_form_validation(user_id):
                 fields=["name"])
         # ? IF NOT EMPLOYEE NOT ALLOW TO REDIRECT
         if not employee:
-            return {"success": 0, "message": "Employee not found for this user", "data": False}
+            return {"success": 1, "message": "Employee not found for this user", "data": True}
+
+        hr_settings = frappe.get_single("HR Settings")
+
+        if not hr_settings.custom_pre_login_questionnaire:
+            return {"success": 1, "message": "No questionnaire Set in HR Settings", "data": True}
+
+        if not hr_settings.custom_enable_welcome_page_for_prompt:
+            return {"success": 1, "message": "Welcome Page not enabled for this company", "data": True}
 
         # ? IF NO PRE LOGIN TABLE THAN ALLOW IT TO REDIRECTS
         if not employee_pre_login_responses:
