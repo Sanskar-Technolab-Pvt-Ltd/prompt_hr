@@ -58,6 +58,9 @@ frappe.ready(function () {
                 responses.push({
                     fieldname: field.fieldname,   // INTERNAL FIELDNAME
                     label: field.label || "",     // FIELD LABEL
+                    fieldtype: field.fieldtype,   // FIELD TYPE
+                    options: field.fieldtype === "Table" ? field.options : null,
+
                     value: control.get_value()    // USER INPUT VALUE
                 });
             }
