@@ -132,7 +132,7 @@ def process_rejection_penalties(doc):
                 for i in range(date_diff(to_date, from_date) + 1)
             ]
             for date in dates:
-                if date < no_attendance_target_date:
+                if date <= no_attendance_target_date:
                     penalty_entries = process_no_attendance_penalties_for_prompt(
                         [doc["employee"]],
                         0,
@@ -259,7 +259,7 @@ def process_attendance_request(from_date, to_date, doc, approved_attendance_requ
 
         #? NO ATTENDANCE PENALTY
         if no_attendance_penalty_enable:
-            if date < no_attendance_target_date:
+            if date <= no_attendance_target_date:
                 penalties["No Attendance"] = process_no_attendance_penalties_for_prompt(
                     [doc.employee], 0, date,
                     "custom_no_attendance_leave_penalty_configuration", True
@@ -274,7 +274,7 @@ def process_attendance_request(from_date, to_date, doc, approved_attendance_requ
 
         #? MISPUNCH PENALTY
         if mispunch_penalty_enable:
-            if date < mispunch_target_date:
+            if date <= mispunch_target_date:
                 penalties["Mispunch"] = process_mispunch_penalties_for_prompt(
                     [doc.employee], 0, date,
                     "custom_attendance_mispunch_leave_penalty_configuration", True
@@ -289,7 +289,7 @@ def process_attendance_request(from_date, to_date, doc, approved_attendance_requ
 
         #? DAILY HOURS PENALTY
         if daily_hours_penalty_enable:
-            if date < daily_hours_target_date:
+            if date <= daily_hours_target_date:
                 penalties["Daily Hours"] = process_daily_hours_penalties_for_prompt(
                     [doc.employee], 0, date,
                     percentage_for_daily_hour_penalty,
@@ -306,7 +306,7 @@ def process_attendance_request(from_date, to_date, doc, approved_attendance_requ
 
         #? LATE COMING PENALTY
         if late_coming_penalty_enable:
-            if date < late_coming_target_date:
+            if date <= late_coming_target_date:
                 penalties["Late Coming"] = process_late_entry_penalties_for_prompt(
                     [doc.employee], late_coming_allowed_per_month, 0,
                     "custom_late_coming_leave_penalty_configuration", date, True
