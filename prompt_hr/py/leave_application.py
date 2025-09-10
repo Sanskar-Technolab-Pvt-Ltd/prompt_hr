@@ -1313,6 +1313,9 @@ def custom_get_leave_details(employee, date, for_salary_slip=False):
 			order_by="from_date asc"
 		)
 
+		#! GET SUM OF ALL PENALIZED LEAVES
+		penalized_leaves = get_total_penalized_leaves_for_period(employee, allocation.leave_type, leaves_start_date, date)
+
 		#! SUM OF ALL ALLOCATED LEAVES FROM LEDGER
 		total_leaves = sum([flt(d.leaves) for d in leave_ledger_entry])
 
@@ -1435,13 +1438,14 @@ def custom_get_leave_details(employee, date, for_salary_slip=False):
 				])
 
 		#! DERIVE EXPIRED LEAVES = TOTAL - (REMAINING + TAKEN)
-		expired_leaves = total_leaves - (remaining_leaves + leaves_taken)
+		expired_leaves = total_leaves - (remaining_leaves + leaves_taken) - penalized_leaves
 
 		#! STORE LEAVE DETAILS PER ALLOCATION TYPE
 		leave_allocation[d] = {
 			"total_leaves": flt(total_leaves),
 			"expired_leaves": flt(expired_leaves, precision) if expired_leaves > 0 else 0,
 			"leaves_taken": flt(leaves_taken, precision),
+			"penalized_leaves": flt(penalized_leaves, precision),
 			"leaves_pending_approval": flt(leaves_pending, precision),
 			"remaining_leaves": flt(remaining_leaves, precision),
 		}
@@ -1935,9 +1939,10 @@ def custom_get_data(filters: Filters) -> list:
                 filters.from_date, filters.to_date, employee.name, leave_type
             )
             opening = custom_get_opening_balance(employee.name, leave_type, filters, carry_forwarded_leaves)
-
+            penalized_leaves = get_total_penalized_leaves_for_period(employee.name, leave_type, filters.from_date, filters.to_date) or 0
+            row.penalized_leaves = flt(penalized_leaves, precision)
             row.leaves_allocated = flt(new_allocation, precision)
-            row.leaves_expired = flt(expired_leaves, precision)
+            row.leaves_expired = flt(expired_leaves - penalized_leaves, precision)
             row.opening_balance = flt(opening, precision)
             row.leaves_taken = flt(leaves_taken, precision)
 
@@ -2049,3 +2054,91 @@ def custom_get_leave_balance_on(
 		return remaining_leaves
 	else:
 		return remaining_leaves.get("leave_balance")
+
+
+def custom_get_columns():
+    return [
+		{
+			"label": _("Leave Type"),
+			"fieldtype": "Link",
+			"fieldname": "leave_type",
+			"width": 200,
+			"options": "Leave Type",
+		},
+		{
+			"label": _("Employee"),
+			"fieldtype": "Link",
+			"fieldname": "employee",
+			"width": 100,
+			"options": "Employee",
+		},
+		{
+			"label": _("Employee Name"),
+			"fieldtype": "Dynamic Link",
+			"fieldname": "employee_name",
+			"width": 200,
+			"options": "employee",
+		},
+		{
+			"label": _("Opening Balance"),
+			"fieldtype": "float",
+			"fieldname": "opening_balance",
+			"width": 150,
+		},
+		{
+			"label": _("New Leave(s) Allocated"),
+			"fieldtype": "float",
+			"fieldname": "leaves_allocated",
+			"width": 200,
+		},
+		{
+			"label": _("Leave(s) Taken"),
+			"fieldtype": "float",
+			"fieldname": "leaves_taken",
+			"width": 150,
+		},
+        {
+			"label": _("Penalized Leave(s)"),
+			"fieldtype": "float",
+			"fieldname": "penalized_leaves",
+			"width": 150,
+		},
+		{
+			"label": _("Leave(s) Expired"),
+			"fieldtype": "float",
+			"fieldname": "leaves_expired",
+			"width": 150,
+		},
+		{
+			"label": _("Closing Balance"),
+			"fieldtype": "float",
+			"fieldname": "closing_balance",
+			"width": 150,
+		},
+	]
+
+
+def get_total_penalized_leaves_for_period(employee, leave_type, from_date, to_date):
+    if not leave_type or not employee or not from_date or not to_date:
+        return 0
+
+    #! FETCH ALL NEGATIVE LEAVE ALLOCATIONS (PENALIZED) FROM LEDGER
+    penalized_leave_ledger_entry = frappe.get_all(
+        "Leave Ledger Entry",
+        filters=[
+            ["employee", "=", employee],
+            ["leave_type", "=", leave_type],
+            ["docstatus", "=", 1],
+            ["from_date", ">=", from_date],
+            ["from_date", "<=", to_date],
+            ["transaction_type", "=", "Leave Allocation"],
+            ["leaves", "<", 0],
+        ],
+        fields=["name", "leaves", "from_date", "to_date"],
+        order_by="from_date asc"
+    )
+
+    #! SUM OF ALL PENALIZED LEAVES (ABSOLUTE VALUE)
+    penalized_leaves = abs(sum([flt(d.leaves) for d in penalized_leave_ledger_entry]))
+
+    return penalized_leaves
