@@ -94,6 +94,14 @@ def before_validate(doc, method=None):
         doc.set("from_date", frappe.utils.add_days(doc.custom_original_to_date,1))
         doc.set("half_day", 0)
 
+def validate(doc, method=None):
+    if doc.is_new() or (doc.workflow_state == "Pending" and doc.has_value_changed("from_date")):
+        # ? ALLOWED DAYS INCLUDE TODAY ALSO (EXAMPLE :- IF TODAY'S IS 18 DATE THEN EMPLOYEE'S APPLY ONLY UPTO 9 DATE (9,10,11,12,13,14,15,16,17,18))
+        allowed_days = frappe.db.get_single_value("HR Settings", "custom_maximum_backdated_leave_days_including_today")
+        if allowed_days:
+            if doc.from_date < add_days(today(), -(allowed_days-1)):
+                frappe.throw(_("You cannot apply leave for more than {0} days in the past.").format(allowed_days))
+
 import frappe
 from frappe.utils import getdate, add_days
 

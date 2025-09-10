@@ -31,6 +31,10 @@ frappe.ui.form.on("Employee", {
         set_text_field_height();
 
         addEmployeeDetailsChangesButton(frm);
+        // ? ADD APPROVAL BUTTON FOR LOGIN QUESTIONNAIRE TO EMPLOYEE
+        if (!frm.is_new() && !frm.doc.custom_employees_all_response_approve){
+            addApproveEmployeeDetailsButton(frm);
+        }
         frappe.db.get_value('Employee', {'name': frm.doc.name}, 'user_id').then(r => {
             if (!frappe.user_roles.includes("S - HR Director (Global Admin)") && !frappe.user_roles.includes("System Manager") && !frappe.user_roles.includes("S - HR L1") && !frappe.user_roles.includes("S - HR L2")) {
                 if (frappe.session.user != r.message.user_id) {
@@ -269,6 +273,210 @@ frappe.ui.form.on("Employee", {
     // }
 
 });
+
+// ? FUNCTION TO APPROVE/REJECT DETAILS UPLOADED BY EMPLOYEE
+function addApproveEmployeeDetailsButton(frm) {
+    frm.add_custom_button(__("Approve Employee Responses"), function () {
+        let pendingRows = (frm.doc.custom_pre_login_questionnaire_response || []).filter(r => r.status === "Pending");
+        if (!pendingRows.length) {
+            frappe.msgprint("No pending responses to approve or reject.");
+            return;
+        }
+
+        let dialogFields = pendingRows.map((row, idx) => {
+            const employeeResponseIsFile = typeof row.employee_response === 'string' &&
+                (row.employee_response.startsWith('http') || /\.(pdf|docx?|xlsx?|png|jpg|jpeg|gif)$/i.test(row.employee_response));
+            const employeeResponseIsTable = (() => {
+                try {
+                    let parsed = JSON.parse(row.employee_response);
+                    return Array.isArray(parsed);
+                } catch {
+                    return false;
+                }
+            })();
+
+            return [
+                {
+                    fieldname: `field_label_${idx}`,
+                    fieldtype: 'Data',
+                    label: 'Field',
+                    default: row.field_label,
+                    read_only: 1
+                },
+                ...(employeeResponseIsFile ? [
+                    {
+                        fieldname: `employee_response_button_${idx}`,
+                        fieldtype: 'Button',
+                        label: 'Open Employee Response File',
+                        click: () => window.open(row.employee_response, '_blank')
+                    }
+                ] : employeeResponseIsTable ? [
+                    {
+                        fieldname: `employee_response_table_btn_${idx}`,
+                        fieldtype: 'Button',
+                        label: 'View Table Response',
+                        click: () => {
+                            try {
+                                let parsed = JSON.parse(row.employee_response || "[]");
+                                let tableDialog = new frappe.ui.Dialog({
+                                    title: `Table Response - ${row.field_label}`,
+                                    fields: [{
+                                        fieldname: 'html_preview',
+                                        fieldtype: 'HTML'
+                                    }]
+                                });
+                                // BUILD SIMPLE HTML TABLE
+                                let html = `<div style="max-height:400px; overflow:auto;"><table class="table table-bordered">`;
+
+                                if (parsed.length) {
+                                    // ? META FIELDS TO IGNORE
+                                    const ignoreFields = ["_row_id", "idx", "name", "__islocal"];
+
+                                    // ? DETERMINE COLUMNS TO SHOW (ONLY NON-EMPTY AND NOT META FIELDS)
+                                    let columnsToShow = [];
+                                    Object.keys(parsed[0]).forEach(key => {
+                                        if (!ignoreFields.includes(key)) {
+                                            let hasValue = parsed.some(row => row[key] && row[key].value !== "");
+                                            if (hasValue) columnsToShow.push(key);
+                                        }
+                                    });
+
+                                    // ? BUILD TABLE HEADER
+                                    html += "<thead><tr>";
+                                    columnsToShow.forEach(colKey => {
+                                        html += `<th>${frappe.utils.escape_html(parsed[0][colKey].label)}</th>`;
+                                    });
+                                    html += "</tr></thead><tbody>";
+
+                                    // ? BUILD TABLE ROWS
+                                    parsed.forEach(row => {
+                                        html += "<tr>";
+                                        columnsToShow.forEach(colKey => {
+                                            let value = row[colKey]?.value || "";
+
+                                            // ? IF VALUE LOOKS LIKE AN ATTACHMENT PATH, RENDER AS LINK
+                                            if (typeof value === "string" && value.startsWith("/private/files/")) {
+                                                let fileUrl = frappe.urllib.get_full_url(value);
+                                                value = `<a href="${fileUrl}" target="_blank">${frappe.utils.escape_html(value.split("/").pop())}</a>`;
+                                            }
+
+                                            html += `<td>${value}</td>`;
+                                        });
+                                        html += "</tr>";
+                                    });
+
+                                    html += "</tbody></table></div>";
+                                } else {
+                                    html = "<p>No rows found in table response.</p>";
+                                }
+
+                                tableDialog.fields_dict.html_preview.$wrapper.html(html);
+                                tableDialog.show();
+                            } catch (e) {
+                                frappe.msgprint("Invalid table data");
+                            }
+                        }
+                    }
+                ] : [
+                    {
+                        fieldname: `employee_response_${idx}`,
+                        fieldtype: 'Data',
+                        label: 'Employee Response',
+                        default: row.employee_response,
+                        read_only: 1
+                    }
+                ]),
+                {
+                    fieldname: `status_${idx}`,
+                    fieldtype: 'Select',
+                    label: 'Action',
+                    options: ['Approve', 'Reject'],
+                    default: '',
+                    reqd: 1
+                },
+                ...(row.attach ? [{
+                    fieldname: `attachment_${idx}`,
+                    fieldtype: 'Button',
+                    label: 'Open Attachment',
+                    click: () => window.open(row.attach, '_blank')
+                }] : [])
+            ];
+        }).flat();
+
+        let dialog = new frappe.ui.Dialog({
+            title: 'Approve/Reject Employee Responses',
+            fields: dialogFields,
+            primary_action_label: 'Submit',
+            primary_action(values) {
+                pendingRows.forEach((row, idx) => {
+                    let action = values[`status_${idx}`];
+                    if (!action) return;
+
+                    if (action === 'Reject') {
+                        row.status = 'Pending';
+                        frappe.model.set_value(row.doctype, row.name, "employee_response", "");
+                    } else if (action === 'Approve') {
+                        row.status = 'Approve';
+
+                        // ? HANDLE TABLE RESPONSES
+                        try {
+                            let parsed = JSON.parse(row.employee_response);
+                            if (Array.isArray(parsed)) {
+                                // CLEAR EXISTING CHILD TABLE AND REPOPULATE
+                                frm.clear_table(row.employee_field_name);
+
+                                parsed.forEach(r => {
+                                    // CREATE CLEAN CHILD ENTRY
+                                    let child = frm.add_child(row.employee_field_name);
+
+                                    // LOOP THROUGH KEYS AND SET ONLY VALID FIELDS
+                                    Object.keys(r).forEach(key => {
+                                        if (["_row_id", "idx", "name", "__islocal"].includes(key)) return;
+
+                                        if (r[key] && typeof r[key] === "object" && "value" in r[key]) {
+                                            // SET FIELD VALUE
+                                            child[key] = r[key].value;
+                                        }
+                                    });
+                                });
+
+                                // REFRESH CHILD TABLE
+                                frm.refresh_field(row.employee_field_name);
+                            } else {
+                                // NORMAL FIELD
+                                frm.set_value(row.employee_field_name, row.employee_response);
+                            }
+                        } catch {
+                            // FALLBACK TO NORMAL FIELD
+                            frm.set_value(row.employee_field_name, row.employee_response);
+                        }
+
+                    }
+                });
+
+                frm.refresh_field('custom_pre_login_questionnaire_response');
+                dialog.hide();
+
+                frm.save().then(() => {
+                    let allApproved = (frm.doc.custom_pre_login_questionnaire_response || [])
+                        .every(r => r.status === "Approve");
+
+                    if (allApproved) {
+                        frm.set_value("custom_employees_all_response_approve", 1);
+                        frm.save().then(() => {
+                            frappe.msgprint("All responses approved. Employee fields updated successfully.");
+                        });
+                    } else {
+                        frappe.msgprint("Responses updated and saved successfully.");
+                    }
+                });
+            }
+        });
+
+        dialog.show();
+    });
+}
+
 function set_state_options(frm, state_field_name, country_field_name) {
     const state_field = frm.get_field(state_field_name);
     const country = frm.get_field(country_field_name).value;
@@ -282,7 +490,6 @@ function set_state_options(frm, state_field_name, country_field_name) {
 // ? FUNCTION TO CREATE EMPLOYEE RESIGNATION BUTTON AND HANDLE RESIGNATION PROCESS
 function createEmployeeResignationButton(frm) {
     frm.add_custom_button(__("Raise Resignation"), function () {
-        console.log(frm.doc.notice_number_of_days);
 
         // ? FETCH RESIGNATION QUESTIONS FROM BACKEND
         frappe.call({
@@ -292,13 +499,67 @@ function createEmployeeResignationButton(frm) {
                 if (res.message && res.message.length > 0) {
                     const questions = res.message;
 
-                    // ? BUILD DYNAMIC DIALOG FIELDS BASED ON QUESTIONS
-                    const fields = questions.map(q => ({
+                    // ? DYNAMICALLY CREATE DIALOG FIELDS BASED ON QUESTIONS
+                    const fields = questions.map(q => {
+                    let field = {
                         label: q.question_detail || q.question,
-                        fieldname: q.question,
-                        fieldtype: "Data",
+                        fieldname: q.question,   // use LMS Question docname directly
                         reqd: true
-                    }));
+                    };
+
+                    if (q.type !== "Open Ended" || !q.custom_input_type) {
+                        field.fieldtype = "Data";
+                        return field;
+                    }
+
+                    switch (q.custom_input_type) {
+                            case "Checkbox":
+                                field.fieldtype = "MultiCheck";
+                                field.label = (stripHtml(q.question_detail) || q.question) + " <span style='color:#f1afb0'>*</span>";  // ✅ add red star
+                                field.options = (q.custom_multi_checkselect_options || "")
+                                    .split("\n")
+                                    .map(opt => opt.trim())
+                                    .filter(opt => opt)
+                                    .map(opt => ({ label: opt, value: opt }));
+                                break;
+
+
+
+                        case "Dropdown":
+                            field.fieldtype = "Select";
+                            field.label = (stripHtml(q.question_detail) || q.question);
+                            field.options = (q.custom_multi_checkselect_options || "")
+                                .split("\n")
+                                .map(opt => opt.trim())
+                                .filter(opt => opt)
+                                .join("\n");
+                            break;
+
+                        case "Yes/No/NA":
+                            field.fieldtype = "Select";
+                            field.label = (stripHtml(q.question_detail) || q.question);
+                            field.options = "Yes\nNo\nNA";
+                            break;
+
+                        case "Date":
+                            field.fieldtype = "Date";
+                            field.label = (stripHtml(q.question_detail) || q.question);
+                            break;
+
+                        case "Single Line Input":
+                            field.fieldtype = "Data";
+                            field.label = (stripHtml(q.question_detail) || q.question);
+                            break;
+
+                        default:
+                            field.fieldtype = "Data";
+                            field.label = (stripHtml(q.question_detail) || q.question);
+                            break;
+                    }
+
+                    return field;
+                });
+
 
                     // ? CREATE RESIGNATION DIALOG
                     const dialog = new frappe.ui.Dialog({
@@ -310,12 +571,20 @@ function createEmployeeResignationButton(frm) {
                         primary_action(values) {
                             frappe.dom.freeze(__('Creating Resignation...'));
 
-                            // ? PREPARE USER RESPONSES
-                            const answers = questions.map(q => ({
-                                question_name: q.question,
-                                question: q.question_detail || q.question,
-                                answer: values[q.question]
-                            }));
+                            const answers = questions.map(q => {
+                                let answer = values[q.question];
+
+                                if (Array.isArray(answer)) {
+                                    answer = answer.join("\n"); // or "\n" if you want line breaks
+                                }
+
+                                return {
+                                    question_name: q.question,  // LMS Question docname
+                                    question: strip_html(q.question_detail) || q.question,
+                                    answer: answer
+                                };
+                            });
+
 
                             // ? CREATE RESIGNATION RECORD IN BACKEND
                             frappe.call({
@@ -326,7 +595,6 @@ function createEmployeeResignationButton(frm) {
                                     notice_number_of_days: frm.doc.notice_number_of_days,
                                 },
                                 callback: function (r) {
-                                    console.log(answers);
                                     if (r.message) {
                                         frappe.msgprint(r.message);
                                         dialog.hide();
@@ -337,10 +605,17 @@ function createEmployeeResignationButton(frm) {
                                 }
                             });
                         }
+                        
                     });
 
                     // ? DISPLAY THE DIALOG
                     dialog.show();
+                    dialog.$wrapper.find('.frappe-control[data-fieldtype="MultiCheck"] .checkbox').css({
+                        display: "inline-block",
+                        marginRight: "10px",
+                        minWidth: "120px"
+                    });
+                    
 
                 } else {
                     frappe.msgprint(__('No resignation questions found.'));
@@ -349,7 +624,6 @@ function createEmployeeResignationButton(frm) {
         });
     });
 }
-
 // ? FUNCTION TO ADD A CUSTOM BUTTON ON THE EMPLOYEE FORM
 function addEmployeeDetailsChangesButton(frm) {
     // ? ADD BUTTON TO FORM HEADER
@@ -665,4 +939,10 @@ function handle_location_change(frm, prefix) {
     };
 
     apply_location_filters(frm, fields, country);
+}
+
+function stripHtml(html) {
+    let temp = document.createElement("div");
+    temp.innerHTML = html;
+    return temp.textContent || temp.innerText || "";
 }

@@ -27,7 +27,7 @@ app_license = "mit"
 # include js, css files in header of desk.html
 # app_include_css = "/assets/prompt_hr/css/prompt_hr.css"
 app_include_js = [
-    "assets/prompt_hr/js/welcome_page_check.js",
+    "assets/prompt_hr/js/web_form_redirect.js",
     "assets/prompt_hr/js/utils.js",
     "assets/prompt_hr/js/frappe/form/workflow.js",
     "assets/prompt_hr/js/employee_leave_balance.js",
@@ -286,6 +286,7 @@ doc_events = {
         "before_save": "prompt_hr.py.leave_application.before_save",
         "before_insert": "prompt_hr.py.leave_application.before_insert",
         "before_validate": "prompt_hr.py.leave_application.before_validate",
+        "validate": "prompt_hr.py.leave_application.validate",
         "before_submit": "prompt_hr.py.leave_application.before_submit",
         "on_submit": "prompt_hr.py.leave_application.on_submit"
     },
@@ -372,7 +373,7 @@ scheduler_events = {
         "prompt_hr.scheduler_methods.create_confirmation_evaluation_form_for_prompt",
         "prompt_hr.scheduler_methods.inform_employee_for_confirmation_process",
         "prompt_hr.scheduler_methods.validate_employee_holiday_list",
-        "prompt_hr.scheduler_methods.assign_checkin_role",
+        # "prompt_hr.scheduler_methods.assign_checkin_role",
         "prompt_hr.scheduler_methods.process_exit_approvals",
         "prompt_hr.scheduler_methods.daily_attendance_request_rituals",
         "prompt_hr.py.attendance_penalty_api.prompt_employee_attendance_penalties"

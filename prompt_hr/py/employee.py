@@ -72,6 +72,30 @@ def before_insert(doc, method):
     # ? SET IMPREST ALLOCATION AMOUNT FROM EMPLOYEE ONBOARDING FORM
     set_imprest_allocation_amount(doc)
 
+    # ? SET EMPLOYEE QUESTIONAIRE
+    set_employee_questionnaire(doc)
+
+def set_employee_questionnaire(doc):
+    """SET EMPLOYEE QUESTIONNAIRE RESPONSES FROM HR SETTINGS"""
+    hr_settings = frappe.get_single("HR Settings")
+    questionnaire = getattr(hr_settings, "custom_pre_login_questionnaire", None)
+
+    # RESET CHILD TABLE
+    doc.custom_pre_login_questionnaire_response = []
+
+    if not questionnaire:
+        return
+
+    for row in questionnaire:
+        if not row.field_name:
+            continue
+        doc.append("custom_pre_login_questionnaire_response", {
+            "field_label": row.field_name,
+            "field_type": row.field_type,
+            "employee_field_name": row.employee_field_name,
+            "status": "Pending",
+        })
+
 
 # ? FUNCTION TO SET IMPREST ALLOCATION AMOUNT FROM EMPLOYEE ONBOARDING FORM
 def set_imprest_allocation_amount(doc):
@@ -629,8 +653,22 @@ def get_raise_resignation_questions(company):
             filters={"parent": quiz_name},
             fields=["question", "question_detail"],
         )
-        return questions
+        
+        questions_with_type = []
+        for q in questions:
+            # Fetch full LMS Question doc
+            question_doc = frappe.get_doc("LMS Question", q.question)
 
+            questions_with_type.append({
+                "question": q.question,
+                "question_detail": q.question_detail,
+                "type": question_doc.type,
+                "custom_input_type": question_doc.custom_input_type,
+                "custom_multi_checkselect_options": question_doc.custom_multi_checkselect_options,
+            })
+            
+        return questions_with_type
+    
     except Exception as e:
         frappe.log_error(f"Error fetching resignation questions: {str(e)}")
         return []
@@ -1700,3 +1738,116 @@ def auto_shift_assign(doc):
 		shift_doc.flags.ignore_permissions = True
 		shift_doc.insert()
 		shift_doc.submit()
+
+
+@frappe.whitelist()
+def employee_questionnaire_submit(responses):
+    """
+    UPDATE EMPLOYEE CHILD TABLE RESPONSES
+    RESPONSES: LIST OF DICTS [{FIELDNAME, LABEL, VALUE}]
+    """
+    try:
+        if isinstance(responses, str):
+            responses = json.loads(responses)
+
+        if not responses:
+            return {"success": False, "message": "No responses submitted"}
+
+        # ? GET LOGGED-IN EMPLOYEE
+        employee = frappe.get_value("Employee", {"user_id": frappe.session.user}, "name")
+        if not employee:
+            frappe.throw("No Employee linked with this user")
+
+        emp_doc = frappe.get_doc("Employee", employee)
+
+        #! LOOP THROUGH CHILD TABLE RESPONSES
+        for row in emp_doc.custom_pre_login_questionnaire_response:
+            for response in responses:
+                if row.employee_field_name == response.get("fieldname"):
+                    if response.get("fieldtype") == "Table":
+                        table_data = response.get("value") or []
+
+                        clean_data = []
+                        for i, row_data in enumerate(table_data, start=1):
+                            flat_row = {"_row_id": i}  # UNIQUE ROW IDENTIFIER
+
+                            for k, v in row_data.items():
+                                if k in ("__islocal", "idx", "name", "owner", "creation", "modified", "modified_by"):
+                                    continue
+                                if v in (None, "", []):
+                                    v = ""
+
+                                # ? GET LABEL FOR DISPLAY
+                                label = frappe.db.get_value(
+                                    "DocField", {"parent": response.get("options"), "fieldname": k}, "label"
+                                )
+                                if not label:
+                                    label = frappe.db.get_value(
+                                        "Custom Field", {"dt": response.get("options"), "fieldname": k}, "label"
+                                    )
+
+                                flat_row[k] = {            # ? STORE BOTH FIELDNAME AND LABEL/VALUE
+                                    "label": label or k,
+                                    "value": v
+                                }
+
+                            clean_data.append(flat_row)
+
+                        # ? STORE CLEANED TABLE DATA AS JSON STRING
+                        row.employee_response = frappe.as_json(clean_data)
+
+                    else:
+                        # ? NORMAL FIELDS DIRECTLY AS VALUE
+                        row.employee_response = response.get("value")
+
+        emp_doc.save(ignore_permissions=True)
+        frappe.db.commit()
+
+        return {"success": True, "employee": employee}
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Employee Questionnaire Submit Error")
+        frappe.throw("Error while saving questionnaire responses")
+
+@frappe.whitelist()
+def check_web_form_validation(user_id):
+    try:
+        # ? FIND EMPLOYEE LINKED TO THIS USER
+        employee = frappe.db.get_value("Employee", {"user_id": user_id}, ["name", "custom_employees_all_response_approve"], as_dict=True)
+        # ? FIND IF PRE LOGIN QUESTIONNAIRE TABLE EXISTS OR NOT FOR THAT EMPLOYEE
+        employee_pre_login_responses = frappe.get_all("Pre Login Questionnaire Response",
+                filters={"parent": employee.name},
+                fields=["name"])
+        # ? IF NOT EMPLOYEE NOT ALLOW TO REDIRECT
+        if not employee:
+            return {"success": 1, "message": "Employee not found for this user", "data": True}
+
+        hr_settings = frappe.get_single("HR Settings")
+
+        if not hr_settings.custom_pre_login_questionnaire:
+            return {"success": 1, "message": "No questionnaire Set in HR Settings", "data": True}
+
+        if not hr_settings.custom_enable_welcome_page_for_prompt:
+            return {"success": 1, "message": "Welcome Page not enabled for this company", "data": True}
+
+        # ? IF NO PRE LOGIN TABLE THAN ALLOW IT TO REDIRECTS
+        if not employee_pre_login_responses:
+            return {"success": 1, "message": "No questionnaire Needed", "data": employee.name}
+
+        # ? CHECK IF ALL RESPONSE APPROVE THEN ALLOW IT TO REDIRECT
+        if employee.custom_employees_all_response_approve:  
+            return {
+                "success": 1,
+                "message": "Employee responses approved.",
+                "data": employee.name
+            }
+        else:
+            return {
+                "success": 0,
+                "message": "All employee responses is not approved.",
+                "data": False
+            }
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "check_web_form_validation")
+        return {"success": 0, "message": f"Error: {str(e)}", "data": False}
