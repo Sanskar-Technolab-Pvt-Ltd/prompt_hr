@@ -521,7 +521,6 @@ function set_state_options(frm, state_field_name, country_field_name) {
 // ? FUNCTION TO CREATE EMPLOYEE RESIGNATION BUTTON AND HANDLE RESIGNATION PROCESS
 function createEmployeeResignationButton(frm) {
     frm.add_custom_button(__("Raise Resignation"), function () {
-        console.log(frm.doc.notice_number_of_days);
 
         // ? FETCH RESIGNATION QUESTIONS FROM BACKEND
         frappe.call({
@@ -531,13 +530,67 @@ function createEmployeeResignationButton(frm) {
                 if (res.message && res.message.length > 0) {
                     const questions = res.message;
 
-                    // ? BUILD DYNAMIC DIALOG FIELDS BASED ON QUESTIONS
-                    const fields = questions.map(q => ({
+                    // ? DYNAMICALLY CREATE DIALOG FIELDS BASED ON QUESTIONS
+                    const fields = questions.map(q => {
+                    let field = {
                         label: q.question_detail || q.question,
-                        fieldname: q.question,
-                        fieldtype: "Data",
+                        fieldname: q.question,   // use LMS Question docname directly
                         reqd: true
-                    }));
+                    };
+
+                    if (q.type !== "Open Ended" || !q.custom_input_type) {
+                        field.fieldtype = "Data";
+                        return field;
+                    }
+
+                    switch (q.custom_input_type) {
+                            case "Checkbox":
+                                field.fieldtype = "MultiCheck";
+                                field.label = (stripHtml(q.question_detail) || q.question) + " <span style='color:#f1afb0'>*</span>";  // ✅ add red star
+                                field.options = (q.custom_multi_checkselect_options || "")
+                                    .split("\n")
+                                    .map(opt => opt.trim())
+                                    .filter(opt => opt)
+                                    .map(opt => ({ label: opt, value: opt }));
+                                break;
+
+
+
+                        case "Dropdown":
+                            field.fieldtype = "Select";
+                            field.label = (stripHtml(q.question_detail) || q.question);
+                            field.options = (q.custom_multi_checkselect_options || "")
+                                .split("\n")
+                                .map(opt => opt.trim())
+                                .filter(opt => opt)
+                                .join("\n");
+                            break;
+
+                        case "Yes/No/NA":
+                            field.fieldtype = "Select";
+                            field.label = (stripHtml(q.question_detail) || q.question);
+                            field.options = "Yes\nNo\nNA";
+                            break;
+
+                        case "Date":
+                            field.fieldtype = "Date";
+                            field.label = (stripHtml(q.question_detail) || q.question);
+                            break;
+
+                        case "Single Line Input":
+                            field.fieldtype = "Data";
+                            field.label = (stripHtml(q.question_detail) || q.question);
+                            break;
+
+                        default:
+                            field.fieldtype = "Data";
+                            field.label = (stripHtml(q.question_detail) || q.question);
+                            break;
+                    }
+
+                    return field;
+                });
+
 
                     // ? CREATE RESIGNATION DIALOG
                     const dialog = new frappe.ui.Dialog({
@@ -549,12 +602,20 @@ function createEmployeeResignationButton(frm) {
                         primary_action(values) {
                             frappe.dom.freeze(__('Creating Resignation...'));
 
-                            // ? PREPARE USER RESPONSES
-                            const answers = questions.map(q => ({
-                                question_name: q.question,
-                                question: q.question_detail || q.question,
-                                answer: values[q.question]
-                            }));
+                            const answers = questions.map(q => {
+                                let answer = values[q.question];
+
+                                if (Array.isArray(answer)) {
+                                    answer = answer.join("\n"); // or "\n" if you want line breaks
+                                }
+
+                                return {
+                                    question_name: q.question,  // LMS Question docname
+                                    question: strip_html(q.question_detail) || q.question,
+                                    answer: answer
+                                };
+                            });
+
 
                             // ? CREATE RESIGNATION RECORD IN BACKEND
                             frappe.call({
@@ -565,7 +626,6 @@ function createEmployeeResignationButton(frm) {
                                     notice_number_of_days: frm.doc.notice_number_of_days,
                                 },
                                 callback: function (r) {
-                                    console.log(answers);
                                     if (r.message) {
                                         frappe.msgprint(r.message);
                                         dialog.hide();
@@ -576,10 +636,17 @@ function createEmployeeResignationButton(frm) {
                                 }
                             });
                         }
+                        
                     });
 
                     // ? DISPLAY THE DIALOG
                     dialog.show();
+                    dialog.$wrapper.find('.frappe-control[data-fieldtype="MultiCheck"] .checkbox').css({
+                        display: "inline-block",
+                        marginRight: "10px",
+                        minWidth: "120px"
+                    });
+                    
 
                 } else {
                     frappe.msgprint(__('No resignation questions found.'));
@@ -588,7 +655,6 @@ function createEmployeeResignationButton(frm) {
         });
     });
 }
-
 // ? FUNCTION TO ADD A CUSTOM BUTTON ON THE EMPLOYEE FORM
 function addEmployeeDetailsChangesButton(frm) {
     // ? ADD BUTTON TO FORM HEADER
@@ -969,4 +1035,10 @@ function buildSection(label, fieldname, fields, emptyMessage) {
     }
 
     return section;
+}
+
+function stripHtml(html) {
+    let temp = document.createElement("div");
+    temp.innerHTML = html;
+    return temp.textContent || temp.innerText || "";
 }

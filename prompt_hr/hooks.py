@@ -373,7 +373,7 @@ scheduler_events = {
         "prompt_hr.scheduler_methods.create_confirmation_evaluation_form_for_prompt",
         "prompt_hr.scheduler_methods.inform_employee_for_confirmation_process",
         "prompt_hr.scheduler_methods.validate_employee_holiday_list",
-        "prompt_hr.scheduler_methods.assign_checkin_role",
+        # "prompt_hr.scheduler_methods.assign_checkin_role",
         "prompt_hr.scheduler_methods.process_exit_approvals",
         "prompt_hr.scheduler_methods.daily_attendance_request_rituals",
         "prompt_hr.py.attendance_penalty_api.prompt_employee_attendance_penalties"
