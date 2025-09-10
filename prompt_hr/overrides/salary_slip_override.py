@@ -339,7 +339,7 @@ class CustomSalarySlip(SalarySlip):
                 "flexi_benefits": flexi_benefits,
             }
         )
-        
+
     def set_salary_structure_assignment(self):
         self._salary_structure_assignment = frappe.db.get_value(
             "Salary Structure Assignment",
@@ -390,3 +390,25 @@ class CustomSalarySlip(SalarySlip):
             )
 
         self.set_base_totals()
+
+    def add_leave_balances(self):
+        self.set("leave_details", [])
+
+        if frappe.db.get_single_value("Payroll Settings", "show_leave_balances_in_salary_slip"):
+            from hrms.hr.doctype.leave_application.leave_application import get_leave_details
+
+            leave_details = get_leave_details(self.employee, self.end_date, True)
+
+            for leave_type, leave_values in leave_details["leave_allocation"].items():
+                self.append(
+                    "leave_details",
+                    {
+                        "leave_type": leave_type,
+                        "total_allocated_leaves": flt(leave_values.get("total_leaves")),
+                        "expired_leaves": flt(leave_values.get("expired_leaves")),
+                        "used_leaves": flt(leave_values.get("leaves_taken")),
+                        "custom_penalized_leaves": flt(leave_values.get("penalized_leaves")),
+                        "pending_leaves": flt(leave_values.get("leaves_pending_approval")),
+                        "available_leaves": flt(leave_values.get("remaining_leaves")),
+                    },
+                )
