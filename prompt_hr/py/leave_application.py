@@ -805,13 +805,14 @@ def custom_update_previous_leave_allocation(allocation, annual_allocation, e_lea
         allocation.precision("total_leaves_allocated"),
     )
 
-    if new_allocation > e_leave_type.max_leaves_allowed and e_leave_type.max_leaves_allowed > 0:
-        new_leaves_added -= (new_allocation - e_leave_type.max_leaves_allowed)
-        new_allocation = e_leave_type.max_leaves_allowed
-        if new_leaves_added < 0:
-            new_leaves_added = 0
+    # ! REMOVE RESTRICTIONS OF MAX LEAVE ALLOWED
+    # if new_allocation > e_leave_type.max_leaves_allowed and e_leave_type.max_leaves_allowed > 0:
+    #     new_leaves_added -= (new_allocation - e_leave_type.max_leaves_allowed)
+    #     new_allocation = e_leave_type.max_leaves_allowed
+    #     if new_leaves_added < 0:
+    #         new_leaves_added = 0
 
-    if new_allocation != allocation.total_leaves_allocated and new_allocation_without_cf <= annual_allocation:
+    if new_allocation != allocation.total_leaves_allocated: # and new_allocation_without_cf <= annual_allocation:
         today_date = frappe.flags.current_date or getdate()
         is_maternity_leave = 0
         leave_applications = frappe.get_all("Leave Application", filters={"employee":allocation.employee,"company":allocation.company,"docstatus":1},fields=["name", "leave_type", "from_date", "to_date"])
