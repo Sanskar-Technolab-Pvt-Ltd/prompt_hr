@@ -80,7 +80,7 @@ function add_custom_workflow_buttons(frm) {
                         frm.add_custom_button(
                             __(action),
                             function () {
-                                if (action === "Reject" && frm.doc.custom_reason_for_rejection.length < 1) {
+                                if (action === "Reject" && (frm.doc.custom_reason_for_rejection || "").length < 1) {
                                     frappe.prompt({
                                         label: 'Reason for rejection',
                                         fieldname: 'reason_for_rejection',
