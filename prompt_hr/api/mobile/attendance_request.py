@@ -128,7 +128,6 @@ def get(name):
 
 # ! prompt_hr.api.mobile.attendance_request.create
 # ? CREATE ATTENDANCE REQUEST   
-   
 @frappe.whitelist()
 def create(**args):
     try:
@@ -154,7 +153,15 @@ def create(**args):
                     frappe.MandatoryError,
                 )
 
-            
+        # ? CAST custom_partial_day_request_minutes TO INT IF PRESENT
+        if args.get("custom_partial_day_request_minutes"):
+            try:
+                args["custom_partial_day_request_minutes"] = int(
+                    args.get("custom_partial_day_request_minutes")
+                )
+            except ValueError:
+                frappe.throw("Partial Day Minutes must be a number")
+
         # ? CREATE ATTENDANCE REQUEST DOC
         attendance_request_doc = frappe.get_doc({
             "doctype": "Attendance Request",
@@ -178,8 +185,9 @@ def create(**args):
         frappe.local.response["message"] = {
             "success": True,
             "message": "Attendance Request Created Successfully!",
-            "data": attendance_request_doc,
+            "data": attendance_request_doc.as_dict(),
         }
+
          
          
 # ! prompt_hr.api.mobile.attendance_request.update
