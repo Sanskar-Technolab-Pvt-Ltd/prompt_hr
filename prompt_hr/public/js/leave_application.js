@@ -1,4 +1,5 @@
 frappe.ui.form.off("Leave Application", "calculate_total_days")
+frappe.ui.form.off("Leave Application", "make_dashboard")
 frappe.ui.form.on("Leave Application", {
 	refresh: function(frm) {
 		if (frm.is_new()){
@@ -139,6 +140,72 @@ frappe.ui.form.on("Leave Application", {
 			}
 		})
 	},
+	make_dashboard: function (frm) {
+		let leave_details;
+		let lwps;
+	
+		if (frm.doc.employee) {
+			frappe.call({
+				method: "prompt_hr.py.leave_application.custom_get_leave_details",
+				async: false,
+				args: {
+					employee: frm.doc.employee,
+					date: frm.doc.from_date || frm.doc.posting_date,
+				},
+				callback: function (r) {
+					if (!r.exc && r.message["leave_allocation"]) {
+						leave_details = r.message["leave_allocation"];
+					}
+					lwps = r.message["lwps"];
+				},
+			});
+	
+			$("div").remove(".form-dashboard-section.custom");
+	
+			// Dynamically build the dashboard HTML
+			let html_str = "";
+			if (leave_details && Object.keys(leave_details).length > 0) {
+				html_str += '<table class="table table-bordered small">';
+				html_str += '<thead><tr>';
+				html_str += '<th style="width: 14%">Leave Type</th>';
+				html_str += '<th style="width: 14%" class="text-right">Total Allocated Leaves</th>';
+				html_str += '<th style="width: 14%" class="text-right">Expired Leaves</th>';
+				html_str += '<th style="width: 14%" class="text-right">Used Leaves</th>';
+				html_str += '<th style="width: 14%" class="text-right">Penalized Leaves</th>';
+				html_str += '<th style="width: 14%" class="text-right">Leaves Pending Approval</th>';
+				html_str += '<th style="width: 14%" class="text-right">Available Leaves</th>';
+				html_str += '</tr></thead><tbody>';
+	
+				Object.entries(leave_details).forEach(([key, value]) => {
+					const color = cint(value["remaining_leaves"]) > 0 ? "green" : "red";
+					html_str += '<tr>';
+					html_str += `<td>${key}</td>`;
+					html_str += `<td class="text-right">${value["total_leaves"] ?? ""}</td>`;
+					html_str += `<td class="text-right">${value["expired_leaves"] ?? ""}</td>`;
+					html_str += `<td class="text-right">${value["leaves_taken"] ?? ""}</td>`;
+					html_str += `<td class="text-right">${value["penalized_leaves"] ?? ""}</td>`;
+					html_str += `<td class="text-right">${value["leaves_pending_approval"] ?? ""}</td>`;
+					html_str += `<td class="text-right" style="color:${color}">${value["remaining_leaves"] ?? ""}</td>`;
+					html_str += '</tr>';
+				});
+				html_str += '</tbody></table>';
+			} else {
+				html_str = '<p style="margin-top: 30px;">No leaves have been allocated.</p>';
+			}
+	
+			frm.dashboard.add_section(html_str, __("Allocated Leaves"));
+			frm.dashboard.show();
+	
+			let allowed_leave_types = leave_details ? Object.keys(leave_details) : [];
+			allowed_leave_types = allowed_leave_types.concat(lwps);
+			frm.set_query("leave_type", function () {
+				return {
+					filters: [["leave_type_name", "in", allowed_leave_types]],
+				};
+			});
+		}
+	},
+	
     calculate_total_days: function (frm) {
 		if (frm.doc.from_date && frm.doc.to_date && frm.doc.employee && frm.doc.leave_type) {
 			return frappe.call({

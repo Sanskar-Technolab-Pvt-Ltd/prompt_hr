@@ -35,6 +35,7 @@ frappe.ui.form.on("Employee", {
         if (!frm.is_new() && !frm.doc.custom_employees_all_response_approve){
             addApproveEmployeeDetailsButton(frm);
         }
+        add_profile_completion_percentage(frm)
         frappe.db.get_value('Employee', {'name': frm.doc.name}, 'user_id').then(r => {
             if (!frappe.user_roles.includes("S - HR Director (Global Admin)") && !frappe.user_roles.includes("System Manager") && !frappe.user_roles.includes("S - HR L1") && !frappe.user_roles.includes("S - HR L2")) {
                 if (frappe.session.user != r.message.user_id) {
@@ -277,97 +278,109 @@ frappe.ui.form.on("Employee", {
 // ? FUNCTION TO APPROVE/REJECT DETAILS UPLOADED BY EMPLOYEE
 function addApproveEmployeeDetailsButton(frm) {
     frm.add_custom_button(__("Approve Employee Responses"), function () {
-        let pendingRows = (frm.doc.custom_pre_login_questionnaire_response || []).filter(r => r.status === "Pending");
+        let pendingRows = (frm.doc.custom_pre_login_questionnaire_response || []);
         if (!pendingRows.length) {
             frappe.msgprint("No pending responses to approve or reject.");
             return;
         }
 
-        let dialogFields = pendingRows.map((row, idx) => {
+        let approvedFields = [];
+        let pendingFields = [];
+        let takeActionFields = [];
+
+        pendingRows.forEach((row, idx) => {
             const employeeResponseIsFile = typeof row.employee_response === 'string' &&
                 (row.employee_response.startsWith('http') || /\.(pdf|docx?|xlsx?|png|jpg|jpeg|gif)$/i.test(row.employee_response));
             const employeeResponseIsTable = (() => {
                 try {
                     let parsed = JSON.parse(row.employee_response);
-                    return Array.isArray(parsed);
+            
+                    // ! RETURN FALSE IF EMPTY ARRAY OR EMPTY OBJECT
+                    if (Array.isArray(parsed)) {
+                        return parsed.length > 0;
+                    }
+                    if (parsed && typeof parsed === "object") {
+                        return Object.keys(parsed).length > 0;
+                    }
+            
+                    return false;
                 } catch {
                     return false;
                 }
             })();
-
-            return [
+            
+            let fieldBlock = [
+                {
+                    fieldname: `section_break_${idx}`,
+                    fieldtype: 'Section Break',
+                },
                 {
                     fieldname: `field_label_${idx}`,
                     fieldtype: 'Data',
                     label: 'Field',
                     default: row.field_label,
-                    read_only: 1
+                    read_only: 1,
                 },
+                { fieldtype: 'Column Break' },
                 ...(employeeResponseIsFile ? [
                     {
                         fieldname: `employee_response_button_${idx}`,
                         fieldtype: 'Button',
-                        label: 'Open Employee Response File',
+                        label: '📂 Open Response File',
                         click: () => window.open(row.employee_response, '_blank')
                     }
                 ] : employeeResponseIsTable ? [
                     {
                         fieldname: `employee_response_table_btn_${idx}`,
                         fieldtype: 'Button',
-                        label: 'View Table Response',
+                        label: '📊 View Table Response',
                         click: () => {
                             try {
-                                let parsed = JSON.parse(row.employee_response || "[]");
+                                let parsed = JSON.parse(row.employee_response);
                                 let tableDialog = new frappe.ui.Dialog({
                                     title: `Table Response - ${row.field_label}`,
-                                    fields: [{
-                                        fieldname: 'html_preview',
-                                        fieldtype: 'HTML'
-                                    }]
+                                    size: "large",
+                                    fields: [{ fieldname: 'html_preview', fieldtype: 'HTML' }]
                                 });
-                                // BUILD SIMPLE HTML TABLE
-                                let html = `<div style="max-height:400px; overflow:auto;"><table class="table table-bordered">`;
+
+                                let html = `<div style="max-height:400px; overflow:auto;">
+                                                <table class="table table-bordered table-striped">
+                                                <thead class="table-dark">`;
 
                                 if (parsed.length) {
-                                    // ? META FIELDS TO IGNORE
                                     const ignoreFields = ["_row_id", "idx", "name", "__islocal"];
-
-                                    // ? DETERMINE COLUMNS TO SHOW (ONLY NON-EMPTY AND NOT META FIELDS)
                                     let columnsToShow = [];
                                     Object.keys(parsed[0]).forEach(key => {
                                         if (!ignoreFields.includes(key)) {
-                                            let hasValue = parsed.some(row => row[key] && row[key].value !== "");
+                                            let hasValue = parsed.some(r => r[key] && r[key].value !== "");
                                             if (hasValue) columnsToShow.push(key);
                                         }
                                     });
 
-                                    // ? BUILD TABLE HEADER
-                                    html += "<thead><tr>";
+                                    // header
+                                    html += "<tr>";
                                     columnsToShow.forEach(colKey => {
-                                        html += `<th>${frappe.utils.escape_html(parsed[0][colKey].label)}</th>`;
+                                        html += `<th style="padding:6px; text-align:center;">${frappe.utils.escape_html(parsed[0][colKey].label)}</th>`;
                                     });
                                     html += "</tr></thead><tbody>";
 
-                                    // ? BUILD TABLE ROWS
-                                    parsed.forEach(row => {
+                                    // rows
+                                    parsed.forEach(r => {
                                         html += "<tr>";
                                         columnsToShow.forEach(colKey => {
-                                            let value = row[colKey]?.value || "";
-
-                                            // ? IF VALUE LOOKS LIKE AN ATTACHMENT PATH, RENDER AS LINK
+                                            let value = r[colKey]?.value || "";
                                             if (typeof value === "string" && value.startsWith("/private/files/")) {
                                                 let fileUrl = frappe.urllib.get_full_url(value);
                                                 value = `<a href="${fileUrl}" target="_blank">${frappe.utils.escape_html(value.split("/").pop())}</a>`;
                                             }
-
-                                            html += `<td>${value}</td>`;
+                                            html += `<td style="padding:6px;">${value}</td>`;
                                         });
                                         html += "</tr>";
                                     });
 
                                     html += "</tbody></table></div>";
                                 } else {
-                                    html = "<p>No rows found in table response.</p>";
+                                    html = "<p class='text-muted'>No rows found in table response.</p>";
                                 }
 
                                 tableDialog.fields_dict.html_preview.$wrapper.html(html);
@@ -382,26 +395,49 @@ function addApproveEmployeeDetailsButton(frm) {
                         fieldname: `employee_response_${idx}`,
                         fieldtype: 'Data',
                         label: 'Employee Response',
-                        default: row.employee_response,
+                        default:  (!row.employee_response || row.employee_response === "null" || row.employee_response === "[]" || 
+                            row.employee_response === "{}" ) ? "" : row.employee_response,
                         read_only: 1
                     }
                 ]),
+                { fieldtype: 'Column Break' },
                 {
                     fieldname: `status_${idx}`,
                     fieldtype: 'Select',
                     label: 'Action',
                     options: ['Approve', 'Reject'],
-                    default: '',
-                    reqd: 1
+                    default: row.status === "Approve" ? "Approve" : "",
+                    read_only: (row.status === "Approve" || !row.employee_response || row.employee_response === "null" || row.employee_response === "[]" || 
+                        row.employee_response === "{}" ) ? 1 : 0
                 },
                 ...(row.attach ? [{
                     fieldname: `attachment_${idx}`,
                     fieldtype: 'Button',
-                    label: 'Open Attachment',
+                    label: '📎 Open Attachment',
                     click: () => window.open(row.attach, '_blank')
                 }] : [])
             ];
-        }).flat();
+
+        // Grouping logic
+        if (row.status === "Approve") {
+            approvedFields.push(...fieldBlock);
+        } else if (
+            !row.employee_response || 
+            row.employee_response === "[]" || 
+            row.employee_response === "{}"
+        ) {
+            pendingFields.push(...fieldBlock);
+        } else {
+            takeActionFields.push(...fieldBlock);
+        }
+    });
+
+        let dialogFields = [
+            ...buildSection("⏳ Pending Responses", "section_break_pending", pendingFields, "No pending responses."),
+            ...buildSection("📝 Take Action Responses", "section_break_take_action", takeActionFields, "No action required."),
+            ...buildSection("✅ Approved Responses", "section_break_approve", approvedFields, "No approved responses.")
+
+        ];
 
         let dialog = new frappe.ui.Dialog({
             title: 'Approve/Reject Employee Responses',
@@ -458,23 +494,32 @@ function addApproveEmployeeDetailsButton(frm) {
                 dialog.hide();
 
                 frm.save().then(() => {
-                    let allApproved = (frm.doc.custom_pre_login_questionnaire_response || [])
-                        .every(r => r.status === "Approve");
-
-                    if (allApproved) {
-                        frm.set_value("custom_employees_all_response_approve", 1);
-                        frm.save().then(() => {
-                            frappe.msgprint("All responses approved. Employee fields updated successfully.");
-                        });
-                    } else {
-                        frappe.msgprint("Responses updated and saved successfully.");
-                    }
+                    // ? CALL PYTHON METHOD TO UPDATE PROFILE COMPLETION PERCENTAGE
+                    frappe.call({
+                        method: "prompt_hr.py.employee.set_profile_completion_percentage",
+                        args: {
+                            doc: frm.doc
+                        },
+                        callback: function(r) {
+                            let allApproved = (frm.doc.custom_pre_login_questionnaire_response || [])
+                                .every(r => r.status === "Approve");
+                
+                            if (allApproved) {
+                                frm.save().then(() => {
+                                    frappe.msgprint("All responses approved. Employee fields updated successfully.");
+                                });
+                            } else {
+                                frappe.msgprint("Responses updated and saved successfully.");
+                            }
+                        }
+                    });
                 });
+                
             }
         });
 
         dialog.show();
-    });
+        }, __("Actions"));
 }
 
 function set_state_options(frm, state_field_name, country_field_name) {
@@ -622,14 +667,14 @@ function createEmployeeResignationButton(frm) {
                 }
             }
         });
-    });
+    },  __("Actions"));
 }
 // ? FUNCTION TO ADD A CUSTOM BUTTON ON THE EMPLOYEE FORM
 function addEmployeeDetailsChangesButton(frm) {
     // ? ADD BUTTON TO FORM HEADER
     frm.add_custom_button("Apply for Changes", () => {
         loadDialogBox(frm);
-    });
+    },  __("Actions"));
 }
 
 // ? FUNCTION TO FETCH LIST OF CHANGEABLE EMPLOYEE FIELDS FROM BACKEND
@@ -939,6 +984,71 @@ function handle_location_change(frm, prefix) {
     };
 
     apply_location_filters(frm, fields, country);
+}
+
+function add_profile_completion_percentage(frm) {
+    // Find the container that holds all indicator chips, not a single chip itself
+    let $chips_container = frm.page.wrapper.find(".indicator-pill").parent(); // Get parent container
+
+    if (!$chips_container.length) return;
+
+    frm.page.wrapper.find(".custom-profile-chip").remove();
+
+    if (frm.doc.custom_profile_completion_percentage != null) {
+        let percent = frm.doc.custom_profile_completion_percentage;
+        let color = percent > 80 ? "green" : "red";  // green or red hex
+
+        let $chip = $(`
+            <span class="custom-profile-chip" style="
+                background-color: ${color};
+                color: white;
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 12px;
+                margin-left: 8px;
+                display: inline-block;
+                line-height: 1.3;
+                user-select: none;
+            ">
+                ${percent}% completed
+            </span>
+        `);
+
+        // Append custom chip alongside original chips, not inside
+        $chips_container.append($chip);
+    }
+}
+
+function buildSection(label, fieldname, fields, emptyMessage) {
+    let section = [];
+
+    if (fields.length) {
+        // If the first field is a Section Break, drop it
+        if (fields[0].fieldtype === "Section Break") {
+            fields = fields.slice(1);
+        }
+
+        // Always add our labeled Section Break
+        section.push({
+            fieldtype: "Section Break",
+            label: label,
+            fieldname: fieldname,
+        });
+
+        section.push(...fields);
+    } else {
+        section.push({
+            fieldtype: "Section Break",
+            label: label,
+            fieldname: fieldname,
+        });
+        section.push({
+            fieldtype: "HTML",
+            options: `<p class='text-muted text-center'>${emptyMessage}</p>`
+        });
+    }
+
+    return section;
 }
 
 function stripHtml(html) {
