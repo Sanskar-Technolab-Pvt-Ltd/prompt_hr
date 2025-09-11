@@ -267,7 +267,6 @@ def on_update(doc, method):
                         
                         old_leave_policy = old_doc.get("custom_leave_policy")
                         new_leave_policy = doc.get("custom_leave_policy")
-                        print(old_leave_policy)
                         if not old_leave_policy:
                             run_create_policy_assignment_method = True
                         
@@ -384,7 +383,6 @@ def get_policy_leave_types(leave_policy):
 def create_leave_allocation(emp_id, leave_policy_id, confirmation_date, prev_leave_allocation_leave_type, prev_leave_allocation_to_date, final_leaves_to_allocate = 0.0):
     try:
         
-        print(f"\n\n from date confirmation_date {confirmation_date} {prev_leave_allocation_to_date}\n\n")
         new_leave_allocation = frappe.new_doc("Leave Allocation")
         new_leave_allocation.employee = emp_id
         new_leave_allocation.leave_type = prev_leave_allocation_leave_type
@@ -1708,7 +1706,6 @@ def before_save(doc, method=None):
     auto_shift_assign(doc)
     # ? RUN ONLY FOR OLD DOCS
     if not doc.is_new():
-        print("HELLLLLLLLLL")
         update_leave_and_notice_for_confirmed_employee(doc)
 
 
