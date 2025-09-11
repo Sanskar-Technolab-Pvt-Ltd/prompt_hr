@@ -1,6 +1,6 @@
 import frappe
 from frappe import throw
-from frappe.utils import getdate, nowdate, add_years, add_to_date
+from frappe.utils import getdate, nowdate, add_years, add_to_date, month_diff, get_last_day
 from frappe.utils.pdf import get_pdf
 from frappe.www.printview import get_print_format
 from prompt_hr.api.main import notify_signatory_on_email
@@ -244,23 +244,26 @@ def on_update(doc, method):
                     if not doc.custom_leave_policy_assignment_based_on_custom_dates:
                         
                         leave_allocation_id = ''
-                        calculate_leave_allocation = 0
-                                                                        
                         if doc.final_confirmation_date:
                             confirmation_date = getdate(doc.final_confirmation_date)
                         else:
                             confirmation_date = getdate()
                         
                         
-                        today = getdate()
-                        current_year = today.year
-                        current_month = today.month
+                        is_calculate_leave_allocation = False
+                        months_count = 0.0
                         
-                        if (confirmation_date.year == current_year and confirmation_date.month == current_month and confirmation_date.day < 15):    
-                            calculate_leave_allocation = 1
+                        leave_allocation_calculation = calculate_leave_allocation_based_on_confirmation(confirmation_date)
                         
+                        if leave_allocation_calculation:
+                            
+                            is_calculate_leave_allocation = leave_allocation_calculation.get("calculate_leave_allocation")
+                            
+                            months_count = leave_allocation_calculation.get("leave_months")
+
+                        frappe.log_error("calculate_leave_allocation", f" data {is_calculate_leave_allocation}")
                         
-                        frappe.log_error("calculate_leave_allocation", calculate_leave_allocation)
+                        frappe.log_error("months_count", months_count)
                         
                         
                         old_doc = doc.get_doc_before_save()
@@ -318,7 +321,7 @@ def on_update(doc, method):
                                 
                                 final_leaves_to_allocate = 0.0
                                 
-                                if calculate_leave_allocation:
+                                if is_calculate_leave_allocation:
                                     
                                     new_allocated_leaves = new_earned_leave_type.get("annual_allocation")
                                     frappe.log_error("new_allocated_leaves", new_allocated_leaves)
@@ -340,9 +343,10 @@ def on_update(doc, method):
                                                 old_monthly_allocated_leaves = float(old_allocated_leaves) / 12
                                                 frappe.log_error("old_monthly_allocated_leaves", old_monthly_allocated_leaves)
 
-                                                if new_monthly_allocated_leaves:
+                                                if new_monthly_allocated_leaves and months_count:
+                                                    final_leaves_to_allocate = float((new_monthly_allocated_leaves - old_monthly_allocated_leaves) * months_count)
+                                                else:
                                                     final_leaves_to_allocate = new_monthly_allocated_leaves - old_monthly_allocated_leaves
-                                                
                                 # run_create_policy_assignment_method = False
                                 create_leave_allocation(doc.name, doc.custom_leave_policy, confirmation_date, new_earned_leave_type.get("leave_type"), leave_allocation_to_date, final_leaves_to_allocate)
                                                         
@@ -354,6 +358,43 @@ def on_update(doc, method):
                 # ! THROW ERROR IF NO VALID ACTIVE LEAVE PERIOD EXISTS
                 frappe.throw(_("Cannot assign leave policy as there is no active Leave Period for the current date."))
 
+def calculate_leave_allocation_based_on_confirmation(confirmation_date):
+    
+    today = getdate()
+
+    calculate_leave_allocation = False
+    leave_months = 0
+    
+    current_year = today.year
+    current_month = today.month
+
+    confirmation_date = getdate(confirmation_date)
+
+    # Special case: current month and day <= 15 → allocation = 1
+    if (confirmation_date.year == current_year and confirmation_date.month == current_month):                            
+        if confirmation_date.day < 15:
+            calculate_leave_allocation = True
+            leave_months = 1
+
+    else:
+        if confirmation_date < today:
+            calculate_leave_allocation = True
+            
+            # Start date logic
+            if confirmation_date.day < 15:
+                start_date = confirmation_date.replace(day=1)
+            else:
+                start_date = add_to_date(confirmation_date, months=1, days=1)
+
+            # End date is the last day of current month
+            end_date = get_last_day(today)
+
+            # Use frappe's month_diff for clean calculation
+            months_to_count = month_diff(end_date, start_date)
+
+            leave_months = max(months_to_count, 0)
+
+    return {"calculate_leave_allocation": calculate_leave_allocation, "leave_months": leave_months}
 
 def get_policy_leave_types(leave_policy): 
     try:
