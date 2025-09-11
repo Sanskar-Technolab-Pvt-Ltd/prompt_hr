@@ -129,7 +129,7 @@ class CustomLeaveApplication(LeaveApplication):
             for alloc in allocation_pool
             if alloc["to_date"] >= getdate(self.from_date)
         )
-        if not remaining_leaves or self.total_leave_days > remaining_leaves:
+        if (not remaining_leaves or self.total_leave_days > remaining_leaves) and self.status != "Rejected":
             self.show_insufficient_balance_message(remaining_leaves)
 
     def validate_attendance(self):

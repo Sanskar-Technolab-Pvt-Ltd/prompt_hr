@@ -409,6 +409,8 @@ def apply_leave_workflow(leave_application, action):
         doc = frappe.get_doc("Leave Application", leave_application)
 
         # ? APPLY WORKFLOW ACTION
+        if action == "Reject":
+            doc.status = "Rejected"
         updated_doc = apply_workflow(doc, action)
 
         # ? SAVE CHANGES

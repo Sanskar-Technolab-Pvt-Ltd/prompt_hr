@@ -77,11 +77,13 @@ class ConfirmationEvaluationForm(Document):
 			if company_abbr:
 				company_id = frappe.db.get_value("Company", {"abbr": company_abbr}, "name")
 				if company_id:
-					if self.employee and self.company == company_abbr:
+					if self.employee and self.company == company_id:
 						if self.probation_status == "Confirm":
 							if self.confirmation_date:
-								frappe.db.set_value("Employee", self.employee, "final_confirmation_date", self.confirmation_date)
-								frappe.db.set_value("Employee", self.employee, "custom_probation_status", "Confirmed")
+								doc = frappe.get_doc("Employee", self.employee)
+								doc.final_confirmation_date = self.confirmation_date
+								doc.custom_probation_status = "Confirmed"
+								doc.save(ignore_permissions=True)
 								
 						
 						elif self.probation_status == "Extend":
