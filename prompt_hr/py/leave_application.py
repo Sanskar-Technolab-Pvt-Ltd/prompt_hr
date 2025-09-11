@@ -83,6 +83,8 @@ def before_insert(doc, method):
         if doc.from_date:
             if date_diff(doc.from_date, frappe.utils.getdate()) <= leave_type_doc.custom_prior_days_required_for_applying_leave:
                 frappe.throw(_("You must apply at least {0} days before the leave date").format(leave_type_doc.custom_prior_days_required_for_applying_leave))
+    # ? LEAVE DEDUCTED THROUGH SANDWICH LEAVE MUST BE ZERO AT TIME OF INSERT
+    doc.custom_leave_deducted_sandwich_rule = 0
 
 def before_validate(doc, method=None):
     if doc.custom_leave_status == "Approved":
@@ -1950,7 +1952,7 @@ def custom_get_data(filters: Filters) -> list:
             if is_lwp:
                 row.closing_balance = 0
             else:
-                closing = new_allocation + opening - (row.leaves_expired + leaves_taken)
+                closing = new_allocation + opening - (row.leaves_expired + leaves_taken + row.penalized_leaves)
                 row.closing_balance = flt(closing, precision)
 
             row.indent = 1

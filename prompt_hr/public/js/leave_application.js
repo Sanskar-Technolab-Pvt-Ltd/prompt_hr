@@ -306,6 +306,7 @@ frappe.ui.form.on("Leave Application", {
 				}, (values) => {
 					if (values.reason_for_rejection) {
 						frm.set_value("custom_reason_for_rejection", values.reason_for_rejection)
+						frm.set_value("status", "Rejected")
 						frm.save().then(() => {
 							resolve();
 						}).catch(reject);						
