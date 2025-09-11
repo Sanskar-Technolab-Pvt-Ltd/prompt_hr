@@ -1739,6 +1739,44 @@ def auto_shift_assign(doc):
 		shift_doc.insert()
 		shift_doc.submit()
 
+@frappe.whitelist()
+def set_profile_completion_percentage(doc):
+    """
+    SET PROFILE COMPLETION PERCENTAGE FOR EMPLOYEE
+    (ALWAYS ROUNDED DOWN TO NEAREST MULTIPLE OF 5)
+    """
+    try:
+        # CONVERT TO DOCUMENT OBJECT IF NEEDED
+        if isinstance(doc, str):
+            doc = frappe.get_doc(frappe.parse_json(doc))
+
+        if doc.custom_pre_login_questionnaire_response:
+            approved_count = 0
+            total_count = len(doc.custom_pre_login_questionnaire_response)
+
+            for rec in doc.custom_pre_login_questionnaire_response:
+                if rec.status == "Approve":
+                    approved_count += 1
+
+            if total_count > 0:
+                raw_percentage = (approved_count / total_count) * 100
+                # ? ROUND DOWN TO NEAREST MULTIPLE OF 5
+                doc.custom_profile_completion_percentage = int(raw_percentage // 5) * 5
+
+                if doc.custom_profile_completion_percentage == 100:
+                    doc.custom_employees_all_response_approve = 1
+            else:
+                doc.custom_profile_completion_percentage = 0
+        else:
+            doc.custom_profile_completion_percentage = 100
+            doc.custom_employees_all_response_approve = 1
+
+        doc.save(ignore_permissions=True)
+        return doc.custom_profile_completion_percentage
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback())
+        frappe.msgprint(f"Error: {e}")
 
 @frappe.whitelist()
 def employee_questionnaire_submit(responses):
@@ -1770,12 +1808,15 @@ def employee_questionnaire_submit(responses):
                         clean_data = []
                         for i, row_data in enumerate(table_data, start=1):
                             flat_row = {"_row_id": i}  # UNIQUE ROW IDENTIFIER
+                            is_empty_row = True        # FLAG TO CHECK IF ENTIRE ROW IS BLANK
 
                             for k, v in row_data.items():
-                                if k in ("__islocal", "idx", "name", "owner", "creation", "modified", "modified_by"):
+                                if k in ("__islocal", "idx", "name", "owner", "creation", "modified", "modified_by", "_row_id"):
                                     continue
                                 if v in (None, "", []):
                                     v = ""
+                                else:
+                                    is_empty_row = False   # FOUND NON-BLANK VALUE
 
                                 # ? GET LABEL FOR DISPLAY
                                 label = frappe.db.get_value(
@@ -1786,12 +1827,13 @@ def employee_questionnaire_submit(responses):
                                         "Custom Field", {"dt": response.get("options"), "fieldname": k}, "label"
                                     )
 
-                                flat_row[k] = {            # ? STORE BOTH FIELDNAME AND LABEL/VALUE
+                                flat_row[k] = {  # ? STORE BOTH FIELDNAME AND LABEL/VALUE
                                     "label": label or k,
                                     "value": v
                                 }
-
-                            clean_data.append(flat_row)
+                            # ? ONLY ADD ROW IF NOT ENTIRELY EMPTY
+                            if not is_empty_row:
+                                clean_data.append(flat_row)
 
                         # ? STORE CLEANED TABLE DATA AS JSON STRING
                         row.employee_response = frappe.as_json(clean_data)

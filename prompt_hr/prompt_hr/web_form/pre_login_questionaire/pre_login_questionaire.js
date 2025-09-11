@@ -40,7 +40,34 @@ frappe.ready(function () {
         });
     });
 
-
+    // ? UPDATE LABELS BASED ON READONLY OR EDITABLE
+    (frappe.web_form?.web_form_fields || []).forEach(field => {
+        let control = frappe.web_form.fields_dict?.[field.fieldname];
+        if (control && control.df) {
+            let originalLabel = field.label || "";
+            console.log(field.label)
+            let newLabel = "";
+            if (!field.read_only) {
+                // ? RED LABEL FOR PENDING
+                newLabel = `<span style="color:red;">${originalLabel} - Pending</span>`;
+            } else {
+                // ? GREEN LABEL FOR APPROVED
+                newLabel = `<span style="color:green;">${originalLabel} - Approved</span>`;
+            }
+            // ? UPDATE FIELD LABEL
+            if (control.$wrapper) {
+                // ? SOME FIELDS (LIKE ATTACH) DON'T HAVE <label>, SO ADD IF MISSING
+                let labelEl = control.$wrapper.find("label");
+        
+                if (labelEl.length) {
+                    labelEl.html(newLabel);
+                } else {
+                    // ? ADD LABEL MANUALLY ABOVE FIELD IF IT DOESN'T EXIST
+                    control.$wrapper.prepend(`<label class="control-label">${newLabel}</label>`);
+                }
+            }
+        }
+    });
     // ADD CUSTOM SUBMIT BUTTON
     let customBtn = $(`<button class="btn btn-primary mt-3">Submit Questionnaire</button>`);
     $(".web-form-footer").append(customBtn);
@@ -78,7 +105,7 @@ frappe.ready(function () {
             callback: function (r) {
                 if (!r.exc) {
                     frappe.msgprint("Questionnaire submitted successfully!");
-                    showThankYouPage()
+                    showThankYouPage();
                 } else {
                     frappe.msgprint("Error while submitting questionnaire.");
                 }
