@@ -294,7 +294,16 @@ function addApproveEmployeeDetailsButton(frm) {
             const employeeResponseIsTable = (() => {
                 try {
                     let parsed = JSON.parse(row.employee_response);
-                    return Array.isArray(parsed);
+            
+                    // ! RETURN FALSE IF EMPTY ARRAY OR EMPTY OBJECT
+                    if (Array.isArray(parsed)) {
+                        return parsed.length > 0;
+                    }
+                    if (parsed && typeof parsed === "object") {
+                        return Object.keys(parsed).length > 0;
+                    }
+            
+                    return false;
                 } catch {
                     return false;
                 }
@@ -386,7 +395,8 @@ function addApproveEmployeeDetailsButton(frm) {
                         fieldname: `employee_response_${idx}`,
                         fieldtype: 'Data',
                         label: 'Employee Response',
-                        default: row.employee_response,
+                        default:  (!row.employee_response || row.employee_response === "null" || row.employee_response === "[]" || 
+                            row.employee_response === "{}" ) ? "" : row.employee_response,
                         read_only: 1
                     }
                 ]),
@@ -397,7 +407,8 @@ function addApproveEmployeeDetailsButton(frm) {
                     label: 'Action',
                     options: ['Approve', 'Reject'],
                     default: row.status === "Approve" ? "Approve" : "",
-                    read_only: (row.status === "Approve" || !row.employee_response || row.employee_response === "null") ? 1 : 0
+                    read_only: (row.status === "Approve" || !row.employee_response || row.employee_response === "null" || row.employee_response === "[]" || 
+                        row.employee_response === "{}" ) ? 1 : 0
                 },
                 ...(row.attach ? [{
                     fieldname: `attachment_${idx}`,
@@ -410,7 +421,11 @@ function addApproveEmployeeDetailsButton(frm) {
         // Grouping logic
         if (row.status === "Approve") {
             approvedFields.push(...fieldBlock);
-        } else if (!row.employee_response) {
+        } else if (
+            !row.employee_response || 
+            row.employee_response === "[]" || 
+            row.employee_response === "{}"
+        ) {
             pendingFields.push(...fieldBlock);
         } else {
             takeActionFields.push(...fieldBlock);
@@ -490,7 +505,6 @@ function addApproveEmployeeDetailsButton(frm) {
                                 .every(r => r.status === "Approve");
                 
                             if (allApproved) {
-                                frm.set_value("custom_employees_all_response_approve", 1);
                                 frm.save().then(() => {
                                     frappe.msgprint("All responses approved. Employee fields updated successfully.");
                                 });
@@ -505,7 +519,7 @@ function addApproveEmployeeDetailsButton(frm) {
         });
 
         dialog.show();
-        });
+        }, __("Actions"));
 }
 
 function set_state_options(frm, state_field_name, country_field_name) {
@@ -653,14 +667,14 @@ function createEmployeeResignationButton(frm) {
                 }
             }
         });
-    });
+    },  __("Actions"));
 }
 // ? FUNCTION TO ADD A CUSTOM BUTTON ON THE EMPLOYEE FORM
 function addEmployeeDetailsChangesButton(frm) {
     // ? ADD BUTTON TO FORM HEADER
     frm.add_custom_button("Apply for Changes", () => {
         loadDialogBox(frm);
-    });
+    },  __("Actions"));
 }
 
 // ? FUNCTION TO FETCH LIST OF CHANGEABLE EMPLOYEE FIELDS FROM BACKEND
