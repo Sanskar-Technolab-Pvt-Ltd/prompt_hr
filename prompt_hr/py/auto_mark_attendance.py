@@ -256,7 +256,7 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
         mark_attendance_date = getdate(attendance_date) if attendance_date else getdate(today())
         str_mark_attendance_date = mark_attendance_date.strftime("%Y-%m-%d")
         
-        frappe.log_error(f"mark_attendance_update", "Scheduler Mark Attendance Started for date {attendance_date}")
+        frappe.log_error(f"mark_attendance_update", f"Scheduler Mark Attendance Started for date {attendance_date}")
         
 
         day_start_time = get_datetime(mark_attendance_date)
@@ -264,6 +264,7 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
 
         if not regularize_attendance:
             for employee_data in employee_list:
+                try:
                     if is_scheduler:
                         frappe.log_error(f"mark_attendance_processing_employee", f"{employee_data.get('name')}")
                         if employee_data.get("company") == prompt_company_id:
@@ -336,6 +337,14 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                             else:
                                 frappe.log_error(f"Shift is Not Assigned For Employee {employee_data.get('name')}")
                                 employee_attendance_error.append(employee_data.get("name"))
+                except Exception as emp_exc:
+                    frappe.log_error(f"Error marking attendance for employee {employee_data.get('name')}", frappe.get_traceback())
+                    employee_attendance_error.append(employee_data.get("name"))
+                    continue
+            
+            if employee_attendance_error:
+                frappe.log_error("auto_attendance_scheduler", f"error while creating attendance for this employees {employee_attendance_error} ")
+                
         elif regularize_attendance:
             if not indifoss:
                 print(f"\n\n employee_data {employee_data} \n\n")
@@ -449,8 +458,12 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
             
         elif half_day_attendance.get("custom_half_day_time") == "Second":
             shift_end_datetime = middle_datetime
-            
     
+    if is_half_day:
+        frappe.log_error("attendance", f"Half Day Attendance {half_day_attendance.get('name')}")
+    else:
+        frappe.log_error("attendance", f"Not A half Day Attendance {employee_data.get('name')}")
+            
     #* FETCHING EMPLOYEE'S FIRST CHECKIN & LAST CHECKOUT RECORD
     in_type_emp_checkin = frappe.db.get_all("Employee Checkin", {"employee": employee_data.get("name"), "log_type": "IN", "time": ["between", [day_start_time, day_end_time]]}, ["name", "time"], order_by="time asc", limit=1)
     out_type_emp_checkin = frappe.db.get_all("Employee Checkin", {"employee": employee_data.get("name"), "log_type": "OUT", "time": ["between", [day_start_time, day_end_time]]}, ["name", "time"], order_by="time desc", limit=1)
