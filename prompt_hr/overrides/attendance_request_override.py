@@ -110,14 +110,14 @@ def handle_custom_workflow_action(doc, action, reason_for_rejection=None):
 
 def process_attendance_and_penalties(doc):
     from_date = getdate(doc["from_date"])
-    to_date = min(getdate(doc["to_date"]), getdate())
+    to_date = min(getdate(doc["to_date"]), getdate(add_to_date(today(), days=-1, as_string=True)))
     frappe.db.set_value("Attendance Request", doc.get("name"), "custom_status", "Approved")
     process_attendance_request(from_date, to_date, doc, approved_attendance_request=doc.get("name"))
     apply_workflow(doc, "Approve")
 
 def process_rejection_penalties(doc):
     from_date = getdate(doc.get("from_date"))
-    to_date = min(getdate(doc.get("to_date")), getdate())
+    to_date = min(getdate(doc.get("to_date")), getdate(add_to_date(today(), days=-1, as_string=True)))
     frappe.db.set_value("Attendance Request", doc.get("name"), "custom_status", "Rejected")
     no_attendance_penalty_enable = frappe.db.get_single_value("HR Settings", "custom_enable_no_attendance_penalty")
     no_attendance_buffer_days = int(frappe.db.get_single_value("HR Settings", "custom_buffer_period_for_no_attendance_penalty_for_prompt")) or 0
