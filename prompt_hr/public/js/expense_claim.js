@@ -61,7 +61,11 @@ frappe.ui.form.on('Expense Claim', {
                 }
             });
         }
-        claim_extra_field_visit_expenses(frm)
+        if (frm.is_new() || frm.doc.workflow_state == "Draft") {
+            add_view_field_visit_expense_button(frm);
+            getTourVisitExpenseDialog(frm);
+            claim_extra_expenses(frm)
+        }
     },
     after_save: function(frm) {  
         setTimeout(() => {  
@@ -258,6 +262,337 @@ function make_border_red_for_is_exception_records(frm) {
         }
     }
 }
+function claim_extra_expenses(frm) {
+    //? ADD EXTRA EXPENSES BUTTON
+    frm.add_custom_button(__('Claim Extra Expenses'), function () {
+        // ! THROW MESSAGE IF EMPLOYEE IS NOT SELECTED
+        if (!frm.doc.employee) {
+            frappe.msgprint({
+                title: __('Missing Employee'),
+                message: __('Please select an Employee before proceeding.'),
+                indicator: 'red'
+            });
+            return;
+        }
+        const service_roles = ["S - Service Engineer", "Service Engineer", "S - Service Director"];
+        const all_perm_roles = ["S - HR L5", "S - HR L4", "S - HR L3", "S - HR L2", "S - HR L1", "S - HR L2 Manager", "S - HR Supervisor (RM)", "System Manager", "S - HR Director (Global Admin)"]
+        const sales_roles = ["S - Sales Director", "S - Sales Manager", "S - Sales Supervisor", "S - Sales Executive"];
+        let field_visit_cache = [];
+        let tour_visit_cache = []
+        // ? FIELD VISIT LIST STORE IN CACHE
+        // ? REASON : GET DATA CALLS API SO IT T
+        frappe.db.get_list("Field Visit", {
+            fields: ["name"],
+            filters: {
+                service_mode: "On Site(Customer Premise)",
+                field_visited_by: frm.doc.employee
+            },
+            limit_page_length: 0
+        }).then(records => {
+            field_visit_cache = records.map(r => r.name);
+        });
+        frappe.db.get_list("Tour Visit", {
+            fields: ["name"],
+            filters: {
+                person: frm.doc.employee
+            },
+            limit_page_length: 0
+        }).then(records => {
+            tour_visit_cache = records.map(r => r.name);
+        });
+        let userRoles = frappe.user_roles || [];
+
+        // FUNCTION TO CHECK IF USER HAS ANY ROLE IN A GIVEN ROLE LIST
+        function hasRole(roleList) {
+            return roleList.some(r => userRoles.includes(r));
+        }
+        let service_call_cache = {};
+
+        // ? FUNCTION TO GET SERVICE CALLS AS PER FIELD VISIT
+        function load_service_calls_for_visits(field_visits) {
+            let cache_key = field_visits.sort().join(",");
+            if (service_call_cache[cache_key]) {
+                return Promise.resolve(service_call_cache[cache_key]);
+            }
+            return frappe.call({
+                method: "prompt_hr.py.expense_claim.get_service_calls_from_field_visits",
+                args: {
+                    field_visits: field_visits,
+                    txt: ""
+                }
+            }).then(r => {
+                let list = (r.message || []).map(d => ({ value: d.name, label: __(d.name), description: "" }));
+                service_call_cache[cache_key] = list;
+                return list;
+            });
+        }
+
+        let defaultVisit = "";
+        let readOnlyField = false;
+
+        // LOGIC TO SET DEFAULT AND READONLY
+        if (hasRole(all_perm_roles)) {
+            defaultVisit = "Field Visit";
+            readOnlyField = false;
+        } else if (hasRole(service_roles)) {
+            defaultVisit = "Field Visit";
+            readOnlyField = true;
+        } else if (hasRole(sales_roles)) {
+            defaultVisit = "Tour Visit";
+            readOnlyField = true;
+        }
+
+        // CREATE DIALOG
+        const dialog = new frappe.ui.Dialog({
+            title: "EXTRA Expenses",
+            fields: [
+                {
+                    label: 'Visit Type',
+                    fieldname: 'visit_type',
+                    fieldtype: 'Select',
+                    options: "\nField Visit\nTour Visit",
+                    default: defaultVisit,
+                    reqd: 1,
+                    read_only: readOnlyField,
+                    onchange: function () {
+                        toggleExpenseFields(dialog);
+                    }
+                },
+                {
+                    label: 'Expense Type',
+                    fieldname: 'expense_type',
+                    fieldtype: 'Select',
+                    options: "DA\nNon DA",
+                    reqd: 1,
+                    onchange: function () {
+                        toggleExpenseFields(dialog);
+                    }
+                },
+
+                // ? DA FIELDS
+                {
+                    label: 'From Date',
+                    fieldname: 'from_date',
+                    fieldtype: 'Date',
+                    hidden: 1
+                },
+                {
+                    label: 'From Time',
+                    fieldname: 'from_time',
+                    fieldtype: 'Time',
+                    hidden: 1
+                },
+                {
+                    label: 'To Date',
+                    fieldname: 'to_date',
+                    fieldtype: 'Date',
+                    hidden: 1
+                },
+                {
+                    label: 'To Time',
+                    fieldname: 'to_time',
+                    fieldtype: 'Time',
+                    hidden: 1
+                },
+
+                // ? NON DA FIELDS
+                {
+                    label: "Field Visit",
+                    fieldname: "field_visit",
+                    fieldtype: "MultiSelectList",
+                    hidden: 1,
+                    get_data: function (txt) {
+                        return field_visit_cache
+                            .filter(d => !txt || d.toLowerCase().includes(txt.toLowerCase()))
+                            .map(d => ({ value: d, description: "" }));
+                    }
+                },
+                {
+                    label: "Service Call",
+                    fieldname: "service_call",
+                    fieldtype: "MultiSelectList",
+                    hidden: 1,
+                    get_data: function (txt) {
+                        const field_visit_ids = dialog.get_value("field_visit") || [];
+                        if (!field_visit_ids.length) {
+                            return [];
+                        }
+                        return load_service_calls_for_visits(field_visit_ids).then(list => {
+                            return list.filter(d => !txt || d.value.toLowerCase().includes(txt.toLowerCase()));
+                        });
+                    }
+                },
+                // ? NON DA FIELDS
+                {
+                    label: "Tour Visit",
+                    fieldname: "tour_visit",
+                    fieldtype: "MultiSelectList",
+                    hidden: 1,
+                    get_data: function (txt) {
+                        return tour_visit_cache
+                            .filter(d => !txt || d.toLowerCase().includes(txt.toLowerCase()))
+                            .map(d => ({ value: d, description: "" }));
+                    }
+                },
+                {
+                    label: "Number of Row",
+                    fieldname: "number_of_row",
+                    fieldtype: "Int",
+                    default: 1,
+                    min: 1,
+                    max: 4,
+                    hidden: 1
+                },
+                {
+                    label: "Add Without Field Visit and Service Call",
+                    fieldname: "add_without_fv_sc",
+                    fieldtype: "Check",
+                    hidden: 1,
+                    onchange: function () {
+                        const isRequired = !dialog.get_value("add_without_fv_sc");
+                        dialog.set_df_property("field_visit", "reqd", isRequired);
+                        dialog.set_df_property("service_call", "reqd", isRequired);
+                        dialog.set_df_property("field_visit", "hidden", !isRequired);
+                        dialog.set_df_property("service_call", "hidden", !isRequired);
+
+                        dialog.fields_dict.field_visit.refresh();
+                        dialog.fields_dict.service_call.refresh();
+                    }
+                },
+                {
+                    label: "Add Without Tour Visits",
+                    fieldname: "add_without_tv",
+                    fieldtype: "Check",
+                    hidden: 1,
+                    onchange: function () {
+                        const isRequired = !dialog.get_value("add_without_tv");
+                        dialog.set_df_property("tour_visit", "reqd", isRequired);
+                        dialog.set_df_property("tour_visit", "hidden", !isRequired);
+
+                        dialog.fields_dict.field_visit.refresh();
+                        dialog.fields_dict.service_call.refresh();
+                    }
+                }
+            ],
+            primary_action_label: "ADD EXPENSE",
+            primary_action(values) {
+                if (values.number_of_row > 4) {
+                    frappe.msgprint(__("Number of Row cannot be greater than 4"));
+                    return;
+                }
+
+                if ((values.add_without_fv_sc || values.add_without_tv) && values.expense_type == "Non DA"){
+                    for (let i = 0; i < values.number_of_row; i++) {
+                        frm.add_child("expenses", {});
+                    }
+                    frm.refresh_field("expenses");
+                    dialog.hide();
+                }
+                else if (values.expense_type == "DA") {
+                    add_extra_da(frm, values.from_date, values.from_time, values.to_date, values.to_time)
+                    dialog.hide();
+
+                }
+                else if (values.expense_type == "Non DA" && values.visit_type == "Field Visit") {
+
+                const selected_field_visits = values.field_visit || [];
+                const selected_service_calls = values.service_call || [];
+
+                //? CALL BACKEND TO GET FORMATTED COMMA-SEPARATED STRINGS
+                frappe.call({
+                    method: "prompt_hr.py.expense_claim.get_field_visit_service_call_details",
+                    args: {
+                        field_visits: selected_field_visits,
+                        service_calls: selected_service_calls
+                    },
+                    callback: function (r) {
+                        if (!r.exc && r.message) {
+                            const expense = {
+                                custom_field_visits: r.message.custom_field_visit,
+                                custom_service_calls: r.message.custom_service_call,
+                                custom_field_visit_and_service_call_details: r.message.custom_field_visit_and_service_call_details,
+                            };
+                            for (let i = 0; i < values.number_of_row; i++) {
+                                frm.add_child("expenses", expense);
+                            }
+                            frm.refresh_field("expenses");
+                            dialog.hide();
+                        }
+                    }
+                });
+            }
+                else if (values.expense_type == "Non DA" && values.visit_type == "Tour Visit") {
+
+                    const selected_tour_visits = values.tour_visit
+
+                    //? CALL BACKEND TO GET FORMATTED COMMA-SEPARATED STRINGS
+                    frappe.call({
+                        method: "prompt_hr.py.expense_claim.get_tour_visit_details",
+                        args: {
+                            tour_visits: selected_tour_visits,
+                        },
+                        callback: function (r) {
+                            if (!r.exc && r.message) {
+                                const expense = {
+                                    custom_tour_visits: r.message.custom_tour_visits,
+                                    custom_tour_visit_details: r.message.custom_tour_visit_details,
+                                };
+                                for (let i = 0; i < values.number_of_row; i++) {
+                                    frm.add_child("expenses", expense);
+                                }
+                                frm.refresh_field("expenses");
+                                dialog.hide();
+                            }
+                        }
+                    });
+                }
+            }
+
+        });
+
+        function toggleExpenseFields(dialog) {
+            let expenseType = dialog.get_value("expense_type");
+            let visit_type = dialog.get_value("visit_type");
+        
+            // RESET ALL TO HIDDEN + NOT REQUIRED
+            ["from_date", "from_time", "to_date", "to_time", "tour_visit",
+            "field_visit", "service_call", "number_of_row", "add_without_fv_sc", "add_without_tv"]
+                .forEach(f => {
+                    dialog.set_df_property(f, "hidden", 1);
+                    dialog.set_df_property(f, "reqd", 0);
+                });
+        
+            if (expenseType === "DA") {
+                // SHOW + REQUIRE DA FIELDS
+                ["from_date", "from_time", "to_date", "to_time"].forEach(f => {
+                    dialog.set_df_property(f, "hidden", 0);
+                    dialog.set_df_property(f, "reqd", 1);
+                });
+            } else if (expenseType === "Non DA") {
+                if (visit_type === "Field Visit") {
+                    ["field_visit", "service_call", "number_of_row", "add_without_fv_sc"].forEach(f => {
+                        dialog.set_df_property(f, "hidden", 0);
+                    });
+                    ["field_visit", "service_call"].forEach(f => {
+                        dialog.set_df_property(f, "reqd", 1);
+                    });
+                } else if (visit_type === "Tour Visit") {
+
+                    ["tour_visit","number_of_row", "add_without_tv"].forEach(f => {
+                        dialog.set_df_property(f, "hidden", 0);
+                    });
+                        dialog.set_df_property("tour_visit", "reqd", 1);
+                    
+                }
+            }
+        
+            dialog.refresh();
+        }
+
+        dialog.show();
+    });
+}
+
 // ? CREATE PAYMENT ENTRY BUTTON
 function create_payment_entry_button(frm) {
 	if (frm.doc.docstatus !== 0 || frm.doc.workflow_state !== "Sent to Accounting Team") return;
@@ -668,164 +1003,208 @@ function add_view_field_visit_expense_button(frm) {
     });
 }
 
-// ? FUNCTION TO ADD BUTTON EXTRA FIELD VISIT CLAIM
-function claim_extra_field_visit_expenses(frm) {
-    const allowed_roles = ['Service Engineer', 'S - HR Director (Global Admin)', "S - Service Engineer", "System Manager", "S - HR L5", "S - HR L4", "S - HR L3", "S - HR L2", "S - HR L1", "S - HR L2 Manager", "S - HR Supervisor (RM)"];
+// ? FUNCTION FOR BUTTON TO ADD TOUR VISIT EXPENSE - MODIFIED TO FEED DATA INTO CURRENT FORM
+function getTourVisitExpenseDialog(frm) {
+    const allowed_roles = ['S - HR Director (Global Admin)', "System Manager", "S - HR L5", "S - HR L4", "S - HR L3", "S - HR L2", "S - HR L1", "S - HR L2 Manager", "S - HR Supervisor (RM)", "S - Sales Director", "S - Sales Manager", "S - Sales Supervisor", "S - Sales Executive"];
     const user_roles = frappe.user_roles;
 
     const has_access = user_roles.some(role => allowed_roles.includes(role));
     if (!has_access) return;
 
-    // ? ADD CLAIM EXTRA FIELD VISIT EXPENSE BUTTON
-    frm.add_custom_button("Claim Extra Field Visit Expense", () => {
-        // ! THROW MESSAGE IF EMPLOYEE IS NOT SELECTED
-        if (!frm.doc.employee) {
-            frappe.msgprint({
-                title: __('Missing Employee'),
-                message: __('Please select an Employee before proceeding.'),
-                indicator: 'red'
-            });
-            return;
+    frm.add_custom_button('Get Tour Visit Expense', () => {
+        const employee = frm.doc.employee;
+        const is_new = frm.is_new();
+        let expense_claim_name = "";
+        if (!is_new) {
+            expense_claim_name = frm.doc.name;
         }
-        // ----------------------------------
-        // CACHE FOR FIELD VISIT
-        // ----------------------------------
-        let field_visit_cache = [];
 
-        frappe.db.get_list("Field Visit", {
-            fields: ["name"],
-            filters: {
-                service_mode: "On Site(Customer Premise)",
-                field_visited_by: frm.doc.employee
-            },
-            limit_page_length: 0
-        }).then(records => {
-            field_visit_cache = records.map(r => r.name);
-        });
+        const is_hr = user_roles.includes('S - HR Director (Global Admin)') || user_roles.includes('S - HR Supervisor (RM)') || user_roles.includes('S - HR L2 Manager');
+        const is_sales = user_roles.includes('Sales User') || user_roles.includes('Sales Manager');
 
-        // ----------------------------------
-        // CACHE FOR SERVICE CALL BASED ON FIELD VISIT
-        // ----------------------------------
-        let service_call_cache = {};
-        function load_service_calls_for_visits(field_visits) {
-            let cache_key = field_visits.sort().join(",");
-            if (service_call_cache[cache_key]) {
-                return Promise.resolve(service_call_cache[cache_key]);
-            }
-            return frappe.call({
-                method: "prompt_hr.py.expense_claim.get_service_calls_from_field_visits",
+        //? CHECK IF CURRENT USER CAN EDIT EMPLOYEE FIELD
+        const can_edit_employee = frappe.user.has_role('S - HR Director (Global Admin)') || frappe.user.has_role('S - HR Supervisor (RM)') || frappe.user.has_role('S - HR L2 Manager');
+
+        // ? GET DEFAULT EMPLOYEE FOR SALES USERS
+        let default_employee = employee;
+        if (is_sales && !is_hr && !default_employee) {
+            frappe.call({
+                method: 'frappe.client.get_list',
                 args: {
-                    field_visits: field_visits,
-                    txt: ""
+                    doctype: 'Employee',
+                    filters: { user_id: frappe.session.user },
+                    fields: ['name']
+                },
+                callback: function (r) {
+                    const employee_id = r.message?.[0]?.name || '';
+                    show_dialog(employee_id);
                 }
-            }).then(r => {
-                let list = (r.message || []).map(d => ({ value: d.name, label: __(d.name), description: "" }));
-                service_call_cache[cache_key] = list;
-                return list;
             });
+        } else {
+            show_dialog(default_employee);
         }
-        const dialog = new frappe.ui.Dialog({
-            title: "Claim Extra Field Visit Expense",
-            fields: [
-                {
-                    label: "Field Visit",
-                    fieldname: "field_visit",
-                    fieldtype: "MultiSelectList",
-                    options: "Field Visit",
-                    reqd: 1,
-                    get_data: function (txt) {
-                        return field_visit_cache
-                            .filter(d => !txt || d.toLowerCase().includes(txt.toLowerCase()))
-                            .map(d => ({ value: d, description: "" }));
-                    }
-                },
-                {
-                    label: "Service Call",
-                    fieldname: "service_call",
-                    fieldtype: "MultiSelectList",
-                    options: "Service Call",
-                    reqd: 1,
-                    get_data: function (txt) {
-                        const field_visit_ids = dialog.get_value("field_visit") || [];
-                        if (!field_visit_ids.length) {
-                            return [];
-                        }
-                        return load_service_calls_for_visits(field_visit_ids).then(list => {
-                            return list.filter(d => !txt || d.value.toLowerCase().includes(txt.toLowerCase()));
-                        });
-                    }
-                },
-                {
-                    label: "Number of Row",
-                    fieldname: "number_of_row",
-                    fieldtype: "Int",
-                    reqd: 1,
-                    default: 1,
-                    min: 1,
-                    max: 4
-                },
-                {
-                    label: "Add Without Field Visit and Service Call",
-                    fieldname: "add_without_fv_sc",
-                    fieldtype: "Check",
-                    onchange: function () {
-                        const isRequired = !dialog.get_value("add_without_fv_sc");
-                        dialog.set_df_property("field_visit", "reqd", isRequired);
-                        dialog.set_df_property("service_call", "reqd", isRequired);
-                        dialog.set_df_property("field_visit", "hidden", !isRequired);
-                        dialog.set_df_property("service_call", "hidden", !isRequired);
-                        
-                        dialog.fields_dict.field_visit.refresh();
-                        dialog.fields_dict.service_call.refresh();
-                    }
-                },
 
-            ],
-            primary_action_label: "Add Expense",
-            primary_action(values) {
-                if (values.number_of_row > 4) {
-                    frappe.msgprint(__("Number of Row cannot be greater than 4"));
-                    return;
-                }
-
-                if (values.add_without_fv_sc){
-                    for (let i = 0; i < values.number_of_row; i++) {
-                        frm.add_child("expenses", {});
-                    }
-                    frm.refresh_field("expenses");
-                    dialog.hide();
-                }
-                else {
-
-                const selected_field_visits = values.field_visit || [];
-                const selected_service_calls = values.service_call || [];
-
-                //? CALL BACKEND TO GET FORMATTED COMMA-SEPARATED STRINGS
-                frappe.call({
-                    method: "prompt_hr.py.expense_claim.get_field_visit_service_call_details",
-                    args: {
-                        field_visits: selected_field_visits,
-                        service_calls: selected_service_calls
-                    },
-                    callback: function (r) {
-                        if (!r.exc && r.message) {
-                            const expense = {
-                                custom_field_visits: r.message.custom_field_visit,
-                                custom_service_calls: r.message.custom_service_call,
-                                custom_field_visit_and_service_call_details: r.message.custom_field_visit_and_service_call_details,
-                            };
-                            for (let i = 0; i < values.number_of_row; i++) {
-                                frm.add_child("expenses", expense);
+        function show_dialog(default_emp) {
+            const dialog = new frappe.ui.Dialog({
+                title: 'Tour Visit Expense Details',
+                fields: [
+                    {
+                        label: 'Employee',
+                        fieldname: 'employee',
+                        fieldtype: 'Link',
+                        options: 'Employee',
+                        reqd: 1,
+                        default: default_emp,
+                        hidden: !is_new,
+                        read_only: !can_edit_employee,
+                        onchange: function () {
+                            if (dialog.get_value("employee")) {
+                                frappe.db.get_value('Employee', dialog.get_value("employee"), 'employee_name')
+                                    .then(r => {
+                                        if (r.message) {
+                                            dialog.set_value('employee_name', r.message.employee_name);
+                                        }
+                                    });
                             }
-                            frm.refresh_field("expenses");
-                            dialog.hide();
+                            else {
+                                dialog.set_value('employee_name', "")
+                            }
                         }
+    
+                    },
+                    {
+                        label: 'Employee Name',
+                        fieldname: 'employee_name',
+                        fieldtype: 'Data',
+                        hidden: !is_new,
+                        read_only: 1
+                    },
+                    {
+                        label: 'From Date',
+                        fieldname: 'from_date',
+                        fieldtype: 'Date',
+                        reqd: 1
+                    },
+                    {
+                        label: 'To Date',
+                        fieldname: 'to_date',
+                        fieldtype: 'Date',
+                        reqd: 1
                     }
-                });
-            }
-            }
-        });
+                ],
+                primary_action_label: 'Fetch Tour Visit Expenses',
+                primary_action(values) {
+                    frappe.call({
+                        method: 'prompt_hr.py.expense_claim.process_tour_visit_da',
+                        args: {
+                            employee: values.employee,
+                            company: frm.doc.company || "",
+                            from_date: values.from_date,
+                            to_date: values.to_date,
+                            expense_claim_name: expense_claim_name,
+                            type: "Tour Visit"
+                        },
+                        callback(r) {
+                            if (!r.exc && r.message) {
+                                const { da_expense_rows, summary_html } = r.message;
 
-        dialog.show();
-    })
+                                if (da_expense_rows?.length) {
+                                    if (frm.is_new()) {
+                                        // * FOR NEW DOC: SET BASIC INFO AND CLEAR EXPENSES
+                                        frm.doc.employee = values.employee;
+                                        frm.doc.approval_status = "Draft";
+                                        frm.doc.custom_type = "Tour Visit";
+                                        frm.doc.expenses = [];
+                                        frm.doc.custom_tour_visit = values.tour_visit;
+
+                                        // ? REFRESH THE FIELDS TO MAKE THEM VISIBLE IN UI
+                                        frm.refresh_field("employee");
+                                        frm.refresh_field("approval_status");
+                                        frm.refresh_field("custom_type");
+                                        frm.refresh_field("expenses");
+                                        frm.refresh_field("custom_tour_visit")
+                                    }
+
+                                    show_summary_and_insert(summary_html, da_expense_rows);
+                                } else {
+                                    frappe.msgprint(__('No expenses found for selected tour visit.'));
+                                }
+                                dialog.hide();
+                            }
+                        }
+                    });
+
+                    function show_summary_and_insert(summary_html, da_expense_rows) {
+                        frappe.msgprint({
+                            title: __('Tour Visit Expense Summary'),
+                            message: summary_html,
+                        });
+
+                        da_expense_rows.forEach(row => {
+                            frm.add_child('expenses', row);
+                        });
+                        frm.refresh_field('expenses');
+                        check_and_remove_expense_buttons(frm)
+                    }
+                }
+            });
+
+            //? FETCH EMPLOYEE NAME FROM EMPLOYEE DOC IF SET
+            if (default_emp) {
+                frappe.db.get_value('Employee', default_emp, 'employee_name')
+                    .then(r => {
+                        if (r.message) {
+                            dialog.set_value('employee_name', r.message.employee_name);
+                        }
+                    });
+            }
+
+            //? SHOW THE DIALOG
+            dialog.show();
+        }
+    });
+}
+
+function add_extra_da(frm,from_date, from_time, to_date, to_time) {
+    //? CONVERT STRING TO DATE OBJECT
+    let start_date = frappe.datetime.str_to_obj(from_date);
+    let end_date = frappe.datetime.str_to_obj(to_date);
+
+    //? GET TIME OBJECTS
+    let start_time = from_time;
+    let end_time = to_time;
+
+    //? LOOP THROUGH DATES
+    for (let d = new Date(start_date); d <= end_date; d.setDate(d.getDate() + 1)) {
+        let expense_date = new Date(d); //? CLONE DATE
+
+        let new_expense = {
+            "expense_date": frappe.datetime.obj_to_str(expense_date),
+            "custom_expense_end_date": frappe.datetime.obj_to_str(expense_date),
+            "custom_expense_start_time": start_time,
+            "custom_expense_end_time": end_time,
+            "expense_type": "DA",
+            "amount": 0,
+            "sanctioned_amount": 0,
+            "custom_da_adjustment_type": "Not Applicable",
+        };
+
+        frm.add_child("expenses", new_expense);
+    }
+
+    frm.refresh_field("expenses");
+}
+
+function check_and_remove_expense_buttons(frm) {
+    const expenses = frm.doc.expenses || [];
+
+    if (!frm.is_new()) return;
+
+    if (
+        expenses.length > 1 ||
+        (expenses.length === 1 && expenses[0].expense_type?.trim() !== "")
+    ) {
+        frm.remove_custom_button("Get Field Visit Expenses");
+        frm.remove_custom_button("Get Tour Visit Expense");
+    }
 }
