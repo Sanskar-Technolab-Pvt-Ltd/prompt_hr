@@ -8,6 +8,7 @@
  "field_order": [
   "employee",
   "employee_name",
+  "auto_approve",
   "column_break_yxha",
   "status",
   "company",
@@ -71,12 +72,20 @@
    "fieldname": "reason_for_rejection",
    "fieldtype": "Small Text",
    "label": "Reason for rejection"
+  },
+  {
+   "default": "0",
+   "fieldname": "auto_approve",
+   "fieldtype": "Check",
+   "label": "Auto Approve",
+   "no_copy": 1,
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-09-05 19:14:13.856724",
+ "modified": "2025-09-12 20:22:27.814652",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "WeekOff Change Request",

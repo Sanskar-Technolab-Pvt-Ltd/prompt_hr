@@ -17,6 +17,7 @@
   "attendance",
   "regularization_date",
   "employee_notified",
+  "auto_approve",
   "section_break_qyza",
   "checkinpunch_details"
  ],
@@ -91,7 +92,7 @@
    "reqd": 1
   },
   {
-  "fetch_from": "employee.department",
+   "fetch_from": "employee.department",
    "fieldname": "department",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -104,12 +105,20 @@
    "fieldname": "reason_for_rejection",
    "fieldtype": "Small Text",
    "label": "Reason for rejection"
+  },
+  {
+   "default": "0",
+   "fieldname": "auto_approve",
+   "fieldtype": "Check",
+   "label": "Auto Approve",
+   "no_copy": 1,
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-09-05 21:21:43.122279",
+ "modified": "2025-09-12 20:22:53.356592",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Attendance Regularization",

@@ -1927,179 +1927,180 @@ def build_da_expense_rows(
             already_exists_dates.append(str(date))
             continue
 
-        #! BASE EXPENSE ROW
-        expense_row = {
-            "expense_type": "DA",
-            "expense_date": getdate(date),
-            "custom_expense_end_date": getdate(date),
-            "amount": amount,
-            "sanctioned_amount": amount,
-            "custom_days": 1,   # now always "per day" since hours are already split
-            "custom_mode_of_vehicle": "",
-            "custom_type_of_vehicle": "",
-            "custom_expense_start_time": data.get("earliest_start"),
-            "custom_expense_end_time": data.get("latest_end"),
-            "description": f"{percentage}% DA - {date}"
-        }
+        if amount > 0:
+            #! BASE EXPENSE ROW
+            expense_row = {
+                "expense_type": "DA",
+                "expense_date": getdate(date),
+                "custom_expense_end_date": getdate(date),
+                "amount": amount,
+                "sanctioned_amount": amount,
+                "custom_days": 1,   # now always "per day" since hours are already split
+                "custom_mode_of_vehicle": "",
+                "custom_type_of_vehicle": "",
+                "custom_expense_start_time": data.get("earliest_start"),
+                "custom_expense_end_time": data.get("latest_end"),
+                "description": f"{percentage}% DA - {date}"
+            }
 
-        #? ONLY FOR FIELD VISIT: ADD FIELD VISIT → SERVICE CALL MAPPING + HTML
-        if visit_type == "Field Visit":
-            base_url = frappe.utils.get_url()
-            all_field_visits_set = set()
-            all_service_calls_set = set()
-            field_visit_map = {}
+            #? ONLY FOR FIELD VISIT: ADD FIELD VISIT → SERVICE CALL MAPPING + HTML
+            if visit_type == "Field Visit":
+                base_url = frappe.utils.get_url()
+                all_field_visits_set = set()
+                all_service_calls_set = set()
+                field_visit_map = {}
 
-            for fv_name in data["visits"]:
-                field_visit_doc = frappe.get_doc("Field Visit", fv_name)
-                all_field_visits_set.add(fv_name)
-                for row in field_visit_doc.service_calls:
-                    if row.service_call:
-                        field_visit_map.setdefault(fv_name, []).append({
-                            "service_call": row.service_call,
-                            "from_location": row.from_location or "-",
-                            "to_location": row.to_location or "-",
-                            "travelled_km": row.travelled_km or "0"
-                        })
-                        all_service_calls_set.add(row.service_call)
+                for fv_name in data["visits"]:
+                    field_visit_doc = frappe.get_doc("Field Visit", fv_name)
+                    all_field_visits_set.add(fv_name)
+                    for row in field_visit_doc.service_calls:
+                        if row.service_call:
+                            field_visit_map.setdefault(fv_name, []).append({
+                                "service_call": row.service_call,
+                                "from_location": row.from_location or "-",
+                                "to_location": row.to_location or "-",
+                                "travelled_km": row.travelled_km or "0"
+                            })
+                            all_service_calls_set.add(row.service_call)
 
-            # build table rows
-            table_rows = ""
-            for field_visit, service_call_rows in sorted(field_visit_map.items()):
-                rowspan = len(service_call_rows)
-                for i, row_data in enumerate(service_call_rows):
-                    service_call = row_data["service_call"]
-                    from_location = row_data["from_location"]
-                    to_location = row_data["to_location"]
-                    travelled_km = row_data["travelled_km"]
+                # build table rows
+                table_rows = ""
+                for field_visit, service_call_rows in sorted(field_visit_map.items()):
+                    rowspan = len(service_call_rows)
+                    for i, row_data in enumerate(service_call_rows):
+                        service_call = row_data["service_call"]
+                        from_location = row_data["from_location"]
+                        to_location = row_data["to_location"]
+                        travelled_km = row_data["travelled_km"]
 
-                    # fetch customer
-                    customer = "-"
-                    customer_name = "-"
-                    sc_data = frappe.db.get_value(
-                        "Service Call", service_call, ["customer"], as_dict=True
-                    )
-                    if sc_data and sc_data.get("customer"):
-                        customer = sc_data.get("customer")
-                        customer_name = frappe.db.get_value("Customer", customer, "customer_name")
+                        # fetch customer
+                        customer = "-"
+                        customer_name = "-"
+                        sc_data = frappe.db.get_value(
+                            "Service Call", service_call, ["customer"], as_dict=True
+                        )
+                        if sc_data and sc_data.get("customer"):
+                            customer = sc_data.get("customer")
+                            customer_name = frappe.db.get_value("Customer", customer, "customer_name")
 
-                    table_rows += "<tr>"
-                    if i == 0:
+                        table_rows += "<tr>"
+                        if i == 0:
+                            table_rows += f"""
+                                <td rowspan="{rowspan}" style="border: 1px solid #000; padding: 8px;">
+                                    <a href="{base_url}/app/field-visit/{field_visit}" target="_blank">{field_visit}</a>
+                                </td>
+                            """
                         table_rows += f"""
-                            <td rowspan="{rowspan}" style="border: 1px solid #000; padding: 8px;">
-                                <a href="{base_url}/app/field-visit/{field_visit}" target="_blank">{field_visit}</a>
+                            <td style="border: 1px solid #000; padding: 8px;">
+                                <a href="{base_url}/app/service-call/{service_call}" target="_blank">{service_call}</a>
                             </td>
-                        """
-                    table_rows += f"""
-                        <td style="border: 1px solid #000; padding: 8px;">
-                            <a href="{base_url}/app/service-call/{service_call}" target="_blank">{service_call}</a>
-                        </td>
-                        <td style="border: 1px solid #000; padding: 8px;">{from_location}</td>
-                        <td style="border: 1px solid #000; padding: 8px;">{to_location}</td>
-                        <td style="border: 1px solid #000; padding: 8px;">{travelled_km}</td>
-                        <td style="border: 1px solid #000; padding: 8px;">
-                            <a href="{base_url}/app/customer/{customer}" target="_blank">{customer_name}</a>
-                        </td>
-                    </tr>
-                    """
-
-            html_table = f"""
-            <div class="ql-editor read-mode">
-                <table style="border-collapse: collapse; width: 100%; font-size: 14px;">
-                    <thead>
-                        <tr style="background-color: #f5f5f5;">
-                            <th style="border: 1px solid #000; padding: 8px;">Field Visit</th>
-                            <th style="border: 1px solid #000; padding: 8px;">Service Call</th>
-                            <th style="border: 1px solid #000; padding: 8px;">From Location</th>
-                            <th style="border: 1px solid #000; padding: 8px;">To Location</th>
-                            <th style="border: 1px solid #000; padding: 8px;">Travelled KM</th>
-                            <th style="border: 1px solid #000; padding: 8px;">Customer</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {table_rows}
-                    </tbody>
-                </table>
-            </div>
-            """
-
-            expense_row.update({
-                "custom_field_visit_and_service_call_details": html_table,
-                "custom_field_visits": ", ".join(sorted(all_field_visits_set)),
-                "custom_service_calls": ", ".join(sorted(all_service_calls_set)),
-            })
-
-        # ? ONLY FOR TOUR VISIT
-        elif visit_type == "Tour Visit":
-            base_url = frappe.utils.get_url()
-            all_tour_visit_set = set()
-            tour_visit_map = {}
-            
-            for visit in data["visits"]:
-                all_tour_visit_set.add(visit)
-
-                # ? FETCH CUSTOMER LINKED TO THIS TOUR VISIT
-                customer = frappe.db.get_value("Tour Visit", visit, "customer")
-                if not customer:
-                    continue
-
-                customer_name = frappe.db.get_value("Customer", customer, "customer_name") or "-"
-
-                # Store visit mapping (no list, just dict)
-                tour_visit_map[visit] = {
-                    "tour_visit": visit,
-                    "customer": customer,
-                    "customer_name": customer_name
-                }
-
-            all_tour_visits = ", ".join(sorted(all_tour_visit_set))
-            tour_table_rows = ""
-            tour_html_table = ""
-
-            if tour_visit_map:
-                tour_table_rows = ""
-
-                for tour_visit, row in sorted(tour_visit_map.items()):
-                    tour_name = row["tour_visit"]
-                    customer = row["customer"]
-                    customer_name = row["customer_name"]
-
-                    tour_table_rows += f"""
-                        <tr>
-                            <td style="border: 1px solid #000; padding: 6px; text-align: left; white-space: nowrap;">
-                                <a href="{base_url}/app/tour-visit/{tour_name}" target="_blank">{tour_name}</a>
-                            </td>
-                            <td style="border: 1px solid #000; padding: 6px; text-align: left; white-space: nowrap;">
+                            <td style="border: 1px solid #000; padding: 8px;">{from_location}</td>
+                            <td style="border: 1px solid #000; padding: 8px;">{to_location}</td>
+                            <td style="border: 1px solid #000; padding: 8px;">{travelled_km}</td>
+                            <td style="border: 1px solid #000; padding: 8px;">
                                 <a href="{base_url}/app/customer/{customer}" target="_blank">{customer_name}</a>
                             </td>
                         </tr>
-                    """
+                        """
 
-                # CREATE FULL HTML TABLE IF ANY ROWS EXIST
-                if tour_table_rows:
-                    tour_html_table = f"""
-                    <div class="ql-editor read-mode">
-                        <table style="width: 100%; border-collapse: collapse; font-size: 13px; table-layout: auto;">
-                            <thead>
-                                <tr style="background-color: #f5f5f5;">
-                                    <th style="border: 1px solid #000; padding: 6px; text-align: left;">Tour Visit</th>
-                                    <th style="border: 1px solid #000; padding: 6px; text-align: left;">Customer</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {tour_table_rows}
-                            </tbody>
-                        </table>
-                    </div>
-                    """
+                html_table = f"""
+                <div class="ql-editor read-mode">
+                    <table style="border-collapse: collapse; width: 100%; font-size: 14px;">
+                        <thead>
+                            <tr style="background-color: #f5f5f5;">
+                                <th style="border: 1px solid #000; padding: 8px;">Field Visit</th>
+                                <th style="border: 1px solid #000; padding: 8px;">Service Call</th>
+                                <th style="border: 1px solid #000; padding: 8px;">From Location</th>
+                                <th style="border: 1px solid #000; padding: 8px;">To Location</th>
+                                <th style="border: 1px solid #000; padding: 8px;">Travelled KM</th>
+                                <th style="border: 1px solid #000; padding: 8px;">Customer</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {table_rows}
+                        </tbody>
+                    </table>
+                </div>
+                """
 
-
-            if all_tour_visit_set:
                 expense_row.update({
-                    "custom_tour_visits": all_tour_visits,
-                    "custom_tour_visit_details": tour_html_table
+                    "custom_field_visit_and_service_call_details": html_table,
+                    "custom_field_visits": ", ".join(sorted(all_field_visits_set)),
+                    "custom_service_calls": ", ".join(sorted(all_service_calls_set)),
                 })
-        da_expense_rows.append(expense_row)
-        added_da_dates.append(str(date))
+
+            # ? ONLY FOR TOUR VISIT
+            elif visit_type == "Tour Visit":
+                base_url = frappe.utils.get_url()
+                all_tour_visit_set = set()
+                tour_visit_map = {}
+                
+                for visit in data["visits"]:
+                    all_tour_visit_set.add(visit)
+
+                    # ? FETCH CUSTOMER LINKED TO THIS TOUR VISIT
+                    customer = frappe.db.get_value("Tour Visit", visit, "customer")
+                    if not customer:
+                        continue
+
+                    customer_name = frappe.db.get_value("Customer", customer, "customer_name") or "-"
+
+                    # Store visit mapping (no list, just dict)
+                    tour_visit_map[visit] = {
+                        "tour_visit": visit,
+                        "customer": customer,
+                        "customer_name": customer_name
+                    }
+
+                all_tour_visits = ", ".join(sorted(all_tour_visit_set))
+                tour_table_rows = ""
+                tour_html_table = ""
+
+                if tour_visit_map:
+                    tour_table_rows = ""
+
+                    for tour_visit, row in sorted(tour_visit_map.items()):
+                        tour_name = row["tour_visit"]
+                        customer = row["customer"]
+                        customer_name = row["customer_name"]
+
+                        tour_table_rows += f"""
+                            <tr>
+                                <td style="border: 1px solid #000; padding: 6px; text-align: left; white-space: nowrap;">
+                                    <a href="{base_url}/app/tour-visit/{tour_name}" target="_blank">{tour_name}</a>
+                                </td>
+                                <td style="border: 1px solid #000; padding: 6px; text-align: left; white-space: nowrap;">
+                                    <a href="{base_url}/app/customer/{customer}" target="_blank">{customer_name}</a>
+                                </td>
+                            </tr>
+                        """
+
+                    # CREATE FULL HTML TABLE IF ANY ROWS EXIST
+                    if tour_table_rows:
+                        tour_html_table = f"""
+                        <div class="ql-editor read-mode">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 13px; table-layout: auto;">
+                                <thead>
+                                    <tr style="background-color: #f5f5f5;">
+                                        <th style="border: 1px solid #000; padding: 6px; text-align: left;">Tour Visit</th>
+                                        <th style="border: 1px solid #000; padding: 6px; text-align: left;">Customer</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {tour_table_rows}
+                                </tbody>
+                            </table>
+                        </div>
+                        """
+
+
+                if all_tour_visit_set:
+                    expense_row.update({
+                        "custom_tour_visits": all_tour_visits,
+                        "custom_tour_visit_details": tour_html_table
+                    })
+            da_expense_rows.append(expense_row)
+            added_da_dates.append(str(date))
 
     return expense_claim_doc, da_expense_rows, already_exists_dates, added_da_dates
 
