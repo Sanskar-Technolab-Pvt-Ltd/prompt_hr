@@ -85,6 +85,7 @@ def before_insert(doc, method):
                 frappe.throw(_("You must apply at least {0} days before the leave date").format(leave_type_doc.custom_prior_days_required_for_applying_leave))
     # ? LEAVE DEDUCTED THROUGH SANDWICH LEAVE MUST BE ZERO AT TIME OF INSERT
     doc.custom_leave_deducted_sandwich_rule = 0
+    doc.custom_auto_apply_sandwich_rule = 0
 
 def before_validate(doc, method=None):
     if doc.custom_leave_status == "Approved":
@@ -341,6 +342,7 @@ def before_submit(doc, method):
     if extra_leave_days > 0:
         doc.total_leave_days = (doc.total_leave_days or 0) + extra_leave_days
         doc.custom_leave_deducted_sandwich_rule = extra_leave_days
+        doc.custom_auto_apply_sandwich_rule = 1
         if extra_leave_days_prev > 0:
             doc.from_date = add_days(doc.from_date, -extra_leave_days_prev)
         if extra_leave_days_next > 0:
