@@ -157,6 +157,14 @@ def prompt_employee_attendance_penalties():
                     "Late Coming Penalty Email Records", str(e)
                 )
 
+        if late_penalty:
+            try:
+                create_penalty_records(late_penalty, late_coming_target_date)
+            except Exception as e:
+                frappe.log_error(
+                    "Error in Late Penalty Creation", str(e)
+                )
+
         # ? DAILY HOURS PERCENTAGE FOR PENALTY
         try:
             percentage_for_daily_hour_penalty = (
@@ -199,6 +207,14 @@ def prompt_employee_attendance_penalties():
                     "Daily Hours Penalty Email Records", str(e)
                 )
 
+        if daily_hour_penalty:
+            try:
+                create_penalty_records(daily_hour_penalty, daily_hours_target_date)
+            except Exception as e:
+                frappe.log_error(
+                    "Error in Daily Hour Penalty Creation", str(e)
+                )
+
         # ! FETCH ALL NO ATTENDANCE PENALTY RECORDS FOR THE LAST BUFFER DAYS IF IT IS ENABLE
         no_attendance_penalty = {}
         no_attendance_email_records = {}
@@ -226,6 +242,14 @@ def prompt_employee_attendance_penalties():
             except Exception as e:
                 frappe.log_error(
                     "No Attendance Penalty Email Records", str(e)
+                )
+
+        if no_attendance_penalty:
+            try:
+                create_penalty_records(no_attendance_penalty, no_attendance_target_date)
+            except Exception as e:
+                frappe.log_error(
+                    "Error in No Attendance Penalty Creation", str(e)
                 )
 
         # ! FETCH ALL MIS-PUNCH PENALTY RECORDS FOR THE LAST BUFFER DAYS IF IT IS ENABLE
@@ -258,29 +282,6 @@ def prompt_employee_attendance_penalties():
                 )
 
         # ! CREATE OR UPDATE PENALTY RECORDS IN THE DATABASE
-        if late_penalty:
-            try:
-                create_penalty_records(late_penalty, late_coming_target_date)
-            except Exception as e:
-                frappe.log_error(
-                    "Error in Late Penalty Creation", str(e)
-                )
-
-        if daily_hour_penalty:
-            try:
-                create_penalty_records(daily_hour_penalty, daily_hours_target_date)
-            except Exception as e:
-                frappe.log_error(
-                    "Error in Daily Hour Penalty Creation", str(e)
-                )
-
-        if no_attendance_penalty:
-            try:
-                create_penalty_records(no_attendance_penalty, no_attendance_target_date)
-            except Exception as e:
-                frappe.log_error(
-                    "Error in No Attendance Penalty Creation", str(e)
-                )
 
         if mispunch_penalty:
             try:
@@ -1514,15 +1515,8 @@ def auto_approve_scheduler():
                 attendance_request = frappe.get_doc("Attendance Request", request.name)
                 handle_custom_workflow_action(attendance_request, "Approve")
                 attendance_request.db_set("custom_auto_approve", 1)
-                if frappe.db.get_value("Attendance Request", attendance_request.name, "workflow_state") == "Pending":
-                    handle_custom_workflow_action(attendance_request, "Reject", "Auto Reject")
                 approved_employees.add(request.employee)
             except Exception as e:
-                try:
-                    handle_custom_workflow_action(attendance_request, "Reject", "Auto Reject")
-                    attendance_request.db_set("custom_auto_approve", 1)
-                except Exception as reject_exception:
-                    frappe.log_error(f"Error rejecting attendance request {request.name}:", str(reject_exception))
                 frappe.log_error(f"Error approving attendance request {request.name}:", str(e))
                 continue
 
@@ -1560,12 +1554,6 @@ def auto_approve_scheduler():
                 shift_request.db_set("custom_auto_approve", 1)
                 approved_employees.add(request.employee)
             except Exception as e:
-                try:
-                    shift_request.db_set("custom_reason_for_rejection", "Auto Reject")
-                    apply_workflow(shift_request, "Reject")
-                    shift_request.db_set("custom_auto_approve", 1)
-                except Exception as reject_exception:
-                    frappe.log_error(f"Error rejecting shift request {request.name}:", str(reject_exception))
                 frappe.log_error(f"Error approving shift request {request.name}:", str(e))
                 continue
 
@@ -1602,12 +1590,6 @@ def auto_approve_scheduler():
                 attendance_regularization.db_set("auto_approve", 1)
                 approved_employees.add(request.employee)
             except Exception as e:
-                try:
-                    attendance_regularization.db_set("reason_for_rejection", "Auto Reject")
-                    apply_workflow(attendance_regularization, "Reject")
-                    attendance_regularization.db_set("auto_approve", 1)
-                except Exception as reject_exception:
-                    frappe.log_error(f"Error rejecting attendance regularization {request.name}:", str(reject_exception))
                 frappe.log_error(f"Error approving attendance regularization {request.name}: ",str(e))
                 continue
 
@@ -1649,45 +1631,34 @@ def auto_approve_scheduler():
                                     apply_workflow(leave_request, "Approve")
                                     leave_request.db_set("custom_auto_approve", 1)
                                     approved_employees.add(request.employee)
-
-
-                            except:
-                                leave_request.db_set("custom_reason_for_rejection", "Auto Reject")
-                                apply_workflow(leave_request, "Reject")
-                                leave_request.status = "Rejected"
-                                apply_workflow(leave_request, "Reject")
-                                leave_request.db_set("custom_auto_approve", 1)
+                            except Exception as e:
+                                frappe.log_error(f"Error approving leave request:", str(e))
+                                continue
 
                         else:
                             try:
                                 apply_workflow(leave_request, "Approve")
                                 leave_request.db_set("custom_auto_approve", 1)
                                 approved_employees.add(request.employee)
-
-
-                            except:
-                                leave_request.status = "Rejected"
-                                leave_request.db_set("custom_reason_for_rejection", "Auto Reject")
-                                apply_workflow(leave_request, "Reject")
-                                leave_request.db_set("custom_auto_approve", 1)
+                            except Exception as e:
+                                frappe.log_error(f"Error approving leave request:", str(e))
+                                continue
                     elif leave_request.workflow_state == "Approved by Reporting Manager":
                         try:
                             apply_workflow(leave_request, "Approve")
                             leave_request.db_set("custom_auto_approve", 1)
                             approved_employees.add(request.employee)
 
-                        except:
-                            leave_request.db_set("custom_reason_for_rejection", "Auto Reject")
-                            apply_workflow(leave_request, "Reject")
-                            leave_request.db_set("custom_auto_approve", 1)
+                        except Exception as e:
+                            frappe.log_error(f"Error approving leave request:", str(e))
+                            continue
                     else:
                         try:
-                            if not leave_request.custom_reason_for_rejection:
-                                leave_request.db_set("custom_reason_for_rejection", "Auto Reject")
-                            apply_workflow(leave_request, "Reject")
+                            apply_workflow(leave_request, "Approve")
                             leave_request.db_set("custom_auto_approve", 1)
                         except Exception as e:
-                            frappe.log_error(f"Error rejecting leave request:", str(e))
+                            frappe.log_error(f"Error approving leave request:", str(e))
+                            continue
 
                 except Exception as e:
                     frappe.log_error(f"Error approving leave request:", str(e))
