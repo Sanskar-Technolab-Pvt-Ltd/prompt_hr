@@ -51,7 +51,7 @@ def prompt_employee_attendance_penalties():
             )
         
         late_coming_target_date = getdate(
-            add_to_date(today(), days=-(int(late_coming_penalty_buffer_days)))
+            add_to_date(today(), days=-(int(late_coming_penalty_buffer_days)+1))
         )
 
         try:
@@ -73,7 +73,7 @@ def prompt_employee_attendance_penalties():
                 "Buffer Days (Daily Hours Penalty)", str(e)
             )
         daily_hours_target_date = getdate(
-            add_to_date(today(), days=-(int(daily_hours_penalty_buffer_days)))
+            add_to_date(today(), days=-(int(daily_hours_penalty_buffer_days)+1))
         )
         try:
             daily_hour_penalty_enable = hr_settings.custom_enable_daily_hours_penalty
@@ -94,7 +94,7 @@ def prompt_employee_attendance_penalties():
                 "Buffer Days (No Attendance Penalty)", str(e)
             )
         no_attendance_target_date = getdate(
-            add_to_date(today(), days=-(int(no_attendance_penalty_buffer_days)))
+            add_to_date(today(), days=-(int(no_attendance_penalty_buffer_days)+1))
         )
         try:
             no_attendance_penalty_enable = hr_settings.custom_enable_no_attendance_penalty
@@ -115,7 +115,7 @@ def prompt_employee_attendance_penalties():
                 "Buffer Days (Mispunch Penalty)", str(e)
             )
         mispunch_penalty_target_date = getdate(
-            add_to_date(today(), days=-(int(mispunch_penalty_buffer_days)))
+            add_to_date(today(), days=-(int(mispunch_penalty_buffer_days)+1))
         )
         try:
             mispunch_penalty_enable = hr_settings.custom_enable_mispunch_penalty
@@ -489,15 +489,6 @@ def process_late_entry_penalties_for_prompt(
     # ? AND ADD TO PENALTY ENTRIES
     for employee, count in prev_late_attendance_count.items():
         try:
-            leave_application_exists = frappe.db.exists(
-                "Leave Application",
-                {
-                    "employee": employee,
-                    "workflow_state": "Approved",
-                    "from_date": ["<=", target_date],
-                    "to_date": [">=", target_date],
-                },
-            )
 
             attendance_request_exists = frappe.db.exists(
                 "Attendance Request",
@@ -513,7 +504,6 @@ def process_late_entry_penalties_for_prompt(
 
             if (
                 count >= late_coming_allowed_per_month
-                and not leave_application_exists
                 and not attendance_request_exists
             ):
                 # ? CHECK HOLIDAY
@@ -1025,7 +1015,7 @@ def create_penalty_records(penalty_entries, target_date):
                             frappe.db.commit()
                         except Exception as e:
                             frappe.log_error(
-                                f"Error creating attendance for employee {employee} on {target_date}: {e}"
+                                f"Error creating attendance for employee on {target_date}:", str(e)
                             )
                             continue
                         details["attendance"] = att_doc.name
@@ -1165,18 +1155,6 @@ def get_below_threshold_daily_hours(
     # ? LOOP THROUGH DAILY HOURS RECORDS AND FILTER BASED ON THRESHOLD DURATION
     for emp, data in daily_hours_records.items():
         try:
-            partial_days_request_minutes = frappe.db.get_value(
-                "Attendance Request",
-                {
-                    "employee": emp,
-                    "from_date": ["<=", target_date],
-                    "to_date": [">=", target_date],
-                    "custom_status": "Approved",
-                    "docstatus": ["!=", 2],
-                    "reason": "Partial Day"
-                },
-                "custom_partial_day_request_minutes"
-            ) or 0
 
             working_hours = data.get("working_hours", 0)
             shift_type = emp_shift_map.get(emp)
@@ -1200,7 +1178,7 @@ def get_below_threshold_daily_hours(
             ) * shift_duration_hours
 
             # ? ONLY ADD IF BELOW THRESHOLD
-            if (working_hours + float(partial_days_request_minutes)/60) < threshold_hours:
+            if (working_hours) < threshold_hours:
                 below_threshold_records[emp] = data
         except Exception as e:
             frappe.log_error(
@@ -1499,7 +1477,7 @@ def auto_approve_scheduler():
         return
 
     auto_mark_date = getdate(
-            add_to_date(today(), days=-(int(auto_approve_days)))
+            add_to_date(today(), days=-(int(auto_approve_days)+1))
         )
 
     try:
@@ -1536,7 +1514,7 @@ def auto_approve_scheduler():
                 attendance_request = frappe.get_doc("Attendance Request", request.name)
                 handle_custom_workflow_action(attendance_request, "Approve")
                 attendance_request.db_set("custom_auto_approve", 1)
-                if attendance_request.get("workflow_state") == "Pending":
+                if frappe.db.get_value("Attendance Request", attendance_request.name, "workflow_state") == "Pending":
                     handle_custom_workflow_action(attendance_request, "Reject", "Auto Reject")
                 approved_employees.add(request.employee)
             except Exception as e:
@@ -1544,12 +1522,12 @@ def auto_approve_scheduler():
                     handle_custom_workflow_action(attendance_request, "Reject", "Auto Reject")
                     attendance_request.db_set("custom_auto_approve", 1)
                 except Exception as reject_exception:
-                    frappe.log_error(f"Error rejecting attendance request {request.name}:", {str(reject_exception)})
-                frappe.log_error(f"Error approving attendance request {request.name}:", {str(e)})
+                    frappe.log_error(f"Error rejecting attendance request {request.name}:", str(reject_exception))
+                frappe.log_error(f"Error approving attendance request {request.name}:", str(e))
                 continue
 
     except Exception as e:
-        frappe.log_error(f"Error fetching or processing attendance requests:", {str(e)})
+        frappe.log_error(f"Error fetching or processing attendance requests:", str(e))
 
     # ? Approve only one attendance request per employee
     try:
@@ -1561,9 +1539,8 @@ def auto_approve_scheduler():
                 "from_date": ["<=", auto_mark_date],
                 "employee": ["in", employees],
             },
-            fields=["name", "employee", "from_date"],
             or_filters=[{"to_date": [">=", auto_mark_date]}, {"to_date": ["is", "not set"]}],
-
+            fields=["name", "employee", "from_date"],
             order_by="from_date asc"
         )
 
@@ -1576,7 +1553,7 @@ def auto_approve_scheduler():
             try:
                 shift_request = frappe.get_doc("Shift Request", request.name)
             except Exception as e:
-                frappe.log_error(f"Error fetching shift request {request.name}:", {str(e)})
+                frappe.log_error(f"Error fetching shift request {request.name}:", str(e))
                 continue
             try:
                 apply_workflow(shift_request, "Approve")
@@ -1588,12 +1565,12 @@ def auto_approve_scheduler():
                     apply_workflow(shift_request, "Reject")
                     shift_request.db_set("custom_auto_approve", 1)
                 except Exception as reject_exception:
-                    frappe.log_error(f"Error rejecting shift request {request.name}:", {str(reject_exception)})
-                frappe.log_error(f"Error approving shift request {request.name}:", {str(e)})
+                    frappe.log_error(f"Error rejecting shift request {request.name}:", str(reject_exception))
+                frappe.log_error(f"Error approving shift request {request.name}:", str(e))
                 continue
 
     except Exception as e:
-        frappe.log_error(f"Error fetching or processing shift request:", {str(e)})
+        frappe.log_error(f"Error fetching or processing shift request:", str(e))
 
     # ? Approve only one attendance request per employee
     try:
@@ -1618,7 +1595,7 @@ def auto_approve_scheduler():
             try:
                 attendance_regularization = frappe.get_doc("Attendance Regularization", request.name)
             except Exception as e:
-                frappe.log_error(f"Error fetching attendance regularization {request.name}:", {str(e)})
+                frappe.log_error(f"Error fetching attendance regularization {request.name}:", str(e))
                 continue
             try:
                 apply_workflow(attendance_regularization, "Approve")
@@ -1630,12 +1607,12 @@ def auto_approve_scheduler():
                     apply_workflow(attendance_regularization, "Reject")
                     attendance_regularization.db_set("auto_approve", 1)
                 except Exception as reject_exception:
-                    frappe.log_error(f"Error rejecting attendance regularization {request.name}:", {str(reject_exception)})
-                frappe.log_error(f"Error approving attendance regularization {request.name}: ",{str(e)})
+                    frappe.log_error(f"Error rejecting attendance regularization {request.name}:", str(reject_exception))
+                frappe.log_error(f"Error approving attendance regularization {request.name}: ",str(e))
                 continue
 
     except Exception as e:
-        frappe.log_error(f"Error fetching or processing attendance regularization:" ,{str(e)})
+        frappe.log_error(f"Error fetching or processing attendance regularization:" ,str(e))
 
     # ? Approve only one attendance request per employee
     try:
@@ -1660,7 +1637,7 @@ def auto_approve_scheduler():
             try:
                 leave_request = frappe.get_doc("Leave Application", request.name)
             except Exception as e:
-                frappe.log_error(f"Error fetching Leave Application {request.name}:", {str(e)})
+                frappe.log_error(f"Error fetching Leave Application {request.name}:", str(e))
                 continue
             try:
                 try:
@@ -1710,20 +1687,15 @@ def auto_approve_scheduler():
                             apply_workflow(leave_request, "Reject")
                             leave_request.db_set("custom_auto_approve", 1)
                         except Exception as e:
-                            frappe.log_error(f"Error rejecting leave request:", {str(e)})
+                            frappe.log_error(f"Error rejecting leave request:", str(e))
 
                 except Exception as e:
-                    frappe.log_error(f"Error approving leave request:", {str(e)})
+                    frappe.log_error(f"Error approving leave request:", str(e))
+                    continue
 
             except Exception as e:
-                try:
-                    attendance_regularization.db_set("custom_reason_for_rejection", "Auto Reject")
-                    apply_workflow(attendance_regularization, "Reject")
-                    attendance_regularization.db_set("custom_auto_approve", 1)
-                except Exception as reject_exception:
-                    frappe.log_error(f"Error rejecting attendance request {request.name}:", {str(reject_exception)})
-                frappe.log_error(f"Error approving attendance request {request.name}:", {str(e)})
+                frappe.log_error(f"Error approving leave request {request.name}:", str(e))
                 continue
 
     except Exception as e:
-        frappe.log_error(f"Error fetching or processing Leave requests:", {str(e)})
+        frappe.log_error(f"Error fetching or processing Leave requests:", str(e))

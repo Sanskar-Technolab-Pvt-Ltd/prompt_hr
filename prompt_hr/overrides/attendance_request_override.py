@@ -123,7 +123,31 @@ def process_rejection_penalties(doc):
         else:
             today_date = getdate()
             if getdate(doc.get("to_date")) >= today_date:
-                delete_employee_checkin(today_date, doc.get("employee"))
+                deleted_entries = delete_employee_checkin(today_date, doc.get("employee"))
+                # ? APPEND DELETED CHECKINS INFO TO custom_reason_for_rejection
+                try:
+                    if deleted_entries:
+                        # ? CREATE A READABLE STRING FROM {time: log_type}
+                        details = "\n".join(
+                            f"{t.strftime('%Y-%m-%d %H:%M:%S')} – {log}"
+                            for t, log in deleted_entries.items()
+                        )
+                        # ? FETCH EXISTING VALUE
+                        existing_reason = frappe.db.get_value(
+                            "Attendance Request", doc.name, "custom_reason_for_rejection"
+                        ) or ""
+                        # ? APPEND NEW DETAILS (WITH NEWLINE IF NEEDED)
+                        new_reason = (existing_reason + "\n" if existing_reason else "") + "Deleted Checkin/Checkout Records" +"\n" + details
+                        frappe.db.set_value(
+                            "Attendance Request", doc.name,
+                            "custom_reason_for_rejection",
+                            new_reason
+                        )
+                except Exception as e:
+                    frappe.log_error(
+                        f"Error in Appending Deleted checkin/checkout logs",str(e)
+                    )
+                    
     except Exception as e:
         frappe.log_error(
             f"Error in process_rejection_penalties",str(e)

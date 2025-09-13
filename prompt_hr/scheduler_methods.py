@@ -2699,9 +2699,13 @@ def send_penalty_warnings(emp_id, penalization_data, penalization_date=None):
             # Render and send email
             attendance_link = None
             for data in penalization_data.values():
-                if data.get("attendance"):
-                    attendance_link = f"{frappe.utils.get_url()}/app/attendance/{data.get('attendance')}"
-                    break
+                try:
+                    if data.get("attendance"):
+                        attendance_link = f"{frappe.utils.get_url()}/app/attendance/{data.get('attendance')}"
+                        break
+                except Exception as e:
+                    frappe.log_error("Error in Getting Attendance Link", str(e))
+                    continue
 
             subject = frappe.render_template(
                 notification.subject, {"employee_name": employee.employee_name}
@@ -2722,7 +2726,7 @@ def send_penalty_warnings(emp_id, penalization_data, penalization_date=None):
                 message=message,
             )
     except Exception as e:
-        frappe.log_error(f"Error in send_penalty_warnings: {str(e)}")
+        frappe.log_error(f"Error in send_penalty_warnings:",{str(e)})
 
 
 

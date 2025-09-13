@@ -365,6 +365,12 @@ scheduler_events = {
         ],
         "30 23 * * *": [
             "prompt_hr.scheduler_methods.auto_attendance"
+        ],
+        "0 1 * * *": [
+            "prompt_hr.py.attendance_penalty_api.auto_approve_scheduler"
+        ],
+        "0 3 * * *": [
+            "prompt_hr.py.attendance_penalty_api.prompt_employee_attendance_penalties"
         ]
     },
     "daily": [
@@ -376,7 +382,6 @@ scheduler_events = {
         # "prompt_hr.scheduler_methods.assign_checkin_role",
         "prompt_hr.scheduler_methods.process_exit_approvals",
         "prompt_hr.scheduler_methods.daily_attendance_request_rituals",
-        "prompt_hr.py.attendance_penalty_api.prompt_employee_attendance_penalties"
     ],
 }
 

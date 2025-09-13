@@ -86,6 +86,7 @@ def before_insert(doc, method):
     # ? LEAVE DEDUCTED THROUGH SANDWICH LEAVE MUST BE ZERO AT TIME OF INSERT
     doc.custom_leave_deducted_sandwich_rule = 0
     doc.custom_auto_apply_sandwich_rule = 0
+    doc.custom_auto_approve = 0
 
 def before_validate(doc, method=None):
     if doc.custom_leave_status == "Approved":
@@ -360,7 +361,8 @@ def before_submit(doc, method):
         leave_balance_for_consumption = flt(
             leave_balance.get("leave_balance_for_consumption"), precision
         )
-        if not leave_balance_for_consumption or doc.total_leave_days > leave_balance_for_consumption:
+        is_lwp = frappe.db.get_value("Leave Type", doc.leave_type,"is_lwp")
+        if (not leave_balance_for_consumption or doc.total_leave_days > leave_balance_for_consumption) and not is_lwp:
             frappe.throw(f"Extra {extra_leave_days} Sandwich Leaves will be Added, Hence Total Apply Leave is More Than Leave Balance")
         frappe.msgprint(
             msg=f"{extra_leave_days} additional day(s) have been included as per the Sandwich Rule.",
