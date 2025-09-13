@@ -11,6 +11,7 @@ class CustomAttendanceRequest(AttendanceRequest):
     def before_insert(self):
         # ? MAKE CUSTOM STATUS PENDING AS WHILE AMENDING IS REMAIN THE PREVIOUS STATUS
         self.custom_status = "Pending"
+        self.custom_auto_approve = 0
 
     def after_insert(self):
         # === SAFE PARSING ===
@@ -186,7 +187,7 @@ def process_attendance_request(from_date, to_date, doc, approved_attendance_requ
             )
         except Exception as e:
             frappe.log_error(
-                f"Error in Merk Attendance for date {date}", str(e)
+                f"Error in Mark Attendance for date {date}", str(e)
             )
             continue
 
