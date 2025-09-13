@@ -355,15 +355,27 @@ def prompt_employee_attendance_penalties():
                 continue
 
         # ! SEND CONSOLIDATED WARNINGS
+        all_email_details = []
         for emp_id, penalties in consolidated_email_records.items():
             try:
-                send_penalty_warnings(emp_id, penalties, email_date)
+                email_details = send_penalty_warnings(emp_id, penalties, email_date)
+                all_email_details.append(email_details)
             except Exception as e:
                 frappe.log_error(
                     "Error in Sending Penalty Warnings", str(e)
                 )
                 continue
-
+        
+        if all_email_details:
+            penalty_emails_doc = frappe.get_doc({
+                        "doctype": "Penalty Emails",
+                        "status": "Not Sent",
+                        "email_details": all_email_details
+                    })                
+            penalty_emails_doc.insert(ignore_permissions=True)
+            frappe.db.commit()
+            
+            
     except Exception as e:
         frappe.log_error(
             "Error in Employee Attendance Penalty: ",str(e)

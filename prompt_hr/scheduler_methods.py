@@ -2695,6 +2695,7 @@ def send_penalty_warnings(emp_id, penalization_data, penalization_date=None):
             frappe.log_error(f"Email not found for User {employee.user_id}")
             return
 
+        email_details = {}
         if notification:
             # Render and send email
             attendance_link = None
@@ -2720,11 +2721,16 @@ def send_penalty_warnings(emp_id, penalization_data, penalization_date=None):
                     "attendance_link": attendance_link
                 },
             )
-            frappe.sendmail(
-                recipients=[email_id],
-                subject=subject,
-                message=message,
-            )
+            # frappe.sendmail(
+            #     recipients=[email_id],
+            #     subject=subject,
+            #     message=message,
+            # )
+            email_details["email"] = email_id,
+            email_details["subject"] = subject,
+            email_details["message"] = message
+        
+        return email_details
     except Exception as e:
         frappe.log_error(f"Error in send_penalty_warnings:",{str(e)})
 
@@ -2732,7 +2738,10 @@ def send_penalty_warnings(emp_id, penalization_data, penalization_date=None):
 
 @frappe.whitelist()
 def send_attendance_issue_mail_check(attendance_check_date):
+    frappe.log_error("send_attendance_issue_check_started", f"Started")
     send_attendance_issue(attendance_check_date)
+    frappe.log_error("send_attendance_issue_check_ended", f"Ended")
+    
 
 def send_attendance_issue(attendance_check_date=None):
     try:
@@ -2755,7 +2764,8 @@ def send_attendance_issue(attendance_check_date=None):
             return
 
         prompt_employee_list = []
-
+        penalty_emails = []
+        
         # * Proceed if company_id exists
         if company_id.get("company_id"):
             prompt_employee_list = frappe.db.get_all(
@@ -2766,8 +2776,9 @@ def send_attendance_issue(attendance_check_date=None):
 
             if prompt_employee_list:
                 frappe.log_error(f"Found {len(prompt_employee_list)} active employees in PROMPT", "send_attendance_issue")
+                
                 for emp in prompt_employee_list:
-
+                    
                     # * Use date range for creation field, or use attendance_date if available
                     date_start = attendance_check_date + " 00:00:00"
                     date_end = (
@@ -2831,13 +2842,17 @@ def send_attendance_issue(attendance_check_date=None):
                                     },
                                 },
                             )
-
-                            if emp.user_id:
-                                frappe.sendmail(
-                                    recipients=[emp.user_id],
-                                    subject=subject,
-                                    message=message,
-                                )
+                            penalty_emails.append({
+                                "email": emp.user_id,
+                                "subject": subject,
+                                "message": message
+                            })
+                            # if emp.user_id:
+                            #     frappe.sendmail(
+                            #         recipients=[emp.user_id],
+                            #         subject=subject,
+                            #         message=message,
+                            #     )
 
                     # ? CASE 2: Attendance found, check for issues
                     else:
@@ -2868,13 +2883,32 @@ def send_attendance_issue(attendance_check_date=None):
                                 notification.message,
                                 {"issue_type": attendance_issue, "doc": att},
                             )
+                            penalty_emails.append({
+                                "email": emp.user_id,
+                                "subject": subject,
+                                "message": message
+                            })
+                            # if emp.user_id:
+                            #     frappe.sendmail(
+                            #         recipients=[emp.user_id],
+                            #         subject=subject,
+                            #         message=message,
+                            #     )
 
-                            if emp.user_id:
-                                frappe.sendmail(
-                                    recipients=[emp.user_id],
-                                    subject=subject,
-                                    message=message,
-                                )
+            frappe.log_error("send_attendance_issue_penalty_emails", f"{penalty_emails}")
+            
+            if penalty_emails:
+                try:
+                    penalty_emails_doc = frappe.get_doc({
+                        "doctype": "Penalty Emails",
+                        "status": "Not Sent",
+                        "email_details": penalty_emails
+                    })
+                
+                    penalty_emails_doc.insert(ignore_permissions=True)
+                    frappe.db.commit()
+                except Exception as e:
+                    frappe.log_error("Error_while_creating_penalty_emails", frappe.get_traceback())
     except Exception as e:
         frappe.log_error("Error in send_attendance_issue", frappe.get_traceback())
 
