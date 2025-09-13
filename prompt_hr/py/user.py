@@ -27,8 +27,10 @@ def before_save(doc, method=None):
     if attendance_scheme == "Biometric":
         # ? REMOVE THE ROLE IF SCHEME IS STRICTLY BIOMETRIC
         doc.roles = [r for r in doc.roles if r.role != target_role]
+        frappe.log_error(f"user_before_save_{doc.name}", "Removing create checkin role")
 
     elif attendance_scheme in manual_schemes:
         # ? ADD THE ROLE ONLY IF NOT ALREADY PRESENT
         if target_role not in current_roles:
             doc.append("roles", {"role": target_role})
+            frappe.log_error(f"user_before_save_{doc.name}", "Adding Create Checkin Role")
