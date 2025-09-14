@@ -1,8 +1,8 @@
 import frappe
-from frappe.utils import getdate, today, add_to_date, add_days
+from frappe.utils import getdate, today, add_to_date, add_days, get_datetime_str
 from prompt_hr.scheduler_methods import add_leave_ledger_entry
 from hrms.hr.utils import get_holiday_dates_for_employee
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from prompt_hr.overrides.attendance_request_override import handle_custom_workflow_action
 from prompt_hr.scheduler_methods import send_penalty_warnings
 from frappe.model.workflow import apply_workflow
@@ -1783,11 +1783,14 @@ def send_penalty_notification_emails():
     if not employees:
         return
     try:
+        today = getdate()
+        start_datetime = get_datetime_str(datetime.combine(today, time.min))
+        end_datetime = get_datetime_str(datetime.combine(today, time.max))
         all_penalties = frappe.get_all(
             "Employee Penalty",
             filters={
                 "employee": ["in", employees],
-                "penalty_date": getdate(),
+                "creation": ["between", [start_datetime, end_datetime]],
             },
             fields=["name", "employee", "penalty_date"]
         )
@@ -1814,13 +1817,41 @@ def send_penalty_notification_emails():
                                     "penalty_date": penalty.penalty_date
                                 }
                             )
-                            frappe.sendmail(
-                                recipients=[emp_user_id],
-                                subject=subject,
-                                message=message,
-                                reference_doctype="Employee Penalty",
-                                reference_name=penalty.name,
-                            )
+                            try:
+                                add_to_penalty_email = frappe.db.get_single_value("HR Settings", "custom_add_emails_to_penalty_emails_for_prompt") or 0
+                            except Exception as e:
+                                frappe.log_error("Error in getting additional email settings from HR Settings", str(e))
+                                add_to_penalty_email = 0
+                            if add_to_penalty_email:
+                                email_details = {
+                                    "recipients": emp_user_id,
+                                    "subject": subject,
+                                    "message": message,
+                                }
+                                if email_details:
+                                    penalty_emails_doc = frappe.get_doc({  
+                                                "doctype": "Penalty Emails",
+                                                "status": "Not Sent",
+                                                "email_details": [
+                                                    {
+                                                        "doctype": "Penalty Emails Details",
+                                                        "email": email_details["recipients"],
+                                                        "subject": email_details["subject"],
+                                                        "message": email_details["message"]
+                                                    }
+                                                ]
+                                            })                
+                                    penalty_emails_doc.insert(ignore_permissions=True)
+                                    frappe.db.commit()
+
+                            else:
+                                frappe.sendmail(
+                                    recipients=[emp_user_id],
+                                    subject=subject,
+                                    message=message,
+                                    reference_doctype="Employee Penalty",
+                                    reference_name=penalty.name,
+                                )
 
                     except Exception as e:
                         frappe.log_error("Error in sending penalty notification email", str(e))
