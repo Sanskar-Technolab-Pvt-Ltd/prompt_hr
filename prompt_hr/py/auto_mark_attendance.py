@@ -835,9 +835,7 @@ def create_attendance(
 ):
     """Method to create attendance
     """
-    attendance_request = frappe.db.get_all("Attendance Request", {"custom_status":["in",["Pending"]], "employee": employee, "from_date": ["<=", attendance_date], "to_date":[">=", attendance_date]}, ["name", "reason"], limit=1)
-    if attendance_request:
-        return
+
     attendance_doc = frappe.new_doc("Attendance")
     attendance_doc.employee = employee
     attendance_doc.attendance_date = attendance_date
