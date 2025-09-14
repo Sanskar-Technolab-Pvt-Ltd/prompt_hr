@@ -366,7 +366,7 @@ scheduler_events = {
         "30 23 * * *": [
             "prompt_hr.scheduler_methods.auto_attendance"
         ],
-        "0 1 * * *": [
+        "0 2 * * *": [
             "prompt_hr.py.attendance_penalty_api.auto_approve_scheduler"
         ],
         "0 3 * * *": [
