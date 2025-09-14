@@ -1740,14 +1740,16 @@ def full_day_leave_exists(employee, target_date):
                 "workflow_state": "Approved",
                 "from_date": ["<=", target_date],
                 "to_date": [">=", target_date],
+                "half_day": 0
             },
-            or_filters=[
-                {"half_day": 0},
-                {
-                    "half_day": 1,
-                    "half_day_date": ["!=", target_date]
-                }
-            ],
+            or_filters={
+                "employee": employee,
+                "workflow_state": "Approved",
+                "from_date": ["<=", target_date],
+                "to_date": [">=", target_date],
+                "half_day": 1,
+                "half_day_date": ["!=", target_date]
+            },
             fields=["name", "half_day", "half_day_date"]
         )
 
@@ -1760,3 +1762,68 @@ def full_day_leave_exists(employee, target_date):
     except Exception as e:
         frappe.log_error(f"Error checking full day leave for {employee} on {target_date}:", str(e))
         return False
+
+
+def send_penalty_notification_emails():
+    try:
+        employees = get_active_employees()
+    except Exception as e:
+        frappe.log_error("Error in getting active employees", str(e))
+        employees = []
+
+    try:
+        is_emails_enabled = frappe.db.get_single_value("HR Settings", "custom_enable_penalty_emails") or 0
+    except Exception as e:
+        frappe.log_error("Error in getting email settings from HR Settings", str(e))
+        is_emails_enabled = 0
+
+    if not is_emails_enabled:
+        return
+
+    if not employees:
+        return
+    try:
+        all_penalties = frappe.get_all(
+            "Employee Penalty",
+            filters={
+                "employee": ["in", employees],
+                "penalty_date": getdate(),
+            },
+            fields=["name", "employee", "penalty_date"]
+        )
+        try:
+            notification_doc = frappe.get_doc("Notification", "Employee Penalty Notification")
+        except Exception as e:
+            frappe.log_error("Error in fetching Notification Doc", str(e))
+            return
+        if all_penalties:
+            for penalty in all_penalties:
+                if notification_doc:
+                    try:
+                        emp_user_id = frappe.db.get_value("Employee", penalty.employee, "user_id")
+                        if emp_user_id:
+                            subject = frappe.render_template(
+                                notification_doc.subject,
+                                {"penalty": penalty.name, "employee_name": penalty.employee, "penalty_date": penalty.penalty_date}
+                            )
+                            message = frappe.render_template(
+                                notification_doc.message,
+                                {
+                                    "penalty": penalty.name,
+                                    "employee_name": penalty.employee,
+                                    "penalty_date": penalty.penalty_date
+                                }
+                            )
+                            frappe.sendmail(
+                                recipients=[emp_user_id],
+                                subject=subject,
+                                message=message,
+                                reference_doctype="Employee Penalty",
+                                reference_name=penalty.name,
+                            )
+
+                    except Exception as e:
+                        frappe.log_error("Error in sending penalty notification email", str(e))
+                        continue
+    except Exception as e:
+        frappe.log_error("Error in fetching Employee Penalties", str(e))
