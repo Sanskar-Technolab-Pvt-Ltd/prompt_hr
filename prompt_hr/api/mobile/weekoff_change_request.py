@@ -269,7 +269,7 @@ def delete(name=None):
 from frappe.model.workflow import apply_workflow
 
 @frappe.whitelist()
-def apply_weekoff_workflow(weekoff_change_request, action):
+def apply_weekoff_workflow(weekoff_change_request, action,reason_for_rejection=None):
     try:
         # ? FETCH THE DOCUMENT
         
@@ -280,9 +280,16 @@ def apply_weekoff_workflow(weekoff_change_request, action):
             )
 
         doc = frappe.get_doc("WeekOff Change Request", weekoff_change_request)
+        
+        
+        # ? HANDLE REJECTION WITH REASON
+        if action == "Reject":
+            if not reason_for_rejection:
+                frappe.throw("Reason for Rejection is mandatory when rejecting.")  
 
         # ? APPLY WORKFLOW ACTION
         updated_doc = apply_workflow(doc, action)
+        updated_doc.db_set("reason_for_rejection",reason_for_rejection)
 
         # ? SAVE CHANGES
         doc.save(ignore_permissions=True)

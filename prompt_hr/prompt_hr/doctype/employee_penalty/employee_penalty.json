@@ -15,6 +15,7 @@
   "attendance",
   "total_leave_penalty",
   "is_leave_balance_restore",
+  "cancellation_reason",
   "section_break_tpof",
   "leave_penalty_details"
  ],
@@ -23,6 +24,7 @@
    "fieldname": "employee",
    "fieldtype": "Link",
    "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Employee",
    "options": "Employee"
   },
@@ -85,15 +87,22 @@
    "default": "0",
    "fieldname": "is_leave_balance_restore",
    "fieldtype": "Check",
+   "in_list_view": 1,
    "label": "Is Leave Balance Restore",
    "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "cancellation_reason",
+   "fieldtype": "Small Text",
+   "label": "Cancellation Reason",
    "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-09-04 20:10:44.641922",
+ "modified": "2025-09-14 15:50:46.076537",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Penalty",

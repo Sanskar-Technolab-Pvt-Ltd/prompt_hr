@@ -1,6 +1,6 @@
 import frappe
 from frappe import throw
-from frappe.utils import getdate, nowdate, add_years
+from frappe.utils import getdate, nowdate, add_years, add_to_date, month_diff, get_last_day
 from frappe.utils.pdf import get_pdf
 from frappe.www.printview import get_print_format
 from prompt_hr.api.main import notify_signatory_on_email
@@ -238,10 +238,209 @@ def on_update(doc, method):
             # ? ASSIGN POLICY IF ACTIVE LEAVE PERIOD IS FOUND
             if active_leave_period:
                 if is_leave_policy_assigned_from_employee_master:
-                    create_leave_policy_assignment(doc, 0, active_leave_period[0].get("name"))
+                    
+                    run_create_policy_assignment_method = False
+                    
+                    if not doc.custom_leave_policy_assignment_based_on_custom_dates:
+                        
+                        leave_allocation_id = ''
+                        if doc.final_confirmation_date:
+                            confirmation_date = getdate(doc.final_confirmation_date)
+                        else:
+                            confirmation_date = getdate()
+                        
+                        
+                        is_calculate_leave_allocation = False
+                        months_count = 0.0
+                        
+                        leave_allocation_calculation = calculate_leave_allocation_based_on_confirmation(confirmation_date)
+                        
+                        if leave_allocation_calculation:
+                            
+                            is_calculate_leave_allocation = leave_allocation_calculation.get("calculate_leave_allocation")
+                            
+                            months_count = leave_allocation_calculation.get("leave_months")
+
+                        frappe.log_error("calculate_leave_allocation", f" data {is_calculate_leave_allocation}")
+                        
+                        frappe.log_error("months_count", months_count)
+                        
+                        
+                        old_doc = doc.get_doc_before_save()
+                        
+                        old_leave_policy = old_doc.get("custom_leave_policy")
+                        new_leave_policy = doc.get("custom_leave_policy")
+                        if not old_leave_policy:
+                            run_create_policy_assignment_method = True
+                        
+                        if old_leave_policy:
+                                                        
+                            old_leave_policy_leave_types = get_policy_leave_types(old_leave_policy)
+                            new_leave_policy_leave_types = get_policy_leave_types(new_leave_policy)
+                            
+                            old_earned_leave_types = old_leave_policy_leave_types.get("earned_leave_types")
+                            old_other_leave_types = old_leave_policy_leave_types.get("other_leave_types")
+                            
+                            
+                            new_earned_leave_types = new_leave_policy_leave_types.get("earned_leave_types")
+                                                        
+                            leave_allocation_to_date = active_leave_period[0].get("to_date")
+                            
+                            # *FOR OLD LEAVE POLICY
+                            for old_earned_leave_type in old_earned_leave_types:
+                                
+                                leave_allocation_exists = frappe.db.get_all("Leave Allocation", {"employee": doc.name,"leave_policy": old_leave_policy, "leave_type": old_earned_leave_type.get("leave_type"),"from_date":["<=", getdate()], "to_date": [">=", getdate()]}, ["name", "leave_type", "to_date"], limit=1)
+                                
+                                if leave_allocation_exists:
+
+                                        
+                                    leave_allocation_id = leave_allocation_exists[0].get("name")
+                                    
+                                    if leave_allocation_id:
+                                        frappe.db.set_value("Leave Allocation", leave_allocation_id, "to_date", add_to_date(confirmation_date, days=-1))
+                                        # *  UPDATING LEAVE LEDGER ENTRY
+                                        leave_ledger_entry_id = frappe.db.get_all("Leave Ledger Entry", {"transaction_type": "Leave Allocation", "transaction_name": leave_allocation_id, "leave_type": old_earned_leave_type.get("leave_type")}, "name", limit=1)
+                                        
+                                        if leave_ledger_entry_id and leave_ledger_entry_id[0].get("name"):
+                                            frappe.db.set_value("Leave Ledger Entry", leave_ledger_entry_id[0].get("name"), "to_date", add_to_date(confirmation_date, days=-1))
+                                                                                                                                        
+                            for old_other_leave_type in old_other_leave_types:
+                                
+                                leave_allocation_exists = frappe.db.get_all("Leave Allocation", {"employee": doc.name,"leave_policy": old_leave_policy, "leave_type": old_other_leave_type.get("leave_type"),"from_date":["<=", getdate()], "to_date": [">=", getdate()]}, ["name"], limit=1)
+                                
+                                
+                                if leave_allocation_exists:
+                                    leave_allocation_id = leave_allocation_exists[0].get("name")
+                                    if leave_allocation_id:
+                                        frappe.db.set_value("Leave Allocation", leave_allocation_id, "leave_policy", new_leave_policy)
+                                        frappe.db.set_value("Leave Allocation", leave_allocation_id, "leave_policy_assignment", "")
+                                    
+                                                                                        
+                            # *FOR NEW LEAVE POLICY
+                            for new_earned_leave_type in new_earned_leave_types:
+                                
+                                final_leaves_to_allocate = 0.0
+                                
+                                if is_calculate_leave_allocation:
+                                    
+                                    new_allocated_leaves = new_earned_leave_type.get("annual_allocation")
+                                    frappe.log_error("new_allocated_leaves", new_allocated_leaves)
+                                    
+                                    new_monthly_allocated_leaves = 0.0
+                                    
+                                    if new_allocated_leaves:
+                                        new_monthly_allocated_leaves = float(new_allocated_leaves) / 12
+                                    
+                                    frappe.log_error("new_monthly_allocated_leaves", new_monthly_allocated_leaves)
+                                    for old_earned_leave_type in old_earned_leave_types:
+                                        old_monthly_allocated_leaves = 0.0
+                                        
+                                        if new_earned_leave_type.get("leave_type") == old_earned_leave_type.get("leave_type"):
+                                            old_allocated_leaves = old_earned_leave_type.get("annual_allocation")
+                                            frappe.log_error("old_allocated_leaves", old_allocated_leaves)
+                                            
+                                            if old_allocated_leaves:
+                                                old_monthly_allocated_leaves = float(old_allocated_leaves) / 12
+                                                frappe.log_error("old_monthly_allocated_leaves", old_monthly_allocated_leaves)
+
+                                                if new_monthly_allocated_leaves and months_count:
+                                                    final_leaves_to_allocate = float((new_monthly_allocated_leaves - old_monthly_allocated_leaves) * months_count)
+                                                else:
+                                                    final_leaves_to_allocate = new_monthly_allocated_leaves - old_monthly_allocated_leaves
+                                # run_create_policy_assignment_method = False
+                                create_leave_allocation(doc.name, doc.custom_leave_policy, confirmation_date, new_earned_leave_type.get("leave_type"), leave_allocation_to_date, final_leaves_to_allocate)
+                                                        
+                                                            
+                    if run_create_policy_assignment_method:
+                        create_leave_policy_assignment(doc, 0, active_leave_period[0].get("name"))
+                        
             else:
                 # ! THROW ERROR IF NO VALID ACTIVE LEAVE PERIOD EXISTS
                 frappe.throw(_("Cannot assign leave policy as there is no active Leave Period for the current date."))
+
+def calculate_leave_allocation_based_on_confirmation(confirmation_date):
+    
+    today = getdate()
+
+    calculate_leave_allocation = False
+    leave_months = 0
+    
+    current_year = today.year
+    current_month = today.month
+
+    confirmation_date = getdate(confirmation_date)
+
+    # Special case: current month and day <= 15 → allocation = 1
+    if (confirmation_date.year == current_year and confirmation_date.month == current_month):                            
+        if confirmation_date.day < 15:
+            calculate_leave_allocation = True
+            leave_months = 1
+
+    else:
+        if confirmation_date < today:
+            calculate_leave_allocation = True
+            
+            # Start date logic
+            if confirmation_date.day < 15:
+                start_date = confirmation_date.replace(day=1)
+            else:
+                start_date = add_to_date(confirmation_date, months=1, days=1)
+
+            # End date is the last day of current month
+            end_date = get_last_day(today)
+
+            # Use frappe's month_diff for clean calculation
+            months_to_count = month_diff(end_date, start_date)
+
+            leave_months = max(months_to_count, 0)
+
+    return {"calculate_leave_allocation": calculate_leave_allocation, "leave_months": leave_months}
+
+def get_policy_leave_types(leave_policy): 
+    try:
+        leave_types = {
+            "earned_leave_types": [],
+            "other_leave_types": []            
+        }
+        
+        policy_leave_types = frappe.db.get_all("Leave Policy Detail", {"parenttype": "Leave Policy", "parent": leave_policy}, ["leave_type", "annual_allocation"])
+                        
+        if policy_leave_types:
+            for policy_leave_type in policy_leave_types:
+                if policy_leave_type.get("leave_type"):
+                    earned_leaves = frappe.db.get_value("Leave Type", policy_leave_type.get("leave_type"), ["custom_is_earned_leave_allocation", "is_earned_leave"], as_dict=True)
+                    
+                    if earned_leaves and (earned_leaves.get("custom_is_earned_leave_allocation") and earned_leaves.get("is_earned_leave")):
+                        leave_types["earned_leave_types"].append(policy_leave_type)
+                    else:
+                        leave_types["other_leave_types"].append(policy_leave_type)
+        
+        
+        return leave_types
+    except Exception as e:
+        frappe.log_error("get_leave_types_error", frappe.get_traceback())
+        frappe.throw(str(e))
+                
+def create_leave_allocation(emp_id, leave_policy_id, confirmation_date, prev_leave_allocation_leave_type, prev_leave_allocation_to_date, final_leaves_to_allocate = 0.0):
+    try:
+        
+        new_leave_allocation = frappe.new_doc("Leave Allocation")
+        new_leave_allocation.employee = emp_id
+        new_leave_allocation.leave_type = prev_leave_allocation_leave_type
+        new_leave_allocation.from_date = confirmation_date
+        new_leave_allocation.to_date = prev_leave_allocation_to_date
+        new_leave_allocation.leave_policy = leave_policy_id
+        new_leave_allocation.new_leaves_allocated = final_leaves_to_allocate
+        new_leave_allocation.carry_forward = 1
+        
+        
+        new_leave_allocation.insert(ignore_permissions=1)
+        new_leave_allocation.submit()
+        frappe.db.commit()
+        
+    except Exception as e:
+        frappe.log_error("create_leave_application_error", frappe.get_traceback())
+        frappe.throw(str(e))
 
 
 def validate(doc, method):
@@ -1546,6 +1745,9 @@ def create_leave_policy_assignment(employee_doc, based_on_joining_date, leave_pe
 def before_save(doc, method=None):
     validate_create_checkin_role(doc)
     auto_shift_assign(doc)
+    # ? RUN ONLY FOR OLD DOCS
+    if not doc.is_new():
+        update_leave_and_notice_for_confirmed_employee(doc)
 
 
 def validate_create_checkin_role(doc):
@@ -1739,6 +1941,44 @@ def auto_shift_assign(doc):
 		shift_doc.insert()
 		shift_doc.submit()
 
+@frappe.whitelist()
+def set_profile_completion_percentage(doc):
+    """
+    SET PROFILE COMPLETION PERCENTAGE FOR EMPLOYEE
+    (ALWAYS ROUNDED DOWN TO NEAREST MULTIPLE OF 5)
+    """
+    try:
+        # CONVERT TO DOCUMENT OBJECT IF NEEDED
+        if isinstance(doc, str):
+            doc = frappe.get_doc(frappe.parse_json(doc))
+
+        if doc.custom_pre_login_questionnaire_response:
+            approved_count = 0
+            total_count = len(doc.custom_pre_login_questionnaire_response)
+
+            for rec in doc.custom_pre_login_questionnaire_response:
+                if rec.status == "Approve":
+                    approved_count += 1
+
+            if total_count > 0:
+                raw_percentage = (approved_count / total_count) * 100
+                # ? ROUND DOWN TO NEAREST MULTIPLE OF 5
+                doc.custom_profile_completion_percentage = int(raw_percentage // 5) * 5
+
+                if doc.custom_profile_completion_percentage == 100:
+                    doc.custom_employees_all_response_approve = 1
+            else:
+                doc.custom_profile_completion_percentage = 0
+        else:
+            doc.custom_profile_completion_percentage = 100
+            doc.custom_employees_all_response_approve = 1
+
+        doc.save(ignore_permissions=True)
+        return doc.custom_profile_completion_percentage
+
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback())
+        frappe.msgprint(f"Error: {e}")
 
 @frappe.whitelist()
 def employee_questionnaire_submit(responses):
@@ -1770,12 +2010,15 @@ def employee_questionnaire_submit(responses):
                         clean_data = []
                         for i, row_data in enumerate(table_data, start=1):
                             flat_row = {"_row_id": i}  # UNIQUE ROW IDENTIFIER
+                            is_empty_row = True        # FLAG TO CHECK IF ENTIRE ROW IS BLANK
 
                             for k, v in row_data.items():
-                                if k in ("__islocal", "idx", "name", "owner", "creation", "modified", "modified_by"):
+                                if k in ("__islocal", "idx", "name", "owner", "creation", "modified", "modified_by", "_row_id"):
                                     continue
                                 if v in (None, "", []):
                                     v = ""
+                                else:
+                                    is_empty_row = False   # FOUND NON-BLANK VALUE
 
                                 # ? GET LABEL FOR DISPLAY
                                 label = frappe.db.get_value(
@@ -1786,12 +2029,13 @@ def employee_questionnaire_submit(responses):
                                         "Custom Field", {"dt": response.get("options"), "fieldname": k}, "label"
                                     )
 
-                                flat_row[k] = {            # ? STORE BOTH FIELDNAME AND LABEL/VALUE
+                                flat_row[k] = {  # ? STORE BOTH FIELDNAME AND LABEL/VALUE
                                     "label": label or k,
                                     "value": v
                                 }
-
-                            clean_data.append(flat_row)
+                            # ? ONLY ADD ROW IF NOT ENTIRELY EMPTY
+                            if not is_empty_row:
+                                clean_data.append(flat_row)
 
                         # ? STORE CLEANED TABLE DATA AS JSON STRING
                         row.employee_response = frappe.as_json(clean_data)
@@ -1851,3 +2095,36 @@ def check_web_form_validation(user_id):
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "check_web_form_validation")
         return {"success": 0, "message": f"Error: {str(e)}", "data": False}
+
+
+def update_leave_and_notice_for_confirmed_employee(doc, state=None):
+    if doc.custom_probation_status == "Confirmed" or state == "Confirmed":
+        previous_status = frappe.db.get_value(
+            "Employee",
+            {"name": doc.name},
+            "custom_probation_status"
+        )
+        if previous_status != "Confirmed" or state == "Confirmed":
+            # ! FETCH NOTICE PERIOD FROM EMPLOYEE GRADE
+            if doc.grade:
+                notice_period = frappe.db.get_value(
+                    "Employee Grade",
+                    {"name": doc.grade},
+                    "custom_notice_period"
+                )
+                if notice_period:
+                    # ! UPDATE NOTICE PERIOD FOR EMPLOYEE
+                    doc.notice_number_of_days = notice_period
+
+            if doc.custom_leave_policy:
+                policy_name = frappe.db.get_value("Leave Policy", doc.custom_leave_policy, "title")
+                # ? IF CURRENT POLICY IS OF PROBATION THEN ONLY UPDATE IT
+                if "probation" in policy_name.lower():
+                    # ? GET CLEAN POLICY BY REMOVINH PROBATION FROM NAME
+                    clean_policy_name = re.sub(r'[\s\-\+]*probation.*', '', policy_name, flags=re.IGNORECASE).strip()
+                    if clean_policy_name:
+                        # ? CHECK IF A POLICY EXISTS WITH THIS TITLE
+                        new_policy = frappe.db.get_value("Leave Policy", {"title": clean_policy_name}, "name")
+                        if new_policy:
+                            # ? UPDATE LEAVE POLICY FOR EMPLOYEE
+                            doc.custom_leave_policy = new_policy

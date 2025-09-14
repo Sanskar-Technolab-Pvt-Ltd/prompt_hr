@@ -1,9 +1,11 @@
 import frappe
-from frappe.utils import getdate, today, add_to_date, add_days
+from frappe.utils import getdate, today, add_to_date, add_days, get_datetime_str
 from prompt_hr.scheduler_methods import add_leave_ledger_entry
 from hrms.hr.utils import get_holiday_dates_for_employee
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
+from prompt_hr.overrides.attendance_request_override import handle_custom_workflow_action
 from prompt_hr.scheduler_methods import send_penalty_warnings
+from frappe.model.workflow import apply_workflow
 
 def get_active_employees():
     return frappe.db.get_all("Employee", {"status": "Active"}, "name", pluck="name")
@@ -29,142 +31,265 @@ def prompt_employee_attendance_penalties():
         # ? GET HR SETTINGS
         hr_settings = frappe.get_single("HR Settings")
         # ? LATE COMING PENALTY CONFIGURATION
-        late_coming_allowed_per_month = (
-            hr_settings.custom_late_coming_allowed_per_month_for_prompt or 0
-        )
-        late_coming_penalty_buffer_days = (
-            hr_settings.custom_buffer_period_for_leave_penalty_for_prompt or 0
-        )
+        try:
+            late_coming_allowed_per_month = (
+                hr_settings.custom_late_coming_allowed_per_month_for_prompt or 0
+            )
+        except Exception as e:
+            late_coming_allowed_per_month = 0
+            frappe.log_error(
+                "Late Coming Allowed For Month", str(e)
+            )
+        try:
+            late_coming_penalty_buffer_days = (
+                hr_settings.custom_buffer_period_for_leave_penalty_for_prompt or 0
+            )
+        except Exception as e:
+            late_coming_penalty_buffer_days = 0
+            frappe.log_error(
+                "Buffer Days (Late Coming Penalty)", str(e)
+            )
+        
         late_coming_target_date = getdate(
-            add_to_date(today(), days=-(int(late_coming_penalty_buffer_days) + 1))
+            add_to_date(today(), days=-(int(late_coming_penalty_buffer_days)+1))
         )
-        late_coming_penalty_enable = hr_settings.custom_enable_late_coming_penalty
+
+        try:
+            late_coming_penalty_enable = hr_settings.custom_enable_late_coming_penalty or 0
+        except Exception as e:
+            late_coming_penalty_enable = 0
+            frappe.log_error(
+                "Enable Late Coming Penalty", str(e)
+            )
 
         # ? DAILY HOURS PENALTY CONFIGURATION
-        daily_hours_penalty_buffer_days = (
-            hr_settings.custom_buffer_period_for_daily_hours_penalty_for_prompt or 0
-        )
+        try:
+            daily_hours_penalty_buffer_days = (
+                hr_settings.custom_buffer_period_for_daily_hours_penalty_for_prompt or 0
+            )
+        except Exception as e:
+            daily_hours_penalty_buffer_days = 0
+            frappe.log_error(
+                "Buffer Days (Daily Hours Penalty)", str(e)
+            )
         daily_hours_target_date = getdate(
-            add_to_date(today(), days=-(int(daily_hours_penalty_buffer_days) + 1))
+            add_to_date(today(), days=-(int(daily_hours_penalty_buffer_days)+1))
         )
-        daily_hour_penalty_enable = hr_settings.custom_enable_daily_hours_penalty
+        try:
+            daily_hour_penalty_enable = hr_settings.custom_enable_daily_hours_penalty
+        except Exception as e:
+            daily_hour_penalty_enable = 0
+            frappe.log_error(
+                "Enable Daily Hours Penalty", str(e)
+            )
 
         # ? NO ATTENDANCE PENALTY CONFIGURATION
-        no_attendance_penalty_buffer_days = (
-            hr_settings.custom_buffer_period_for_no_attendance_penalty_for_prompt or 0
-        )
+        try:
+            no_attendance_penalty_buffer_days = (
+                hr_settings.custom_buffer_period_for_no_attendance_penalty_for_prompt or 0
+            )
+        except Exception as e:
+            no_attendance_penalty_buffer_days = 0
+            frappe.log_error(
+                "Buffer Days (No Attendance Penalty)", str(e)
+            )
         no_attendance_target_date = getdate(
-            add_to_date(today(), days=-(int(no_attendance_penalty_buffer_days) + 1))
+            add_to_date(today(), days=-(int(no_attendance_penalty_buffer_days)+1))
         )
-        no_attendance_penalty_enable = hr_settings.custom_enable_no_attendance_penalty
+        try:
+            no_attendance_penalty_enable = hr_settings.custom_enable_no_attendance_penalty
+        except Exception as e:
+            no_attendance_penalty_enable = 0
+            frappe.log_error(
+                "Enable No Attendance Penalty", str(e)
+            )
 
         # ? MIS-PUNCH PENALTY CONFIGURATION
-        mispunch_penalty_buffer_days = (
-            hr_settings.custom_buffer_days_for_mispunch_penalty or 0
-        )
+        try:
+            mispunch_penalty_buffer_days = (
+                hr_settings.custom_buffer_days_for_mispunch_penalty or 0
+            )
+        except Exception as e:
+            mispunch_penalty_buffer_days = 0
+            frappe.log_error(
+                "Buffer Days (Mispunch Penalty)", str(e)
+            )
         mispunch_penalty_target_date = getdate(
-            add_to_date(today(), days=-(int(mispunch_penalty_buffer_days) + 1))
+            add_to_date(today(), days=-(int(mispunch_penalty_buffer_days)+1))
         )
-        mispunch_penalty_enable = hr_settings.custom_enable_mispunch_penalty
+        try:
+            mispunch_penalty_enable = hr_settings.custom_enable_mispunch_penalty
+        except Exception as e:
+            mispunch_penalty_enable = 0
+            frappe.log_error(
+                "Enable Mispunch Penalty", str(e)
+            )
 
         # ! FETCH ALL LATE ENTRY PENALTY RECORDS FOR THE LAST BUFFER DAYS IF LATE ENTRY PENALTY ENABLE
         late_penalty = {}
         late_penalty_email_records = {}
         if late_coming_penalty_enable:
-            late_penalty = process_late_entry_penalties_for_prompt(
-                employees,
-                late_coming_allowed_per_month,
-                late_coming_penalty_buffer_days,
-                "custom_late_coming_leave_penalty_configuration",
-                late_coming_target_date,
-                False
-            )
-            late_penalty_email_records = process_late_entry_penalties_for_prompt(
-                employees,
-                late_coming_allowed_per_month,
-                late_coming_penalty_buffer_days,
-                "custom_late_coming_leave_penalty_configuration",
-                email_date,
-                False
-            
-            )
+            try:
+                late_penalty = process_late_entry_penalties_for_prompt(
+                    employees,
+                    late_coming_allowed_per_month,
+                    late_coming_penalty_buffer_days,
+                    "custom_late_coming_leave_penalty_configuration",
+                    late_coming_target_date,
+                    False
+                )
+            except Exception as e:
+                frappe.log_error(
+                    "Late Coming Penalty", str(e)
+                )
+            try:
+                late_penalty_email_records = process_late_entry_penalties_for_prompt(
+                    employees,
+                    late_coming_allowed_per_month,
+                    late_coming_penalty_buffer_days,
+                    "custom_late_coming_leave_penalty_configuration",
+                    email_date,
+                    False
+                
+                )
+            except Exception as e:
+                frappe.log_error(
+                    "Late Coming Penalty Email Records", str(e)
+                )
+
+        if late_penalty:
+            try:
+                create_penalty_records(late_penalty, late_coming_target_date)
+            except Exception as e:
+                frappe.log_error(
+                    "Error in Late Penalty Creation", str(e)
+                )
 
         # ? DAILY HOURS PERCENTAGE FOR PENALTY
-        percentage_for_daily_hour_penalty = (
-            hr_settings.custom_daily_hours_criteria_for_penalty_for_prompt
-        )
+        try:
+            percentage_for_daily_hour_penalty = (
+                hr_settings.custom_daily_hours_criteria_for_penalty_for_prompt
+            )
+        except Exception as e:
+            percentage_for_daily_hour_penalty = 42
+            frappe.log_error(
+                "Percentage For Daily Hours Penalty", str(e)
+            )
 
         # ! FETCH ALL DAILY HOURS PENALTY RECORDS FOR THE LAST BUFFER DAYS IF IT IS ENABLE
         daily_hour_penalty = {}
         daily_hours_email_records = {}
         if daily_hour_penalty_enable:
-            daily_hour_penalty = process_daily_hours_penalties_for_prompt(
-                employees,
-                daily_hours_penalty_buffer_days,
-                daily_hours_target_date,
-                percentage_for_daily_hour_penalty,
-                "custom_daily_hour_leave_penalty_configuration",
-                False
-            )
-            daily_hours_email_records = process_daily_hours_penalties_for_prompt(
-                employees,
-                daily_hours_penalty_buffer_days,
-                email_date,
-                percentage_for_daily_hour_penalty,
-                "custom_daily_hour_leave_penalty_configuration",
-                False
-            )
+            try:
+                daily_hour_penalty = process_daily_hours_penalties_for_prompt(
+                    employees,
+                    daily_hours_penalty_buffer_days,
+                    daily_hours_target_date,
+                    percentage_for_daily_hour_penalty,
+                    "custom_daily_hour_leave_penalty_configuration",
+                    False
+                )
+            except Exception as e:
+                frappe.log_error(
+                    "Daily Hours Penalty", str(e)
+                )
+            try:
+                daily_hours_email_records = process_daily_hours_penalties_for_prompt(
+                    employees,
+                    daily_hours_penalty_buffer_days,
+                    email_date,
+                    percentage_for_daily_hour_penalty,
+                    "custom_daily_hour_leave_penalty_configuration",
+                    False
+                )
+            except Exception as e:
+                frappe.log_error(
+                    "Daily Hours Penalty Email Records", str(e)
+                )
+
+        if daily_hour_penalty:
+            try:
+                create_penalty_records(daily_hour_penalty, daily_hours_target_date)
+            except Exception as e:
+                frappe.log_error(
+                    "Error in Daily Hour Penalty Creation", str(e)
+                )
 
         # ! FETCH ALL NO ATTENDANCE PENALTY RECORDS FOR THE LAST BUFFER DAYS IF IT IS ENABLE
         no_attendance_penalty = {}
         no_attendance_email_records = {}
         if no_attendance_penalty_enable:
-            no_attendance_penalty = process_no_attendance_penalties_for_prompt(
-                employees,
-                no_attendance_penalty_buffer_days,
-                no_attendance_target_date,
-                "custom_no_attendance_leave_penalty_configuration",
-                False
-            )
-            no_attendance_email_records = process_no_attendance_penalties_for_prompt(
-                employees,
-                no_attendance_penalty_buffer_days,
-                email_date,
-                "custom_no_attendance_leave_penalty_configuration",
-                False
-            )
+            try:
+                no_attendance_penalty = process_no_attendance_penalties_for_prompt(
+                    employees,
+                    no_attendance_penalty_buffer_days,
+                    no_attendance_target_date,
+                    "custom_no_attendance_leave_penalty_configuration",
+                    False
+                )
+            except Exception as e:
+                frappe.log_error(
+                    "No Attendance Penalty", str(e)
+                )
+            try:
+                no_attendance_email_records = process_no_attendance_penalties_for_prompt(
+                    employees,
+                    no_attendance_penalty_buffer_days,
+                    email_date,
+                    "custom_no_attendance_leave_penalty_configuration",
+                    False
+                )
+            except Exception as e:
+                frappe.log_error(
+                    "No Attendance Penalty Email Records", str(e)
+                )
+
+        if no_attendance_penalty:
+            try:
+                create_penalty_records(no_attendance_penalty, no_attendance_target_date)
+            except Exception as e:
+                frappe.log_error(
+                    "Error in No Attendance Penalty Creation", str(e)
+                )
 
         # ! FETCH ALL MIS-PUNCH PENALTY RECORDS FOR THE LAST BUFFER DAYS IF IT IS ENABLE
         mispunch_penalty = {}
         mispunch_penalty_email_records = {}
         if mispunch_penalty_enable:
-            mispunch_penalty = process_mispunch_penalties_for_prompt(
-                employees,
-                mispunch_penalty_buffer_days,
-                mispunch_penalty_target_date,
-                "custom_attendance_mispunch_leave_penalty_configuration",
-                False
-            )
-            mispunch_penalty_email_records = process_mispunch_penalties_for_prompt(
-                employees,
-                mispunch_penalty_buffer_days,
-                email_date,
-                "custom_attendance_mispunch_leave_penalty_configuration",
-                False
-            )
+            try:
+                mispunch_penalty = process_mispunch_penalties_for_prompt(
+                    employees,
+                    mispunch_penalty_buffer_days,
+                    mispunch_penalty_target_date,
+                    "custom_attendance_mispunch_leave_penalty_configuration",
+                    False
+                )
+            except Exception as e:
+                frappe.log_error(
+                    "Mispunch Penalty", str(e)
+                )
+            try:
+                mispunch_penalty_email_records = process_mispunch_penalties_for_prompt(
+                    employees,
+                    mispunch_penalty_buffer_days,
+                    email_date,
+                    "custom_attendance_mispunch_leave_penalty_configuration",
+                    False
+                )
+            except Exception as e:
+                frappe.log_error(
+                    "Mispunch Penalty Email Records", str(e)
+                )
 
         # ! CREATE OR UPDATE PENALTY RECORDS IN THE DATABASE
-        if late_penalty:
-            create_penalty_records(late_penalty, late_coming_target_date)
-
-        if daily_hour_penalty:
-            create_penalty_records(daily_hour_penalty, daily_hours_target_date)
-
-        if no_attendance_penalty:
-            create_penalty_records(no_attendance_penalty, no_attendance_target_date)
 
         if mispunch_penalty:
-            create_penalty_records(mispunch_penalty, mispunch_penalty_target_date)
+            try:
+                create_penalty_records(mispunch_penalty, mispunch_penalty_target_date)
+            except Exception as e:
+                frappe.log_error(
+                    "Error in Mispunch Penalty Creation", str(e)
+                )
 
         # ? MAP BUFFER DAYS FOR EMAIL RECORDS
         email_records = {
@@ -189,33 +314,80 @@ def prompt_employee_attendance_penalties():
         # ! CONSOLIDATE PENALTIES PER EMPLOYEE WITH BUFFER DAYS
         consolidated_email_records = {}
         for penalty_type, data in email_records.items():
-            records = data["records"]
-            buffer_days = data["buffer_days"]
+            try:
+                records = data["records"]
+                buffer_days = data["buffer_days"]
+            except Exception as e:
+                frappe.log_error(
+                    "Error in Consolidating Email Records", str(e)
+                )
+                continue
 
             if not records:
                 continue
+            try:
+                for emp_id, emp_penalties in records.items():
+                    try:
+                        if check_employee_penalty_criteria(emp_id, emp_penalties.get("reason")):
+                            att_date = emp_penalties.get("attendance_date")
+                            attendance = emp_penalties.get("attendance", None)
+                            if not att_date:
+                                continue
+                            # compute buffered email date
+                            email_date_with_buffer = add_days(att_date, int(buffer_days))
 
-            for emp_id, emp_penalties in records.items():
-                if check_employee_penalty_criteria(emp_id, emp_penalties.get("reason")):
-                    att_date = emp_penalties.get("attendance_date")
-                    attendance = emp_penalties.get("attendance", None)
-                    if not att_date:
+                            if emp_id not in consolidated_email_records:
+                                consolidated_email_records[emp_id] = {}
+
+                            consolidated_email_records[emp_id][penalty_type] = {
+                                "penalty_date": email_date_with_buffer,
+                                "attendance": attendance,
+                            }
+                    except Exception as e:
+                        frappe.log_error(
+                            "Error in Consolidating Email Records", str(e)
+                        )
                         continue
-                    # compute buffered email date
-                    email_date_with_buffer = add_days(att_date, int(buffer_days))
-
-                    if emp_id not in consolidated_email_records:
-                        consolidated_email_records[emp_id] = {}
-
-                    consolidated_email_records[emp_id][penalty_type] = {
-                        "penalty_date": email_date_with_buffer,
-                        "attendance": attendance,
-                    }
+            except Exception as e:
+                frappe.log_error(
+                    "Error in Consolidating Email Records", str(e)
+                )
+                continue
 
         # ! SEND CONSOLIDATED WARNINGS
+        all_email_details = []
+        add_to_penalty_email = frappe.db.get_single_value("HR Settings", "custom_add_emails_to_penalty_emails_for_prompt")
+        
         for emp_id, penalties in consolidated_email_records.items():
-            send_penalty_warnings(emp_id, penalties, email_date)
-
+            try:
+                email_details = send_penalty_warnings(emp_id, penalties, email_date)
+                if not add_to_penalty_email:
+                    if email_details and email_details.get("email"): 
+                        frappe.sendmail(
+                            recipients=[email_details.get("email")],
+                            subject=email_details.get("subject"),
+                            message=email_details.get("message"),
+                        )
+                else:
+                    if email_details and email_details.get("email"):
+                        all_email_details.append(email_details)
+            except Exception as e:
+                frappe.log_error(
+                    "Error in Sending Penalty Warnings", frappe.get_traceback()
+                )
+                continue
+        
+        
+        if all_email_details and add_to_penalty_email:
+            penalty_emails_doc = frappe.get_doc({  
+                        "doctype": "Penalty Emails",
+                        "status": "Not Sent",
+                        "email_details": all_email_details
+                    })                
+            penalty_emails_doc.insert(ignore_permissions=True)
+            frappe.db.commit()
+            
+            
     except Exception as e:
         frappe.log_error(
             "Error in Employee Attendance Penalty: ",str(e)
@@ -236,20 +408,26 @@ def process_late_entry_penalties_for_prompt(
     penalty_entries = {}
 
     # ? GET LEAVE CONFIGURATION FOR LATE ENTRY PENALTY
-    leave_priority = frappe.db.get_all(
-        "Leave Penalty Configuration",
-        filters={
-            "parent": "HR Settings",
-            "parenttype": "HR Settings",
-            "parentfield": priority_field,
-        },
-        fields=[
-            "penalty_deduction_type",
-            "leave_type_for_penalty",
-            "deduction_of_leave",
-        ],
-        order_by="idx asc",
-    )
+    try:
+        leave_priority = frappe.db.get_all(
+            "Leave Penalty Configuration",
+            filters={
+                "parent": "HR Settings",
+                "parenttype": "HR Settings",
+                "parentfield": priority_field,
+            },
+            fields=[
+                "penalty_deduction_type",
+                "leave_type_for_penalty",
+                "deduction_of_leave",
+            ],
+            order_by="idx asc",
+        )
+    except Exception as e:
+        frappe.log_error(
+            "Error in Leave Priority", str(e)
+        )
+        return penalty_entries
 
     # ? RETURN IF BUFFER NOT CONFIGURED AND NOT CUSTOM BUFFER DAYS
     if not penalty_buffer_days and not custom_buffer_days:
@@ -258,15 +436,26 @@ def process_late_entry_penalties_for_prompt(
         penalty_buffer_days = 0
 
     # ! CHECK TARGET DATE'S ATTENDANCE IS LATE OR NOT
-    late_attendance_records = target_date_attendance_exists(
-        employees, target_date, 1, 0, 0, 0
-    )
+    try:
+        late_attendance_records = target_date_attendance_exists(
+            employees, target_date, 1, 0, 0, 0
+        )
+    except Exception as e:
+        frappe.log_error(
+            "Error in Late Attendance Date Exists", str(e)
+        )
     # ! SKIP IF TARGET DATE ATTENDANCE IS NOT LATE
     if not late_attendance_records:
         return []
 
     # ? EMPLOYEES WHO HAD LATE ENTRY ON TARGET DATE
-    late_employees = list(late_attendance_records.keys())
+    try:
+        late_employees = list(late_attendance_records.keys())
+    except Exception as e:
+        frappe.log_error(
+            "Error in Late Employees", str(e)
+        )
+        return penalty_entries
 
     # ? GET MONTH START DATE
     month_start_date = target_date.replace(day=1)
@@ -277,25 +466,44 @@ def process_late_entry_penalties_for_prompt(
         prev_late_attendance_count = {}
     else:
         #! FETCH ATTENDANCE RECORDS WITH LATE ENTRY FROM MONTH START TO TARGET DATE
-        prev_late_attendance_list = frappe.db.get_all(
-            "Attendance",
-            filters={
-                "employee": ["in", late_employees],
-                "docstatus": 1,
-                "late_entry": 1,
-                "attendance_date": ["between", [month_start_date, prev_target_date]],
-            },
-            fields=["employee", "name", "attendance_date"],
-            order_by="attendance_date asc",
-        )
+        try:
+            prev_late_attendance_list = frappe.db.get_all(
+                "Attendance",
+                filters={
+                    "employee": ["in", late_employees],
+                    "docstatus": 1,
+                    "late_entry": 1,
+                    "status": ["not in", ["Absent", "On Leave", "Half Day", "WeekOff"]],
+                    "attendance_date": ["between", [month_start_date, prev_target_date]],
+                },
+                fields=["employee", "name", "attendance_date"],
+                order_by="attendance_date asc",
+            )
+        except Exception as e:
+            frappe.log_error(
+                "Error in Fetching Previous Late Attendance List", str(e)
+            )
+            return penalty_entries
 
         #! INIT COUNT FOR ALL EMPLOYEES TO ZERO (INCLUDES ZERO-RECORD EMPLOYEES)
-        prev_late_attendance_count = {emp: 0 for emp in set(late_employees)}
+        try:
+            prev_late_attendance_count = {emp: 0 for emp in set(late_employees)}
+        except Exception as e:
+            prev_late_attendance_count = 0
+            frappe.log_error(
+                "Error in Initializing Previous Late Attendance Count", str(e)
+            )
 
         #! INCREMENT COUNTS FROM QUERY RESULTS
         for rec in prev_late_attendance_list:
-            emp = rec["employee"]
-            prev_late_attendance_count[emp] += 1
+            try:
+                emp = rec["employee"]
+                prev_late_attendance_count[emp] += 1
+            except Exception as e:
+                frappe.log_error(
+                    "Error in Incrementing Previous Late Attendance Count", str(e)
+                )
+                continue
 
     # ? IF PREV LATE ATTENDANCE COUNT IS EMPTY, RETURN EMPTY PENALTY LIST
     if not prev_late_attendance_count:
@@ -306,47 +514,68 @@ def process_late_entry_penalties_for_prompt(
     # ? IF YES, CALCULATE LEAVE DEDUCTIONS BASED ON PRIORITY CONFIGURATION
     # ? AND ADD TO PENALTY ENTRIES
     for employee, count in prev_late_attendance_count.items():
+        try:
 
-        leave_application_exists = frappe.db.exists(
-            "Leave Application",
-            {
-                "employee": employee,
-                "workflow_state": "Approved",
-                "from_date": ["<=", target_date],
-                "to_date": [">=", target_date],
-            },
-        )
-
-        attendance_request_exists = frappe.db.exists(
-            "Attendance Request",
-            {
-                "employee": employee,
-                "from_date": ["<=", target_date],
-                "to_date": [">=", target_date],
-                "custom_status": "Approved",
-                "docstatus": ["!=", 2],
-                "reason": "Partial Day"
-            },
-        )
-
-        if (
-            count >= late_coming_allowed_per_month
-            and not leave_application_exists
-            and not attendance_request_exists
-        ):
-            penalty_entries.update(
-                calculate_leave_deductions_based_on_priority(
-                    employee=employee,
-                    attendance_date=target_date,
-                    deduction_amount=1.0,
-                    reason="Late Coming",
-                    penalizable_attendance=late_attendance_records[employee][
-                        "attendance"
-                    ],
-                    remarks=f"Penalty for Late Entry on {target_date}",
-                    leave_priority=leave_priority,
-                )
+            attendance_request_exists = frappe.db.exists(
+                "Attendance Request",
+                {
+                    "employee": employee,
+                    "from_date": ["<=", target_date],
+                    "to_date": [">=", target_date],
+                    "custom_status": "Approved",
+                    "docstatus": ["!=", 2],
+                    "reason": "Partial Day",
+                    "custom_partial_day_for": 'Late comming'
+                },
             )
+
+            # ? CHECK FOR OTHER ATTENDANCE REQUESTS (WFH, OD) AS EXEMPTION
+            other_attendance_request_exists = frappe.db.exists(
+                "Attendance Request",
+                {
+                    "employee": employee,
+                    "from_date": ["<=", target_date],
+                    "to_date": [">=", target_date],
+                    "custom_status": "Approved",
+                    "docstatus": ["!=", 2],
+                    "reason": ["in",["Work From Home", "On Duty"]],
+                },
+            )
+
+
+            if (
+                count >= late_coming_allowed_per_month
+                and not attendance_request_exists
+                and not other_attendance_request_exists
+                and not full_day_leave_exists(employee, target_date)
+            ):
+                # ? CHECK HOLIDAY
+                try:
+                    if get_holiday_dates_for_employee(emp, target_date, target_date):
+                        continue
+                except Exception as e:
+                    frappe.log_error(
+                        f"Error in Getting Holiday Date",str(e)
+                    )
+                    continue
+                penalty_entries.update(
+                    calculate_leave_deductions_based_on_priority(
+                        employee=employee,
+                        attendance_date=target_date,
+                        deduction_amount=1.0,
+                        reason="Late Coming",
+                        penalizable_attendance=late_attendance_records[employee][
+                            "attendance"
+                        ],
+                        remarks=f"Penalty for Late Entry on {target_date}",
+                        leave_priority=leave_priority,
+                    )
+                )
+        except Exception as e:
+            frappe.log_error(
+                "Error in Processing Late Entry Penalties", str(e)
+            )
+            continue
 
     return penalty_entries
 
@@ -386,52 +615,64 @@ def calculate_leave_deductions_based_on_priority(
         return {}
 
     # ? GET REMAINING LEAVE BALANCES FOR THE EMPLOYEE
-    leave_balances = get_remaining_leaves(employee)
+    try:
+        leave_balances = get_remaining_leaves(employee)
+    except Exception as e:
+        frappe.log_error(
+            "Error in Getting Remaining Leaves", str(e)
+        )
+        leave_balances = {}
 
     # ? ENSURE LEAVE BALANCES ARE NOT EMPTY
     for config in leave_priority:
-        deduction_type = config.get("penalty_deduction_type")
-        leave_type = config.get("leave_type_for_penalty")
-        deduction_of_leave = config.get("deduction_of_leave")
+        try:
+            deduction_type = config.get("penalty_deduction_type")
+            leave_type = config.get("leave_type_for_penalty")
+            deduction_of_leave = config.get("deduction_of_leave")
 
-        deduction_unit = 0.5 if deduction_of_leave == "Half Day" else 1.0
+            deduction_unit = 0.5 if deduction_of_leave == "Half Day" else 1.0
 
-        # ! CALCULATE LEAVE AMOUNT TO BE DEDUCTED
-        leave_amount = min(deduction_amount, deduction_unit)
-        if deduction_type == "Deduct Earned Leave":
-            balance = leave_balances.get(leave_type, 0.0)
-            # ? CHECK IF LEAVE BALANCE IS SUFFICIENT
-            if balance >= leave_amount:
-                # ? RETURN PENALTY ENTRY DICTIONARY
+            # ! CALCULATE LEAVE AMOUNT TO BE DEDUCTED
+            leave_amount = min(deduction_amount, deduction_unit)
+            if deduction_type == "Deduct Earned Leave":
+                balance = leave_balances.get(leave_type, 0.0)
+                # ? CHECK IF LEAVE BALANCE IS SUFFICIENT
+                if balance >= leave_amount:
+                    # ? RETURN PENALTY ENTRY DICTIONARY
+                    return {
+                        employee: {
+                            "attendance": penalizable_attendance,
+                            "attendance_date": attendance_date,
+                            "leave_type": leave_type,
+                            "leave_amount": leave_amount,
+                            "reason": reason,
+                            "leave_balance_before_application": balance,
+                            "leave_ledger_entry": "",
+                            "remarks": remarks,
+                            "earned_leave": leave_amount,
+                        }
+                    }
+
+            elif deduction_type == "Deduct Leave Without Pay":
+                # ? RETURN LEAVE WITHOUT PAY ENTRY DICTIONARY
                 return {
                     employee: {
                         "attendance": penalizable_attendance,
                         "attendance_date": attendance_date,
-                        "leave_type": leave_type,
+                        "leave_type": "Leave Without Pay",
                         "leave_amount": leave_amount,
                         "reason": reason,
-                        "leave_balance_before_application": balance,
+                        "leave_balance_before_application": 0,
                         "leave_ledger_entry": "",
                         "remarks": remarks,
-                        "earned_leave": leave_amount,
+                        "leave_without_pay": leave_amount,
                     }
                 }
-
-        elif deduction_type == "Deduct Leave Without Pay":
-            # ? RETURN LEAVE WITHOUT PAY ENTRY DICTIONARY
-            return {
-                employee: {
-                    "attendance": penalizable_attendance,
-                    "attendance_date": attendance_date,
-                    "leave_type": "Leave Without Pay",
-                    "leave_amount": leave_amount,
-                    "reason": reason,
-                    "leave_balance_before_application": 0,
-                    "leave_ledger_entry": "",
-                    "remarks": remarks,
-                    "leave_without_pay": leave_amount,
-                }
-            }
+        except Exception as e:
+            frappe.log_error(
+                "Error in calculate_leave_deductions_based_on_priority", str(e)
+            )
+            continue
 
     return {}
 
@@ -452,13 +693,19 @@ def get_remaining_leaves(employee):
     leave_balance_map = {}
 
     for entry in leave_ledger_entries:
-        leave_type = entry["leave_type"]
-        leaves = entry["leaves"]
+        try:
+            leave_type = entry["leave_type"]
+            leaves = entry["leaves"]
 
-        if leave_type in leave_balance_map:
-            leave_balance_map[leave_type] += leaves
-        else:
-            leave_balance_map[leave_type] = leaves
+            if leave_type in leave_balance_map:
+                leave_balance_map[leave_type] += leaves
+            else:
+                leave_balance_map[leave_type] = leaves
+        except Exception as e:
+            frappe.log_error(
+                "Error in get_remaining_leave", str(e)
+            )
+            continue
 
     return leave_balance_map
 
@@ -485,6 +732,8 @@ def target_date_attendance_exists(
     if not no_attendance and not mispunch:
         if daily_hour:
             filters.update({"status": ["not in",["Absent","On Leave", "Mispunch", "WeekOff"]]})
+        elif late_entry:
+            filters.update({"status": ["not in",["Absent","On Leave", "WeekOff", "Half Day"]]})
         else:
             filters.update({"status": ["not in",["Absent","On Leave", "WeekOff"]]})
 
@@ -492,25 +741,31 @@ def target_date_attendance_exists(
     if mispunch:
         filters.update({"status": "Mispunch"})
 
-    # ? FETCH ATTENDANCE RECORDS FOR TARGET DATE FOR GIVEN EMPLOYEES
-    attendance_list = frappe.get_all(
-        "Attendance",
-        filters=filters,
-        fields=["employee", "name", "attendance_date", "working_hours"],
-        order_by="attendance_date asc",
-    )
+    try:
+        # ? FETCH ATTENDANCE RECORDS FOR TARGET DATE FOR GIVEN EMPLOYEES
+        attendance_list = frappe.get_all(
+            "Attendance",
+            filters=filters,
+            fields=["employee", "name", "attendance_date", "working_hours"],
+            order_by="attendance_date asc",
+        )
 
-    # ? BUILD DICTIONARY MAPPING EMPLOYEE → {ATTENDANCE_DATE, ATTENDANCE, WORKING_HOURS}
-    attendance_dict = {
-        rec["employee"]: {
-            "attendance_date": rec["attendance_date"],
-            "attendance": rec["name"],
-            "working_hours": rec.get("working_hours", 0),
+        # ? BUILD DICTIONARY MAPPING EMPLOYEE → {ATTENDANCE_DATE, ATTENDANCE, WORKING_HOURS}
+        attendance_dict = {
+            rec["employee"]: {
+                "attendance_date": rec["attendance_date"],
+                "attendance": rec["name"],
+                "working_hours": rec.get("working_hours", 0),
+            }
+            for rec in attendance_list
         }
-        for rec in attendance_list
-    }
 
-    return attendance_dict if attendance_dict else None
+        return attendance_dict if attendance_dict else None
+    except Exception as e:
+        frappe.log_error(
+            "Error in Fetching Attendance List", str(e)
+        )
+        return None
 
 
 def process_daily_hours_penalties_for_prompt(
@@ -535,61 +790,138 @@ def process_daily_hours_penalties_for_prompt(
         penalty_buffer_days = 0
 
     # ! FETCH ATTENDANCE RECORDS FOR TARGET DATE
-    daily_hours_records = target_date_attendance_exists(
-        employees, target_date, 0, 0, 0, 1
-    )
+    try:
+        daily_hours_records = target_date_attendance_exists(
+            employees, target_date, 0, 0, 0, 1
+        )
+    except Exception as e:
+        frappe.log_error(
+            f"Error in Fetching Daily Hours Attendance Records", str(e)
+        )
+        return penalty_entries
 
     # ! SKIP IF TARGET DATE ATTENDANCE IS NOT THERE
     if not daily_hours_records:
         return []
 
-    # ? REMOVE EMPLOYEES WHOSE SHIFT IS NOT ASSIGNED
-    daily_hours_records = {
-        emp: data
-        for emp, data in daily_hours_records.items()
-        if check_if_shift_is_assign(emp, target_date)
-    }
+    try:
+        # ? REMOVE EMPLOYEES WHOSE SHIFT IS NOT ASSIGNED
+        daily_hours_records = {
+            emp: data
+            for emp, data in daily_hours_records.items()
+            if check_if_shift_is_assign(emp, target_date)
+        }
+    except Exception as e:
+        frappe.log_error(
+            f"Error in Checking Shift Assignment", str(e)
+        )
+        return penalty_entries
 
-    # ! FILTER EMPLOYEES WHOSE DAILY HOURS ARE BELOW THRESHOLD
-    daily_hours_records = get_below_threshold_daily_hours(
-        daily_hours_records, percentage_for_daily_hour_penalty, target_date
-    )
+    try:
+        # ! FILTER EMPLOYEES WHOSE DAILY HOURS ARE BELOW THRESHOLD
+        daily_hours_records = get_below_threshold_daily_hours(
+            daily_hours_records, percentage_for_daily_hour_penalty, target_date
+        )
+    except Exception as e:
+        frappe.log_error(
+            f"Error in Getting Below Threshold Daily Hours", str(e)
+        )
+        return penalty_entries
 
-    # ? EMPLOYEES WHO HAD DAILY HOURS BELOW THRESHOLD ON TARGET DATE
-    below_threshold_employees = list(daily_hours_records.keys())
+    below_threshold_employees = []
+    try:
+        # ? EMPLOYEES WHO HAD DAILY HOURS BELOW THRESHOLD ON TARGET DATE
+        if daily_hours_records:
+            below_threshold_employees = list(daily_hours_records.keys())
+    except Exception as e:
+        frappe.log_error(
+            f"Error in Getting Below Threshold Employees", str(e)
+        )
+        return penalty_entries
 
     # ? LEAVE TYPES CONFIGURATION FOR DAILY HOURS PENALTY
-    leave_priority = frappe.db.get_all(
-        "Leave Penalty Configuration",
-        filters={
-            "parent": "HR Settings",
-            "parenttype": "HR Settings",
-            "parentfield": priority_field,
-        },
-        fields=[
-            "penalty_deduction_type",
-            "leave_type_for_penalty",
-            "deduction_of_leave",
-        ],
-        order_by="idx asc",
-    )
+    try:
+        leave_priority = frappe.db.get_all(
+            "Leave Penalty Configuration",
+            filters={
+                "parent": "HR Settings",
+                "parenttype": "HR Settings",
+                "parentfield": priority_field,
+            },
+            fields=[
+                "penalty_deduction_type",
+                "leave_type_for_penalty",
+                "deduction_of_leave",
+            ],
+            order_by="idx asc",
+        )
+    except Exception as e:
+        frappe.log_error(
+            f"Error in Getting Leave Priority", str(e)
+        )
+        return penalty_entries
+
     # ? IF NOT BELOW THRESHOLD EMPLOYEES
     if not below_threshold_employees:
         return penalty_entries
     # ? CALCULATE LEAVE DEDUCTIONS BASED ON PRIORITY CONFIGURATION
     # ? AND ADD TO PENALTY ENTRIES
     for employee in below_threshold_employees:
-        penalty_entries.update(
-            calculate_leave_deductions_based_on_priority(
-                employee=employee,
-                attendance_date=target_date,
-                deduction_amount=1.0,
-                reason="Insufficient Hours",
-                penalizable_attendance=daily_hours_records[employee]["attendance"],
-                remarks=f"Penalty for Insufficient Hours on {target_date}",
-                leave_priority=leave_priority,
+        # ? CHECK FOR ATTENDANCE REQUESTS ON DUTY AS EXEMPTION
+        try:
+            attendance_request_exists = frappe.db.exists(
+                "Attendance Request",
+                {
+                    "employee": employee,
+                    "from_date": ["<=", target_date],
+                    "to_date": [">=", target_date],
+                    "custom_status": "Approved",
+                    "docstatus": ["!=", 2],
+                    "reason": "On Duty",
+                },
             )
-        )
+            if attendance_request_exists:
+                continue
+        except Exception as e:
+            frappe.log_error(
+                f"Error in Checking Attendance Request Existence", str(e)
+            )
+            continue
+        # ? CHECK HOLIDAY
+        try:
+            if get_holiday_dates_for_employee(employee, target_date, target_date):
+                continue
+        except Exception as e:
+            frappe.log_error(
+                f"Error in Getting Holiday Date",str(e)
+            )
+            continue
+        # ? CHECK LEAVE
+        try:
+            if full_day_leave_exists(employee, target_date):
+                continue
+        except Exception as e:
+            frappe.log_error(
+                f"Error in Checking Full Day Leave Existence",str(e)
+            )
+            continue
+        try:
+            penalty_entries.update(
+                calculate_leave_deductions_based_on_priority(
+                    employee=employee,
+                    attendance_date=target_date,
+                    deduction_amount=1.0,
+                    reason="Insufficient Hours",
+                    penalizable_attendance=daily_hours_records[employee]["attendance"],
+                    remarks=f"Penalty for Insufficient Hours on {target_date}",
+                    leave_priority=leave_priority,
+                )
+            )
+        except Exception as e:
+            frappe.log_error(
+                f"Error in Calculating Leave Deductions", str(e)
+            )
+            continue
 
     return penalty_entries
 
@@ -612,17 +944,26 @@ def create_penalty_records(penalty_entries, target_date):
     """
 
     # ? GET LIST OF EMPLOYEES FROM THE PENALTY ENTRIES
-    employee_list = list(penalty_entries.keys())
+    try:
+        employee_list = list(penalty_entries.keys())
+    except Exception as e:
+        frappe.log_error("Error in Employee List", str(e))
+        return
+
     if not employee_list:
         return
 
     # ? FETCH EXISTING PENALTIES FOR THE TARGET DATE
-    existing_penalties = frappe.get_all(
-        "Employee Penalty",
-        filters={"employee": ["in", employee_list], "penalty_date": target_date, "is_leave_balance_restore":0},
-        fields=["name", "employee"],
-    )
-    existing_penalties_map = {ep["employee"]: ep["name"] for ep in existing_penalties}
+    try:
+        existing_penalties = frappe.get_all(
+            "Employee Penalty",
+            filters={"employee": ["in", employee_list], "penalty_date": target_date, "is_leave_balance_restore":0},
+            fields=["name", "employee"],
+        )
+        existing_penalties_map = {ep["employee"]: ep["name"] for ep in existing_penalties}
+    except Exception as e:
+        frappe.log_error("Error in Fetching Existing Penalties", str(e))
+        existing_penalties_map = {}
 
     # ? GET LEAVE PERIOD DATA ONCE
     leave_period_data = frappe.db.get_value(
@@ -653,45 +994,92 @@ def create_penalty_records(penalty_entries, target_date):
             )
             details["leave_ledger_entry"] = ledger_entry_id
 
-    #! FETCH ALL PENDING ATTENDANCE REQUESTS IN ONE QUERY
-    pending_requests = frappe.get_all(
-        "Attendance Request",
-        filters={
-            "employee": ["in", employee_list],
-            "from_date": ["<=", target_date],
-            "to_date": [">=", target_date],
-            "custom_status": "Pending"
-        },
-        fields=["name", "employee"]
-    )
-
-    #! BUILD HASH MAP -> {employee: request_name}
-    attendance_request_map = {}
-    for req in pending_requests:
-        attendance_request_map[req.employee] = req.name
-
     # ? LOOP AND PROCESS PENALTIES
     for employee, details in penalty_entries.items():
         # ? SKIP IF ATTENDANCE REQUEST EXIST AND IT IS PENDING
-        if attendance_request_map.get(employee):
-            continue
-        if check_employee_penalty_criteria(employee, details["reason"]):
-            if employee in existing_penalties_map:
-                penalty_doc = frappe.get_doc(
-                    "Employee Penalty", existing_penalties_map[employee]
-                )
-                existing_reasons = {
-                    row.reason for row in penalty_doc.leave_penalty_details
-                }
-                if details["reason"] not in existing_reasons:
-                    handle_leave_ledger(details, employee)
-                    penalty_doc.deduct_earned_leave += details.get("earned_leave", 0)
-                    penalty_doc.deduct_leave_without_pay += details.get(
-                        "leave_without_pay", 0
+        try:
+            if check_employee_penalty_criteria(employee, details["reason"]):
+                if employee in existing_penalties_map:
+                    penalty_doc = frappe.get_doc(
+                        "Employee Penalty", existing_penalties_map[employee]
                     )
-                    penalty_doc.total_leave_penalty = (
-                        penalty_doc.deduct_earned_leave
-                        + penalty_doc.deduct_leave_without_pay
+                    existing_reasons = {
+                        row.reason for row in penalty_doc.leave_penalty_details
+                    }
+                    if details["reason"] not in existing_reasons:
+                        handle_leave_ledger(details, employee)
+                        penalty_doc.deduct_earned_leave += details.get("earned_leave", 0)
+                        penalty_doc.deduct_leave_without_pay += details.get(
+                            "leave_without_pay", 0
+                        )
+                        penalty_doc.total_leave_penalty = (
+                            penalty_doc.deduct_earned_leave
+                            + penalty_doc.deduct_leave_without_pay
+                        )
+                        penalty_doc.append(
+                            "leave_penalty_details",
+                            {
+                                "leave_type": details["leave_type"],
+                                "leave_amount": details["leave_amount"],
+                                "reason": details["reason"],
+                                "leave_balance_before_penalty": details.get(
+                                    "leave_balance_before_application", 0
+                                ),
+                                "leave_ledger_entry": details.get("leave_ledger_entry", ""),
+                                "remarks": details.get("remarks"),
+                            },
+                        )
+                        penalty_doc.save(ignore_permissions=True)
+                        penalty_id = frappe.db.get_value(
+                            "Attendance",
+                            details["attendance"],
+                            penalty_doc.name,
+                            "custom_employee_penalty_id",
+                        )
+                        if not penalty_id:
+                            frappe.db.set_value(
+                                "Attendance",
+                                details["attendance"],
+                                "custom_employee_penalty_id",
+                                penalty_doc.name,
+                            )
+                        changes_made = True
+
+                else:
+                    if details["attendance"] is None:
+                        try:
+                            att_doc = frappe.get_doc(
+                                {
+                                    "doctype": "Attendance",
+                                    "employee": employee,
+                                    "attendance_date": target_date,
+                                    "status": "Absent",
+                                    "company": frappe.db.get_value(
+                                        "Employee", employee, "company"
+                                    ),
+                                }
+                            )
+                            att_doc.insert(ignore_permissions=True)
+                            att_doc.submit()
+                            frappe.db.commit()
+                        except Exception as e:
+                            frappe.log_error(
+                                f"Error creating attendance for employee on {target_date}:", str(e)
+                            )
+                            continue
+                        details["attendance"] = att_doc.name
+                    handle_leave_ledger(details, employee)
+                    penalty_doc = frappe.new_doc("Employee Penalty")
+                    penalty_doc.update(
+                        {
+                            "employee": employee,
+                            "attendance": details["attendance"],
+                            "penalty_date": target_date,
+                            "deduct_earned_leave": details.get("earned_leave", 0),
+                            "deduct_leave_without_pay": details.get("leave_without_pay", 0),
+                            "total_leave_penalty": details.get("earned_leave", 0)
+                            + details.get("leave_without_pay", 0),
+                        }
                     )
                     penalty_doc.append(
                         "leave_penalty_details",
@@ -706,80 +1094,20 @@ def create_penalty_records(penalty_entries, target_date):
                             "remarks": details.get("remarks"),
                         },
                     )
-                    penalty_doc.save(ignore_permissions=True)
-                    penalty_id = frappe.db.get_value(
+                    penalty_doc.insert(ignore_permissions=True)
+                    frappe.db.set_value(
                         "Attendance",
                         details["attendance"],
-                        penalty_doc.name,
                         "custom_employee_penalty_id",
+                        penalty_doc.name,
                     )
-                    if not penalty_id:
-                        frappe.db.set_value(
-                            "Attendance",
-                            details["attendance"],
-                            "custom_employee_penalty_id",
-                            penalty_doc.name,
-                        )
+
                     changes_made = True
-
-            else:
-                if details["attendance"] is None:
-                    try:
-                        att_doc = frappe.get_doc(
-                            {
-                                "doctype": "Attendance",
-                                "employee": employee,
-                                "attendance_date": target_date,
-                                "status": "Absent",
-                                "company": frappe.db.get_value(
-                                    "Employee", employee, "company"
-                                ),
-                            }
-                        )
-                        att_doc.insert(ignore_permissions=True)
-                        att_doc.submit()
-                        frappe.db.commit()
-                    except Exception as e:
-                        frappe.log_error(
-                            f"Error creating attendance for employee {employee} on {target_date}: {e}"
-                        )
-                        continue
-                    details["attendance"] = att_doc.name
-                handle_leave_ledger(details, employee)
-                penalty_doc = frappe.new_doc("Employee Penalty")
-                penalty_doc.update(
-                    {
-                        "employee": employee,
-                        "attendance": details["attendance"],
-                        "penalty_date": target_date,
-                        "deduct_earned_leave": details.get("earned_leave", 0),
-                        "deduct_leave_without_pay": details.get("leave_without_pay", 0),
-                        "total_leave_penalty": details.get("earned_leave", 0)
-                        + details.get("leave_without_pay", 0),
-                    }
-                )
-                penalty_doc.append(
-                    "leave_penalty_details",
-                    {
-                        "leave_type": details["leave_type"],
-                        "leave_amount": details["leave_amount"],
-                        "reason": details["reason"],
-                        "leave_balance_before_penalty": details.get(
-                            "leave_balance_before_application", 0
-                        ),
-                        "leave_ledger_entry": details.get("leave_ledger_entry", ""),
-                        "remarks": details.get("remarks"),
-                    },
-                )
-                penalty_doc.insert(ignore_permissions=True)
-                frappe.db.set_value(
-                    "Attendance",
-                    details["attendance"],
-                    "custom_employee_penalty_id",
-                    penalty_doc.name,
-                )
-
-                changes_made = True
+        except Exception as e:
+            frappe.log_error(
+                f"Error in Processing Penalty for Employee {employee}", str(e)
+            )
+            continue
 
     if changes_made:
         frappe.db.commit()
@@ -832,78 +1160,80 @@ def get_below_threshold_daily_hours(
     if not percentage_for_daily_hour_penalty:
         return {}
 
-    employees = list(daily_hours_records.keys())
+    try:
+        employees = list(daily_hours_records.keys())
+    except Exception as e:
+        frappe.log_error("Error in Employee List", str(e))
+        return {}
 
-    # ? FETCH SHIFT ASSIGNMENTS FOR TARGET DATE (INCLUDING OPEN-ENDED)
-    shift_assignments = frappe.get_all(
-        "Shift Assignment",
-        filters={
-            "employee": ["in", employees],
-            "docstatus": 1,
-            "start_date": ["<=", target_date],
-        },
-        or_filters=[{"end_date": [">=", target_date]}, {"end_date": ["is", "not set"]}],
-        fields=["employee", "shift_type"],
-    )
+    try:
+        # ? FETCH SHIFT ASSIGNMENTS FOR TARGET DATE (INCLUDING OPEN-ENDED)
+        shift_assignments = frappe.get_all(
+            "Shift Assignment",
+            filters={
+                "employee": ["in", employees],
+                "docstatus": 1,
+                "start_date": ["<=", target_date],
+            },
+            or_filters=[{"end_date": [">=", target_date]}, {"end_date": ["is", "not set"]}],
+            fields=["employee", "shift_type"],
+        )
 
-    emp_shift_map = {sa.employee: sa.shift_type for sa in shift_assignments}
+        emp_shift_map = {sa.employee: sa.shift_type for sa in shift_assignments}
+    except Exception as e:
+        frappe.log_error("Error in Shift Assignments", str(e))
+        emp_shift_map = {}
 
-    # ? FETCH SHIFT TIMINGS FOR ASSIGNED SHIFT TYPES
-    shift_types = list(set(emp_shift_map.values()))
-    shift_details = frappe.get_all(
-        "Shift Type",
-        filters={"name": ["in", shift_types]},
-        fields=["name", "start_time", "end_time"],
-    )
-    # ? MAP SHIFT NAME TO SHIFT DETAILS
-    shift_time_map = {s.name: s for s in shift_details}
+    try:
+        # ? FETCH SHIFT TIMINGS FOR ASSIGNED SHIFT TYPES
+        shift_types = list(set(emp_shift_map.values()))
+        shift_details = frappe.get_all(
+            "Shift Type",
+            filters={"name": ["in", shift_types]},
+            fields=["name", "start_time", "end_time"],
+        )
+        # ? MAP SHIFT NAME TO SHIFT DETAILS
+        shift_time_map = {s.name: s for s in shift_details}
+    except Exception as e:
+        frappe.log_error('Error in Shift', str(e))
+        shift_time_map = {}
+    
 
     below_threshold_records = {}
 
     # ? LOOP THROUGH DAILY HOURS RECORDS AND FILTER BASED ON THRESHOLD DURATION
     for emp, data in daily_hours_records.items():
+        try:
 
-        partial_days_request_minutes = frappe.db.get_value(
-            "Attendance Request",
-            {
-                "employee": emp,
-                "from_date": ["<=", target_date],
-                "to_date": [">=", target_date],
-                "custom_status": "Approved",
-                "docstatus": ["!=", 2],
-                "reason": "Partial Day"
-            },
-            "custom_partial_day_request_minutes"
-        ) or 0
+            working_hours = data.get("working_hours", 0)
+            shift_type = emp_shift_map.get(emp)
 
-        working_hours = data.get("working_hours", 0)
-        shift_type = emp_shift_map.get(emp)
-        # ? SKIP IF WORKING HOUR IS ZERO AND HOLIDAY
-        if working_hours == 0:
-            if get_holiday_dates_for_employee(emp, target_date, target_date):
+            # ? SKIP IF NO SHIFT
+            if not shift_type or shift_type not in shift_time_map:
                 continue
 
-        # ? SKIP IF NO SHIFT
-        if not shift_type or shift_type not in shift_time_map:
+            start_time = shift_time_map[shift_type].start_time
+            end_time = shift_time_map[shift_type].end_time
+
+            # ? HANDLE OVERNIGHT SHIFTS
+            if end_time < start_time:
+                end_time += timedelta(days=1)
+
+            shift_duration_hours = (end_time - start_time).total_seconds() / 3600.0
+
+            # ? CALCULATE THRESHOLD HOURS BASED ON PERCENTAGE
+            threshold_hours = (
+                float(percentage_for_daily_hour_penalty) / 100
+            ) * shift_duration_hours
+
+            # ? ONLY ADD IF BELOW THRESHOLD
+            if (working_hours) < threshold_hours:
+                below_threshold_records[emp] = data
+        except Exception as e:
+            frappe.log_error(
+                f"Error in get_below_threshold_daily_hours for {emp}", str(e)
+            )
             continue
-
-        start_time = shift_time_map[shift_type].start_time
-        end_time = shift_time_map[shift_type].end_time
-
-        # ? HANDLE OVERNIGHT SHIFTS
-        if end_time < start_time:
-            end_time += timedelta(days=1)
-
-        shift_duration_hours = (end_time - start_time).total_seconds() / 3600.0
-
-        # ? CALCULATE THRESHOLD HOURS BASED ON PERCENTAGE
-        threshold_hours = (
-            float(percentage_for_daily_hour_penalty) / 100
-        ) * shift_duration_hours
-
-        # ? ONLY ADD IF BELOW THRESHOLD
-        if (working_hours + float(partial_days_request_minutes)/60) < threshold_hours:
-            below_threshold_records[emp] = data
 
     return below_threshold_records
 
@@ -942,9 +1272,15 @@ def process_no_attendance_penalties_for_prompt(
         penalty_buffer_days = 0
     
     # ! CHECK TARGET DATE'S ATTENDANCE IS EXISTS OR NOT
-    attendance_records = target_date_attendance_exists(
-        employees, target_date, 0, 1, 0, 0
-    )
+    try:
+        attendance_records = target_date_attendance_exists(
+            employees, target_date, 0, 1, 0, 0
+        )
+    except Exception as e:
+        frappe.log_error(
+            f"Error in Getting Attendance Records",str(e)
+        )
+        return penalty_entries
     employees_with_attendance = []
     if attendance_records:
         employees_with_attendance = list(attendance_records.keys())
@@ -957,57 +1293,82 @@ def process_no_attendance_penalties_for_prompt(
 
         for emp in employees_without_attendance:
             # ? CHECK HOLIDAY
-            if get_holiday_dates_for_employee(emp, target_date, target_date):
+            try:
+                if get_holiday_dates_for_employee(emp, target_date, target_date):
+                    continue
+            except Exception as e:
+                frappe.log_error(
+                    f"Error in Getting Holiday Date",str(e)
+                )
                 continue
+
             # ? CHECK IF EMPLOYEE HAS LEAVE APPLICATION APPROVED
             # ? FOR THE TARGET DATE
             # ? SKIP IF EMPLOYEE HAS APPROVED LEAVE APPLICATION
             # ? FOR THE TARGET DATE
-            if frappe.db.exists(
-                "Leave Application",
-                {
-                    "employee": emp,
-                    "workflow_state": "Approved",
-                    "from_date": ["<=", target_date],
-                    "to_date": [">=", target_date],
-                },
-            ):
+            try:
+                if frappe.db.exists(
+                    "Leave Application",
+                    {
+                        "employee": emp,
+                        "workflow_state": "Approved",
+                        "from_date": ["<=", target_date],
+                        "to_date": [">=", target_date],
+                    },
+                ):
+                    continue
+            except Exception as e:
+                frappe.log_error(
+                    f"Error in Checking Leave Application",str(e)
+                )
                 continue
 
             filtered_employees.append(emp)
 
         if filtered_employees:
             # ! GET LEAVE PENALTY CONFIGURATION FOR NO ATTENDANCE PENALTY
-            leave_priority = frappe.db.get_all(
-                "Leave Penalty Configuration",
-                filters={
-                    "parent": "HR Settings",
-                    "parenttype": "HR Settings",
-                    "parentfield": priority_field,
-                },
-                fields=[
-                    "penalty_deduction_type",
-                    "leave_type_for_penalty",
-                    "deduction_of_leave",
-                ],
-                order_by="idx asc",
-            )
+            try:
+                leave_priority = frappe.db.get_all(
+                    "Leave Penalty Configuration",
+                    filters={
+                        "parent": "HR Settings",
+                        "parenttype": "HR Settings",
+                        "parentfield": priority_field,
+                    },
+                    fields=[
+                        "penalty_deduction_type",
+                        "leave_type_for_penalty",
+                        "deduction_of_leave",
+                    ],
+                    order_by="idx asc",
+                )
+            except Exception as e:
+                frappe.log_error(
+                    f"Error in Getting Leave Penalty Configuration",str(e)
+                )
+                return penalty_entries
 
             # ? CALCULATE LEAVE DEDUCTIONS BASED ON PRIORITY CONFIGURATION
             # ? AND ADD TO PENALTY ENTRIES
             # ? FOR EACH EMPLOYEE WITHOUT ATTENDANCE
             for emp in filtered_employees:
-                penalty_entries.update(
-                    calculate_leave_deductions_based_on_priority(
-                        employee=emp,
-                        attendance_date=target_date,
-                        deduction_amount=1.0,
-                        reason="No Attendance",
-                        penalizable_attendance=None,
-                        remarks=f"Penalty for No Attendance Marked on {target_date}",
-                        leave_priority=leave_priority,
+                try:
+                    penalty_entries.update(
+                        calculate_leave_deductions_based_on_priority(
+                            employee=emp,
+                            attendance_date=target_date,
+                            deduction_amount=1.0,
+                            reason="No Attendance",
+                            penalizable_attendance=None,
+                            remarks=f"Penalty for No Attendance Marked on {target_date}",
+                            leave_priority=leave_priority,
+                        )
                     )
-                )
+                except Exception as e:
+                    frappe.log_error(
+                        f"Error in Calculating Leave Deductions Based On Priority",str(e)
+                    )
+                    continue
 
     return penalty_entries
 
@@ -1022,7 +1383,13 @@ def process_mispunch_penalties_for_prompt(
     penalty_entries = {}
 
     # ! CHECK TARGET DATE'S MISPUNCH ATTENDANCE IS EXISTS OR NOT
-    mispunch_records = target_date_attendance_exists(employees, target_date, 0, 0, 1, 0)
+    try:
+        mispunch_records = target_date_attendance_exists(employees, target_date, 0, 0, 1, 0)
+    except Exception as e:
+        frappe.log_error(
+            f"Error in Getting Attendance Records",str(e)
+        )
+        return penalty_entries
     # ? RETURN IF BUFFER NOT CONFIGURED AND NOT CUSTOM BUFFER DAYS
     if not penalty_buffer_days and not custom_buffer_days:
         return penalty_entries
@@ -1030,88 +1397,475 @@ def process_mispunch_penalties_for_prompt(
         penalty_buffer_days = 0
 
     # ? GET LEAVE PENALTY CONFIGURATION FOR MIS-PUNCH PENALTY
-    leave_priority = frappe.db.get_all(
-        "Leave Penalty Configuration",
-        filters={
-            "parent": "HR Settings",
-            "parenttype": "HR Settings",
-            "parentfield": priority_field,
-        },
-        fields=[
-            "penalty_deduction_type",
-            "leave_type_for_penalty",
-            "deduction_of_leave",
-        ],
-        order_by="idx asc",
-    )
+    try:
+        leave_priority = frappe.db.get_all(
+            "Leave Penalty Configuration",
+            filters={
+                "parent": "HR Settings",
+                "parenttype": "HR Settings",
+                "parentfield": priority_field,
+            },
+            fields=[
+                "penalty_deduction_type",
+                "leave_type_for_penalty",
+                "deduction_of_leave",
+            ],
+            order_by="idx asc",
+        )
+    except Exception as e:
+        frappe.log_error(
+            f"Error in Getting Leave Penalty Configuration",str(e)
+        )
+        return penalty_entries
+
     # ? IF MISPUNCH RECORD FOUND
     if not mispunch_records:
         return penalty_entries
+
     # ? PROCESS EACH MIS-PUNCH RECORD
     for emp in mispunch_records.keys():
         # ? CHECK HOLIDAY
-        if get_holiday_dates_for_employee(emp, target_date, target_date):
-            continue
-        penalty_entries.update(
-            calculate_leave_deductions_based_on_priority(
-                employee=emp,
-                attendance_date=target_date,
-                deduction_amount=1.0,
-                reason="Mispunch",
-                penalizable_attendance=mispunch_records[emp]["attendance"],
-                remarks=f"Penalty for Mispunch on {target_date}",
-                leave_priority=leave_priority,
+        try:
+            if get_holiday_dates_for_employee(emp, target_date, target_date):
+                continue
+        except Exception as e:
+            frappe.log_error(
+                f"Error in Getting Holiday Date",str(e)
             )
-        )
+            continue
+        try:
+            if full_day_leave_exists(emp, target_date):
+                continue
+        except Exception as e:
+            frappe.log_error(
+                f"Error in Checking Full Day Leave Existence",str(e)
+            )
+            continue
+        try:
+            penalty_entries.update(
+                calculate_leave_deductions_based_on_priority(
+                    employee=emp,
+                    attendance_date=target_date,
+                    deduction_amount=1.0,
+                    reason="Mispunch",
+                    penalizable_attendance=mispunch_records[emp]["attendance"],
+                    remarks=f"Penalty for Mispunch on {target_date}",
+                    leave_priority=leave_priority,
+                )
+            )
+        except Exception as e:
+            frappe.log_error(
+                f"Error in Calculating Leave Deductions Based On Priority",str(e)
+            )
+            continue
 
     return penalty_entries
 
 
 def check_employee_penalty_criteria(employee=None, penalization_type=None):
-    employee = frappe.get_doc("Employee", employee)
-    company_abbr = frappe.db.get_value("Company", employee.company, "abbr")
-    hr_settings = frappe.get_single("HR Settings")
+    try:
+        employee = frappe.get_doc("Employee", employee)
+        company_abbr = frappe.db.get_value("Company", employee.company, "abbr")
+        hr_settings = frappe.get_single("HR Settings")
 
-    # ? PENALIZATION TYPE MAPPING
-    penalization_type_mapping = {
-        "No Attendance": "For No Attendance",
-        "Mispunch": "For Mispunch",
-        "Late Coming": "For Late Arrival",
-        "Insufficient Hours": "For Work Hours",
-    }
+        # ? PENALIZATION TYPE MAPPING
+        penalization_type_mapping = {
+            "No Attendance": "For No Attendance",
+            "Mispunch": "For Mispunch",
+            "Late Coming": "For Late Arrival",
+            "Insufficient Hours": "For Work Hours",
+        }
 
-    penalization_type = penalization_type_mapping.get(penalization_type, None)
+        penalization_type = penalization_type_mapping.get(penalization_type, None)
 
-    # Abbreviations
-    prompt_abbr = hr_settings.custom_prompt_abbr
+        # Abbreviations
+        prompt_abbr = hr_settings.custom_prompt_abbr
 
-    # Determine which table to use based on company
-    if company_abbr == prompt_abbr:
-        table = hr_settings.custom_penalization_criteria_table_for_prompt
-    else:
-        return True
-
-    if not table:
-        return True  # Allow if table is not configured
-
-    # ? MAP EMPLOYEE FIELD AND ITS DOCTYPE
-    criteria = {
-        row.select_doctype: row.employee_field_name
-        for row in table
-        if row.select_doctype and row.employee_field_name
-    }
-
-    is_penalisation = False
-    for row in table:
-        if row.penalization_type != penalization_type:
-            continue
-
-        is_penalisation = True
-        employee_fieldname = criteria.get(row.select_doctype)
-        if (
-            employee_fieldname
-            and getattr(employee, employee_fieldname, None) == row.value
-        ):
+        # Determine which table to use based on company
+        if company_abbr == prompt_abbr:
+            table = hr_settings.custom_penalization_criteria_table_for_prompt
+        else:
             return True
 
-    return not is_penalisation or False
+        if not table:
+            return True  # Allow if table is not configured
+
+        # ? MAP EMPLOYEE FIELD AND ITS DOCTYPE
+        criteria = {
+            row.select_doctype: row.employee_field_name
+            for row in table
+            if row.select_doctype and row.employee_field_name
+        }
+
+        is_penalisation = False
+        for row in table:
+            if row.penalization_type != penalization_type:
+                continue
+
+            is_penalisation = True
+            employee_fieldname = criteria.get(row.select_doctype)
+            if (
+                employee_fieldname
+                and getattr(employee, employee_fieldname, None) == row.value
+            ):
+                return True
+
+        return not is_penalisation or False
+    except Exception as e:
+        frappe.log_error(
+            f"Error in Checking Employee Penalty Criteria",str(e)
+        )
+        return False
+
+
+def auto_approve_scheduler():
+    """
+    Scheduled task to auto approve or reject attendance requests, leave applications, 
+    attendance regularization, shift requests, weekoff change requests
+    based on the days configuration in HR Settings.
+    """
+    try:
+        auto_approve_days = frappe.db.get_single_value("HR Settings", "custom_auto_approve_request_after_days") or 0
+    except Exception as e:
+        frappe.log_error(f"Error in getting auto_approve_days from HR Settings:", {str(e)})
+        return
+
+    if not auto_approve_days:
+        return
+
+    auto_mark_date = getdate(
+            add_to_date(today(), days=-(int(auto_approve_days)+1))
+        )
+
+    try:
+        employees = get_active_employees()
+    except Exception as e:
+        frappe.log_error(f"Error in getting active employees:", {str(e)})
+        employees = []
+
+    if not employees:
+        return
+
+    # ? Approve only one leave application per employee
+    try:
+        # Fetch pending leave application filtered properly with commas in filters
+        leave_request = frappe.db.get_all(
+            "Leave Application",
+            filters={
+                "workflow_state": ["in",["Pending", "Approved by Reporting Manager", "Rejected by Reporting Manager"]],
+                "from_date": ["<=", auto_mark_date],
+                "to_date": [">=", auto_mark_date],
+                "employee": ["in", employees],
+            },
+            fields=["name", "employee"],
+            order_by="from_date asc"
+        )
+        # Track approved employees to ensure only one request approval per employee
+        approved_employees = set()
+
+        for request in leave_request:
+            if request.employee in approved_employees:
+                continue
+            try:
+                leave_request = frappe.get_doc("Leave Application", request.name)
+            except Exception as e:
+                frappe.log_error(f"Error fetching Leave Application {request.name}:", str(e))
+                continue
+            try:
+                try:
+                    if leave_request.workflow_state == "Pending":
+                        if leave_request.leave_type not in ["Leave Without Pay", "Casual Leave"]:
+                            try:
+                                apply_workflow(leave_request, "Approve")
+                                if leave_request.workflow_state == "Approved by Reporting Manager":
+                                    apply_workflow(leave_request, "Approve")
+                                    leave_request.db_set("custom_auto_approve", 1)
+                                    approved_employees.add(request.employee)
+                            except Exception as e:
+                                frappe.log_error(f"Error approving leave request:", str(e))
+                                continue
+
+                        else:
+                            try:
+                                apply_workflow(leave_request, "Approve")
+                                leave_request.db_set("custom_auto_approve", 1)
+                                approved_employees.add(request.employee)
+                            except Exception as e:
+                                frappe.log_error(f"Error approving leave request:", str(e))
+                                continue
+                    elif leave_request.workflow_state == "Approved by Reporting Manager":
+                        try:
+                            apply_workflow(leave_request, "Approve")
+                            leave_request.db_set("custom_auto_approve", 1)
+                            approved_employees.add(request.employee)
+
+                        except Exception as e:
+                            frappe.log_error(f"Error approving leave request:", str(e))
+                            continue
+                    else:
+                        try:
+                            apply_workflow(leave_request, "Approve")
+                            leave_request.db_set("custom_auto_approve", 1)
+                        except Exception as e:
+                            frappe.log_error(f"Error approving leave request:", str(e))
+                            continue
+
+                except Exception as e:
+                    frappe.log_error(f"Error approving leave request:", str(e))
+                    continue
+
+            except Exception as e:
+                frappe.log_error(f"Error approving leave request {request.name}:", str(e))
+                continue
+
+    except Exception as e:
+        frappe.log_error(f"Error fetching or processing Leave requests:", str(e))
+
+
+    # ? Approve only one shift request per employee
+    try:
+        # Fetch pending shift requests filtered properly with commas in filters
+        shift_requests = frappe.db.get_all(
+            "Shift Request",
+            filters={
+                "workflow_state": "Pending",
+                "from_date": ["<=", auto_mark_date],
+                "employee": ["in", employees],
+            },
+            or_filters=[{"to_date": [">=", auto_mark_date]}, {"to_date": ["is", "not set"]}],
+            fields=["name", "employee", "from_date"],
+            order_by="from_date asc"
+        )
+
+        # Track approved employees to ensure only one request approval per employee
+        approved_employees = set()
+
+        for request in shift_requests:
+            if request.employee in approved_employees:
+                continue
+            try:
+                shift_request = frappe.get_doc("Shift Request", request.name)
+            except Exception as e:
+                frappe.log_error(f"Error fetching shift request {request.name}:", str(e))
+                continue
+            try:
+                apply_workflow(shift_request, "Approve")
+                shift_request.db_set("custom_auto_approve", 1)
+                approved_employees.add(request.employee)
+            except Exception as e:
+                frappe.log_error(f"Error approving shift request {request.name}:", str(e))
+                continue
+
+    except Exception as e:
+        frappe.log_error(f"Error fetching or processing shift request:", str(e))
+
+    # ? Approve only one attendance regularization per employee
+    try:
+        # Fetch pending attendance regularization filtered properly with commas in filters
+        attendance_regularizations = frappe.db.get_all(
+            "Attendance Regularization",
+            filters={
+                "workflow_state": "Pending",
+                "regularization_date": auto_mark_date,
+                "employee": ["in", employees],
+            },
+            fields=["name", "employee"],
+            order_by="regularization_date asc"
+        )
+
+        # Track approved employees to ensure only one regularization approval per employee
+        approved_employees = set()
+
+        for request in attendance_regularizations:
+            if request.employee in approved_employees:
+                continue
+            try:
+                attendance_regularization = frappe.get_doc("Attendance Regularization", request.name)
+            except Exception as e:
+                frappe.log_error(f"Error fetching attendance regularization {request.name}:", str(e))
+                continue
+            try:
+                apply_workflow(attendance_regularization, "Approve")
+                attendance_regularization.db_set("auto_approve", 1)
+                approved_employees.add(request.employee)
+            except Exception as e:
+                frappe.log_error(f"Error approving attendance regularization {request.name}: ",str(e))
+                continue
+
+    except Exception as e:
+        frappe.log_error(f"Error fetching or processing attendance regularization:" ,str(e))
+
+    # ? Approve only one attendance request per employee
+    try:
+        # Fetch pending attendance requests filtered properly with commas in filters
+        attendance_requests = frappe.db.get_all(
+            "Attendance Request",
+            filters={
+                "workflow_state": "Pending",
+                "from_date": ["<=", auto_mark_date],
+                "to_date": [">=", auto_mark_date],
+                "employee": ["in", employees],
+            },
+            fields=["name", "employee", "from_date"],
+            order_by="from_date asc"
+        )
+
+        # Track approved employees to ensure only one request approval per employee
+        approved_employees = set()
+
+        for request in attendance_requests:
+            if request.employee in approved_employees:
+                continue
+            try:
+                attendance_request = frappe.get_doc("Attendance Request", request.name)
+                handle_custom_workflow_action(attendance_request, "Approve")
+                attendance_request.db_set("custom_auto_approve", 1)
+                approved_employees.add(request.employee)
+            except Exception as e:
+                frappe.log_error(f"Error approving attendance request {request.name}:", str(e))
+                continue
+
+    except Exception as e:
+        frappe.log_error(f"Error fetching or processing attendance requests:", str(e))
+
+
+def full_day_leave_exists(employee, target_date):
+    """
+    CHECK IF THERE IS ANY FULL-DAY LEAVE (NOT HALF DAY) FOR THE EMPLOYEE ON THE TARGET DATE.
+    """
+    try:
+        results = frappe.get_all(
+            "Leave Application",
+            filters={
+                "employee": employee,
+                "workflow_state": "Approved",
+                "from_date": ["<=", target_date],
+                "to_date": [">=", target_date],
+                "half_day": 0
+            },
+            or_filters={
+                "employee": employee,
+                "workflow_state": "Approved",
+                "from_date": ["<=", target_date],
+                "to_date": [">=", target_date],
+                "half_day": 1,
+                "half_day_date": ["!=", target_date]
+            },
+            fields=["name", "half_day", "half_day_date"]
+        )
+
+        if results:
+            return True
+        
+        else:
+            return False
+
+    except Exception as e:
+        frappe.log_error(f"Error checking full day leave for {employee} on {target_date}:", str(e))
+        return False
+
+
+def send_penalty_notification_emails():
+    try:
+        employees = get_active_employees()
+    except Exception as e:
+        frappe.log_error("Error in getting active employees", str(e))
+        employees = []
+
+    try:
+        is_emails_enabled = frappe.db.get_single_value("HR Settings", "custom_enable_penalty_emails") or 0
+    except Exception as e:
+        frappe.log_error("Error in getting email settings from HR Settings", str(e))
+        is_emails_enabled = 0
+
+    if not is_emails_enabled:
+        return
+
+    if not employees:
+        return
+    try:
+        today = getdate()
+        start_datetime = get_datetime_str(datetime.combine(today, time.min))
+        end_datetime = get_datetime_str(datetime.combine(today, time.max))
+        all_penalties = frappe.get_all(
+            "Employee Penalty",
+            filters={
+                "employee": ["in", employees],
+                "creation": ["between", [start_datetime, end_datetime]],
+            },
+            fields=["name", "employee", "penalty_date"]
+        )
+        try:
+            notification_doc = frappe.get_doc("Notification", "Employee Penalty Notification")
+        except Exception as e:
+            frappe.log_error("Error in fetching Notification Doc", str(e))
+            return
+        if all_penalties:
+            all_emails_details = []
+            for penalty in all_penalties:
+                if notification_doc:
+                    try:
+                        emp_user_id = frappe.db.get_value("Employee", penalty.employee, "user_id")
+                        if emp_user_id:
+                            subject = frappe.render_template(
+                                notification_doc.subject,
+                                {"penalty": penalty.name, "employee_name": penalty.employee, "penalty_date": penalty.penalty_date}
+                            )
+                            message = frappe.render_template(
+                                notification_doc.message,
+                                {
+                                    "penalty": penalty.name,
+                                    "employee_name": penalty.employee,
+                                    "penalty_date": penalty.penalty_date
+                                }
+                            )
+                            try:
+                                add_to_penalty_email = frappe.db.get_single_value("HR Settings", "custom_add_emails_to_penalty_emails_for_prompt") or 0
+                            except Exception as e:
+                                frappe.log_error("Error in getting additional email settings from HR Settings", str(e))
+                                add_to_penalty_email = 0
+                            if add_to_penalty_email:
+                                all_emails_details.append({
+                                    "recipients": emp_user_id,
+                                    "subject": subject,
+                                    "message": message,
+                                })
+                            else:
+                                frappe.sendmail(
+                                    recipients=[emp_user_id],
+                                    subject=subject,
+                                    message=message,
+                                    reference_doctype="Employee Penalty",
+                                    reference_name=penalty.name,
+                                )
+                    except Exception as e:
+                        frappe.log_error("Error in sending penalty notification email", str(e))
+                        continue
+
+            try:
+                child_rows = []
+                if all_emails_details:
+                    for ed in all_emails_details:
+                        try:
+                            child_rows.append({
+                                "doctype": "Penalty Emails Details",
+                                "email": ed["recipients"],
+                                "subject": ed["subject"],
+                                "message": ed["message"]
+                            })
+                        except Exception as e:
+                            frappe.log_error("Error in appending child rows for penalty email", str(e))
+                            continue
+                penalty_emails_doc = frappe.get_doc({
+                    "doctype": "Penalty Emails",
+                    "status": "Not Sent",
+                    "email_details": child_rows
+                })
+
+                penalty_emails_doc.insert(ignore_permissions=True)
+                frappe.db.commit()
+            except Exception as e:
+                frappe.log_error("Error in creating Penalty Emails Doc", str(e))
+
+    except Exception as e:
+        frappe.log_error("Error in fetching Employee Penalties", str(e))

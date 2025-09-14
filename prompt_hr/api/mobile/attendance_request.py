@@ -128,7 +128,6 @@ def get(name):
 
 # ! prompt_hr.api.mobile.attendance_request.create
 # ? CREATE ATTENDANCE REQUEST   
-   
 @frappe.whitelist()
 def create(**args):
     try:
@@ -154,7 +153,15 @@ def create(**args):
                     frappe.MandatoryError,
                 )
 
-            
+        # ? CAST custom_partial_day_request_minutes TO INT IF PRESENT
+        if args.get("custom_partial_day_request_minutes"):
+            try:
+                args["custom_partial_day_request_minutes"] = int(
+                    args.get("custom_partial_day_request_minutes")
+                )
+            except ValueError:
+                frappe.throw("Partial Day Minutes must be a number")
+
         # ? CREATE ATTENDANCE REQUEST DOC
         attendance_request_doc = frappe.get_doc({
             "doctype": "Attendance Request",
@@ -178,8 +185,9 @@ def create(**args):
         frappe.local.response["message"] = {
             "success": True,
             "message": "Attendance Request Created Successfully!",
-            "data": attendance_request_doc,
+            "data": attendance_request_doc.as_dict(),
         }
+
          
          
 # ! prompt_hr.api.mobile.attendance_request.update
@@ -294,7 +302,7 @@ def get_action_fields(doc, logged_employee_id=None, requesting_employee_id=None)
     
 from frappe.model.workflow import apply_workflow as attendance_request_workflow
 @frappe.whitelist()
-def apply_workflow(attendance_request, action):
+def apply_workflow(attendance_request, action, custom_reason_for_rejection=None):
     try:
         # ? FETCH THE DOCUMENT
         
@@ -305,9 +313,15 @@ def apply_workflow(attendance_request, action):
             )
 
         doc = frappe.get_doc("Attendance Request", attendance_request)
-
+        
+     
+        if action == "Reject":
+            if not custom_reason_for_rejection:
+                frappe.throw("Reason for Rejection is mandatory when rejecting.")            # doc.custom_reason_for_rejection = custom_reason_for_rejection
+            
         # ? APPLY WORKFLOW ACTION
         updated_doc = attendance_request_workflow(doc, action)
+        updated_doc.db_set("custom_reason_for_rejection",custom_reason_for_rejection)
 
         # ? SAVE CHANGES
         doc.save(ignore_permissions=True)

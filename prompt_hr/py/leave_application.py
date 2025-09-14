@@ -83,6 +83,10 @@ def before_insert(doc, method):
         if doc.from_date:
             if date_diff(doc.from_date, frappe.utils.getdate()) <= leave_type_doc.custom_prior_days_required_for_applying_leave:
                 frappe.throw(_("You must apply at least {0} days before the leave date").format(leave_type_doc.custom_prior_days_required_for_applying_leave))
+    # ? LEAVE DEDUCTED THROUGH SANDWICH LEAVE MUST BE ZERO AT TIME OF INSERT
+    doc.custom_leave_deducted_sandwich_rule = 0
+    doc.custom_auto_apply_sandwich_rule = 0
+    doc.custom_auto_approve = 0
 
 def before_validate(doc, method=None):
     if doc.custom_leave_status == "Approved":
@@ -339,6 +343,7 @@ def before_submit(doc, method):
     if extra_leave_days > 0:
         doc.total_leave_days = (doc.total_leave_days or 0) + extra_leave_days
         doc.custom_leave_deducted_sandwich_rule = extra_leave_days
+        doc.custom_auto_apply_sandwich_rule = 1
         if extra_leave_days_prev > 0:
             doc.from_date = add_days(doc.from_date, -extra_leave_days_prev)
         if extra_leave_days_next > 0:
@@ -356,7 +361,8 @@ def before_submit(doc, method):
         leave_balance_for_consumption = flt(
             leave_balance.get("leave_balance_for_consumption"), precision
         )
-        if not leave_balance_for_consumption or doc.total_leave_days > leave_balance_for_consumption:
+        is_lwp = frappe.db.get_value("Leave Type", doc.leave_type,"is_lwp")
+        if (not leave_balance_for_consumption or doc.total_leave_days > leave_balance_for_consumption) and not is_lwp:
             frappe.throw(f"Extra {extra_leave_days} Sandwich Leaves will be Added, Hence Total Apply Leave is More Than Leave Balance")
         frappe.msgprint(
             msg=f"{extra_leave_days} additional day(s) have been included as per the Sandwich Rule.",
@@ -805,13 +811,14 @@ def custom_update_previous_leave_allocation(allocation, annual_allocation, e_lea
         allocation.precision("total_leaves_allocated"),
     )
 
-    if new_allocation > e_leave_type.max_leaves_allowed and e_leave_type.max_leaves_allowed > 0:
-        new_leaves_added -= (new_allocation - e_leave_type.max_leaves_allowed)
-        new_allocation = e_leave_type.max_leaves_allowed
-        if new_leaves_added < 0:
-            new_leaves_added = 0
+    # ! REMOVE RESTRICTIONS OF MAX LEAVE ALLOWED
+    # if new_allocation > e_leave_type.max_leaves_allowed and e_leave_type.max_leaves_allowed > 0:
+    #     new_leaves_added -= (new_allocation - e_leave_type.max_leaves_allowed)
+    #     new_allocation = e_leave_type.max_leaves_allowed
+    #     if new_leaves_added < 0:
+    #         new_leaves_added = 0
 
-    if new_allocation != allocation.total_leaves_allocated and new_allocation_without_cf <= annual_allocation:
+    if new_allocation != allocation.total_leaves_allocated: # and new_allocation_without_cf <= annual_allocation:
         today_date = frappe.flags.current_date or getdate()
         is_maternity_leave = 0
         leave_applications = frappe.get_all("Leave Application", filters={"employee":allocation.employee,"company":allocation.company,"docstatus":1},fields=["name", "leave_type", "from_date", "to_date"])
@@ -1312,6 +1319,9 @@ def custom_get_leave_details(employee, date, for_salary_slip=False):
 			order_by="from_date asc"
 		)
 
+		#! GET SUM OF ALL PENALIZED LEAVES
+		penalized_leaves = get_total_penalized_leaves_for_period(employee, allocation.leave_type, leaves_start_date, date)
+
 		#! SUM OF ALL ALLOCATED LEAVES FROM LEDGER
 		total_leaves = sum([flt(d.leaves) for d in leave_ledger_entry])
 
@@ -1434,13 +1444,14 @@ def custom_get_leave_details(employee, date, for_salary_slip=False):
 				])
 
 		#! DERIVE EXPIRED LEAVES = TOTAL - (REMAINING + TAKEN)
-		expired_leaves = total_leaves - (remaining_leaves + leaves_taken)
+		expired_leaves = total_leaves - (remaining_leaves + leaves_taken) - penalized_leaves
 
 		#! STORE LEAVE DETAILS PER ALLOCATION TYPE
 		leave_allocation[d] = {
 			"total_leaves": flt(total_leaves),
 			"expired_leaves": flt(expired_leaves, precision) if expired_leaves > 0 else 0,
 			"leaves_taken": flt(leaves_taken, precision),
+			"penalized_leaves": flt(penalized_leaves, precision),
 			"leaves_pending_approval": flt(leaves_pending, precision),
 			"remaining_leaves": flt(remaining_leaves, precision),
 		}
@@ -1934,9 +1945,10 @@ def custom_get_data(filters: Filters) -> list:
                 filters.from_date, filters.to_date, employee.name, leave_type
             )
             opening = custom_get_opening_balance(employee.name, leave_type, filters, carry_forwarded_leaves)
-
+            penalized_leaves = get_total_penalized_leaves_for_period(employee.name, leave_type, filters.from_date, filters.to_date) or 0
+            row.penalized_leaves = flt(penalized_leaves, precision)
             row.leaves_allocated = flt(new_allocation, precision)
-            row.leaves_expired = flt(expired_leaves, precision)
+            row.leaves_expired = flt(expired_leaves - penalized_leaves, precision)
             row.opening_balance = flt(opening, precision)
             row.leaves_taken = flt(leaves_taken, precision)
 
@@ -1944,7 +1956,7 @@ def custom_get_data(filters: Filters) -> list:
             if is_lwp:
                 row.closing_balance = 0
             else:
-                closing = new_allocation + opening - (row.leaves_expired + leaves_taken)
+                closing = new_allocation + opening - (row.leaves_expired + leaves_taken + row.penalized_leaves)
                 row.closing_balance = flt(closing, precision)
 
             row.indent = 1
@@ -2048,3 +2060,91 @@ def custom_get_leave_balance_on(
 		return remaining_leaves
 	else:
 		return remaining_leaves.get("leave_balance")
+
+
+def custom_get_columns():
+    return [
+		{
+			"label": _("Leave Type"),
+			"fieldtype": "Link",
+			"fieldname": "leave_type",
+			"width": 200,
+			"options": "Leave Type",
+		},
+		{
+			"label": _("Employee"),
+			"fieldtype": "Link",
+			"fieldname": "employee",
+			"width": 100,
+			"options": "Employee",
+		},
+		{
+			"label": _("Employee Name"),
+			"fieldtype": "Dynamic Link",
+			"fieldname": "employee_name",
+			"width": 200,
+			"options": "employee",
+		},
+		{
+			"label": _("Opening Balance"),
+			"fieldtype": "float",
+			"fieldname": "opening_balance",
+			"width": 150,
+		},
+		{
+			"label": _("New Leave(s) Allocated"),
+			"fieldtype": "float",
+			"fieldname": "leaves_allocated",
+			"width": 200,
+		},
+		{
+			"label": _("Leave(s) Taken"),
+			"fieldtype": "float",
+			"fieldname": "leaves_taken",
+			"width": 150,
+		},
+        {
+			"label": _("Penalized Leave(s)"),
+			"fieldtype": "float",
+			"fieldname": "penalized_leaves",
+			"width": 150,
+		},
+		{
+			"label": _("Leave(s) Expired"),
+			"fieldtype": "float",
+			"fieldname": "leaves_expired",
+			"width": 150,
+		},
+		{
+			"label": _("Closing Balance"),
+			"fieldtype": "float",
+			"fieldname": "closing_balance",
+			"width": 150,
+		},
+	]
+
+
+def get_total_penalized_leaves_for_period(employee, leave_type, from_date, to_date):
+    if not leave_type or not employee or not from_date or not to_date:
+        return 0
+
+    #! FETCH ALL NEGATIVE LEAVE ALLOCATIONS (PENALIZED) FROM LEDGER
+    penalized_leave_ledger_entry = frappe.get_all(
+        "Leave Ledger Entry",
+        filters=[
+            ["employee", "=", employee],
+            ["leave_type", "=", leave_type],
+            ["docstatus", "=", 1],
+            ["from_date", ">=", from_date],
+            ["from_date", "<=", to_date],
+            ["transaction_type", "=", "Leave Allocation"],
+            ["leaves", "<", 0],
+        ],
+        fields=["name", "leaves", "from_date", "to_date"],
+        order_by="from_date asc"
+    )
+
+    #! SUM OF ALL PENALIZED LEAVES (ABSOLUTE VALUE)
+    penalized_leaves = abs(sum([flt(d.leaves) for d in penalized_leave_ledger_entry]))
+
+    return penalized_leaves

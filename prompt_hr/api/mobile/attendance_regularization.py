@@ -280,7 +280,7 @@ def get_action_fields(doc,logged_employee_id=None, requesting_employee_id=None):
 from frappe.model.workflow import apply_workflow as attendance_regularization_workflow
 
 @frappe.whitelist()
-def apply_workflow(attendance_regularization, action):
+def apply_workflow(attendance_regularization, action, reason_for_rejection=None):
     try:
         # ? FETCH THE DOCUMENT
         
@@ -291,9 +291,16 @@ def apply_workflow(attendance_regularization, action):
             )
 
         doc = frappe.get_doc("Attendance Regularization", attendance_regularization)
+        
+        # ? HANDLE REJECTION WITH REASON
+        if action == "Reject":
+            if not reason_for_rejection:
+                frappe.throw("Reason for Rejection is mandatory when rejecting.")  
 
         # ? APPLY WORKFLOW ACTION
         updated_doc = attendance_regularization_workflow(doc, action)
+        updated_doc.db_set("reason_for_rejection",reason_for_rejection)
+        
 
         # ? SAVE CHANGES
         doc.save(ignore_permissions=True)

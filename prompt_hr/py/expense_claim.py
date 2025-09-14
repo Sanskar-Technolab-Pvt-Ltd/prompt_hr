@@ -35,7 +35,6 @@ def before_save(doc, method):
     Called before an Expense Claim is saved.
     Validates expenses against budget limits and checks for mandatory attachments.
     """
-    print(doc.expenses[0].get("custom_attachments"), "Hii\n\n\n")
     if doc.expenses:
         validate_attachments_compulsion(doc)
         validate_number_of_days(doc)
@@ -55,12 +54,14 @@ def validate_number_of_days(doc):
         #? ENSURE THAT EACH EXPENSE ENTRY HAS custom_days <= 1
         for expense in doc.expenses:
             expense_days = expense.custom_days or 0
+            expense_type = expense.expense_type
             #! THROW AN ERROR IF MORE THAN 1 DAY IS SELECTED FOR A SINGLE EXPENSE ROW
             if expense_days > 1:
-                raise frappe.ValidationError(
-                    _("Row #{0}: Each expense entry must have Days 1 or less. Found {1} days.")
-                    .format(expense.idx, expense.custom_days)
-                )
+                if expense_type not in ["Lodging", "Local Commute"]:
+                    raise frappe.ValidationError(
+                        _("Row #{0}: Each expense entry must have Days 1 or less. Found {1} days.")
+                        .format(expense.idx, expense.custom_days)
+                    )
 
             if expense.expense_type == "DA":
                 if expense.expense_date != expense.custom_expense_end_date:
@@ -104,7 +105,17 @@ def validate_number_of_days(doc):
                         break
             else:
                 #! FOR NON-DA EXPENSE TYPES, ASSUME FULL DAY
-                expense.custom_days = 1
+                if expense.expense_type != "Lodging" and expense.expense_type != "Local Commute":
+                    expense.custom_days = 1
+                else:
+                    #? COMBINE DATE + TIME INTO DATETIME OBJECTS
+                    start_dt = get_datetime(str(expense.expense_date) + " " + str(expense.custom_expense_start_time or "00:00:00"))
+                    end_dt = get_datetime(str(expense.custom_expense_end_date) + " " + str(expense.custom_expense_end_time or "00:00:00"))
+
+                    #? CALCULATE TOTAL HOURS
+                    total_hours = time_diff_in_hours(end_dt, start_dt)
+                    #? CONVERT HOURS TO DAYS (E.G. 24 HRS = 1 DAY)
+                    expense.custom_days = round(total_hours / 24 * 4) / 4 or 1
                 
     except Exception as e:
         frappe.throw(str(e))
@@ -641,7 +652,7 @@ def _validate_and_process_expense(
     """
     exp.custom_is_exception = 0
     exp_amount = flt(exp.amount or 0)
-    days = cint(exp.custom_days or 0)
+    days = exp.custom_days or 1
     expense_date = getdate(exp.expense_date)
 
     if not exp.expense_date:
@@ -716,7 +727,7 @@ def _process_food_lodging_expense(
     Processes validation for Food and Lodging expenses against their defined allowances.
     """
     daily_per_item_amount = total_exp_amount / days
-
+    days = cint(days) or 1
     metro = exp.custom_for_metro_city
     expense_type_for_budget_lookup = exp.expense_type.lower()
 
@@ -738,13 +749,19 @@ def _process_food_lodging_expense(
         #! CHECK IN EXPENSE CLAIM DETAIL DIRECTLY
         existing_detail = frappe.get_all(
             "Expense Claim Detail",
-            filters={
-                "parent": ("!=", doc.name),  # EXCLUDE CURRENT EXPENSE CLAIM
-                "expense_type": "Lodging",
-                "expense_date": exp.expense_date,
-                "custom_shared_accommodation_employee": ("in", employees_to_check)
-            },
-            fields=["name","custom_shared_accommodation_employee"],
+            filters=[
+                ["parent", "!=", doc.name],
+                ["expense_type", "=", "Lodging"],
+                ["custom_shared_accommodation_employee", "in", employees_to_check],
+                ["expense_date", "between", [exp.expense_date, exp.custom_expense_end_date]],
+            ],
+            or_filters=[
+                ["parent", "!=", doc.name],
+                ["expense_type", "=", "Lodging"],
+                ["custom_shared_accommodation_employee", "in", employees_to_check],
+                ["custom_expense_end_date", "between", [exp.expense_date, exp.custom_expense_end_date]],
+            ],
+            fields=["name", "custom_shared_accommodation_employee"],
             limit=1
         )
 
@@ -754,11 +771,6 @@ def _process_food_lodging_expense(
                 f"Lodging expense for {exp.expense_date} already exists for employee(s): {existing_detail[0].get('custom_shared_accommodation_employee')}"
             )
 
-        # ! VALIDATION FOR START AND END DATE
-        if exp.expense_date != exp.custom_expense_end_date:
-            frappe.throw(
-                f"Start date and end date must be the same for lodging expense (Row #{exp.idx})."
-            )
 
         #! CHECK IN OTHER EXPENSE CLAIMS OF EMPLOYEE(S)
         other_claims = frappe.get_all(
@@ -1077,6 +1089,8 @@ def _process_local_commute_expense(
     similar to food and lodging, plus monthly limit checks.
     """
     # Check if attachment is mandatory
+    days = cint(days) or 1
+
     # ? GET IF ATTACHMENT IS REQUIRED BASED ON COMMUTE RULES
     custom_mode_of_vehicle = exp.custom_mode_of_vehicle
     if custom_mode_of_vehicle == "Non-Public" or custom_mode_of_vehicle == "Non Public":
@@ -1168,7 +1182,7 @@ def validate_attachments_compulsion(doc):
             )
 
         for expense in doc.expenses:
-            if (expense.custom_is_exception == 1 or expense.expense_type == "Lodging") and not expense.custom_attachments:
+            if (expense.custom_is_exception == 1 or expense.expense_type == "Lodging" or expense.custom_supporting_document_available == 1) and not expense.custom_attachments:
                 if expense.expense_type == "Lodging":
                     raise frappe.ValidationError(
                         f"Attachments are mandatory for the expense type '{expense.expense_type}' ")
@@ -1913,109 +1927,180 @@ def build_da_expense_rows(
             already_exists_dates.append(str(date))
             continue
 
-        #! BASE EXPENSE ROW
-        expense_row = {
-            "expense_type": "DA",
-            "expense_date": getdate(date),
-            "custom_expense_end_date": getdate(date),
-            "amount": amount,
-            "sanctioned_amount": amount,
-            "custom_days": 1,   # now always "per day" since hours are already split
-            "custom_mode_of_vehicle": "",
-            "custom_type_of_vehicle": "",
-            "custom_expense_start_time": data.get("earliest_start"),
-            "custom_expense_end_time": data.get("latest_end"),
-            "description": f"{percentage}% DA - {date}"
-        }
+        if amount > 0:
+            #! BASE EXPENSE ROW
+            expense_row = {
+                "expense_type": "DA",
+                "expense_date": getdate(date),
+                "custom_expense_end_date": getdate(date),
+                "amount": amount,
+                "sanctioned_amount": amount,
+                "custom_days": 1,   # now always "per day" since hours are already split
+                "custom_mode_of_vehicle": "",
+                "custom_type_of_vehicle": "",
+                "custom_expense_start_time": data.get("earliest_start"),
+                "custom_expense_end_time": data.get("latest_end"),
+                "description": f"{percentage}% DA - {date}"
+            }
 
-        #? ONLY FOR FIELD VISIT: ADD FIELD VISIT → SERVICE CALL MAPPING + HTML
-        if visit_type == "Field Visit":
-            base_url = frappe.utils.get_url()
-            all_field_visits_set = set()
-            all_service_calls_set = set()
-            field_visit_map = {}
+            #? ONLY FOR FIELD VISIT: ADD FIELD VISIT → SERVICE CALL MAPPING + HTML
+            if visit_type == "Field Visit":
+                base_url = frappe.utils.get_url()
+                all_field_visits_set = set()
+                all_service_calls_set = set()
+                field_visit_map = {}
 
-            for fv_name in data["visits"]:
-                field_visit_doc = frappe.get_doc("Field Visit", fv_name)
-                all_field_visits_set.add(fv_name)
-                for row in field_visit_doc.service_calls:
-                    if row.service_call:
-                        field_visit_map.setdefault(fv_name, []).append({
-                            "service_call": row.service_call,
-                            "from_location": row.from_location or "-",
-                            "to_location": row.to_location or "-",
-                            "travelled_km": row.travelled_km or "0"
-                        })
-                        all_service_calls_set.add(row.service_call)
+                for fv_name in data["visits"]:
+                    field_visit_doc = frappe.get_doc("Field Visit", fv_name)
+                    all_field_visits_set.add(fv_name)
+                    for row in field_visit_doc.service_calls:
+                        if row.service_call:
+                            field_visit_map.setdefault(fv_name, []).append({
+                                "service_call": row.service_call,
+                                "from_location": row.from_location or "-",
+                                "to_location": row.to_location or "-",
+                                "travelled_km": row.travelled_km or "0"
+                            })
+                            all_service_calls_set.add(row.service_call)
 
-            # build table rows
-            table_rows = ""
-            for field_visit, service_call_rows in sorted(field_visit_map.items()):
-                rowspan = len(service_call_rows)
-                for i, row_data in enumerate(service_call_rows):
-                    service_call = row_data["service_call"]
-                    from_location = row_data["from_location"]
-                    to_location = row_data["to_location"]
-                    travelled_km = row_data["travelled_km"]
+                # build table rows
+                table_rows = ""
+                for field_visit, service_call_rows in sorted(field_visit_map.items()):
+                    rowspan = len(service_call_rows)
+                    for i, row_data in enumerate(service_call_rows):
+                        service_call = row_data["service_call"]
+                        from_location = row_data["from_location"]
+                        to_location = row_data["to_location"]
+                        travelled_km = row_data["travelled_km"]
 
-                    # fetch customer
-                    customer = "-"
-                    customer_name = "-"
-                    sc_data = frappe.db.get_value(
-                        "Service Call", service_call, ["customer"], as_dict=True
-                    )
-                    if sc_data and sc_data.get("customer"):
-                        customer = sc_data.get("customer")
-                        customer_name = frappe.db.get_value("Customer", customer, "customer_name")
+                        # fetch customer
+                        customer = "-"
+                        customer_name = "-"
+                        sc_data = frappe.db.get_value(
+                            "Service Call", service_call, ["customer"], as_dict=True
+                        )
+                        if sc_data and sc_data.get("customer"):
+                            customer = sc_data.get("customer")
+                            customer_name = frappe.db.get_value("Customer", customer, "customer_name")
 
-                    table_rows += "<tr>"
-                    if i == 0:
+                        table_rows += "<tr>"
+                        if i == 0:
+                            table_rows += f"""
+                                <td rowspan="{rowspan}" style="border: 1px solid #000; padding: 8px;">
+                                    <a href="{base_url}/app/field-visit/{field_visit}" target="_blank">{field_visit}</a>
+                                </td>
+                            """
                         table_rows += f"""
-                            <td rowspan="{rowspan}" style="border: 1px solid #000; padding: 8px;">
-                                <a href="{base_url}/app/field-visit/{field_visit}" target="_blank">{field_visit}</a>
+                            <td style="border: 1px solid #000; padding: 8px;">
+                                <a href="{base_url}/app/service-call/{service_call}" target="_blank">{service_call}</a>
                             </td>
-                        """
-                    table_rows += f"""
-                        <td style="border: 1px solid #000; padding: 8px;">
-                            <a href="{base_url}/app/service-call/{service_call}" target="_blank">{service_call}</a>
-                        </td>
-                        <td style="border: 1px solid #000; padding: 8px;">{from_location}</td>
-                        <td style="border: 1px solid #000; padding: 8px;">{to_location}</td>
-                        <td style="border: 1px solid #000; padding: 8px;">{travelled_km}</td>
-                        <td style="border: 1px solid #000; padding: 8px;">
-                            <a href="{base_url}/app/customer/{customer}" target="_blank">{customer_name}</a>
-                        </td>
-                    </tr>
-                    """
-
-            html_table = f"""
-            <div class="ql-editor read-mode">
-                <table style="border-collapse: collapse; width: 100%; font-size: 14px;">
-                    <thead>
-                        <tr style="background-color: #f5f5f5;">
-                            <th style="border: 1px solid #000; padding: 8px;">Field Visit</th>
-                            <th style="border: 1px solid #000; padding: 8px;">Service Call</th>
-                            <th style="border: 1px solid #000; padding: 8px;">From Location</th>
-                            <th style="border: 1px solid #000; padding: 8px;">To Location</th>
-                            <th style="border: 1px solid #000; padding: 8px;">Travelled KM</th>
-                            <th style="border: 1px solid #000; padding: 8px;">Customer</th>
+                            <td style="border: 1px solid #000; padding: 8px;">{from_location}</td>
+                            <td style="border: 1px solid #000; padding: 8px;">{to_location}</td>
+                            <td style="border: 1px solid #000; padding: 8px;">{travelled_km}</td>
+                            <td style="border: 1px solid #000; padding: 8px;">
+                                <a href="{base_url}/app/customer/{customer}" target="_blank">{customer_name}</a>
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        {table_rows}
-                    </tbody>
-                </table>
-            </div>
-            """
+                        """
 
-            expense_row.update({
-                "custom_field_visit_and_service_call_details": html_table,
-                "custom_field_visits": ", ".join(sorted(all_field_visits_set)),
-                "custom_service_calls": ", ".join(sorted(all_service_calls_set)),
-            })
+                html_table = f"""
+                <div class="ql-editor read-mode">
+                    <table style="border-collapse: collapse; width: 100%; font-size: 14px;">
+                        <thead>
+                            <tr style="background-color: #f5f5f5;">
+                                <th style="border: 1px solid #000; padding: 8px;">Field Visit</th>
+                                <th style="border: 1px solid #000; padding: 8px;">Service Call</th>
+                                <th style="border: 1px solid #000; padding: 8px;">From Location</th>
+                                <th style="border: 1px solid #000; padding: 8px;">To Location</th>
+                                <th style="border: 1px solid #000; padding: 8px;">Travelled KM</th>
+                                <th style="border: 1px solid #000; padding: 8px;">Customer</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {table_rows}
+                        </tbody>
+                    </table>
+                </div>
+                """
 
-        da_expense_rows.append(expense_row)
-        added_da_dates.append(str(date))
+                expense_row.update({
+                    "custom_field_visit_and_service_call_details": html_table,
+                    "custom_field_visits": ", ".join(sorted(all_field_visits_set)),
+                    "custom_service_calls": ", ".join(sorted(all_service_calls_set)),
+                })
+
+            # ? ONLY FOR TOUR VISIT
+            elif visit_type == "Tour Visit":
+                base_url = frappe.utils.get_url()
+                all_tour_visit_set = set()
+                tour_visit_map = {}
+                
+                for visit in data["visits"]:
+                    all_tour_visit_set.add(visit)
+
+                    # ? FETCH CUSTOMER LINKED TO THIS TOUR VISIT
+                    customer = frappe.db.get_value("Tour Visit", visit, "customer")
+                    if not customer:
+                        continue
+
+                    customer_name = frappe.db.get_value("Customer", customer, "customer_name") or "-"
+
+                    # Store visit mapping (no list, just dict)
+                    tour_visit_map[visit] = {
+                        "tour_visit": visit,
+                        "customer": customer,
+                        "customer_name": customer_name
+                    }
+
+                all_tour_visits = ", ".join(sorted(all_tour_visit_set))
+                tour_table_rows = ""
+                tour_html_table = ""
+
+                if tour_visit_map:
+                    tour_table_rows = ""
+
+                    for tour_visit, row in sorted(tour_visit_map.items()):
+                        tour_name = row["tour_visit"]
+                        customer = row["customer"]
+                        customer_name = row["customer_name"]
+
+                        tour_table_rows += f"""
+                            <tr>
+                                <td style="border: 1px solid #000; padding: 6px; text-align: left; white-space: nowrap;">
+                                    <a href="{base_url}/app/tour-visit/{tour_name}" target="_blank">{tour_name}</a>
+                                </td>
+                                <td style="border: 1px solid #000; padding: 6px; text-align: left; white-space: nowrap;">
+                                    <a href="{base_url}/app/customer/{customer}" target="_blank">{customer_name}</a>
+                                </td>
+                            </tr>
+                        """
+
+                    # CREATE FULL HTML TABLE IF ANY ROWS EXIST
+                    if tour_table_rows:
+                        tour_html_table = f"""
+                        <div class="ql-editor read-mode">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 13px; table-layout: auto;">
+                                <thead>
+                                    <tr style="background-color: #f5f5f5;">
+                                        <th style="border: 1px solid #000; padding: 6px; text-align: left;">Tour Visit</th>
+                                        <th style="border: 1px solid #000; padding: 6px; text-align: left;">Customer</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {tour_table_rows}
+                                </tbody>
+                            </table>
+                        </div>
+                        """
+
+
+                if all_tour_visit_set:
+                    expense_row.update({
+                        "custom_tour_visits": all_tour_visits,
+                        "custom_tour_visit_details": tour_html_table
+                    })
+            da_expense_rows.append(expense_row)
+            added_da_dates.append(str(date))
 
     return expense_claim_doc, da_expense_rows, already_exists_dates, added_da_dates
 
@@ -2361,3 +2446,151 @@ def build_expense_notification_messages(
         )
 
     return messages
+
+@frappe.whitelist()
+def get_tour_visit_details(tour_visits):
+    """
+    RETURNS:
+    - CUSTOM_TOUR_VISITS (COMMA-SEPARATED)
+    - HTML_TABLE: ROWSPAN-BASED TOUR-VISIT TABLE
+    """
+
+    if isinstance(tour_visits, str):
+        tour_visits = json.loads(tour_visits)
+
+    base_url = frappe.utils.get_url()
+    tour_visit_map = {}
+
+    for visit in tour_visits:
+        # ? FETCH CUSTOMER LINKED TO THIS TOUR VISIT
+        customer = frappe.db.get_value("Tour Visit", visit, "customer")
+        if not customer:
+            continue
+
+        customer_name = frappe.db.get_value("Customer", customer, "customer_name") or "-"
+
+        # ? STORE TOUR VISIT MAPPING (NO LIST, JUST DICT)
+        tour_visit_map[visit] = {
+            "tour_visit": visit,
+            "customer": customer,
+            "customer_name": customer_name
+        }
+
+    tour_table_rows = ""
+    tour_html_table = ""
+
+    if tour_visit_map:
+        tour_table_rows = ""
+
+        for tour_visit, row in sorted(tour_visit_map.items()):
+            tour_name = row["tour_visit"]
+            customer = row["customer"]
+            customer_name = row["customer_name"]
+
+            tour_table_rows += f"""
+                <tr>
+                    <td style="border: 1px solid #000; padding: 6px; text-align: left; white-space: nowrap;">
+                        <a href="{base_url}/app/tour-visit/{tour_name}" target="_blank">{tour_name}</a>
+                    </td>
+                    <td style="border: 1px solid #000; padding: 6px; text-align: left; white-space: nowrap;">
+                        <a href="{base_url}/app/customer/{customer}" target="_blank">{customer_name}</a>
+                    </td>
+                </tr>
+            """
+
+        # ? CREATE FULL HTML TABLE IF ANY ROWS EXIST
+        if tour_table_rows:
+            tour_html_table = f"""
+            <div class="ql-editor read-mode">
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px; table-layout: auto;">
+                    <thead>
+                        <tr style="background-color: #f5f5f5;">
+                            <th style="border: 1px solid #000; padding: 6px; text-align: left;">Tour Visit</th>
+                            <th style="border: 1px solid #000; padding: 6px; text-align: left;">Customer</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {tour_table_rows}
+                    </tbody>
+                </table>
+            </div>
+            """
+
+
+    return {
+        "custom_tour_visits": ", ".join(tour_visits),
+        "custom_tour_visit_details": tour_html_table
+    }
+
+
+@frappe.whitelist()
+def process_tour_visit_da(employee, company, from_date, to_date, expense_claim_name=None, type=None):
+    """
+    #! PROCESS DAILY ALLOWANCE (DA) FOR A GIVEN TOUR VISIT
+
+    This function calculates eligible Daily Allowance (DA) hours for an employee's Tour Visit,
+    excludes time within configured thresholds, checks eligibility for full/half DA based on duration,
+    and prepares expense claim entries accordingly.
+
+    Args:
+        employee (str): The employee ID for whom DA is to be processed.
+        company (str): The company name of the employee.
+        tour_visit_name (str): The name of the Tour Visit DocType record.
+        expense_claim_name (str, optional): If provided, adds DA to an existing Expense Claim.
+
+    Returns:
+        dict: Contains a list of DA expense rows and an HTML summary of the entries added or skipped.
+    """
+    try:
+
+        #? FETCH LATEST DA AMOUNT AND LOCAL COMMUTE RATE FROM TRAVEL BUDGET
+        da_amount, private_service_rate = get_latest_travel_budget_and_rates(employee, company)
+
+        #? FETCH FIELD VISIT RECORDS WITHIN THE GIVEN DATE RANGE
+        tour_visits = frappe.db.get_all(
+            "Tour Visit",
+            filters={
+                "person": employee,
+                "status": "Completed",
+            },
+            or_filters=[
+                ["tour_start_date", "between", [from_date, to_date]],
+                ["tour_end_date", "between", [from_date, to_date]],
+            ],
+            fields=["name", "tour_start_date", "tour_end_date", "customer"]
+        )
+
+        #? CALCULATE ELIGIBLE HOURS PER DAY AFTER APPLYING EXCLUDE TIME RANGE
+        date_wise_da_hours = calculate_date_wise_hours(
+            visits=tour_visits,
+            from_date=getdate(from_date),
+            to_date=getdate(to_date),
+            start_key="tour_start_date",
+            end_key="tour_end_date"
+        )
+
+        #? BUILD EXPENSE CLAIM ROWS BASED ON ELIGIBLE HOURS AND THRESHOLDS
+        expense_claim_doc, da_expense_rows, already_exists_dates, added_da_dates = build_da_expense_rows(
+            date_wise_da_hours=date_wise_da_hours,
+            da_amount=da_amount,
+            employee=employee,
+            expense_claim_name=expense_claim_name,
+            visit_type="Tour Visit"
+        )
+
+        #? PREPARE HTML MESSAGES TO SUMMARIZE WHAT WAS ADDED OR SKIPPED
+        messages = build_expense_notification_messages(
+            added_da_dates=added_da_dates,
+            added_travel_entries=[],
+            already_exists_dates=already_exists_dates,
+            duplicates=[]
+        )
+
+        #? RETURN FINAL OUTPUT
+        return {
+            "da_expense_rows": da_expense_rows,
+            "summary_html": "<br><br>".join(messages) if messages else "No entries were added."
+        }
+
+    except Exception as e:
+        frappe.throw(str(e))

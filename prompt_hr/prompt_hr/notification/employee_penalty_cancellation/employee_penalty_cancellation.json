@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-09-14 15:10:26.996114",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Employee Penalty",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "<p>Dear All,</p>\n\n<p>\n  This is to inform you that the penalty applied to\n  <strong>{{ employee_name }}</strong> on\n  <strong>{{ frappe.utils.format_date(penalty_date) }}</strong>\n  (Penalty ID: <strong>{{ penalty }}</strong>)\n  has been <strong>cancelled</strong> by\n  <strong>{{ current_user }}</strong>.\n</p>\n\n{% if reason %}\n<p><strong>Reason:</strong> {{ reason }}</p>\n{% endif %}\n\n{% set penalty_link = frappe.utils.get_url() ~ '/app/employee-penalty/' ~ penalty %}\n<p>You can view the penalty record here:\n   <a href=\"{{ penalty_link }}\">{{ penalty }}</a>\n</p>\n\n<p>Regards,<br/>HR Manager</p>\n",
+ "message_type": "Markdown",
+ "modified": "2025-09-14 15:38:55.821303",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Employee Penalty Cancellation",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "Penalty Cancelled \u2014 {{ penalty or \"\" }}"
+}

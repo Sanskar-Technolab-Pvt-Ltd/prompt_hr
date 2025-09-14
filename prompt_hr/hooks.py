@@ -360,12 +360,21 @@ scheduler_events = {
         "0 20 * * *": [
             "prompt_hr.py.employee.update_employee_status_for_indifoss_company"
         ],
-        "0 8 * * *":[
-            "prompt_hr.scheduler_methods.send_attendance_issue"
-        ],
-        "30 23 * * *": [
+        # "0 8 * * *":[
+        #     "prompt_hr.scheduler_methods.send_attendance_issue"
+        # ],
+        "0 1 * * *": [
             "prompt_hr.scheduler_methods.auto_attendance"
-        ]
+        ],
+        "0 2 * * *": [
+            "prompt_hr.py.attendance_penalty_api.auto_approve_scheduler"
+        ],
+        "0 3 * * *": [
+            "prompt_hr.py.attendance_penalty_api.prompt_employee_attendance_penalties"
+        ],
+        "0 4 * * *": [
+            "prompt_hr.py.attendance_penalty_api.send_penalty_notification_emails"
+        ],
     },
     "daily": [
         "prompt_hr.py.employee_changes_approval.daily_check_employee_changes_approval",
@@ -376,7 +385,6 @@ scheduler_events = {
         # "prompt_hr.scheduler_methods.assign_checkin_role",
         "prompt_hr.scheduler_methods.process_exit_approvals",
         "prompt_hr.scheduler_methods.daily_attendance_request_rituals",
-        "prompt_hr.py.attendance_penalty_api.prompt_employee_attendance_penalties"
     ],
 }
 

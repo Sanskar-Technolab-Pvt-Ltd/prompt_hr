@@ -314,7 +314,7 @@ def shift_type_list(
 from frappe.model.workflow import apply_workflow
 
 @frappe.whitelist()
-def apply_shift_workflow(shift_request, action):
+def apply_shift_workflow(shift_request, action,custom_reason_for_rejection=None):
     try:
         # ? FETCH THE DOCUMENT
         
@@ -325,9 +325,14 @@ def apply_shift_workflow(shift_request, action):
             )
 
         doc = frappe.get_doc("Shift Request", shift_request)
-
+        
+        if action == "Reject":
+            if not custom_reason_for_rejection:
+                frappe.throw("Reason for Rejection is mandatory when rejecting.")            # doc.custom_reason_for_rejection = custom_reason_for_rejection
+            
         # ? APPLY WORKFLOW ACTION
         updated_doc = apply_workflow(doc, action)
+        updated_doc.db_set("custom_reason_for_rejection",custom_reason_for_rejection)
 
         # ? SAVE CHANGES
         doc.save(ignore_permissions=True)

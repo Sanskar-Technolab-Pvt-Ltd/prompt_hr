@@ -388,3 +388,35 @@ def create_field_changes(employee=None, field_name=None, field_label=None, new_v
             "message": msg,
             "data": response_data,
         }
+        
+        
+from frappe.utils import get_url
+
+@frappe.whitelist()
+def profile_form_url():
+    try:
+        url = get_url()
+        hr_setting = frappe.get_doc("HR Settings","HR Settings")
+        if hr_setting.custom_web_form_link:
+            final_url = f"{url}{hr_setting.custom_web_form_link}"
+        else:
+            final_url = url
+        
+       
+    except Exception as e:
+        # ? HANDLE ERRORS
+        frappe.log_error("Error While Getting Profile URL", str(e))
+        frappe.clear_messages()
+        frappe.local.response["message"] = {
+            "success": False,
+            "message": str(e),
+            "data": None,
+        }
+
+    else:
+        # ? HANDLE SUCCESS
+        frappe.local.response["message"] = {
+            "success": True,
+            "message": "Profile URL Loaded Successfully!",
+            "data": final_url,
+        }        

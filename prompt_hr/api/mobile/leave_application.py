@@ -396,7 +396,7 @@ def leave_type_list(
 from frappe.model.workflow import apply_workflow
 
 @frappe.whitelist()
-def apply_leave_workflow(leave_application, action):
+def apply_leave_workflow(leave_application, action,custom_reason_for_rejection=None):
     try:
         # ? FETCH THE DOCUMENT
         
@@ -409,7 +409,15 @@ def apply_leave_workflow(leave_application, action):
         doc = frappe.get_doc("Leave Application", leave_application)
 
         # ? APPLY WORKFLOW ACTION
+        if action == "Reject":
+            if not custom_reason_for_rejection:
+                frappe.throw("Reason for Rejection is mandatory when rejecting.")
+            doc.status = "Rejected"
+            # doc.custom_reason_for_rejection = custom_reason_for_rejection
+            
         updated_doc = apply_workflow(doc, action)
+        updated_doc.db_set("custom_reason_for_rejection",custom_reason_for_rejection)
+        
 
         # ? SAVE CHANGES
         doc.save(ignore_permissions=True)
@@ -465,4 +473,56 @@ def get_action_fields(workflow_state, employee, leave_application):
             "success": True,
             "message": "Workflow Actions Loaded Successfully!",
             "data": actions,
+        }
+
+
+# apps/prompt_hr/prompt_hr/api/mobile/leave_application/leave_balance.py
+
+import datetime
+from frappe.utils import cint
+from hrms.hr.doctype.leave_application.leave_application import get_leave_balance_on as erpnext_leave_balance
+
+
+# ! prompt_hr.api.mobile.leave_application.leave_balance
+# ? GET CUSTOM LEAVE BALANCE RESPONSE
+
+@frappe.whitelist()
+def leave_balance_before_application(employee, leave_type, date=None, to_date=None, consider_all_leaves=False, for_consumption=False):
+    """
+    Wrapper for ERPNext's `get_leave_balance_on` with custom response format.
+    """
+
+    try:
+        # Convert date strings to date objects if needed
+        if date and isinstance(date, str):
+            date = datetime.datetime.strptime(date, "%Y-%m-%d").date()
+        if to_date and isinstance(to_date, str):
+            to_date = datetime.datetime.strptime(to_date, "%Y-%m-%d").date()
+
+        # Call ERPNext’s default function
+        balance = erpnext_leave_balance(
+            employee=employee,
+            leave_type=leave_type,
+            date=date or frappe.utils.nowdate(),
+            to_date=to_date,
+            consider_all_leaves_in_the_allocation_period=cint(consider_all_leaves),
+            for_consumption=cint(for_consumption),
+        )
+
+    except Exception as e:
+        # ? HANDLE ERRORS
+        frappe.log_error("Error While Getting Leave Balance", str(e))
+        frappe.clear_messages()
+        frappe.local.response["message"] = {
+            "success": False,
+            "message": str(e),
+            "data": None,
+        }
+
+    else:
+        # ? HANDLE SUCCESS
+        frappe.local.response["message"] = {
+            "success": True,
+            "message": "Leave Balance Loaded Successfully!",
+            "data": balance,
         }
