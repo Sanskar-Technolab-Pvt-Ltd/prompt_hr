@@ -103,10 +103,7 @@ def handle_custom_workflow_action(doc, action, reason_for_rejection=None):
 
 def process_attendance_and_penalties(doc):
     try:
-        from_date = getdate(doc.get("from_date"))
-        to_date = min(getdate(doc.get("to_date")), getdate(add_to_date(today(), days=-1, as_string=True)))
         frappe.db.set_value("Attendance Request", doc.get("name"), "custom_status", "Approved")
-        process_attendance_request(from_date, to_date, doc, approved_attendance_request=doc.get("name"))
         apply_workflow(doc, "Approve")
     except Exception as e:
         frappe.log_error(
@@ -115,82 +112,12 @@ def process_attendance_and_penalties(doc):
 
 def process_rejection_penalties(doc):
     try:
-        from_date = getdate(doc.get("from_date"))
-        to_date = min(getdate(doc.get("to_date")), getdate(add_to_date(today(), days=-1, as_string=True)))
         frappe.db.set_value("Attendance Request", doc.get("name"), "custom_status", "Rejected")
-
-        if doc.get("reason") == "Partial Day":
-            process_attendance_request(from_date, to_date, doc)
-        else:
-            today_date = getdate()
-            if getdate(doc.get("to_date")) >= today_date:
-                deleted_entries = delete_employee_checkin(today_date, doc.get("employee"))
-                # ? APPEND DELETED CHECKINS INFO TO custom_reason_for_rejection
-                try:
-                    if deleted_entries:
-                        # ? CREATE A READABLE STRING FROM {time: log_type}
-                        details = "\n".join(
-                            f"{t.strftime('%Y-%m-%d %H:%M:%S')} – {log}"
-                            for t, log in deleted_entries.items()
-                        )
-                        # ? FETCH EXISTING VALUE
-                        existing_reason = frappe.db.get_value(
-                            "Attendance Request", doc.name, "custom_reason_for_rejection"
-                        ) or ""
-                        # ? APPEND NEW DETAILS (WITH NEWLINE IF NEEDED)
-                        new_reason = (existing_reason + "\n" if existing_reason else "") + "Deleted Checkin/Checkout Records" +"\n" + details
-                        frappe.db.set_value(
-                            "Attendance Request", doc.name,
-                            "custom_reason_for_rejection",
-                            new_reason
-                        )
-                except Exception as e:
-                    frappe.log_error(
-                        f"Error in Appending Deleted checkin/checkout logs",str(e)
-                    )
-                    
+        apply_workflow(doc, "Reject")
     except Exception as e:
         frappe.log_error(
             f"Error in process_rejection_penalties",str(e)
         )
-    
-    apply_workflow(doc, "Reject")
-
-
-def process_attendance_request(from_date, to_date, doc, approved_attendance_request=None):
-    """
-    PROCESS ATTENDANCE REQUEST WITH PENALTY AND WARNING LOGIC
-
-    ARGS:
-        FROM_DATE (DATE): START DATE OF ATTENDANCE PROCESSING
-        TO_DATE (DATE): END DATE OF ATTENDANCE PROCESSING
-        DOC (DOCUMENT): EMPLOYEE DOCUMENT REFERENCE
-        APPROVED_ATTENDANCE_REQUEST (STR, OPTIONAL): LINKED APPROVED REQUEST
-    """
-
-    #! DATE RANGE
-    dates = [add_days(from_date, i) for i in range(date_diff(to_date, from_date) + 1)]
-
-    for date in dates:
-        try:
-            #? MARK ATTENDANCE
-            mark_attendance(
-                attendance_date=date,
-                company=doc.company,
-                is_scheduler=0,
-                regularize_attendance=0,
-                attendance_id=None,
-                regularize_start_time=None,
-                regularize_end_time=None,
-                emp_id=doc.employee,
-                approved_attendance_request=approved_attendance_request
-            )
-        except Exception as e:
-            frappe.log_error(
-                f"Error in Mark Attendance for date {date}", str(e)
-            )
-            continue
-
 
 def get_existing_attendance(employee, from_date, to_date):
     """
