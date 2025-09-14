@@ -1,7 +1,7 @@
 import frappe
 
 from frappe import throw
-from frappe.utils import datetime, today, getdate, get_datetime, format_duration, time
+from frappe.utils import datetime, today, getdate, get_datetime, format_duration, time, add_days
 from datetime import timedelta
 from prompt_hr.py.utils import fetch_company_name
 
@@ -253,7 +253,7 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
         grace_time_period_for_late_coming_for_indifoss = frappe.db.get_single_value("HR Settings", "custom_grace_time_period_for_late_coming_for_indifoss") or 0
             
         
-        mark_attendance_date = getdate(attendance_date) if attendance_date else getdate(today())
+        mark_attendance_date = getdate(attendance_date) if attendance_date else getdate(add_days(today(), -1))
         str_mark_attendance_date = mark_attendance_date.strftime("%Y-%m-%d")
         
         frappe.log_error(f"mark_attendance_update", f"Scheduler Mark Attendance Started for date {attendance_date}")
