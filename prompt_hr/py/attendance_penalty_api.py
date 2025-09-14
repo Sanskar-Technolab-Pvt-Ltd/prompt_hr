@@ -369,10 +369,11 @@ def prompt_employee_attendance_penalties():
                             message=email_details.get("message"),
                         )
                 else:
-                    all_email_details.append(email_details)
+                    if email_details and email_details.get("email"):
+                        all_email_details.append(email_details)
             except Exception as e:
                 frappe.log_error(
-                    "Error in Sending Penalty Warnings", str(e)
+                    "Error in Sending Penalty Warnings", frappe.get_traceback()
                 )
                 continue
         
@@ -1800,6 +1801,7 @@ def send_penalty_notification_emails():
             frappe.log_error("Error in fetching Notification Doc", str(e))
             return
         if all_penalties:
+            all_emails_details = []
             for penalty in all_penalties:
                 if notification_doc:
                     try:
@@ -1823,27 +1825,11 @@ def send_penalty_notification_emails():
                                 frappe.log_error("Error in getting additional email settings from HR Settings", str(e))
                                 add_to_penalty_email = 0
                             if add_to_penalty_email:
-                                email_details = {
+                                all_emails_details.append({
                                     "recipients": emp_user_id,
                                     "subject": subject,
                                     "message": message,
-                                }
-                                if email_details:
-                                    penalty_emails_doc = frappe.get_doc({  
-                                                "doctype": "Penalty Emails",
-                                                "status": "Not Sent",
-                                                "email_details": [
-                                                    {
-                                                        "doctype": "Penalty Emails Details",
-                                                        "email": email_details["recipients"],
-                                                        "subject": email_details["subject"],
-                                                        "message": email_details["message"]
-                                                    }
-                                                ]
-                                            })                
-                                    penalty_emails_doc.insert(ignore_permissions=True)
-                                    frappe.db.commit()
-
+                                })
                             else:
                                 frappe.sendmail(
                                     recipients=[emp_user_id],
@@ -1852,9 +1838,34 @@ def send_penalty_notification_emails():
                                     reference_doctype="Employee Penalty",
                                     reference_name=penalty.name,
                                 )
-
                     except Exception as e:
                         frappe.log_error("Error in sending penalty notification email", str(e))
                         continue
+
+            try:
+                child_rows = []
+                if all_emails_details:
+                    for ed in all_emails_details:
+                        try:
+                            child_rows.append({
+                                "doctype": "Penalty Emails Details",
+                                "email": ed["recipients"],
+                                "subject": ed["subject"],
+                                "message": ed["message"]
+                            })
+                        except Exception as e:
+                            frappe.log_error("Error in appending child rows for penalty email", str(e))
+                            continue
+                penalty_emails_doc = frappe.get_doc({
+                    "doctype": "Penalty Emails",
+                    "status": "Not Sent",
+                    "email_details": child_rows
+                })
+
+                penalty_emails_doc.insert(ignore_permissions=True)
+                frappe.db.commit()
+            except Exception as e:
+                frappe.log_error("Error in creating Penalty Emails Doc", str(e))
+
     except Exception as e:
         frappe.log_error("Error in fetching Employee Penalties", str(e))

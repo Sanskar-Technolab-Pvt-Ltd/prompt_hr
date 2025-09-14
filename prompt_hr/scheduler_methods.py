@@ -2726,8 +2726,8 @@ def send_penalty_warnings(emp_id, penalization_data, penalization_date=None):
             #     subject=subject,
             #     message=message,
             # )
-            email_details["email"] = email_id,
-            email_details["subject"] = subject,
+            email_details["email"] = email_id
+            email_details["subject"] = subject
             email_details["message"] = message
         
         return email_details
