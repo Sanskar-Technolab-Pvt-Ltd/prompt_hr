@@ -24,7 +24,7 @@ from datetime import datetime, timedelta
 
 def auto_attendance():
     frappe.log_error("custom_auto_attendance_start", "Auto Attendance Scheduler Started")
-    mark_attendance(is_scheduler=1, attendance_date=today())
+    mark_attendance(is_scheduler=1, attendance_date=add_days(today(), -1))
     frappe.log_error("custom_auto_attendance_end", "Auto Attendance Scheduler Finished")
     
 
@@ -2750,6 +2750,7 @@ def send_attendance_issue(attendance_check_date=None):
         if not attendance_check_date:
             attendance_check_date = add_days(today(), -1)
 
+        add_to_penalty_email = frappe.db.get_single_value("HR Settings", "custom_add_emails_to_penalty_emails_for_prompt")
         # * Fetch PROMPT Company ID
         company_id = fetch_company_name(prompt=1)
 
@@ -2842,17 +2843,20 @@ def send_attendance_issue(attendance_check_date=None):
                                     },
                                 },
                             )
-                            penalty_emails.append({
-                                "email": emp.user_id,
-                                "subject": subject,
-                                "message": message
-                            })
-                            # if emp.user_id:
-                            #     frappe.sendmail(
-                            #         recipients=[emp.user_id],
-                            #         subject=subject,
-                            #         message=message,
-                            #     )
+                            
+                            if add_to_penalty_email:
+                                penalty_emails.append({
+                                    "email": emp.user_id,
+                                    "subject": subject,
+                                    "message": message
+                                })
+                            else:
+                                if emp.user_id:
+                                    frappe.sendmail(
+                                        recipients=[emp.user_id],
+                                        subject=subject,
+                                        message=message,
+                                    )
 
                     # ? CASE 2: Attendance found, check for issues
                     else:
@@ -2883,21 +2887,24 @@ def send_attendance_issue(attendance_check_date=None):
                                 notification.message,
                                 {"issue_type": attendance_issue, "doc": att},
                             )
-                            penalty_emails.append({
-                                "email": emp.user_id,
-                                "subject": subject,
-                                "message": message
-                            })
-                            # if emp.user_id:
-                            #     frappe.sendmail(
-                            #         recipients=[emp.user_id],
-                            #         subject=subject,
-                            #         message=message,
-                            #     )
+                            
+                            if add_to_penalty_email:
+                                penalty_emails.append({
+                                    "email": emp.user_id,
+                                    "subject": subject,
+                                    "message": message
+                                })
+                            else:
+                                if emp.user_id:
+                                    frappe.sendmail(
+                                        recipients=[emp.user_id],
+                                        subject=subject,
+                                        message=message,
+                                    )
 
             frappe.log_error("send_attendance_issue_penalty_emails", f"{penalty_emails}")
             
-            if penalty_emails:
+            if penalty_emails and add_to_penalty_email:
                 try:
                     penalty_emails_doc = frappe.get_doc({
                         "doctype": "Penalty Emails",
