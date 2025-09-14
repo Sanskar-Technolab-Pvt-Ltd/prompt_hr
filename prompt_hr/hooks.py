@@ -360,10 +360,10 @@ scheduler_events = {
         "0 20 * * *": [
             "prompt_hr.py.employee.update_employee_status_for_indifoss_company"
         ],
-        "0 8 * * *":[
-            "prompt_hr.scheduler_methods.send_attendance_issue"
-        ],
-        "30 23 * * *": [
+        # "0 8 * * *":[
+        #     "prompt_hr.scheduler_methods.send_attendance_issue"
+        # ],
+        "0 1 * * *": [
             "prompt_hr.scheduler_methods.auto_attendance"
         ],
         "0 2 * * *": [
