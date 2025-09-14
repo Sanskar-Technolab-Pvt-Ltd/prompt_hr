@@ -384,7 +384,8 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
             frappe.log_error("Error While Marking Attendance", frappe.get_traceback())
         else:
             frappe.log_error("Error While Marking Attendance", frappe.get_traceback())
-            throw(str(e))
+            if regularize_attendance:
+                throw(str(e))
             
 def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, day_start_time, day_end_time, grace_time_period_for_late_coming, grace_time_for_insufficient_hours=0, prompt=0, indifoss=0, regularize_attendance=0, attendance_id=None,   regularize_start_time=None, regularize_end_time=None, approved_attendance_request=None):
 

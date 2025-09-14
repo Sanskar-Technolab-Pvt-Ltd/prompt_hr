@@ -13,13 +13,18 @@ frappe.ui.form.on("Mark Attendance", {
             frappe.throw("Please Select a date for marking attendance")
         }
 
+        // frappe.freeze("Marking Attendance...");
+
         frappe.call({
             method: "prompt_hr.py.auto_mark_attendance.mark_attendance",
             args: {
                 "attendance_date": frm.doc.attendance_date,
                 "company": frm.doc.company,
             },
+             freeze: true,
+            freeze_message:__("Marking Attendance..."),
             callback: function (r) {
+
                 if (!r.exc) {
                     frappe.msgprint({
                         title: __("Success"),
