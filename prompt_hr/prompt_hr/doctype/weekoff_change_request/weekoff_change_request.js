@@ -71,13 +71,33 @@ frappe.ui.form.on("WeekOff Change Request", {
             await promise.catch(() => frappe.throw());
         }
     },
+
+    validate: function(frm) {
+        let all_dates = [];
+        let duplicate_found = false;
+
+        frm.doc.weekoff_details.forEach(function(row) {
+            if (row.existing_weekoff_date) {
+                all_dates.push(row.existing_weekoff_date);
+            }
+            if (row.new_weekoff_date) {
+                all_dates.push(row.new_weekoff_date);
+            }
+        });
+
+        let unique_dates = [...new Set(all_dates)];
+
+        if (all_dates.length !== unique_dates.length) {
+            frappe.throw(__('Duplicate dates are not allowed in the WeekOff Details table.'));
+        }
+    }
 });
 frappe.ui.form.on('WeekOff Request Details', {
     existing_weekoff_date: function (frm, cdt, cdn) {
 
         let child = locals[cdt][cdn];
         if (child.existing_weekoff_date) {
-    
+            validate_unique_dates(frm,cdt, cdn)
             frappe.call({
                 method: "prompt_hr.prompt_hr.doctype.weekoff_change_request.weekoff_change_request.check_existing_date",
                 args: {
@@ -109,6 +129,7 @@ frappe.ui.form.on('WeekOff Request Details', {
     new_weekoff_date: function (frm, cdt, cdn) {
         let row = locals[cdt][cdn];
         if (row.new_weekoff_date) {
+            validate_unique_dates(frm, cdt, cdn);
             let date_obj = new Date(row.new_weekoff_date);
             let day_name = date_obj.toLocaleString('en-US', { weekday: 'long' });
             row.new_weekoff = day_name;
@@ -117,3 +138,28 @@ frappe.ui.form.on('WeekOff Request Details', {
         
     }
 });
+
+
+
+function validate_unique_dates(frm, cdt, cdn) {
+    let current_row = locals[cdt][cdn];
+    let all_dates = [];
+    console.log("Helloasfdsadas")
+    frm.doc.weekoff_details.forEach(function(row) {
+        if (row.existing_weekoff_date) {
+            all_dates.push(row.existing_weekoff_date);
+        }
+        if (row.new_weekoff_date) {
+            all_dates.push(row.new_weekoff_date);
+        }
+    });
+
+    let unique_dates = [...new Set(all_dates)];
+
+    if (all_dates.length !== unique_dates.length) {
+        frappe.msgprint(__('Duplicate dates are not allowed.'));
+        // Clear the field that was just modified
+        frappe.model.set_value(cdt, cdn, 'existing_weekoff_date', '');
+        frappe.model.set_value(cdt, cdn, 'new_weekoff_date', '');
+    }
+}
