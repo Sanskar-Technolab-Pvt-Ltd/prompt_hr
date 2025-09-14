@@ -9,23 +9,39 @@ frappe.listview_settings["Employee Penalty"] = {
             }
 
             let ids = checked_items.map(item => item.name);
-            frappe.confirm(
-                __("Are you sure you want to cancel the selected penalties?"),
-                () => {
+
+            // ? Create dialog for reason input
+            let dialog = new frappe.ui.Dialog({
+                title: __("Cancel Employee Penalties"),
+                fields: [
+                    {
+                        label: __("Reason for Cancellation"),
+                        fieldname: "reason",
+                        fieldtype: "Small Text",
+                    }
+                ],
+                primary_action_label: __("Submit"),
+                primary_action(values) {
                     frappe.call({
                         method: "prompt_hr.prompt_hr.doctype.employee_penalty.employee_penalty.cancel_penalties",
-                        args: { ids },
+                        args: {
+                            ids,
+                            reason: values.reason
+                        },
                         freeze: true,
                         freeze_message: __("Cancelling penalties, please wait..."),
                         callback: function (r) {
                             if (r.message) {
                                 frappe.msgprint(__("Penalties cancelled successfully"));
                                 list_view.refresh();
+                                dialog.hide();
                             }
                         }
                     });
                 }
-            );
+            });
+
+            dialog.show();
         }).removeClass("btn-default").addClass("btn-primary");
     }
 };
