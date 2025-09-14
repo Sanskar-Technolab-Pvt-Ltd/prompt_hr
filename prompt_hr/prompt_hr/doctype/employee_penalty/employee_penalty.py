@@ -11,7 +11,7 @@ class EmployeePenalty(Document):
 
 
 @frappe.whitelist()
-def cancel_penalties(ids):
+def cancel_penalties(ids, reason = None):
     """Cancel penalties and delete linked leave ledger entries efficiently and securely."""
 
     if not ids:
@@ -59,6 +59,8 @@ def cancel_penalties(ids):
     # ? UNLINK PENALTIES FROM ATTENDANCE
     for doctype, row_name in attendance_penalty_pairs:
         frappe.db.set_value("Employee Penalty", {"attendance":row_name}, "is_leave_balance_restore", 1)
+        if reason:
+            frappe.db.set_value("Employee Penalty", {"attendance":row_name}, "cancellation_reason", reason)
         frappe.db.set_value(doctype, row_name, "custom_employee_penalty_id", None)
 
     # ? BULK DELETE LEAVE LEDGER ENTRIES

@@ -12,6 +12,33 @@ from frappe.utils import get_datetime, add_days
 class AttendanceRegularization(Document):
 	
 	def validate(self):
+
+		# ? NOT ALLOW TO APPLY REGULARIZATION IN FUTURE DATES AND TODAY
+		if get_datetime(self.regularization_date).date() >= getdate():
+			frappe.throw("Attendance Regularization cannot be raised for future or current dates.")
+
+		# ? CHECK IF ATTENDANCE REGULARIZATION ALREADY EXISTS FOR THE SAME DATE
+		attendance_regularization_exists = frappe.get_all(
+			"Attendance Regularization",
+			filters={
+				"employee": self.employee,
+				"regularization_date": self.regularization_date,
+				"name": ["!=", self.name],
+			},
+			fields=["name"],
+			limit=1
+		)
+
+		if attendance_regularization_exists:
+			existing_name = attendance_regularization_exists[0].name
+			frappe.throw(
+				f"""
+				Attendance Regularization already exists for
+				<b>{self.employee}</b> on <b>{format_date(self.regularization_date)}</b>.<br>
+				{get_link_to_form('Attendance Regularization', existing_name)}
+				""",
+				title="Duplicate Attendance Regularization"
+			)
 		
 		is_rh = is_user_reporting_manager_or_hr(user_id=frappe.session.user, requesting_employee_id=self.employee)
 		if is_rh:
