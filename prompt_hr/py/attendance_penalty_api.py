@@ -1538,115 +1538,9 @@ def auto_approve_scheduler():
     if not employees:
         return
 
-    # ? Approve only one attendance request per employee
+    # ? Approve only one leave application per employee
     try:
-        # Fetch pending attendance requests filtered properly with commas in filters
-        attendance_requests = frappe.db.get_all(
-            "Attendance Request",
-            filters={
-                "workflow_state": "Pending",
-                "from_date": ["<=", auto_mark_date],
-                "to_date": [">=", auto_mark_date],
-                "employee": ["in", employees],
-            },
-            fields=["name", "employee", "from_date"],
-            order_by="from_date asc"
-        )
-
-        # Track approved employees to ensure only one request approval per employee
-        approved_employees = set()
-
-        for request in attendance_requests:
-            if request.employee in approved_employees:
-                continue
-            try:
-                attendance_request = frappe.get_doc("Attendance Request", request.name)
-                handle_custom_workflow_action(attendance_request, "Approve")
-                attendance_request.db_set("custom_auto_approve", 1)
-                approved_employees.add(request.employee)
-            except Exception as e:
-                frappe.log_error(f"Error approving attendance request {request.name}:", str(e))
-                continue
-
-    except Exception as e:
-        frappe.log_error(f"Error fetching or processing attendance requests:", str(e))
-
-    # ? Approve only one attendance request per employee
-    try:
-        # Fetch pending attendance requests filtered properly with commas in filters
-        shift_requests = frappe.db.get_all(
-            "Shift Request",
-            filters={
-                "workflow_state": "Pending",
-                "from_date": ["<=", auto_mark_date],
-                "employee": ["in", employees],
-            },
-            or_filters=[{"to_date": [">=", auto_mark_date]}, {"to_date": ["is", "not set"]}],
-            fields=["name", "employee", "from_date"],
-            order_by="from_date asc"
-        )
-
-        # Track approved employees to ensure only one request approval per employee
-        approved_employees = set()
-
-        for request in shift_requests:
-            if request.employee in approved_employees:
-                continue
-            try:
-                shift_request = frappe.get_doc("Shift Request", request.name)
-            except Exception as e:
-                frappe.log_error(f"Error fetching shift request {request.name}:", str(e))
-                continue
-            try:
-                apply_workflow(shift_request, "Approve")
-                shift_request.db_set("custom_auto_approve", 1)
-                approved_employees.add(request.employee)
-            except Exception as e:
-                frappe.log_error(f"Error approving shift request {request.name}:", str(e))
-                continue
-
-    except Exception as e:
-        frappe.log_error(f"Error fetching or processing shift request:", str(e))
-
-    # ? Approve only one attendance request per employee
-    try:
-        # Fetch pending attendance requests filtered properly with commas in filters
-        attendance_regularizations = frappe.db.get_all(
-            "Attendance Regularization",
-            filters={
-                "workflow_state": "Pending",
-                "regularization_date": auto_mark_date,
-                "employee": ["in", employees],
-            },
-            fields=["name", "employee"],
-            order_by="regularization_date asc"
-        )
-
-        # Track approved employees to ensure only one request approval per employee
-        approved_employees = set()
-
-        for request in attendance_regularizations:
-            if request.employee in approved_employees:
-                continue
-            try:
-                attendance_regularization = frappe.get_doc("Attendance Regularization", request.name)
-            except Exception as e:
-                frappe.log_error(f"Error fetching attendance regularization {request.name}:", str(e))
-                continue
-            try:
-                apply_workflow(attendance_regularization, "Approve")
-                attendance_regularization.db_set("auto_approve", 1)
-                approved_employees.add(request.employee)
-            except Exception as e:
-                frappe.log_error(f"Error approving attendance regularization {request.name}: ",str(e))
-                continue
-
-    except Exception as e:
-        frappe.log_error(f"Error fetching or processing attendance regularization:" ,str(e))
-
-    # ? Approve only one attendance request per employee
-    try:
-        # Fetch pending attendance requests filtered properly with commas in filters
+        # Fetch pending leave application filtered properly with commas in filters
         leave_request = frappe.db.get_all(
             "Leave Application",
             filters={
@@ -1718,3 +1612,110 @@ def auto_approve_scheduler():
 
     except Exception as e:
         frappe.log_error(f"Error fetching or processing Leave requests:", str(e))
+
+
+    # ? Approve only one shift request per employee
+    try:
+        # Fetch pending shift requests filtered properly with commas in filters
+        shift_requests = frappe.db.get_all(
+            "Shift Request",
+            filters={
+                "workflow_state": "Pending",
+                "from_date": ["<=", auto_mark_date],
+                "employee": ["in", employees],
+            },
+            or_filters=[{"to_date": [">=", auto_mark_date]}, {"to_date": ["is", "not set"]}],
+            fields=["name", "employee", "from_date"],
+            order_by="from_date asc"
+        )
+
+        # Track approved employees to ensure only one request approval per employee
+        approved_employees = set()
+
+        for request in shift_requests:
+            if request.employee in approved_employees:
+                continue
+            try:
+                shift_request = frappe.get_doc("Shift Request", request.name)
+            except Exception as e:
+                frappe.log_error(f"Error fetching shift request {request.name}:", str(e))
+                continue
+            try:
+                apply_workflow(shift_request, "Approve")
+                shift_request.db_set("custom_auto_approve", 1)
+                approved_employees.add(request.employee)
+            except Exception as e:
+                frappe.log_error(f"Error approving shift request {request.name}:", str(e))
+                continue
+
+    except Exception as e:
+        frappe.log_error(f"Error fetching or processing shift request:", str(e))
+
+    # ? Approve only one attendance regularization per employee
+    try:
+        # Fetch pending attendance regularization filtered properly with commas in filters
+        attendance_regularizations = frappe.db.get_all(
+            "Attendance Regularization",
+            filters={
+                "workflow_state": "Pending",
+                "regularization_date": auto_mark_date,
+                "employee": ["in", employees],
+            },
+            fields=["name", "employee"],
+            order_by="regularization_date asc"
+        )
+
+        # Track approved employees to ensure only one regularization approval per employee
+        approved_employees = set()
+
+        for request in attendance_regularizations:
+            if request.employee in approved_employees:
+                continue
+            try:
+                attendance_regularization = frappe.get_doc("Attendance Regularization", request.name)
+            except Exception as e:
+                frappe.log_error(f"Error fetching attendance regularization {request.name}:", str(e))
+                continue
+            try:
+                apply_workflow(attendance_regularization, "Approve")
+                attendance_regularization.db_set("auto_approve", 1)
+                approved_employees.add(request.employee)
+            except Exception as e:
+                frappe.log_error(f"Error approving attendance regularization {request.name}: ",str(e))
+                continue
+
+    except Exception as e:
+        frappe.log_error(f"Error fetching or processing attendance regularization:" ,str(e))
+
+    # ? Approve only one attendance request per employee
+    try:
+        # Fetch pending attendance requests filtered properly with commas in filters
+        attendance_requests = frappe.db.get_all(
+            "Attendance Request",
+            filters={
+                "workflow_state": "Pending",
+                "from_date": ["<=", auto_mark_date],
+                "to_date": [">=", auto_mark_date],
+                "employee": ["in", employees],
+            },
+            fields=["name", "employee", "from_date"],
+            order_by="from_date asc"
+        )
+
+        # Track approved employees to ensure only one request approval per employee
+        approved_employees = set()
+
+        for request in attendance_requests:
+            if request.employee in approved_employees:
+                continue
+            try:
+                attendance_request = frappe.get_doc("Attendance Request", request.name)
+                handle_custom_workflow_action(attendance_request, "Approve")
+                attendance_request.db_set("custom_auto_approve", 1)
+                approved_employees.add(request.employee)
+            except Exception as e:
+                frappe.log_error(f"Error approving attendance request {request.name}:", str(e))
+                continue
+
+    except Exception as e:
+        frappe.log_error(f"Error fetching or processing attendance requests:", str(e))
