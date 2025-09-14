@@ -511,13 +511,29 @@ def process_late_entry_penalties_for_prompt(
                     "to_date": [">=", target_date],
                     "custom_status": "Approved",
                     "docstatus": ["!=", 2],
-                    "reason": "Partial Day"
+                    "reason": "Partial Day",
+                    "custom_partial_day_for": 'Late comming'
                 },
             )
+
+            # ? CHECK FOR OTHER ATTENDANCE REQUESTS (WFH, OD) AS EXEMPTION
+            other_attendance_request_exists = frappe.db.exists(
+                "Attendance Request",
+                {
+                    "employee": employee,
+                    "from_date": ["<=", target_date],
+                    "to_date": [">=", target_date],
+                    "custom_status": "Approved",
+                    "docstatus": ["!=", 2],
+                    "reason": ["in",["Work From Home", "On Duty"]],
+                },
+            )
+
 
             if (
                 count >= late_coming_allowed_per_month
                 and not attendance_request_exists
+                and not other_attendance_request_exists
             ):
                 # ? CHECK HOLIDAY
                 try:
@@ -835,6 +851,26 @@ def process_daily_hours_penalties_for_prompt(
     # ? CALCULATE LEAVE DEDUCTIONS BASED ON PRIORITY CONFIGURATION
     # ? AND ADD TO PENALTY ENTRIES
     for employee in below_threshold_employees:
+        # ? CHECK FOR ATTENDANCE REQUESTS ON DUTY AS EXEMPTION
+        try:
+            attendance_request_exists = frappe.db.exists(
+                "Attendance Request",
+                {
+                    "employee": employee,
+                    "from_date": ["<=", target_date],
+                    "to_date": [">=", target_date],
+                    "custom_status": "Approved",
+                    "docstatus": ["!=", 2],
+                    "reason": "On Duty",
+                },
+            )
+            if attendance_request_exists:
+                continue
+        except Exception as e:
+            frappe.log_error(
+                f"Error in Checking Attendance Request Existence", str(e)
+            )
+            continue
         # ? CHECK HOLIDAY
         try:
             if get_holiday_dates_for_employee(employee, target_date, target_date):
