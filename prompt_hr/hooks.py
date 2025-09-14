@@ -371,7 +371,10 @@ scheduler_events = {
         ],
         "0 3 * * *": [
             "prompt_hr.py.attendance_penalty_api.prompt_employee_attendance_penalties"
-        ]
+        ],
+        "0 4 * * *": [
+            "prompt_hr.py.attendance_penalty_api.send_penalty_notification_emails"
+        ],
     },
     "daily": [
         "prompt_hr.py.employee_changes_approval.daily_check_employee_changes_approval",
