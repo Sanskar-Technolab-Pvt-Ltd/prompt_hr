@@ -472,6 +472,7 @@ def process_late_entry_penalties_for_prompt(
                     "employee": ["in", late_employees],
                     "docstatus": 1,
                     "late_entry": 1,
+                    "status": ["not in", ["Absent", "On Leave", "Half Day", "WeekOff"]],
                     "attendance_date": ["between", [month_start_date, prev_target_date]],
                 },
                 fields=["employee", "name", "attendance_date"],
@@ -545,6 +546,7 @@ def process_late_entry_penalties_for_prompt(
                 count >= late_coming_allowed_per_month
                 and not attendance_request_exists
                 and not other_attendance_request_exists
+                and not full_day_leave_exists(employee, target_date)
             ):
                 # ? CHECK HOLIDAY
                 try:
@@ -729,6 +731,8 @@ def target_date_attendance_exists(
     if not no_attendance and not mispunch:
         if daily_hour:
             filters.update({"status": ["not in",["Absent","On Leave", "Mispunch", "WeekOff"]]})
+        elif late_entry:
+            filters.update({"status": ["not in",["Absent","On Leave", "WeekOff", "Half Day"]]})
         else:
             filters.update({"status": ["not in",["Absent","On Leave", "WeekOff"]]})
 
@@ -891,6 +895,15 @@ def process_daily_hours_penalties_for_prompt(
                 f"Error in Getting Holiday Date",str(e)
             )
             continue
+        # ? CHECK LEAVE
+        try:
+            if full_day_leave_exists(employee, target_date):
+                continue
+        except Exception as e:
+            frappe.log_error(
+                f"Error in Checking Full Day Leave Existence",str(e)
+            )
+            continue
         try:
             penalty_entries.update(
                 calculate_leave_deductions_based_on_priority(
@@ -980,35 +993,10 @@ def create_penalty_records(penalty_entries, target_date):
             )
             details["leave_ledger_entry"] = ledger_entry_id
 
-    #! FETCH ALL PENDING ATTENDANCE REQUESTS IN ONE QUERY
-    pending_requests = frappe.get_all(
-        "Attendance Request",
-        filters={
-            "employee": ["in", employee_list],
-            "from_date": ["<=", target_date],
-            "to_date": [">=", target_date],
-            "custom_status": "Pending"
-        },
-        fields=["name", "employee"]
-    )
-
-    #! BUILD HASH MAP -> {employee: request_name}
-    attendance_request_map = {}
-    for req in pending_requests:
-        try:
-            attendance_request_map[req.employee] = req.name
-        except Exception as e:
-            frappe.log_error(
-                f"Error in Building Attendance Request Map", str(e)
-            )
-            continue
-
     # ? LOOP AND PROCESS PENALTIES
     for employee, details in penalty_entries.items():
         # ? SKIP IF ATTENDANCE REQUEST EXIST AND IT IS PENDING
         try:
-            if attendance_request_map.get(employee):
-                continue
             if check_employee_penalty_criteria(employee, details["reason"]):
                 if employee in existing_penalties_map:
                     penalty_doc = frappe.get_doc(
@@ -1445,6 +1433,14 @@ def process_mispunch_penalties_for_prompt(
             )
             continue
         try:
+            if full_day_leave_exists(emp, target_date):
+                continue
+        except Exception as e:
+            frappe.log_error(
+                f"Error in Checking Full Day Leave Existence",str(e)
+            )
+            continue
+        try:
             penalty_entries.update(
                 calculate_leave_deductions_based_on_priority(
                     employee=emp,
@@ -1730,3 +1726,37 @@ def auto_approve_scheduler():
 
     except Exception as e:
         frappe.log_error(f"Error fetching or processing attendance requests:", str(e))
+
+
+def full_day_leave_exists(employee, target_date):
+    """
+    CHECK IF THERE IS ANY FULL-DAY LEAVE (NOT HALF DAY) FOR THE EMPLOYEE ON THE TARGET DATE.
+    """
+    try:
+        results = frappe.get_all(
+            "Leave Application",
+            filters={
+                "employee": employee,
+                "workflow_state": "Approved",
+                "from_date": ["<=", target_date],
+                "to_date": [">=", target_date],
+            },
+            or_filters=[
+                {"half_day": 0},
+                {
+                    "half_day": 1,
+                    "half_day_date": ["!=", target_date]
+                }
+            ],
+            fields=["name", "half_day", "half_day_date"]
+        )
+
+        if results:
+            return True
+        
+        else:
+            return False
+
+    except Exception as e:
+        frappe.log_error(f"Error checking full day leave for {employee} on {target_date}:", str(e))
+        return False
