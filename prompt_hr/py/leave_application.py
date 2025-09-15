@@ -34,6 +34,7 @@ from hrms.hr.doctype.leave_application.leave_application import (
     get_allocation_expiry_for_cf_leaves
 )
 from hrms.hr.utils import get_leave_period
+from prompt_hr.py.utils import get_reporting_manager_info
 from hrms.hr.doctype.leave_allocation.leave_allocation import get_previous_allocation
 Filters = frappe._dict
 
@@ -483,6 +484,9 @@ def on_update(doc, method):
         reporting_manager_name = hr_manager_name
 
     if doc.workflow_state == "Pending":
+        manager_info = get_reporting_manager_info(doc.employee)
+        if manager_info:
+            doc.db_set("custom_pending_approval_at", f"{manager_info['name']} - {manager_info['employee_name']}")
         notification = frappe.get_doc("Notification", "Leave Request Notification")
         if notification:
             # Notify the Reporting Manager about the leave request.
@@ -500,6 +504,7 @@ def on_update(doc, method):
 
     elif doc.workflow_state == "Approved":
         doc.db_set("status", "Approved")
+        doc.db_set("custom_pending_approval_at", "")
         is_lwp = is_compensatory = 0
         if doc.leave_type:
             is_lwp = frappe.db.get_value("Leave Type", doc.leave_type, is_lwp)
@@ -534,6 +539,7 @@ def on_update(doc, method):
                 )
 
     elif doc.workflow_state == "Approved by Reporting Manager":
+        doc.db_set("custom_pending_approval_at", "HR Team")
         hr_notification = frappe.get_doc("Notification", "Leave Request Status Update to HR Manager")
         if hr_manager_email:
             if hr_notification:
@@ -549,6 +555,7 @@ def on_update(doc, method):
                 )
 
     elif doc.workflow_state == "Rejected by Reporting Manager":
+        doc.db_set("custom_pending_approval_at", "HR Team")
         hr_notification = frappe.get_doc("Notification", "Leave Request Status Update to HR Manager")
         if hr_manager_email:
             if hr_notification:
@@ -563,6 +570,7 @@ def on_update(doc, method):
                     reference_name=doc.name,
                 )
     elif doc.workflow_state == "Rejected":
+        doc.db_set("custom_pending_approval_at", "")
         doc.db_set("status", "Rejected")
         is_lwp = is_compensatory = 0
         if doc.leave_type:

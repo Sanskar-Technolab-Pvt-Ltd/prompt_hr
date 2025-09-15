@@ -16,6 +16,7 @@
   "status",
   "attendance",
   "regularization_date",
+  "pending_approval_at",
   "employee_notified",
   "auto_approve",
   "section_break_qyza",
@@ -113,12 +114,19 @@
    "label": "Auto Approve",
    "no_copy": 1,
    "read_only": 1
+  },
+  {
+   "fieldname": "pending_approval_at",
+   "fieldtype": "Data",
+   "label": "Pending Approval At",
+   "no_copy": 1,
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-09-12 20:22:53.356592",
+ "modified": "2025-09-15 12:47:53.786843",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Attendance Regularization",

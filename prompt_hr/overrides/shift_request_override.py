@@ -2,6 +2,7 @@ import frappe
 from hrms.hr.doctype.shift_request.shift_request import ShiftRequest
 from hrms.hr.utils import validate_active_employee, share_doc_with_approver
 from frappe.utils import add_days
+from prompt_hr.py.utils import get_reporting_manager_info
 
 
 class CustomShiftRequest(ShiftRequest):
@@ -43,6 +44,13 @@ class CustomShiftRequest(ShiftRequest):
         self.notify_approval_status()
         if self.approver:
             share_doc_with_approver(self, self.approver)
+
+        if self.workflow_state == "Pending":
+            manager_info = get_reporting_manager_info(self.employee)
+            if manager_info:
+                self.db_set("custom_pending_approval_at", f"{manager_info['name']} - {manager_info['employee_name']}")
+        else:
+            self.db_set("custom_pending_approval_at", "")
 
 
 import frappe
@@ -94,4 +102,3 @@ def align_shift_assignments(doc):
     })
     new_shift_assignment.insert(ignore_permissions=True)
     new_shift_assignment.submit()
-

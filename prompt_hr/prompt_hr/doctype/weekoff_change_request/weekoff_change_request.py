@@ -5,9 +5,17 @@ import frappe
 from frappe import _, throw
 from frappe.utils import getdate, today, formatdate
 from frappe.model.document import Document
-from prompt_hr.py.utils import send_notification_email, is_user_reporting_manager_or_hr
+from prompt_hr.py.utils import send_notification_email, is_user_reporting_manager_or_hr, get_reporting_manager_info
 
 class WeekOffChangeRequest(Document):
+
+	def on_update(self):
+		if self.workflow_state == "Pending":
+			manager_info = get_reporting_manager_info(self.employee)
+			if manager_info:
+				self.db_set("pending_approval_at", f"{manager_info['name']} - {manager_info['employee_name']}")
+		else:
+			self.db_set("pending_approval_at", "")
 	
 	def before_insert(self):
     
