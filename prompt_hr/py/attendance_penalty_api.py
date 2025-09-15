@@ -1043,6 +1043,8 @@ def create_penalty_records(penalty_entries, target_date):
                                 "custom_employee_penalty_id",
                                 penalty_doc.name,
                             )
+                            frappe.db.set_value("Attendance", details["attendance"], "custom_penalty_applied", "Yes")
+                            
                         changes_made = True
 
                 else:
@@ -1100,7 +1102,8 @@ def create_penalty_records(penalty_entries, target_date):
                         details["attendance"],
                         "custom_employee_penalty_id",
                         penalty_doc.name,
-                    )
+                    )                    
+                    frappe.db.set_value("Attendance", details["attendance"], "custom_penalty_applied", "Yes")
 
                     changes_made = True
         except Exception as e:
