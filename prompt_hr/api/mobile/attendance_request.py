@@ -317,7 +317,7 @@ def apply_workflow(attendance_request, action, custom_reason_for_rejection=None)
      
         if action == "Reject":
             if not custom_reason_for_rejection:
-                frappe.throw("Reason for Rejection is mandatory when rejecting.")            # doc.custom_reason_for_rejection = custom_reason_for_rejection
+                custom_reason_for_rejection = "No Reason Provided"
             
         # ? APPLY WORKFLOW ACTION
         updated_doc = attendance_request_workflow(doc, action)

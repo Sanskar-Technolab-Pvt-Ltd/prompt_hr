@@ -20,7 +20,7 @@ def is_valid_for_partial_day(doc, event):
         )
 
         if partial_day_allowed_minutes and doc.custom_partial_day_request_minutes:
-            if partial_day_allowed_minutes < doc.custom_partial_day_request_minutes:
+            if partial_day_allowed_minutes < int(doc.custom_partial_day_request_minutes or 0):
                 throw(
                     "Allowed Partial Day Minutes are {0}".format(
                         partial_day_allowed_minutes
