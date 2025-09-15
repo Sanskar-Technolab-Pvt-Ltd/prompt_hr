@@ -1572,7 +1572,7 @@ def auto_approve_scheduler():
             leave_requests = frappe.db.get_all(
                 "Leave Application",
                 filters={
-                    "workflow_state": ["in",["Pending", "Approved by Reporting Manager", "Rejected by Reporting Manager"]],
+                    "workflow_state": ["in",["Pending", "Approved by Reporting Manager"]],
                     "from_date": ["<=", auto_mark_buffer_date],
                     "to_date": [">=", auto_mark_buffer_date],
                     "employee": ["in", employees],
@@ -1586,7 +1586,7 @@ def auto_approve_scheduler():
             created_leave_requests = frappe.get_all(
                 "Leave Application",
                 filters={
-                    "workflow_state": ["in",["Pending", "Approved by Reporting Manager", "Rejected by Reporting Manager"]],
+                    "workflow_state": ["in",["Pending", "Approved by Reporting Manager"]],
                     "employee": ["in", employees],
                     "creation": ["between", [start_datetime, end_datetime]],
                 },
