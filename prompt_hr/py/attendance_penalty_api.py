@@ -525,7 +525,7 @@ def process_late_entry_penalties_for_prompt(
                     "custom_status": "Approved",
                     "docstatus": ["!=", 2],
                     "reason": "Partial Day",
-                    "custom_partial_day_for": 'Late comming'
+                    "custom_partial_day_for": 'Late coming'
                 },
             )
 
