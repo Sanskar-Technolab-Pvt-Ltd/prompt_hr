@@ -3,7 +3,7 @@
 
 import frappe
 from frappe.model.document import Document
-from prompt_hr.py.utils import send_notification_email, is_user_reporting_manager_or_hr
+from prompt_hr.py.utils import send_notification_email, is_user_reporting_manager_or_hr, get_reporting_manager_info
 from frappe.utils import get_datetime, getdate, format_date, get_link_to_form
 from prompt_hr.py.auto_mark_attendance import mark_attendance
 from frappe.utils import get_datetime, add_days
@@ -147,3 +147,14 @@ class AttendanceRegularization(Document):
 				self.status = "Rejected"
 			elif self.workflow_state == "Approved":
 				self.status = "Approved"
+
+
+	def on_update(self):
+		if self.workflow_state == "Pending":
+			manager_info = get_reporting_manager_info(self.employee)
+			if manager_info:
+				#! STORE AS: <manager_docname> - <manager_employee_name>
+				self.db_set("pending_approval_at", f"{manager_info['name']} - {manager_info['employee_name']}")
+
+		else:
+			self.db_set("pending_approval_at", "")
