@@ -42,7 +42,7 @@ def prompt_employee_attendance_penalties():
             )
         try:
             late_coming_penalty_buffer_days = (
-                hr_settings.custom_buffer_period_for_leave_penalty_for_prompt or 0
+                hr_settings.custom_buffer_days_for_penalty or 0
             )
         except Exception as e:
             late_coming_penalty_buffer_days = 0
@@ -65,7 +65,7 @@ def prompt_employee_attendance_penalties():
         # ? DAILY HOURS PENALTY CONFIGURATION
         try:
             daily_hours_penalty_buffer_days = (
-                hr_settings.custom_buffer_period_for_daily_hours_penalty_for_prompt or 0
+                hr_settings.custom_buffer_days_for_penalty or 0
             )
         except Exception as e:
             daily_hours_penalty_buffer_days = 0
@@ -86,7 +86,7 @@ def prompt_employee_attendance_penalties():
         # ? NO ATTENDANCE PENALTY CONFIGURATION
         try:
             no_attendance_penalty_buffer_days = (
-                hr_settings.custom_buffer_period_for_no_attendance_penalty_for_prompt or 0
+                hr_settings.custom_buffer_days_for_penalty or 0
             )
         except Exception as e:
             no_attendance_penalty_buffer_days = 0
@@ -107,7 +107,7 @@ def prompt_employee_attendance_penalties():
         # ? MIS-PUNCH PENALTY CONFIGURATION
         try:
             mispunch_penalty_buffer_days = (
-                hr_settings.custom_buffer_days_for_mispunch_penalty or 0
+                hr_settings.custom_buffer_days_for_penalty or 0
             )
         except Exception as e:
             mispunch_penalty_buffer_days = 0
@@ -1529,16 +1529,30 @@ def auto_approve_scheduler():
     """
     try:
         auto_approve_days = frappe.db.get_single_value("HR Settings", "custom_auto_approve_request_after_days") or 0
+        buffer_days = frappe.db.get_single_value("HR Settings", "custom_buffer_days_for_penalty") or 0
     except Exception as e:
         frappe.log_error(f"Error in getting auto_approve_days from HR Settings:", {str(e)})
         return
 
-    if not auto_approve_days:
+    if not auto_approve_days and not buffer_days:
         return
 
-    auto_mark_date = getdate(
-            add_to_date(today(), days=-(int(auto_approve_days)+1))
-        )
+    if auto_approve_days:
+        auto_mark_date_after_creation = getdate(
+                add_to_date(today(), days=-(int(auto_approve_days)+1))
+            )
+        start_datetime = get_datetime_str(datetime.combine(auto_mark_date_after_creation, time.min))
+        end_datetime = get_datetime_str(datetime.combine(auto_mark_date_after_creation, time.max))
+
+    else:
+        auto_mark_date_after_creation = None
+        
+    if buffer_days:
+        auto_mark_buffer_date = getdate(
+        add_to_date(today(), days=-(int(buffer_days)+1))
+    )
+    else:
+        auto_mark_buffer_date = None
 
     try:
         employees = get_active_employees()
@@ -1551,24 +1565,37 @@ def auto_approve_scheduler():
 
     # ? Approve only one leave application per employee
     try:
-        # Fetch pending leave application filtered properly with commas in filters
-        leave_request = frappe.db.get_all(
-            "Leave Application",
-            filters={
-                "workflow_state": ["in",["Pending", "Approved by Reporting Manager", "Rejected by Reporting Manager"]],
-                "from_date": ["<=", auto_mark_date],
-                "to_date": [">=", auto_mark_date],
-                "employee": ["in", employees],
-            },
-            fields=["name", "employee"],
-            order_by="from_date asc"
-        )
-        # Track approved employees to ensure only one request approval per employee
-        approved_employees = set()
+        leave_requests = []
+        created_leave_requests = []
+        if auto_mark_buffer_date:
+            # Fetch pending leave application filtered properly with commas in filters
+            leave_requests = frappe.db.get_all(
+                "Leave Application",
+                filters={
+                    "workflow_state": ["in",["Pending", "Approved by Reporting Manager", "Rejected by Reporting Manager"]],
+                    "from_date": ["<=", auto_mark_buffer_date],
+                    "to_date": [">=", auto_mark_buffer_date],
+                    "employee": ["in", employees],
+                },
+                fields=["name", "employee"],
+                order_by="from_date asc"
+            )
 
-        for request in leave_request:
-            if request.employee in approved_employees:
-                continue
+        if auto_mark_date_after_creation:
+            # Fetch pending leave application filtered properly with commas in filters
+            created_leave_requests = frappe.get_all(
+                "Leave Application",
+                filters={
+                    "workflow_state": ["in",["Pending", "Approved by Reporting Manager", "Rejected by Reporting Manager"]],
+                    "employee": ["in", employees],
+                    "creation": ["between", [start_datetime, end_datetime]],
+                },
+                fields=["name", "employee"],
+                order_by="from_date asc"
+            )
+        leave_requests.extend(created_leave_requests)
+
+        for request in leave_requests:
             try:
                 leave_request = frappe.get_doc("Leave Application", request.name)
             except Exception as e:
@@ -1583,7 +1610,6 @@ def auto_approve_scheduler():
                                 if leave_request.workflow_state == "Approved by Reporting Manager":
                                     apply_workflow(leave_request, "Approve")
                                     leave_request.db_set("custom_auto_approve", 1)
-                                    approved_employees.add(request.employee)
                             except Exception as e:
                                 frappe.log_error(f"Error approving leave request:", str(e))
                                 continue
@@ -1592,7 +1618,6 @@ def auto_approve_scheduler():
                             try:
                                 apply_workflow(leave_request, "Approve")
                                 leave_request.db_set("custom_auto_approve", 1)
-                                approved_employees.add(request.employee)
                             except Exception as e:
                                 frappe.log_error(f"Error approving leave request:", str(e))
                                 continue
@@ -1600,15 +1625,7 @@ def auto_approve_scheduler():
                         try:
                             apply_workflow(leave_request, "Approve")
                             leave_request.db_set("custom_auto_approve", 1)
-                            approved_employees.add(request.employee)
 
-                        except Exception as e:
-                            frappe.log_error(f"Error approving leave request:", str(e))
-                            continue
-                    else:
-                        try:
-                            apply_workflow(leave_request, "Approve")
-                            leave_request.db_set("custom_auto_approve", 1)
                         except Exception as e:
                             frappe.log_error(f"Error approving leave request:", str(e))
                             continue
@@ -1627,25 +1644,36 @@ def auto_approve_scheduler():
 
     # ? Approve only one shift request per employee
     try:
-        # Fetch pending shift requests filtered properly with commas in filters
-        shift_requests = frappe.db.get_all(
-            "Shift Request",
-            filters={
-                "workflow_state": "Pending",
-                "from_date": ["<=", auto_mark_date],
-                "employee": ["in", employees],
-            },
-            or_filters=[{"to_date": [">=", auto_mark_date]}, {"to_date": ["is", "not set"]}],
-            fields=["name", "employee", "from_date"],
-            order_by="from_date asc"
-        )
+        shift_requests = []
+        shift_requests_created = []
+        if auto_mark_buffer_date:
+            # Fetch pending shift requests filtered properly with commas in filters
+            shift_requests = frappe.db.get_all(
+                "Shift Request",
+                filters={
+                    "workflow_state": "Pending",
+                    "from_date": ["<=", auto_mark_buffer_date],
+                    "employee": ["in", employees],
+                },
+                or_filters=[{"to_date": [">=", auto_mark_buffer_date]}, {"to_date": ["is", "not set"]}],
+                fields=["name", "employee", "from_date"],
+                order_by="from_date asc"
+            )
 
-        # Track approved employees to ensure only one request approval per employee
-        approved_employees = set()
+        if auto_mark_date_after_creation:
+            shift_requests_created = frappe.get_all(
+                "Shift Request",
+                filters={
+                    "workflow_state": "Pending",
+                    "employee": ["in", employees],
+                    "creation": ["between", [start_datetime, end_datetime]],
+                },
+                fields=["name", "employee", "from_date"],
+                order_by="from_date asc"
+            )
 
+        shift_requests.extend(shift_requests_created)
         for request in shift_requests:
-            if request.employee in approved_employees:
-                continue
             try:
                 shift_request = frappe.get_doc("Shift Request", request.name)
             except Exception as e:
@@ -1654,7 +1682,6 @@ def auto_approve_scheduler():
             try:
                 apply_workflow(shift_request, "Approve")
                 shift_request.db_set("custom_auto_approve", 1)
-                approved_employees.add(request.employee)
             except Exception as e:
                 frappe.log_error(f"Error approving shift request {request.name}:", str(e))
                 continue
@@ -1664,24 +1691,35 @@ def auto_approve_scheduler():
 
     # ? Approve only one attendance regularization per employee
     try:
-        # Fetch pending attendance regularization filtered properly with commas in filters
-        attendance_regularizations = frappe.db.get_all(
-            "Attendance Regularization",
-            filters={
-                "workflow_state": "Pending",
-                "regularization_date": auto_mark_date,
-                "employee": ["in", employees],
-            },
-            fields=["name", "employee"],
-            order_by="regularization_date asc"
-        )
+        attendance_regularizations = []
+        attendance_regularizations_created = []
+        if auto_mark_buffer_date:
+            # Fetch pending attendance regularization filtered properly with commas in filters
+            attendance_regularizations = frappe.db.get_all(
+                "Attendance Regularization",
+                filters={
+                    "workflow_state": "Pending",
+                    "regularization_date": auto_mark_buffer_date,
+                    "employee": ["in", employees],
+                },
+                fields=["name", "employee"],
+                order_by="regularization_date asc"
+            )
 
-        # Track approved employees to ensure only one regularization approval per employee
-        approved_employees = set()
+        if auto_mark_date_after_creation:
+            attendance_regularizations_created = frappe.get_all(
+                "Attendance Regularization",
+                filters={
+                    "workflow_state": "Pending",
+                    "employee": ["in", employees],
+                    "creation": ["between", [start_datetime, end_datetime]],
+                },
+                fields=["name", "employee"],
+                order_by="regularization_date asc"
+            )
 
+        attendance_regularizations.extend(attendance_regularizations_created)
         for request in attendance_regularizations:
-            if request.employee in approved_employees:
-                continue
             try:
                 attendance_regularization = frappe.get_doc("Attendance Regularization", request.name)
             except Exception as e:
@@ -1690,7 +1728,6 @@ def auto_approve_scheduler():
             try:
                 apply_workflow(attendance_regularization, "Approve")
                 attendance_regularization.db_set("auto_approve", 1)
-                approved_employees.add(request.employee)
             except Exception as e:
                 frappe.log_error(f"Error approving attendance regularization {request.name}: ",str(e))
                 continue
@@ -1700,30 +1737,41 @@ def auto_approve_scheduler():
 
     # ? Approve only one attendance request per employee
     try:
-        # Fetch pending attendance requests filtered properly with commas in filters
-        attendance_requests = frappe.db.get_all(
-            "Attendance Request",
-            filters={
-                "workflow_state": "Pending",
-                "from_date": ["<=", auto_mark_date],
-                "to_date": [">=", auto_mark_date],
-                "employee": ["in", employees],
-            },
-            fields=["name", "employee", "from_date"],
-            order_by="from_date asc"
-        )
+        attendance_requests = []
+        attendance_requests_created = []
+        if auto_mark_buffer_date:
+            # Fetch pending attendance requests filtered properly with commas in filters
+            attendance_requests = frappe.db.get_all(
+                "Attendance Request",
+                filters={
+                    "workflow_state": "Pending",
+                    "from_date": ["<=", auto_mark_buffer_date],
+                    "to_date": [">=", auto_mark_buffer_date],
+                    "employee": ["in", employees],
+                },
+                fields=["name", "employee", "from_date"],
+                order_by="from_date asc"
+            )
 
-        # Track approved employees to ensure only one request approval per employee
-        approved_employees = set()
+        if auto_mark_date_after_creation:
+            attendance_requests_created = frappe.get_all(
+                "Attendance Request",
+                filters={
+                    "workflow_state": "Pending",
+                    "employee": ["in", employees],
+                    "creation": ["between", [start_datetime, end_datetime]],
+                },
+                fields=["name", "employee", "from_date"],
+                order_by="from_date asc"
+            )
+
+        attendance_requests.extend(attendance_requests_created)
 
         for request in attendance_requests:
-            if request.employee in approved_employees:
-                continue
             try:
                 attendance_request = frappe.get_doc("Attendance Request", request.name)
                 handle_custom_workflow_action(attendance_request, "Approve")
                 attendance_request.db_set("custom_auto_approve", 1)
-                approved_employees.add(request.employee)
             except Exception as e:
                 frappe.log_error(f"Error approving attendance request {request.name}:", str(e))
                 continue
@@ -1744,16 +1792,11 @@ def full_day_leave_exists(employee, target_date):
                 "workflow_state": "Approved",
                 "from_date": ["<=", target_date],
                 "to_date": [">=", target_date],
-                "half_day": 0
             },
-            or_filters={
-                "employee": employee,
-                "workflow_state": "Approved",
-                "from_date": ["<=", target_date],
-                "to_date": [">=", target_date],
-                "half_day": 1,
-                "half_day_date": ["!=", target_date]
-            },
+            or_filters=[
+                ["half_day", "=", 0],
+                ["half_day_date", "!=", target_date]
+            ],
             fields=["name", "half_day", "half_day_date"]
         )
 
