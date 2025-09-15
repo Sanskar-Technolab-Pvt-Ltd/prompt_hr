@@ -1250,9 +1250,9 @@ def penalize_prompt_employee():
 
         allowed_late_entries = hr_settings_doc.custom_late_coming_allowed_per_month_for_prompt or 0
 
-        leave_penalty_buffer_days = hr_settings_doc.custom_buffer_period_for_leave_penalty_for_prompt
-        working_hours_buffer_days = hr_settings_doc.custom_buffer_period_for_daily_hours_penalty_for_prompt
-        no_attendance_buffer_days = hr_settings_doc.custom_buffer_period_for_no_attendance_penalty_for_prompt
+        leave_penalty_buffer_days = hr_settings_doc.custom_buffer_days_for_penalty
+        working_hours_buffer_days = hr_settings_doc.custom_buffer_days_for_penalty
+        no_attendance_buffer_days = hr_settings_doc.custom_buffer_days_for_penalty
 
         expected_work_hours = hr_settings_doc.custom_daily_hours_criteria_for_penalty_for_prompt
 
@@ -3210,7 +3210,7 @@ def penalize_employee_for_attendance_mispunch_prompt(args):
 
         # ? FETCH BUFFER DAYS CONFIGURATION FROM HR SETTINGS
         buffer_days_for_mispunch_penalty = frappe.db.get_single_value(
-            "HR Settings", "custom_buffer_days_for_mispunch_penalty"
+            "HR Settings", "custom_buffer_days_for_penalty"
         )
         print(f"[DEBUG] Buffer days fetched: {buffer_days_for_mispunch_penalty}")
 
