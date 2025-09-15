@@ -264,6 +264,7 @@ doc_events = {
             "prompt_hr.py.attendance_request.is_valid_for_partial_day",
         ],
         "before_submit": "prompt_hr.py.attendance_request.before_submit",
+        "on_update": "prompt_hr.py.attendance_request.on_update",
     },
     "Payroll Entry": {
         "on_update": "prompt_hr.py.payroll_entry.on_update",
