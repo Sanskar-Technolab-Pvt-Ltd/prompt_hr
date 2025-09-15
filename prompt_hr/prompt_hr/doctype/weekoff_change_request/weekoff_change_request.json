@@ -8,6 +8,7 @@
  "field_order": [
   "employee",
   "employee_name",
+  "pending_approval_at",
   "auto_approve",
   "column_break_yxha",
   "status",
@@ -80,12 +81,19 @@
    "label": "Auto Approve",
    "no_copy": 1,
    "read_only": 1
+  },
+  {
+   "fieldname": "pending_approval_at",
+   "fieldtype": "Data",
+   "label": "Pending Approval At",
+   "no_copy": 1,
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-09-12 20:22:27.814652",
+ "modified": "2025-09-15 13:12:59.744309",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "WeekOff Change Request",

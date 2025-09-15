@@ -996,3 +996,29 @@ def share_doc_with_employee(employee, doctype, docname):
         "status": "success",
         "user_id": user_id
     }
+
+def get_reporting_manager_info(employee: str) -> dict | None:
+    """
+    #! RETURN REPORTING MANAGER'S DOCNAME AND EMPLOYEE NAME
+    """
+    try:
+        #? FIRST GET THE MANAGER'S DOCNAME
+        manager_docname = frappe.db.get_value("Employee", employee, "reports_to")
+        if not manager_docname:
+            return None
+
+        #? FETCH BOTH NAME AND EMPLOYEE_NAME IN ONE CALL
+        manager = frappe.db.get_value(
+            "Employee",
+            manager_docname,
+            ["name", "employee_name"],
+            as_dict=True
+        )
+        return manager
+
+    except Exception as e:
+        frappe.log_error(
+            f"Error fetching reporting manager for employee {employee}",
+            frappe.get_traceback()
+        )
+        return None

@@ -4,7 +4,7 @@
 import frappe
 from frappe import _
 from frappe.query_builder.functions import Extract
-from frappe.utils import cstr, cint
+from frappe.utils import cstr, cint, getdate
 from frappe.utils.nestedset import get_descendants_of
 from calendar import monthrange
 from datetime import date
@@ -224,7 +224,7 @@ def get_attendance_records(filters: Filters) -> list[dict]:
 def get_attendance_status_for_detailed_view(
 	employee: str, filters: Filters, employee_attendance: dict, holidays: list
 ) -> list[dict]:
-
+	print(f"\n\n EMPLOYEE {employee} \n\n")
 	# ? CALCULATE TOTAL DAYS IN THE SELECTED MONTH
 	total_days = get_total_days_in_month(filters)
 	row = {}
@@ -278,12 +278,41 @@ def get_attendance_status_for_detailed_view(
 						total_lop_days += 1  # * ADD FULL DAY FOR FULL-DAY LEAVE
 	
 	# ? BUILD DAILY STATUS MAP USING ABBREVIATIONS
+	month = int(filters.get("month"))
+	year = int(filters.get("year"))
+	
 	for day in range(1, total_days + 1):
+    
+		date_str = f"{year}-{month:02d}-{day:02d}"
+		generated_date = getdate(date_str)
+		
+		attendance_exists = frappe.db.exists("Attendance", {"employee": employee, "attendance_date": generated_date})
+		leave_type_abb = None
+		if attendance_exists:
+			attendance_det = frappe.db.get_value("Attendance", {"employee": employee, "attendance_date": generated_date}, ["name", "custom_employee_penalty_id"], as_dict=True)
+			if attendance_det and attendance_det.get("custom_employee_penalty_id"):
+				emp_leave_penalty_details = frappe.db.get_all("Employee Leave Penalty Details", {"parenttype": "Employee Penalty", "parent": attendance_det.get("custom_employee_penalty_id")}, "leave_type")
+
+				if emp_leave_penalty_details:
+					for leave_type in emp_leave_penalty_details:
+						lt_abbr = frappe.db.get_value("Leave Type", leave_type.get('leave_type'), "custom_leave_type_abbr")
+						if lt_abbr:
+							if leave_type_abb:
+								leave_type_abb += f", {lt_abbr}"
+							else:
+								leave_type_abb = lt_abbr
+    
 		status = employee_attendance.get(day)
 		if status is None and holidays:
 			status = get_holiday_status(day, holidays)
 		abbr = status_map.get(status, "")
-		row[cstr(day)] = abbr
+
+		if leave_type_abb:
+			final_abbr = f"{abbr}(PE-{leave_type_abb})"
+		else:
+			final_abbr = abbr
+
+		row[cstr(day)] = final_abbr
 	
 	# ? GET PENALTY LOPS FROM EMPLOYEE PENALTY
 	employee_penalty = frappe.get_list(
@@ -320,6 +349,7 @@ def get_rows(employee_details: dict, filters: Filters, holiday_map: dict, attend
 	records = []
 	default_holiday_list = frappe.get_cached_value("Company", filters.company, "default_holiday_list")
 
+	print(f"\n\n EMPLOYEE DETAILS{filters.get('month')} {filters.get('year')}\n\n")
 	for employee, details in employee_details.items():
 		emp_holiday_list = details.holiday_list or default_holiday_list
 		holidays = holiday_map.get(emp_holiday_list)

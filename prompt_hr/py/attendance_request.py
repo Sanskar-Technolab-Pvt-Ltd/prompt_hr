@@ -20,7 +20,7 @@ def is_valid_for_partial_day(doc, event):
         )
 
         if partial_day_allowed_minutes and doc.custom_partial_day_request_minutes:
-            if partial_day_allowed_minutes < doc.custom_partial_day_request_minutes:
+            if partial_day_allowed_minutes < int(doc.custom_partial_day_request_minutes or 0):
                 throw(
                     "Allowed Partial Day Minutes are {0}".format(
                         partial_day_allowed_minutes
@@ -110,3 +110,18 @@ def notify_reporting_manager(doc, event):
             frappe.get_traceback(),
         )
         frappe.throw(str(e))
+
+def on_update(doc, method=None):
+    if doc.workflow_state == "Pending":
+        manager_docname = frappe.db.get_value("Employee", doc.employee, "reports_to")
+        if manager_docname:
+            manager = frappe.db.get_value(
+                "Employee",
+                manager_docname,
+                ["name", "employee_name"],
+                as_dict=True
+            )
+            if manager:
+                doc.db_set("custom_pending_approval_at", f"{manager.name} - {manager.employee_name}")
+    else:
+        doc.db_set("custom_pending_approval_at", "")

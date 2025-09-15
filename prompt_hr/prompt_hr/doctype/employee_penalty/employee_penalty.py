@@ -63,6 +63,8 @@ def cancel_penalties(ids, reason = None):
         if reason:
             frappe.db.set_value("Employee Penalty", {"attendance":row_name}, "cancellation_reason", reason)
         frappe.db.set_value(doctype, row_name, "custom_employee_penalty_id", None)
+        if doctype == "Attendance":
+            frappe.db.set_value("Attendance", row_name, "custom_penalty_applied", "")
 
         if notification_doc:
             try:

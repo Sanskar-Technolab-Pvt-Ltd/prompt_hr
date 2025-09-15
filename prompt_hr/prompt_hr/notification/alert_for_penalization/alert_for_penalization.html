@@ -1,21 +1,21 @@
 <p>Dear <b>{{ employee_name }}</b>,</p>
 
 <p>
-    This is a gentle reminder regarding the following scheduled penalizations, arising from policy guidelines, on <b>{{ frappe.utils.format_date(penalization_date,"dd-MM-yyyy") }}</b>:
+    This is a gentle reminder regarding the following scheduled penalizations for the date <b>{{ frappe.utils.format_date(penalization_date,"dd-MM-yyyy") }}</b>, arising from policy guidelines:
 </p>
 
 <table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 14px;">
     <thead style="background-color: #f2f2f2;">
         <tr>
             <th style="text-align: left;">Penalty Type</th>
-            <th style="text-align: left;">Scheduled Date</th>
+            <th style="text-align: left;">Scheduled Penalty Date</th>
         </tr>
     </thead>
     <tbody>
         {% for penalty_type, details in penalization_data.items() %}
         <tr>
             <td>{{ penalty_type }}</td>
-            <td>{{ frappe.format_date(details.penalty_date, "dd-MM-yyyy") }}</td>
+<td>{{ frappe.format_date(frappe.utils.add_days(details.penalty_date, 1), "dd-MM-yyyy") }}</td>
         </tr>
         {% endfor %}
     </tbody>
