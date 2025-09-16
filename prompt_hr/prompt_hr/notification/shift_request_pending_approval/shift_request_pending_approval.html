@@ -1,0 +1,27 @@
+<p>Dear {{ manager_name }},</p>
+
+    <p>
+      A <strong>Shift Request</strong> from
+      <strong>{{ doc.employee_name }}</strong>
+      (Employee ID: <strong>{{ doc.employee }}</strong>)
+      is awaiting your approval.
+    </p>
+
+    <p>
+      <strong>Shift:</strong> {{ doc.shift_type }}<br>
+      <strong>From Date:</strong> {{ frappe.format_date(doc.from_date) }}<br>
+      {% if doc.to_date %}
+      <strong>To Date:</strong> {{ frappe.format_date(doc.to_date) }}
+      {% endif %}
+    </p>
+
+    <p>Please review the request and approve or reject it.</p>
+
+    <a href="{{ frappe.utils.get_url() }}/app/{{ doc.doctype | lower | replace(' ', '-') }}/{{ doc.name }}" class="btn btn-primary">
+      Review
+    </a>
+
+    <p class="footer">
+      Regards,<br>
+      HR Team
+    </p>
