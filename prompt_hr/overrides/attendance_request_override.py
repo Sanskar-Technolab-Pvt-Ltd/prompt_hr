@@ -51,12 +51,27 @@ class CustomAttendanceRequest(AttendanceRequest):
             self.validate_no_attendance_to_create()
             attendance_exists = get_existing_attendance(self.employee, self.from_date, self.to_date)
             if attendance_exists:
-                attendance_list_str = "<br>".join(
-                    [f"{format_date(a['attendance_date'])} - {a['name']} ({a['status']})" for a in attendance_exists]
-                )
-                frappe.throw(
-                    f"Attendance already exists for the following date(s):<br>{attendance_list_str}",
-                )
+                buffer_days_for_back_dated_attendance_request = frappe.db.get_single_value(
+                    "HR Settings", "custom_maximum_days_for_backdated_attendance_request"
+                ) or 0
+
+                if buffer_days_for_back_dated_attendance_request > 0:
+                    max_allowed_date = add_to_date(
+                        getdate(),
+                        days=-(int(buffer_days_for_back_dated_attendance_request)+1)
+                    )
+                    if getdate(self.from_date) < getdate(max_allowed_date):
+                        attendance_exists = [
+                            a for a in attendance_exists if getdate(a['attendance_date']) < getdate(max_allowed_date)
+                        ]
+
+                        if attendance_exists:
+                            attendance_list_str = "<br>".join(
+                                [f"{format_date(a['attendance_date'])} - {a['name']} ({a['status']})" for a in attendance_exists]
+                            )
+                            frappe.throw(
+                                f"Attendance already exists for the following date(s):<br>{attendance_list_str}",
+                            )
 
     def on_submit(self):
         pass
