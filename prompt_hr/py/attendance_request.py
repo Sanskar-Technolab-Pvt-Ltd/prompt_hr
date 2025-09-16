@@ -50,6 +50,12 @@ def validate(doc, event):
             employee_mail = frappe.db.get_value(
                 "Employee", doc.employee, "prefered_email"
             )
+            if not doc.is_new():
+                auto_approve = frappe.db.get_value("Attendance Request", doc.name, "custom_auto_approve")
+                if auto_approve:
+                    is_email_sent_allowed = frappe.db.get_single_value("HR Settings", "custom_send_auto_approve_doc_emails") or 0
+                    if not is_email_sent_allowed:
+                        return
             if employee_mail:
                 send_notification_email(
                     recipients=[employee_mail],
@@ -73,8 +79,7 @@ def validate(doc, event):
 def notify_reporting_manager(doc, event):
     """Method to send email to employee's reporting manager when employee creates attendance request"""
     try:
-
-        if doc.employee and not doc.custom_status:
+        if doc.employee and doc.custom_status == "Pending":
             rh_emp = frappe.db.get_value("Employee", doc.employee, "reports_to")
             if not rh_emp:
                 throw(f"No Reporting Head found for employee {doc.employee}")

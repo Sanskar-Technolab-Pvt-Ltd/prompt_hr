@@ -509,6 +509,13 @@ def on_update(doc, method):
         if doc.leave_type:
             is_lwp = frappe.db.get_value("Leave Type", doc.leave_type, is_lwp)
             is_compensatory = frappe.db.get_value("Leave Type", doc.leave_type, is_compensatory)
+
+        if not doc.is_new():
+            auto_approve = frappe.db.get_value("Leave Application", doc.name, "custom_auto_approve")
+            if auto_approve:
+                is_email_sent_allowed = frappe.db.get_single_value("HR Settings", "custom_send_auto_approve_doc_emails") or 0
+                if not is_email_sent_allowed:
+                    return
         if is_lwp or is_compensatory:
             employee_notification = frappe.get_doc("Notification", "Leave Request Response By Reporting Manager")
             if employee_notification:
@@ -540,6 +547,13 @@ def on_update(doc, method):
 
     elif doc.workflow_state == "Approved by Reporting Manager":
         doc.db_set("custom_pending_approval_at", "HR Team")
+
+        if not doc.is_new():
+            auto_approve = frappe.db.get_value("Leave Application", doc.name, "custom_auto_approve")
+            if auto_approve:
+                is_email_sent_allowed = frappe.db.get_single_value("HR Settings", "custom_send_auto_approve_doc_emails") or 0
+                if not is_email_sent_allowed:
+                    return
         hr_notification = frappe.get_doc("Notification", "Leave Request Status Update to HR Manager")
         if hr_manager_email:
             if hr_notification:
@@ -556,6 +570,13 @@ def on_update(doc, method):
 
     elif doc.workflow_state == "Rejected by Reporting Manager":
         doc.db_set("custom_pending_approval_at", "HR Team")
+        # ? EMAIL SHOULD ONLY SENT IN AUTO APPROVAL CASE IF IT IS ENABLE IN HR SETTINGS
+        if not doc.is_new():
+            auto_approve = frappe.db.get_value("Leave Application", doc.name, "custom_auto_approve")
+            if auto_approve:
+                is_email_sent_allowed = frappe.db.get_single_value("HR Settings", "custom_send_auto_approve_doc_emails") or 0
+                if not is_email_sent_allowed:
+                    return
         hr_notification = frappe.get_doc("Notification", "Leave Request Status Update to HR Manager")
         if hr_manager_email:
             if hr_notification:
@@ -572,6 +593,15 @@ def on_update(doc, method):
     elif doc.workflow_state == "Rejected":
         doc.db_set("custom_pending_approval_at", "")
         doc.db_set("status", "Rejected")
+        
+        # ? EMAIL SHOULD ONLY SENT IN AUTO APPROVAL CASE IF IT IS ENABLE IN HR SETTINGS
+        if not doc.is_new():
+            auto_approve = frappe.db.get_value("Leave Application", doc.name, "custom_auto_approve")
+            if auto_approve:
+                is_email_sent_allowed = frappe.db.get_single_value("HR Settings", "custom_send_auto_approve_doc_emails") or 0
+                if not is_email_sent_allowed:
+                    return
+
         is_lwp = is_compensatory = 0
         if doc.leave_type:
             is_lwp = frappe.db.get_value("Leave Type", doc.leave_type, is_lwp)
@@ -1359,6 +1389,7 @@ def custom_get_leave_details(employee, date, for_salary_slip=False):
 						["from_date", "<=", date],
 						["transaction_type", "=", "Leave Allocation"],
 						["leaves", "<", 0],
+						["is_expired", "=", 0],
 					],
 					fields=["name", "leaves", "from_date", "to_date"],
 					order_by="from_date asc"
@@ -1535,6 +1566,7 @@ def custom_get_allocated_and_expired_leaves(
 				["from_date", "<=", to_date],
 				["transaction_type", "=", "Leave Allocation"],
 				["leaves", "<", 0],
+                ["is_expired", "=", 0],
 			],
 			fields=["name", "leaves", "from_date", "to_date"],
 			order_by="from_date asc"
@@ -1805,6 +1837,7 @@ def custom_get_opening_balance(
                     ["from_date", "<=", from_date],
                     ["transaction_type", "=", "Leave Allocation"],
                     ["leaves", "<", 0],
+                    ["is_expired", "=", 0]
                 ],
                 fields=["name", "leaves", "from_date", "to_date"],
                 order_by="from_date asc"
@@ -2147,6 +2180,7 @@ def get_total_penalized_leaves_for_period(employee, leave_type, from_date, to_da
             ["from_date", "<=", to_date],
             ["transaction_type", "=", "Leave Allocation"],
             ["leaves", "<", 0],
+            ["is_expired", "=", 0]
         ],
         fields=["name", "leaves", "from_date", "to_date"],
         order_by="from_date asc"
