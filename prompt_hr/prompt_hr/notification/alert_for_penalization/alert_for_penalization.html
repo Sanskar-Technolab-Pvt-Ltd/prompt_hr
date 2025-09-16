@@ -15,7 +15,7 @@
         {% for penalty_type, details in penalization_data.items() %}
         <tr>
             <td>{{ penalty_type }}</td>
-<td>{{ frappe.format_date(frappe.utils.add_days(details.penalty_date, 1), "dd-MM-yyyy") }}</td>
+<td>{{ frappe.format_date(details.penalty_date, "dd-MM-yyyy") }}</td>
         </tr>
         {% endfor %}
     </tbody>
