@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-09-16 12:47:54.386929",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Shift Request",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "<p>Dear {{ manager_name }},</p>\n\n    <p>\n      A <strong>Shift Request</strong> from\n      <strong>{{ doc.employee_name }}</strong>\n      (Employee ID: <strong>{{ doc.employee }}</strong>)\n      is awaiting your approval.\n    </p>\n\n    <p>\n      <strong>Shift:</strong> {{ doc.shift_type }}<br>\n      <strong>From Date:</strong> {{ frappe.format_date(doc.from_date) }}<br>\n      {% if doc.to_date %}\n      <strong>To Date:</strong> {{ frappe.format_date(doc.to_date) }}\n      {% endif %}\n    </p>\n\n    <p>Please review the request and approve or reject it.</p>\n\n    <a href=\"{{ frappe.utils.get_url() }}/app/{{ doc.doctype | lower | replace(' ', '-') }}/{{ doc.name }}\" class=\"btn btn-primary\">\n      Review\n    </a>\n\n    <p class=\"footer\">\n      Regards,<br>\n      HR Team\n    </p>",
+ "message_type": "HTML",
+ "modified": "2025-09-16 14:17:14.135097",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Shift Request Pending Approval",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "Shift Request Pending Approval for {{ doc.employee_name }}"
+}

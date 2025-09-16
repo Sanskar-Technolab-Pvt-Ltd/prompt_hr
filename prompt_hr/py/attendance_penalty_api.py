@@ -3,7 +3,6 @@ from frappe.utils import getdate, today, add_to_date, add_days, get_datetime_str
 from prompt_hr.scheduler_methods import add_leave_ledger_entry
 from hrms.hr.utils import get_holiday_dates_for_employee
 from datetime import datetime, timedelta, time
-from prompt_hr.overrides.attendance_request_override import handle_custom_workflow_action
 from prompt_hr.scheduler_methods import send_penalty_warnings
 from frappe.model.workflow import apply_workflow
 
@@ -1606,27 +1605,30 @@ def auto_approve_scheduler():
                     if leave_request.workflow_state == "Pending":
                         if leave_request.leave_type not in ["Leave Without Pay", "Casual Leave"]:
                             try:
+                                leave_request.db_set("custom_auto_approve", 1)
                                 apply_workflow(leave_request, "Approve")
                                 if leave_request.workflow_state == "Approved by Reporting Manager":
                                     apply_workflow(leave_request, "Approve")
-                                    leave_request.db_set("custom_auto_approve", 1)
                             except Exception as e:
+                                leave_request.db_set("custom_auto_approve", 0)
                                 frappe.log_error(f"Error approving leave request:", str(e))
                                 continue
 
                         else:
                             try:
-                                apply_workflow(leave_request, "Approve")
                                 leave_request.db_set("custom_auto_approve", 1)
+                                apply_workflow(leave_request, "Approve")
                             except Exception as e:
+                                leave_request.db_set("custom_auto_approve", 0)
                                 frappe.log_error(f"Error approving leave request:", str(e))
                                 continue
                     elif leave_request.workflow_state == "Approved by Reporting Manager":
                         try:
-                            apply_workflow(leave_request, "Approve")
                             leave_request.db_set("custom_auto_approve", 1)
+                            apply_workflow(leave_request, "Approve")
 
                         except Exception as e:
+                            leave_request.db_set("custom_auto_approve", 0)
                             frappe.log_error(f"Error approving leave request:", str(e))
                             continue
 
@@ -1680,9 +1682,10 @@ def auto_approve_scheduler():
                 frappe.log_error(f"Error fetching shift request {request.name}:", str(e))
                 continue
             try:
-                apply_workflow(shift_request, "Approve")
                 shift_request.db_set("custom_auto_approve", 1)
+                apply_workflow(shift_request, "Approve")
             except Exception as e:
+                shift_request.db_set("custom_auto_approve", 0)
                 frappe.log_error(f"Error approving shift request {request.name}:", str(e))
                 continue
 
@@ -1726,9 +1729,10 @@ def auto_approve_scheduler():
                 frappe.log_error(f"Error fetching attendance regularization {request.name}:", str(e))
                 continue
             try:
-                apply_workflow(attendance_regularization, "Approve")
                 attendance_regularization.db_set("auto_approve", 1)
+                apply_workflow(attendance_regularization, "Approve")
             except Exception as e:
+                attendance_regularization.db_set("auto_approve", 0)
                 frappe.log_error(f"Error approving attendance regularization {request.name}: ",str(e))
                 continue
 
@@ -1770,9 +1774,10 @@ def auto_approve_scheduler():
         for request in attendance_requests:
             try:
                 attendance_request = frappe.get_doc("Attendance Request", request.name)
-                handle_custom_workflow_action(attendance_request, "Approve")
                 attendance_request.db_set("custom_auto_approve", 1)
+                apply_workflow(attendance_request, "Approve")
             except Exception as e:
+                attendance_request.db_set("custom_auto_approve", 0)
                 frappe.log_error(f"Error approving attendance request {request.name}:", str(e))
                 continue
 
