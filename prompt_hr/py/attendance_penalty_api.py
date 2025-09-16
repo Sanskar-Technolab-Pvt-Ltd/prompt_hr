@@ -2,9 +2,10 @@ import frappe
 from frappe.utils import getdate, today, add_to_date, add_days, get_datetime_str
 from prompt_hr.scheduler_methods import add_leave_ledger_entry
 from hrms.hr.utils import get_holiday_dates_for_employee
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta, time, date
 from prompt_hr.scheduler_methods import send_penalty_warnings
 from frappe.model.workflow import apply_workflow
+import json
 
 def get_active_employees():
     return frappe.db.get_all("Employee", {"status": "Active"}, "name", pluck="name")
@@ -333,7 +334,7 @@ def prompt_employee_attendance_penalties():
                             if not att_date:
                                 continue
                             # compute buffered email date
-                            email_date_with_buffer = add_days(att_date, int(buffer_days))
+                            email_date_with_buffer = add_days(att_date, (int(buffer_days)+1))
 
                             if emp_id not in consolidated_email_records:
                                 consolidated_email_records[emp_id] = {}
@@ -369,6 +370,16 @@ def prompt_employee_attendance_penalties():
                         )
                 else:
                     if email_details and email_details.get("email"):
+                        clean_penalties = clean_dates(penalties)
+                        email_details.update({
+                            "data": {
+                                "employee": emp_id,
+                                "employee_name": frappe.db.get_value("Employee", emp_id, "employee_name"),
+                                "email_type": "Attendance Penalty Warning",
+                                "penalties": clean_penalties,
+                                "attendance_date": clean_dates(email_date),
+                            }
+                        })
                         all_email_details.append(email_details)
             except Exception as e:
                 frappe.log_error(
@@ -550,7 +561,7 @@ def process_late_entry_penalties_for_prompt(
             ):
                 # ? CHECK HOLIDAY
                 try:
-                    if get_holiday_dates_for_employee(emp, target_date, target_date):
+                    if get_holiday_dates_for_employee(employee, target_date, target_date):
                         continue
                 except Exception as e:
                     frappe.log_error(
@@ -1844,7 +1855,7 @@ def send_penalty_notification_emails():
                 "employee": ["in", employees],
                 "creation": ["between", [start_datetime, end_datetime]],
             },
-            fields=["name", "employee", "penalty_date"]
+            fields=["name", "employee", "penalty_date", "attendance"]
         )
         try:
             notification_doc = frappe.get_doc("Notification", "Employee Penalty Notification")
@@ -1876,10 +1887,31 @@ def send_penalty_notification_emails():
                                 frappe.log_error("Error in getting additional email settings from HR Settings", str(e))
                                 add_to_penalty_email = 0
                             if add_to_penalty_email:
+                                child_table_data = frappe.get_all(
+                                    "Employee Leave Penalty Details",
+                                    filters={"parent": penalty.name},
+                                    fields=["reason"]
+                                )
+                                penalty_data = {}
+                                for row in child_table_data:
+                                    penalty_data.setdefault(row.reason, {})
+                                    penalty_data[row.reason].update(
+                                        {
+                                            "penalty_date": "",
+                                            "attendance": penalty.attendance,
+                                        }
+                                    )
                                 all_emails_details.append({
                                     "recipients": emp_user_id,
                                     "subject": subject,
                                     "message": message,
+                                    "data": {
+                                        "employee": penalty.employee,
+                                        "employee_name": frappe.db.get_value("Employee", penalty.employee, "employee_name"),
+                                        "email_type": "Penalty Notification",
+                                        "penalties": penalty_data,
+                                        "attendance_date": clean_dates(penalty.penalty_date),
+                                    }
                                 })
                             else:
                                 frappe.sendmail(
@@ -1902,7 +1934,8 @@ def send_penalty_notification_emails():
                                 "doctype": "Penalty Emails Details",
                                 "email": ed["recipients"],
                                 "subject": ed["subject"],
-                                "message": ed["message"]
+                                "message": ed["message"],
+                                "data": ed["data"]
                             })
                         except Exception as e:
                             frappe.log_error("Error in appending child rows for penalty email", str(e))
@@ -1920,3 +1953,17 @@ def send_penalty_notification_emails():
 
     except Exception as e:
         frappe.log_error("Error in fetching Employee Penalties", str(e))
+
+
+def clean_dates(obj):
+    """
+    RECURSIVELY CONVERT DATETIME.DATE OR DATETIME.DATETIME
+    TO ISO STRING (YYYY-MM-DD).
+    """
+    if isinstance(obj, dict):
+        return {k: clean_dates(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [clean_dates(v) for v in obj]
+    if isinstance(obj, (date, datetime)):
+        return obj.isoformat()
+    return obj
