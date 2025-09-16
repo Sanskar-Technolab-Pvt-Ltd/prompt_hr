@@ -10,6 +10,11 @@ from frappe.utils import get_datetime, add_days
 
 
 class AttendanceRegularization(Document):
+
+	def before_insert(self):
+		self.status = "Pending"
+		self.auto_approve = 0
+		self.employee_notified = 0
 	
 	def validate(self):
 
@@ -85,6 +90,14 @@ class AttendanceRegularization(Document):
 				if not self.employee_notified:
 					emp_user_id = frappe.db.get_value("Employee", self.employee, "user_id")
 					if emp_user_id:
+
+						# ? EMAIL SHOULD ONLY SENT IN AUTO APPROVAL CASE IF IT IS ENABLE IN HR SETTINGS
+						if not self.is_new():
+							auto_approve = frappe.db.get_value("Attendance Regularization", self.name, "auto_approve")
+							if auto_approve:
+								is_email_sent_allowed = frappe.db.get_single_value("HR Settings", "custom_send_auto_approve_doc_emails") or 0
+								if not is_email_sent_allowed:
+									return
 						send_notification_email(
 													recipients=[emp_user_id],
 													notification_name="Attendance Regularization Approved",
@@ -100,6 +113,15 @@ class AttendanceRegularization(Document):
 				
 				emp_user_id = frappe.db.get_value("Employee", self.employee, "user_id")
 				if emp_user_id:
+
+					# ? EMAIL SHOULD ONLY SENT IN AUTO APPROVAL CASE IF IT IS ENABLE IN HR SETTINGS
+					if not self.is_new():
+						auto_approve = frappe.db.get_value("Attendance Regularization", self.name, "auto_approve")
+						if auto_approve:
+							is_email_sent_allowed = frappe.db.get_single_value("HR Settings", "custom_send_auto_approve_doc_emails") or 0
+							if not is_email_sent_allowed:
+								return
+
 					send_notification_email(
 													recipients=[emp_user_id],
 													notification_name="Attendance Regularization Rejected",
