@@ -397,10 +397,12 @@ def profile_form_url():
     try:
         url = get_url()
         hr_setting = frappe.get_doc("HR Settings","HR Settings")
+
+        sid = frappe.session.sid
         if hr_setting.custom_web_form_link:
-            final_url = f"{url}{hr_setting.custom_web_form_link}"
+            final_url = f"{url}{hr_setting.custom_web_form_link}?sid={sid}"
         else:
-            final_url = url
+            final_url = f"{url}/app?sid={sid}"
         
        
     except Exception as e:
