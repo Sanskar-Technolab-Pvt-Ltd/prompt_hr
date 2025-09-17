@@ -14,8 +14,16 @@ def get_workflow_transitions(doctype, docname):
     doc = frappe.get_doc(doctype, docname)
     transitions = get_transitions(doc)
 
-    # ? Use set comprehension to keep only unique actions
-    unique_actions = {t.action for t in transitions}
+    actions = []
+    for t in transitions:
+        # exclude when self approval is not allowed and user = doc owner
+        if not t.get("allow_self_approval", 0) and frappe.session.user == doc.owner:
+            continue
 
-    # ? Convert back to list before returning
-    return list(unique_actions)
+        actions.append(t["action"])
+
+    # return only unique actions (order preserved)
+    unique_actions = list(dict.fromkeys(actions))
+
+    return unique_actions
+
