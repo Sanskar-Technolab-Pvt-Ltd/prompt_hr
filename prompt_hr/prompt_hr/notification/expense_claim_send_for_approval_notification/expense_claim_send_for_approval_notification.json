@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-09-18 17:14:20.319284",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Expense Claim",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "<p>Dear {{ expense_approver_name or employee_name }},</p>\n\n<p>{{ employee_name }} has submitted a new <b>Expense Claim</b> for approval.</p>\n\n{% if can_approve %}\n<p>You have been assigned as the <b>Expense Approver</b> for this claim.  \nPlease review and take necessary action at your earliest convenience.</p>\n{% else %}\n<p>This is an informational notification.  \nNo action is required from your side.</p>\n{% endif %}\n\n<p>Regards,<br>\nFinance Team</p>\n",
+ "message_type": "HTML",
+ "modified": "2025-09-18 18:44:27.478071",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Expense Claim Send For Approval Notification",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "Expense Claim Submitted by {{ employee_name }} for Approval"
+}

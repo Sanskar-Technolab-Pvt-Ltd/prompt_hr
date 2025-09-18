@@ -28,6 +28,7 @@ def before_submit(doc, method):
     Updates actual expense amounts in related Marketing Planning documents.
     """
     update_amount_in_marketing_planning(doc, method)
+    send_mail_for_updates(doc)
 
 
 def before_save(doc, method):
@@ -45,6 +46,136 @@ def before_save(doc, method):
         ExpenseClaim.calculate_total_amount(doc)
         ExpenseClaim.calculate_taxes(doc)
         sort_expense_claim_data(doc)
+
+    if not doc.is_new():
+        send_mail_for_updates(doc)
+
+def send_mail_for_updates(doc):
+    if doc.is_new():
+        return
+
+    # ? Pre-fetch employee details
+    employee = frappe.db.get_value("Employee", doc.employee, ["employee_name", "user_id", "reports_to"], as_dict=True)
+    employee_name = employee.employee_name
+    employee_id = employee.user_id
+    expense_approver = doc.expense_approver
+
+    reporting_manager_user_id = None
+    reporting_manager_name = None
+    if employee.reports_to:
+        rm = frappe.db.get_value("Employee", employee.reports_to, ["user_id", "employee_name"], as_dict=True)
+        if rm:
+            reporting_manager_user_id = rm.user_id
+            reporting_manager_name = rm.employee_name
+
+    try:
+        workflow_state_change = doc.has_value_changed("workflow_state")
+    except Exception:
+        workflow_state_change = True
+
+    if not workflow_state_change:
+        return
+
+    # ? Base helper for sending mail
+    def send_notification(notification_name, context_updates=None, recipients=None):
+        notification_doc = frappe.get_doc("Notification", notification_name)
+        ctx = {"employee_name": employee_name, "expense_approver_name": "", "can_approve": 0, "doc":doc}
+        if context_updates:
+            ctx.update(context_updates)
+
+        subject = frappe.render_template(notification_doc.subject, ctx)
+        message = frappe.render_template(notification_doc.message, ctx)
+
+        if recipients:
+            if isinstance(recipients, str):
+                recipients = [recipients]
+            frappe.sendmail(recipients=recipients, subject=subject, message=message)
+
+    # Workflow state handling
+    if doc.workflow_state == "Pending For Approval":
+        if expense_approver:
+            ea = frappe.db.get_value("Employee", {"user_id": expense_approver}, "employee_name") or expense_approver
+            send_notification("Expense Claim Send For Approval Notification",
+                            {"expense_approver_name": ea, "can_approve": 1},
+                            recipients=expense_approver)
+
+        if reporting_manager_user_id:
+            send_notification("Expense Claim Send For Approval Notification",
+                            {"expense_approver_name": reporting_manager_name, "can_approve": 0},
+                            recipients=reporting_manager_user_id)
+
+        if employee_id:
+            send_notification("Expense Claim Send For Approval Notification",
+                            {"expense_approver_name": employee_name, "can_approve": 0},
+                            recipients=employee_id)
+
+    elif doc.workflow_state == "Rejected":
+        if expense_approver:
+            ea = frappe.db.get_value("Employee", {"user_id": expense_approver}, "employee_name") or expense_approver
+            send_notification("Expense Claim Rejection Notification",
+                            {"expense_approver_name": ea, "can_approve": 1},
+                            recipients=expense_approver)
+
+        if reporting_manager_user_id:
+            send_notification("Expense Claim Rejection Notification",
+                            {"expense_approver_name": reporting_manager_name, "can_approve": 0},
+                            recipients=reporting_manager_user_id)
+
+        if employee_id:
+            send_notification("Expense Claim Rejection Notification",
+                            {"expense_approver_name": employee_name, "can_approve": 0},
+                            recipients=employee_id)
+
+    elif doc.workflow_state in ("Escalated", "Sent to Accounting Team"):
+        stage = doc.workflow_state
+        if expense_approver:
+            ea = frappe.db.get_value("Employee", {"user_id": expense_approver}, "employee_name") or expense_approver
+            send_notification("Expense Claim Escalation Notification",
+                            {"expense_approver_name": ea, "stage": stage},
+                            recipients=expense_approver)
+
+        if reporting_manager_user_id:
+            send_notification("Expense Claim Escalation Notification",
+                            {"expense_approver_name": reporting_manager_name, "stage": stage},
+                            recipients=reporting_manager_user_id)
+
+        if employee_id:
+            send_notification("Expense Claim Escalation Notification",
+                            {"stage": stage},
+                            recipients=employee_id)
+
+        # For last shared user
+        last_shared = frappe.get_all(
+            "DocShare",
+            filters={"share_doctype": doc.doctype, "share_name": doc.name, "user": ["!=", employee_id]},
+            fields=["user"],
+            order_by="creation desc",
+            limit_page_length=1
+        )
+
+        if last_shared:
+            last_shared_user = last_shared[0].user
+            shared_employee_name = frappe.db.get_value("Employee", {"user_id": last_shared_user}, "employee_name")
+            if shared_employee_name:
+                send_notification("Expense Claim Escalation Notification",
+                                {"expense_approver_name": shared_employee_name, "can_approve": 1, "stage": stage},
+                                recipients=last_shared_user)
+
+    elif doc.workflow_state == "Expense Claim Submitted":
+        if expense_approver:
+            ea = frappe.db.get_value("Employee", {"user_id": expense_approver}, "employee_name") or expense_approver
+            send_notification("Expense Claim Submitted Notification",
+                            {"expense_approver_name": ea},
+                            recipients=expense_approver)
+
+        if reporting_manager_user_id:
+            send_notification("Expense Claim Submitted Notification",
+                            {"expense_approver_name": reporting_manager_name},
+                            recipients=reporting_manager_user_id)
+
+        if employee_id:
+            send_notification("Expense Claim Submitted Notification",
+                            recipients=employee_id)
 
 
 def validate_number_of_days(doc):

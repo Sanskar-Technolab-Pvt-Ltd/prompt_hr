@@ -1,0 +1,14 @@
+<p>Dear {{ expense_approver_name or employee_name }},</p>
+
+<p>{{ employee_name }} has submitted a new <b>Expense Claim</b> for approval.</p>
+
+{% if can_approve %}
+<p>You have been assigned as the <b>Expense Approver</b> for this claim.  
+Please review and take necessary action at your earliest convenience.</p>
+{% else %}
+<p>This is an informational notification.  
+No action is required from your side.</p>
+{% endif %}
+
+<p>Regards,<br>
+Finance Team</p>

@@ -1,0 +1,17 @@
+<p>Dear {{ expense_approver_name or employee_name }},</p>
+
+<p>The <b>Expense Claim</b> submitted by <b>{{ employee_name }}</b> has been
+<b>approved</b> and is now <b>finalised</b>.</p>
+
+<p>
+    You can view the finalised claim by clicking the link below:<br>
+    <a href="{{ frappe.utils.get_url('/app/expense-claim/' + doc.name) }}" target="_blank">
+        View Finalised Expense Claim
+    </a>
+</p>
+
+<p>This notification is for your information.  
+No further action is required.</p>
+
+<p>Regards,<br>
+Finance Team</p>

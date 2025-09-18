@@ -41,7 +41,6 @@ frappe.ui.form.on('Expense Claim', {
         const is_service_engineer = (roles.includes("S - Service Engineer") || roles.includes("Service Engineer")) && !roles.includes("System Manager");
         frm.set_df_property("expenses", "cannot_add_rows", is_service_engineer);
 
-		create_payment_entry_button(frm);
 		add_view_field_visit_expense_button(frm);
 		fetch_commute_data(frm);
 		set_local_commute_monthly_expense(frm);
@@ -75,7 +74,7 @@ frappe.ui.form.on('Expense Claim', {
     before_workflow_action: function (frm) {
 
         // ! IF "REJECT" ACTION, PROCEED IMMEDIATELY
-        if (frm.selected_workflow_action === "Reject" || frm.selected_workflow_action === "Send For Approval") {
+        if (frm.selected_workflow_action === "Reject" || frm.selected_workflow_action === "Send For Approval" || frm.selected_workflow_action === "Submit") {
             console.log(">>> Workflow action is 'Reject' – proceeding without dialog.");
             return Promise.resolve();
         }
@@ -279,6 +278,8 @@ function claim_extra_expenses(frm) {
         const sales_roles = ["S - Sales Director", "S - Sales Manager", "S - Sales Supervisor", "S - Sales Executive"];
         let field_visit_cache = [];
         let tour_visit_cache = []
+        let customer_cache = [];
+
         // ? FIELD VISIT LIST STORE IN CACHE
         // ? REASON : GET DATA CALLS API SO IT T
         frappe.db.get_list("Field Visit", {
@@ -300,6 +301,15 @@ function claim_extra_expenses(frm) {
         }).then(records => {
             tour_visit_cache = records.map(r => r.name);
         });
+
+        // ? CONSTRUCT CUSTOMER CACHE TO GET DATA FASTER
+        frappe.db.get_list("Customer", {
+            fields: ["name"],
+            limit_page_length: 0
+        }).then(records => {
+            customer_cache  = records.map(r => r.name);
+        });
+
         let userRoles = frappe.user_roles || [];
 
         // FUNCTION TO CHECK IF USER HAS ANY ROLE IN A GIVEN ROLE LIST
@@ -395,6 +405,19 @@ function claim_extra_expenses(frm) {
                     hidden: 1
                 },
 
+                {
+                    label: "Customer",
+                    fieldname: "customer",
+                    fieldtype: "MultiSelectList",
+                    options: "Customer",
+                    hidden: 1,
+                    get_data: function (txt) {
+                        return customer_cache
+                            .filter(d => !txt || d.toLowerCase().includes(txt.toLowerCase()))
+                            .map(d => ({ value: d, description: "" }));
+                    }
+                },
+
                 // ? NON DA FIELDS
                 {
                     label: "Field Visit",
@@ -454,6 +477,8 @@ function claim_extra_expenses(frm) {
                         dialog.set_df_property("service_call", "reqd", isRequired);
                         dialog.set_df_property("field_visit", "hidden", !isRequired);
                         dialog.set_df_property("service_call", "hidden", !isRequired);
+                        dialog.set_df_property("customer", "hidden", isRequired);
+                        dialog.set_df_property("customer", "reqd", !isRequired);
 
                         dialog.fields_dict.field_visit.refresh();
                         dialog.fields_dict.service_call.refresh();
@@ -468,7 +493,8 @@ function claim_extra_expenses(frm) {
                         const isRequired = !dialog.get_value("add_without_tv");
                         dialog.set_df_property("tour_visit", "reqd", isRequired);
                         dialog.set_df_property("tour_visit", "hidden", !isRequired);
-
+                        dialog.set_df_property("customer", "hidden", isRequired);
+                        dialog.set_df_property("customer", "reqd", !isRequired);
                         dialog.fields_dict.field_visit.refresh();
                         dialog.fields_dict.service_call.refresh();
                     }
@@ -482,14 +508,19 @@ function claim_extra_expenses(frm) {
                 }
 
                 if ((values.add_without_fv_sc || values.add_without_tv) && values.expense_type == "Non DA"){
+                    let customers = values.customer;
+                    let customer_list = Array.isArray(customers) ? customers.join(", ") : customers;
                     for (let i = 0; i < values.number_of_row; i++) {
-                        frm.add_child("expenses", {});
+                        let new_expense = {
+                            "custom_customer_details": customer_list, 
+                        };
+                        frm.add_child("expenses", new_expense);
                     }
                     frm.refresh_field("expenses");
                     dialog.hide();
                 }
                 else if (values.expense_type == "DA") {
-                    add_extra_da(frm, values.from_date, values.from_time, values.to_date, values.to_time)
+                    add_extra_da(frm, values.from_date, values.from_time, values.to_date, values.to_time, values.customer)
                     dialog.hide();
 
                 }
@@ -556,7 +587,7 @@ function claim_extra_expenses(frm) {
         
             // RESET ALL TO HIDDEN + NOT REQUIRED
             ["from_date", "from_time", "to_date", "to_time", "tour_visit",
-            "field_visit", "service_call", "number_of_row", "add_without_fv_sc", "add_without_tv"]
+            "field_visit", "service_call", "number_of_row", "add_without_fv_sc", "add_without_tv", "customer"]
                 .forEach(f => {
                     dialog.set_df_property(f, "hidden", 1);
                     dialog.set_df_property(f, "reqd", 0);
@@ -564,7 +595,7 @@ function claim_extra_expenses(frm) {
         
             if (expenseType === "DA") {
                 // SHOW + REQUIRE DA FIELDS
-                ["from_date", "from_time", "to_date", "to_time"].forEach(f => {
+                ["from_date", "from_time", "to_date", "to_time", "customer"].forEach(f => {
                     dialog.set_df_property(f, "hidden", 0);
                     dialog.set_df_property(f, "reqd", 1);
                 });
@@ -576,13 +607,14 @@ function claim_extra_expenses(frm) {
                     ["field_visit", "service_call"].forEach(f => {
                         dialog.set_df_property(f, "reqd", 1);
                     });
+                    dialog.set_value("add_without_fv_sc", 0);
                 } else if (visit_type === "Tour Visit") {
 
                     ["tour_visit","number_of_row", "add_without_tv"].forEach(f => {
                         dialog.set_df_property(f, "hidden", 0);
                     });
                         dialog.set_df_property("tour_visit", "reqd", 1);
-                    
+                        dialog.set_value("add_without_tv", 0);
                 }
             }
         
@@ -593,46 +625,6 @@ function claim_extra_expenses(frm) {
     });
 }
 
-// ? CREATE PAYMENT ENTRY BUTTON
-function create_payment_entry_button(frm) {
-	if (frm.doc.docstatus !== 0 || frm.doc.workflow_state !== "Sent to Accounting Team") return;
-
-	frm.page.actions.parent().remove();
-
-	frm.add_custom_button(__('Create Payment Entry'), () => {
-		if (frm.doc.approval_status !== "Approved") {
-			frappe.throw(__('Expense Claim must be approved before creating a payment entry.'));
-		}
-
-		const proceed = () => {
-			frm.set_value("workflow_state", "Expense Claim Submitted");
-			frm.savesubmit().then(() => frm.events.make_payment_entry(frm));
-		};
-
-		if (!frm.doc.payable_account) {
-			const d = new frappe.ui.Dialog({
-				title: __('Create Payment Entry'),
-				fields: [{
-					fieldtype: 'Link',
-					fieldname: 'payable_account',
-					label: __('Payable Account'),
-					options: 'Account',
-					reqd: 1,
-					get_query: () => frm.fields_dict["payable_account"].get_query()
-				}],
-				primary_action_label: __('Create'),
-				primary_action(values) {
-					frm.set_value("payable_account", values.payable_account);
-					d.hide();
-					proceed();
-				}
-			});
-			d.show();
-		} else {
-			proceed();
-		}
-	});
-}
 
 // ? FETCH COMMUTE DATA AND BIND EVENTS
 function fetch_commute_data(frm) {
@@ -1165,24 +1157,46 @@ function getTourVisitExpenseDialog(frm) {
     });
 }
 
-function add_extra_da(frm,from_date, from_time, to_date, to_time) {
-    //? CONVERT STRING TO DATE OBJECT
+function add_extra_da(frm, from_date, from_time, to_date, to_time, customers) {
+    //? CONVERT STRING TO DATE OBJECTS
     let start_date = frappe.datetime.str_to_obj(from_date);
     let end_date = frappe.datetime.str_to_obj(to_date);
 
-    //? GET TIME OBJECTS
-    let start_time = from_time;
-    let end_time = to_time;
-
-    //? LOOP THROUGH DATES
+    //? LOOP THROUGH EACH DATE
     for (let d = new Date(start_date); d <= end_date; d.setDate(d.getDate() + 1)) {
-        let expense_date = new Date(d); //? CLONE DATE
 
+        //? CLONE CURRENT DATE
+        let expense_date = new Date(d);
+
+        //? DETERMINE START & END TIME
+        let current_start_time, current_end_time;
+
+        if (expense_date.getTime() === start_date.getTime()) {
+            //? FIRST DATE → USE GIVEN START TIME
+            current_start_time = from_time;
+        } else {
+            //? MIDDLE OR LAST DATE → DEFAULT 00:00:00
+            current_start_time = "00:00:00";
+        }
+
+        if (expense_date.getTime() === end_date.getTime()) {
+            //? LAST DATE → USE GIVEN END TIME
+            current_end_time = to_time;
+        } else {
+            //? FIRST OR MIDDLE DATE → DEFAULT 23:59:59
+            current_end_time = "23:59:59";
+        }
+
+        //? PREPARE CUSTOMER LIST STRING
+        let customer_list = Array.isArray(customers) ? customers.join(", ") : customers;
+
+        //? CREATE CHILD RECORD
         let new_expense = {
             "expense_date": frappe.datetime.obj_to_str(expense_date),
             "custom_expense_end_date": frappe.datetime.obj_to_str(expense_date),
-            "custom_expense_start_time": start_time,
-            "custom_expense_end_time": end_time,
+            "custom_expense_start_time": current_start_time,
+            "custom_expense_end_time": current_end_time,
+            "custom_customer_details": customer_list,
             "expense_type": "DA",
             "amount": 0,
             "sanctioned_amount": 0,
@@ -1192,6 +1206,7 @@ function add_extra_da(frm,from_date, from_time, to_date, to_time) {
         frm.add_child("expenses", new_expense);
     }
 
+    //? REFRESH CHILD TABLE
     frm.refresh_field("expenses");
 }
 
