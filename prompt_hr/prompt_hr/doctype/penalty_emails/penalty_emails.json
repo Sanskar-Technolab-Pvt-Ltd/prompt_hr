@@ -6,7 +6,9 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "date",
   "status",
+  "remarks",
   "email_details"
  ],
  "fields": [
@@ -21,12 +23,22 @@
    "fieldtype": "Select",
    "label": "Status",
    "options": "Not Sent\nSent"
+  },
+  {
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "label": "Date"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-09-13 18:17:02.901689",
+ "modified": "2025-09-18 13:25:14.896763",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Penalty Emails",

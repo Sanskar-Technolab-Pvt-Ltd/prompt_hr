@@ -1,11 +1,11 @@
 import frappe
-from frappe.utils import getdate, today, add_to_date, add_days, get_datetime_str
+from frappe.utils import getdate, today, add_to_date, add_days, get_datetime_str, format_date
 from prompt_hr.scheduler_methods import add_leave_ledger_entry
 from hrms.hr.utils import get_holiday_dates_for_employee
 from datetime import datetime, timedelta, time, date
 from prompt_hr.scheduler_methods import send_penalty_warnings
 from frappe.model.workflow import apply_workflow
-import json
+
 
 def get_active_employees():
     return frappe.db.get_all("Employee", {"status": "Active"}, "name", pluck="name")
@@ -392,7 +392,9 @@ def prompt_employee_attendance_penalties():
             penalty_emails_doc = frappe.get_doc({  
                         "doctype": "Penalty Emails",
                         "status": "Not Sent",
-                        "email_details": all_email_details
+                        "email_details": all_email_details,
+                        "date": getdate(),
+                        "remarks": f"Consolidated attendance penalty warnings generated on {format_date(getdate())} for attendance discrepancies dated {format_date(add_to_date(getdate(), days=-1))}. Penalties will be applied on {format_date(email_date_with_buffer)}."
                     })                
             penalty_emails_doc.insert(ignore_permissions=True)
             frappe.db.commit()
@@ -1864,6 +1866,7 @@ def send_penalty_notification_emails():
             return
         if all_penalties:
             all_emails_details = []
+            penalty_attendance_date = None
             for penalty in all_penalties:
                 if notification_doc:
                     try:
@@ -1881,6 +1884,8 @@ def send_penalty_notification_emails():
                                     "penalty_date": penalty.penalty_date
                                 }
                             )
+                            if not penalty_attendance_date:
+                                penalty_attendance_date = penalty.penalty_date
                             try:
                                 add_to_penalty_email = frappe.db.get_single_value("HR Settings", "custom_add_emails_to_penalty_emails_for_prompt") or 0
                             except Exception as e:
@@ -1943,7 +1948,9 @@ def send_penalty_notification_emails():
                 penalty_emails_doc = frappe.get_doc({
                     "doctype": "Penalty Emails",
                     "status": "Not Sent",
-                    "email_details": child_rows
+                    "email_details": child_rows,
+                    "date": getdate(),
+                    "remarks": f"Consolidated penalty notification emails prepared on {format_date(getdate())} for attendance irregularities dated {format_date(penalty_attendance_date)}."
                 })
 
                 penalty_emails_doc.insert(ignore_permissions=True)
