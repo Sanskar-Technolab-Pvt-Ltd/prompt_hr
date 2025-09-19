@@ -228,3 +228,30 @@ def custom_allocate_leaves_manually(doc, new_leaves, from_date=None):
     #     msg += "<br><br>"
     #     msg += _("Reference: {0}").format(get_link_to_form("Leave Policy", doc.leave_policy))
     #     frappe.throw(msg, title=_("Annual Allocation Exceeded"))
+
+@frappe.whitelist()
+def custom_deduct_leaves_manually(doc, leaves_to_deduct, from_date):
+    if isinstance(doc, str):
+        doc = frappe.get_doc("Leave Allocation", doc)
+    
+    
+    doc.db_set("total_leaves_allocated", flt(doc.total_leaves_allocated) - flt(leaves_to_deduct), update_modified=False)
+    
+    leave_ledger_entry_doc = frappe.get_doc({
+        "doctype": "Leave Ledger Entry",
+        "employee": doc.employee,
+        "leave_type": doc.leave_type,
+        "from_date": from_date,
+        "to_date": doc.to_date,
+        "transaction_type": "Leave Allocation",
+        "transaction_name": doc.name,
+        "leaves": -flt(leaves_to_deduct),
+    })
+    leave_ledger_entry_doc.insert()
+    leave_ledger_entry_doc.submit()    
+    frappe.db.commit()
+    frappe.msgprint(
+            _("{0} leaves deducted successfully").format(frappe.bold(leaves_to_deduct)),
+            indicator="green",
+            alert=True,
+        )
