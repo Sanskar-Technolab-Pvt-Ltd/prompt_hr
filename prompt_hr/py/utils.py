@@ -1011,7 +1011,7 @@ def get_reporting_manager_info(employee: str) -> dict | None:
         manager = frappe.db.get_value(
             "Employee",
             manager_docname,
-            ["name", "employee_name"],
+            ["name", "employee_name", "user_id"],
             as_dict=True
         )
         return manager

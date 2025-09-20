@@ -6,6 +6,9 @@ from prompt_hr.py.utils import get_reporting_manager_info
 
 
 class CustomShiftRequest(ShiftRequest):
+    def before_insert(self):
+        self.custom_auto_approve = 0
+
     def validate(self):
         validate_active_employee(self.employee)
         self.validate_from_to_dates("from_date", "to_date")
@@ -49,8 +52,54 @@ class CustomShiftRequest(ShiftRequest):
             manager_info = get_reporting_manager_info(self.employee)
             if manager_info:
                 self.db_set("custom_pending_approval_at", f"{manager_info['name']} - {manager_info['employee_name']}")
+                if manager_info.get("user_id"):
+                    notification = frappe.get_doc("Notification", "Shift Request Pending Approval")
+                    if notification:
+                        message = frappe.render_template(
+                            notification.message,
+                            {"doc": self, "manager_name": manager_info.get("employee_name")}
+                        )
+                        subject = frappe.render_template(
+                            notification.subject,
+                            {"doc": self, "manager_name": manager_info.get("employee_name")}
+                        )
+                        frappe.sendmail(
+                            recipients=[manager_info.get("user_id")],
+                            subject=subject,
+                            message=message,
+                            reference_doctype=self.doctype,
+                            reference_name=self.name,
+                        )
+                        
         else:
             self.db_set("custom_pending_approval_at", "")
+            if not self.is_new():
+                auto_approve = frappe.db.get_value("Shift Request", self.name, "custom_auto_approve")
+                if auto_approve:
+                    is_email_sent_allowed = frappe.db.get_single_value("HR Settings", "custom_send_auto_approve_doc_emails") or 0
+                    if not is_email_sent_allowed:
+                        return
+            if self.workflow_state == "Approved" or self.workflow_state == "Rejected":
+                manager_info = get_reporting_manager_info(self.employee)
+                employee_user_id = frappe.db.get_value("Employee", self.employee, "user_id")
+                if manager_info and employee_user_id:
+                    notification = frappe.get_doc("Notification", "Shift Request Response To Employee")
+                    if notification:
+                        message = frappe.render_template(
+                            notification.message,
+                            {"doc": self, "manager_name": manager_info.get("employee_name")}
+                        )
+                        subject = frappe.render_template(
+                            notification.subject,
+                            {"doc": self, "manager_name": manager_info.get("employee_name")}
+                        )
+                        frappe.sendmail(
+                            recipients=[employee_user_id],
+                            subject=subject,
+                            message=message,
+                            reference_doctype=self.doctype,
+                            reference_name=self.name,
+                        )
 
 
 import frappe

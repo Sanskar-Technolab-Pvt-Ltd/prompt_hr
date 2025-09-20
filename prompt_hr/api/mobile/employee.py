@@ -391,16 +391,27 @@ def create_field_changes(employee=None, field_name=None, field_label=None, new_v
         
         
 from frappe.utils import get_url
+from frappe.auth import LoginManager
 
 @frappe.whitelist()
 def profile_form_url():
     try:
         url = get_url()
         hr_setting = frappe.get_doc("HR Settings","HR Settings")
+
+        # Ensure we have the current user
+        user = frappe.session.user
+       
+        # Generate a new session for the user
+        login_manager = LoginManager()
+        login_manager.user = user
+        login_manager.post_login()
+        sid = frappe.session.sid
+
         if hr_setting.custom_web_form_link:
-            final_url = f"{url}{hr_setting.custom_web_form_link}"
+            final_url = f"{url}{hr_setting.custom_web_form_link}?sid={sid}"
         else:
-            final_url = url
+            final_url = f"{url}/app?sid={sid}"
         
        
     except Exception as e:

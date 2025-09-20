@@ -1,11 +1,11 @@
 import frappe
-from frappe.utils import getdate, today, add_to_date, add_days, get_datetime_str
+from frappe.utils import getdate, today, add_to_date, add_days, get_datetime_str, format_date
 from prompt_hr.scheduler_methods import add_leave_ledger_entry
 from hrms.hr.utils import get_holiday_dates_for_employee
-from datetime import datetime, timedelta, time
-from prompt_hr.overrides.attendance_request_override import handle_custom_workflow_action
+from datetime import datetime, timedelta, time, date
 from prompt_hr.scheduler_methods import send_penalty_warnings
 from frappe.model.workflow import apply_workflow
+
 
 def get_active_employees():
     return frappe.db.get_all("Employee", {"status": "Active"}, "name", pluck="name")
@@ -334,7 +334,7 @@ def prompt_employee_attendance_penalties():
                             if not att_date:
                                 continue
                             # compute buffered email date
-                            email_date_with_buffer = add_days(att_date, int(buffer_days))
+                            email_date_with_buffer = add_days(att_date, (int(buffer_days)+1))
 
                             if emp_id not in consolidated_email_records:
                                 consolidated_email_records[emp_id] = {}
@@ -370,6 +370,16 @@ def prompt_employee_attendance_penalties():
                         )
                 else:
                     if email_details and email_details.get("email"):
+                        clean_penalties = clean_dates(penalties)
+                        email_details.update({
+                            "data": {
+                                "employee": emp_id,
+                                "employee_name": frappe.db.get_value("Employee", emp_id, "employee_name"),
+                                "email_type": "Attendance Penalty Warning",
+                                "penalties": clean_penalties,
+                                "attendance_date": clean_dates(email_date),
+                            }
+                        })
                         all_email_details.append(email_details)
             except Exception as e:
                 frappe.log_error(
@@ -382,7 +392,9 @@ def prompt_employee_attendance_penalties():
             penalty_emails_doc = frappe.get_doc({  
                         "doctype": "Penalty Emails",
                         "status": "Not Sent",
-                        "email_details": all_email_details
+                        "email_details": all_email_details,
+                        "date": getdate(),
+                        "remarks": f"Consolidated attendance penalty warnings generated on {format_date(getdate())} for attendance discrepancies dated {format_date(add_to_date(getdate(), days=-1))}. Penalties will be applied on {format_date(email_date_with_buffer)}."
                     })                
             penalty_emails_doc.insert(ignore_permissions=True)
             frappe.db.commit()
@@ -548,10 +560,11 @@ def process_late_entry_penalties_for_prompt(
                 and not attendance_request_exists
                 and not other_attendance_request_exists
                 and not full_day_leave_exists(employee, target_date)
+                and not half_day_leave_exist_first_half(employee, target_date)
             ):
                 # ? CHECK HOLIDAY
                 try:
-                    if get_holiday_dates_for_employee(emp, target_date, target_date):
+                    if get_holiday_dates_for_employee(employee, target_date, target_date):
                         continue
                 except Exception as e:
                     frappe.log_error(
@@ -733,7 +746,7 @@ def target_date_attendance_exists(
         if daily_hour:
             filters.update({"status": ["not in",["Absent","On Leave", "Mispunch", "WeekOff"]]})
         elif late_entry:
-            filters.update({"status": ["not in",["Absent","On Leave", "WeekOff", "Half Day"]]})
+            filters.update({"status": ["not in",["Absent","On Leave", "WeekOff"]]})
         else:
             filters.update({"status": ["not in",["Absent","On Leave", "WeekOff"]]})
 
@@ -1606,27 +1619,30 @@ def auto_approve_scheduler():
                     if leave_request.workflow_state == "Pending":
                         if leave_request.leave_type not in ["Leave Without Pay", "Casual Leave"]:
                             try:
+                                leave_request.db_set("custom_auto_approve", 1)
                                 apply_workflow(leave_request, "Approve")
                                 if leave_request.workflow_state == "Approved by Reporting Manager":
                                     apply_workflow(leave_request, "Approve")
-                                    leave_request.db_set("custom_auto_approve", 1)
                             except Exception as e:
+                                leave_request.db_set("custom_auto_approve", 0)
                                 frappe.log_error(f"Error approving leave request:", str(e))
                                 continue
 
                         else:
                             try:
-                                apply_workflow(leave_request, "Approve")
                                 leave_request.db_set("custom_auto_approve", 1)
+                                apply_workflow(leave_request, "Approve")
                             except Exception as e:
+                                leave_request.db_set("custom_auto_approve", 0)
                                 frappe.log_error(f"Error approving leave request:", str(e))
                                 continue
                     elif leave_request.workflow_state == "Approved by Reporting Manager":
                         try:
-                            apply_workflow(leave_request, "Approve")
                             leave_request.db_set("custom_auto_approve", 1)
+                            apply_workflow(leave_request, "Approve")
 
                         except Exception as e:
+                            leave_request.db_set("custom_auto_approve", 0)
                             frappe.log_error(f"Error approving leave request:", str(e))
                             continue
 
@@ -1680,9 +1696,10 @@ def auto_approve_scheduler():
                 frappe.log_error(f"Error fetching shift request {request.name}:", str(e))
                 continue
             try:
-                apply_workflow(shift_request, "Approve")
                 shift_request.db_set("custom_auto_approve", 1)
+                apply_workflow(shift_request, "Approve")
             except Exception as e:
+                shift_request.db_set("custom_auto_approve", 0)
                 frappe.log_error(f"Error approving shift request {request.name}:", str(e))
                 continue
 
@@ -1726,9 +1743,10 @@ def auto_approve_scheduler():
                 frappe.log_error(f"Error fetching attendance regularization {request.name}:", str(e))
                 continue
             try:
-                apply_workflow(attendance_regularization, "Approve")
                 attendance_regularization.db_set("auto_approve", 1)
+                apply_workflow(attendance_regularization, "Approve")
             except Exception as e:
+                attendance_regularization.db_set("auto_approve", 0)
                 frappe.log_error(f"Error approving attendance regularization {request.name}: ",str(e))
                 continue
 
@@ -1770,15 +1788,46 @@ def auto_approve_scheduler():
         for request in attendance_requests:
             try:
                 attendance_request = frappe.get_doc("Attendance Request", request.name)
-                handle_custom_workflow_action(attendance_request, "Approve")
                 attendance_request.db_set("custom_auto_approve", 1)
+                apply_workflow(attendance_request, "Approve")
             except Exception as e:
+                attendance_request.db_set("custom_auto_approve", 0)
                 frappe.log_error(f"Error approving attendance request {request.name}:", str(e))
                 continue
 
     except Exception as e:
         frappe.log_error(f"Error fetching or processing attendance requests:", str(e))
 
+
+def half_day_leave_exist_first_half(employee, target_date):
+    """
+    CHECK IF THERE IS ANY FULL-DAY LEAVE (NOT HALF DAY) FOR THE EMPLOYEE ON THE TARGET DATE.
+    """
+    try:
+        results = frappe.get_all(
+            "Leave Application",
+            filters={
+                "employee": employee,
+                "workflow_state": "Approved",
+                "from_date": ["<=", target_date],
+                "to_date": [">=", target_date],
+                "half_day": 1,
+            },
+            or_filters=[
+                ["half_day_date", "!=", target_date],
+                ["custom_half_day_time", "!=", "Second"]
+            ],
+            fields=["name", "half_day", "half_day_date"]
+        )
+        if results:
+            return True
+        
+        else:
+            return False
+
+    except Exception as e:
+        frappe.log_error(f"Error checking half day leave for {employee} on {target_date}:", frappe.get_traceback())
+        return False
 
 def full_day_leave_exists(employee, target_date):
     """
@@ -1839,7 +1888,7 @@ def send_penalty_notification_emails():
                 "employee": ["in", employees],
                 "creation": ["between", [start_datetime, end_datetime]],
             },
-            fields=["name", "employee", "penalty_date"]
+            fields=["name", "employee", "penalty_date", "attendance"]
         )
         try:
             notification_doc = frappe.get_doc("Notification", "Employee Penalty Notification")
@@ -1848,6 +1897,7 @@ def send_penalty_notification_emails():
             return
         if all_penalties:
             all_emails_details = []
+            penalty_attendance_date = None
             for penalty in all_penalties:
                 if notification_doc:
                     try:
@@ -1865,16 +1915,39 @@ def send_penalty_notification_emails():
                                     "penalty_date": penalty.penalty_date
                                 }
                             )
+                            if not penalty_attendance_date:
+                                penalty_attendance_date = penalty.penalty_date
                             try:
                                 add_to_penalty_email = frappe.db.get_single_value("HR Settings", "custom_add_emails_to_penalty_emails_for_prompt") or 0
                             except Exception as e:
                                 frappe.log_error("Error in getting additional email settings from HR Settings", str(e))
                                 add_to_penalty_email = 0
                             if add_to_penalty_email:
+                                child_table_data = frappe.get_all(
+                                    "Employee Leave Penalty Details",
+                                    filters={"parent": penalty.name},
+                                    fields=["reason"]
+                                )
+                                penalty_data = {}
+                                for row in child_table_data:
+                                    penalty_data.setdefault(row.reason, {})
+                                    penalty_data[row.reason].update(
+                                        {
+                                            "penalty_date": "",
+                                            "attendance": penalty.attendance,
+                                        }
+                                    )
                                 all_emails_details.append({
                                     "recipients": emp_user_id,
                                     "subject": subject,
                                     "message": message,
+                                    "data": {
+                                        "employee": penalty.employee,
+                                        "employee_name": frappe.db.get_value("Employee", penalty.employee, "employee_name"),
+                                        "email_type": "Penalty Notification",
+                                        "penalties": penalty_data,
+                                        "attendance_date": clean_dates(penalty.penalty_date),
+                                    }
                                 })
                             else:
                                 frappe.sendmail(
@@ -1897,7 +1970,8 @@ def send_penalty_notification_emails():
                                 "doctype": "Penalty Emails Details",
                                 "email": ed["recipients"],
                                 "subject": ed["subject"],
-                                "message": ed["message"]
+                                "message": ed["message"],
+                                "data": ed["data"]
                             })
                         except Exception as e:
                             frappe.log_error("Error in appending child rows for penalty email", str(e))
@@ -1905,7 +1979,9 @@ def send_penalty_notification_emails():
                 penalty_emails_doc = frappe.get_doc({
                     "doctype": "Penalty Emails",
                     "status": "Not Sent",
-                    "email_details": child_rows
+                    "email_details": child_rows,
+                    "date": getdate(),
+                    "remarks": f"Consolidated penalty notification emails prepared on {format_date(getdate())} for attendance irregularities dated {format_date(penalty_attendance_date)}."
                 })
 
                 penalty_emails_doc.insert(ignore_permissions=True)
@@ -1915,3 +1991,17 @@ def send_penalty_notification_emails():
 
     except Exception as e:
         frappe.log_error("Error in fetching Employee Penalties", str(e))
+
+
+def clean_dates(obj):
+    """
+    RECURSIVELY CONVERT DATETIME.DATE OR DATETIME.DATETIME
+    TO ISO STRING (YYYY-MM-DD).
+    """
+    if isinstance(obj, dict):
+        return {k: clean_dates(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [clean_dates(v) for v in obj]
+    if isinstance(obj, (date, datetime)):
+        return obj.isoformat()
+    return obj
