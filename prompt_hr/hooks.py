@@ -233,6 +233,7 @@ doc_events = {
         "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
     },
     "Employee": {
+        "onload": "prompt_hr.py.employee.onload",
         "on_update": "prompt_hr.py.employee.on_update",
         "autoname": "prompt_hr.py.employee.custom_autoname_employee",
         "validate": "prompt_hr.py.employee.validate",
