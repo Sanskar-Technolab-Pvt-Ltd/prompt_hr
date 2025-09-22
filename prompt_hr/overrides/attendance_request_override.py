@@ -18,7 +18,7 @@ class CustomAttendanceRequest(AttendanceRequest):
         elif self.workflow_state == "Rejected":
             self.custom_status = "Rejected"
 
-    def after_insert(self):
+    def before_save(self):
         # === SAFE PARSING ===
         if not self.from_date or not self.to_date:
             frappe.msgprint("From Date and To Date are mandatory for Attendance Request.")
@@ -40,6 +40,12 @@ class CustomAttendanceRequest(AttendanceRequest):
                     "custom_attendance_capture_scheme",
                     "Mobile-Web Checkin-Checkout",
                 )
+
+                # ? ASSIGN CHECKIN ROLE TO EMPLOYEE USER
+                user = frappe.db.get_value("Employee", self.employee, "user_id")
+                if user:
+                    from frappe.utils.user import add_role
+                    add_role(user, "Create Checkin")
 
     def validate(self):
         validate_active_employee(self.employee)
