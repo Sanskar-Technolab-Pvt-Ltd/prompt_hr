@@ -1511,14 +1511,12 @@ def custom_get_allocated_and_expired_leaves(
 	#! INITIALIZE RETURN VARIABLES
 	new_allocation = 0
 	expired_leaves = 0
-	carry_forwarded_leaves = 0
+	penalized_leaves = 0
 
 	#! FETCH ALL LEAVE LEDGER ENTRIES FOR THE GIVEN PERIOD
-	records = get_leave_ledger_entries(from_date, add_days(to_date, -1), employee, leave_type)
+	records = get_leave_ledger_entries(from_date, to_date, employee, leave_type)
 
-	#! CHECK IF LEAVE TYPE IS COMPENSATORY
-	is_compensatory_leave = frappe.db.get_value("Leave Type", leave_type, "is_compensatory")
-    #! GET CURRENT LEAVE PERIOD BASED ON FILTER RANGE
+	#! GET CURRENT LEAVE PERIOD BASED ON FILTER RANGE
 	company = frappe.db.get_value("Employee", employee, "company")
 	leave_periods = get_leave_period(from_date, to_date, company)
 
@@ -1534,171 +1532,134 @@ def custom_get_allocated_and_expired_leaves(
 			leaves_start_date = getdate(f"{year}-01-01")
 		else:
 			leaves_start_date = getdate(f"{today().year}-01-01")
-	if is_compensatory_leave:
-		#! INITIALIZE COMPENSATORY VARIABLES
-		new_allocation = 0
-		expired_leaves = 0
 
-		#! FETCH ALL POSITIVE LEAVE ALLOCATIONS FROM LEDGER
-		comp_off_allocations = frappe.get_all(
-			"Leave Ledger Entry",
-			filters=[
-				["employee", "=", employee],
-				["leave_type", "=", leave_type],
-				["docstatus", "=", 1],
-				["from_date", ">=", leaves_start_date],
-				["from_date", "<=", to_date],
-				["transaction_type", "=", "Leave Allocation"],
-				["leaves", ">", 0],
-			],
-			fields=["name", "leaves", "from_date", "to_date"],
-			order_by="from_date asc"
-		)
 
-		#! FETCH ALL NEGATIVE LEAVE ALLOCATIONS FROM LEDGER
-		negative_leave_allocations = frappe.get_all(
-			"Leave Ledger Entry",
-			filters=[
-				["employee", "=", employee],
-				["leave_type", "=", leave_type],
-				["docstatus", "=", 1],
-				["from_date", ">=", leaves_start_date],
-				["from_date", "<=", to_date],
-				["transaction_type", "=", "Leave Allocation"],
-				["leaves", "<", 0],
-                ["is_expired", "=", 0],
-			],
-			fields=["name", "leaves", "from_date", "to_date"],
-			order_by="from_date asc"
-		)
+	#! FETCH ALL POSITIVE LEAVE ALLOCATIONS FROM LEDGER
+	total_allocations = frappe.get_all(
+		"Leave Ledger Entry",
+		filters=[
+			["employee", "=", employee],
+			["leave_type", "=", leave_type],
+			["docstatus", "=", 1],
+			["from_date", ">=", leaves_start_date],
+			["from_date", "<=", to_date],
+			["transaction_type", "=", "Leave Allocation"],
+			["leaves", ">", 0],
+		],
+		fields=["name", "leaves", "from_date", "to_date"],
+		order_by="from_date asc"
+	)
 
-		#! FETCH ALL LEAVE APPLICATIONS (LEAVES TAKEN)
-		leaves_taken_ledger_entries = frappe.get_all(
-			"Leave Ledger Entry",
-			filters=[
-				["employee", "=", employee],
-				["leave_type", "=", leave_type],
-				["docstatus", "=", 1],
-				["leaves", "<", 0],
-				["from_date", ">=", leaves_start_date],
-				["to_date", "<", to_date],
-				["transaction_type", "=", "Leave Application"]
-			],
-			order_by="from_date asc",
-			fields=["name", "leaves", "from_date", "to_date"]
-		)
+	#! FETCH ALL NEGATIVE LEAVE ALLOCATIONS FROM LEDGER
+	negative_leave_allocations = frappe.get_all(
+		"Leave Ledger Entry",
+		filters=[
+			["employee", "=", employee],
+			["leave_type", "=", leave_type],
+			["docstatus", "=", 1],
+			["from_date", ">=", leaves_start_date],
+			["from_date", "<=", to_date],
+			["transaction_type", "=", "Leave Allocation"],
+			["leaves", "<", 0],
+			["is_expired", "=", 0],
+		],
+		fields=["name", "leaves", "from_date", "to_date"],
+		order_by="from_date asc"
+	)
 
-		#! BUILD A COPY OF ALLOCATIONS TO TRACK CONSUMPTION
-		allocation_pool = []
-		for alloc in comp_off_allocations:
-			allocation_pool.append({
-				"name": alloc.name,
-				"from_date": getdate(alloc.from_date),
-				"to_date": getdate(alloc.to_date),
-				"available": flt(alloc.leaves),
-			})
-		expire_through_negative_allocations = 0
+	#! FETCH ALL LEAVE APPLICATIONS (LEAVES TAKEN)
+	leaves_taken_ledger_entries = frappe.get_all(
+		"Leave Ledger Entry",
+		filters=[
+			["employee", "=", employee],
+			["leave_type", "=", leave_type],
+			["docstatus", "=", 1],
+			["leaves", "<", 0],
+			["from_date", ">=", leaves_start_date],
+			["to_date", "<", to_date],
+			["transaction_type", "=", "Leave Application"]
+		],
+		order_by="from_date asc",
+		fields=["name", "leaves", "from_date", "to_date"]
+	)
 
-		#! ITERATE THROUGH EACH LEAVE TAKEN, AND REDUCE FROM APPROPRIATE ALLOCATION
-		for leave in leaves_taken_ledger_entries:
-			leave_from = getdate(leave.from_date)
-			leave_to = getdate(leave.to_date)
-			leave_days = abs(flt(leave.leaves))
+	#! BUILD A COPY OF ALLOCATIONS TO TRACK CONSUMPTION
+	allocation_pool = []
+	for alloc in total_allocations:
+		allocation_pool.append({
+			"name": alloc.name,
+			"from_date": getdate(alloc.from_date),
+			"to_date": getdate(alloc.to_date),
+			"available": flt(alloc.leaves),
+		})
+	expire_through_negative_allocations = 0
 
-			#! FOR OVERLAPPING LEAVE LEDGER ENTRIES FOR LEAVE APPLICATION
-			for alloc in allocation_pool:
-				if alloc["available"] <= 0:
-					continue
+	#! ITERATE THROUGH EACH LEAVE TAKEN, AND REDUCE FROM APPROPRIATE ALLOCATION
+	for leave in leaves_taken_ledger_entries:
+		leave_from = getdate(leave.from_date)
+		leave_to = getdate(leave.to_date)
+		leave_days = abs(flt(leave.leaves))
 
-				if (
-					alloc["from_date"] <= leave_from <= alloc["to_date"]
-					or alloc["from_date"] <= leave_to <= alloc["to_date"]
-				):
-					consume = min(leave_days, alloc["available"])
-					alloc["available"] -= consume
-					leave_days -= consume
+		#! FOR OVERLAPPING LEAVE LEDGER ENTRIES FOR LEAVE APPLICATION
+		for alloc in allocation_pool:
+			if alloc["available"] <= 0:
+				continue
 
-				if leave_days <= 0:
-					break
+			if (
+				alloc["from_date"] <= leave_from <= alloc["to_date"]
+				or alloc["from_date"] <= leave_to <= alloc["to_date"]
+			):
+				consume = min(leave_days, alloc["available"])
+				alloc["available"] -= consume
+				leave_days -= consume
 
-		#! ITERATE THROUGH EACH LEAVE TAKEN, AND REDUCE FROM APPROPRIATE ALLOCATION
-		for leave in negative_leave_allocations:
-			leave_from = getdate(leave.from_date)
-			leave_to = getdate(leave.to_date)
-			leave_days = abs(flt(leave.leaves))
+			if leave_days <= 0:
+				break
 
-			#! FOR OVERLAPPING LEAVE LEDGER ENTRIES FOR LEAVE APPLICATION
-			for alloc in allocation_pool:
-				if alloc["available"] <= 0:
-					continue
+	#! ITERATE THROUGH EACH LEAVE TAKEN, AND REDUCE FROM APPROPRIATE ALLOCATION
+	for leave in negative_leave_allocations:
+		leave_from = getdate(leave.from_date)
+		leave_to = getdate(leave.to_date)
+		leave_days = abs(flt(leave.leaves))
 
-				if (
-					alloc["from_date"] <= leave_from <= alloc["to_date"]
-					or alloc["from_date"] <= leave_to <= alloc["to_date"]
-				):
-					consume = min(leave_days, alloc["available"])
+		#! FOR OVERLAPPING LEAVE LEDGER ENTRIES FOR LEAVE APPLICATION
+		for alloc in allocation_pool:
+			if alloc["available"] <= 0:
+				continue
 
-					alloc["available"] -= consume
-					leave_days -= consume
-					if getdate(from_date) < getdate(leave_from) < getdate(to_date):
-						expire_through_negative_allocations += consume
+			if (
+				alloc["from_date"] <= leave_from <= alloc["to_date"]
+				or alloc["from_date"] <= leave_to <= alloc["to_date"]
+			):
+				consume = min(leave_days, alloc["available"])
 
-				if leave_days <= 0:
-					break
+				alloc["available"] -= consume
+				leave_days -= consume
+				if getdate(from_date) < getdate(leave_from) < getdate(to_date):
+					expire_through_negative_allocations += consume
 
-		#! CALCULATE REMAINING LEAVES
-		comp_leave_unused = sum([
-			alloc["available"]
-			for alloc in allocation_pool
-			if getdate(from_date) <= alloc["to_date"] < getdate(to_date)
-		])
-		expired_leaves = comp_leave_unused + expire_through_negative_allocations
+			if leave_days <= 0:
+				break
 
-		date_from = getdate(from_date)
-		for record in records:
-			if record.leaves > 0:
-				if record.from_date >= date_from:
-					new_allocation += record.leaves
+	#! CALCULATE REMAINING LEAVES
+	comp_leave_unused = sum([
+		alloc["available"]
+		for alloc in allocation_pool
+		if getdate(from_date) <= alloc["to_date"] < getdate(to_date)
+	])
+	expired_leaves = comp_leave_unused + expire_through_negative_allocations
+	penalized_leaves = get_total_penalized_leaves_for_period(employee, leave_type, from_date, to_date)
 
-		#! FINAL RETURN FOR COMPENSATORY LEAVE: CARRY FORWARD IS ALWAYS ZERO
-		return new_allocation, expired_leaves, 0
-
-	#! IF NOT COMPENSATORY LEAVE TYPE, FOLLOW REGULAR LOGIC
+	date_from = getdate(from_date)
 	for record in records:
-		#! SKIP SYSTEM-GENERATED EXPIRATION ENTRIES
-		if record.is_expired:
-			continue
+		if record.leaves > 0:
+			if record.from_date >= date_from:
+				new_allocation += record.leaves
+	expired_leaves -= penalized_leaves
+	expired_leaves = max(expired_leaves, 0)
 
-		if record.leaves < 0 and record.from_date >= getdate(from_date):
-			#! NEGATIVE LEDGER ENTRY (EXPIRY OR REVERSAL)
-			expired_leaves += abs(record.leaves)
-
-		else:
-			if record.to_date < getdate(to_date):
-				#! ADD ALLOCATION TO EXPIRED IF IT ENDS BEFORE TO_DATE
-				expired_leaves += record.leaves
-
-				#! ADJUST BASED ON ACTUAL USAGE
-				leaves_for_period = get_leaves_for_period(
-					employee, leave_type, record.from_date, record.to_date
-				)
-				extra_sandwich_leaves = get_extra_sandwich_days(
-					employee, leave_type, record.from_date, record.to_date
-				)
-				if extra_sandwich_leaves:
-					leaves_for_period -= extra_sandwich_leaves
-				expired_leaves -= min(abs(leaves_for_period), record.leaves)
-
-			#! HANDLE ALLOCATIONS OR CARRY FORWARDS FROM FROM_DATE ONWARD
-			if record.from_date >= getdate(from_date):
-				if record.is_carry_forward:
-					carry_forwarded_leaves += record.leaves
-				else:
-					new_allocation += record.leaves
-
-	#! RETURN FINAL CALCULATED VALUES
-	return new_allocation, expired_leaves, carry_forwarded_leaves
-
+	#! FINAL RETURN FOR COMPENSATORY LEAVE: CARRY FORWARD IS ALWAYS ZERO
+	return new_allocation, expired_leaves, 0, penalized_leaves
 
 @frappe.whitelist()
 def leave_extension_allowed(leave_type, employee):
@@ -1821,6 +1782,7 @@ def custom_get_opening_balance(
                     ["from_date", "<", from_date],
                     ["transaction_type", "=", "Leave Allocation"],
                     ["leaves", ">", 0],
+                    ["is_carry_forward", "=", 0],
                 ],
                 fields=["name", "leaves", "from_date", "to_date"],
                 order_by="from_date asc"
@@ -1982,14 +1944,13 @@ def custom_get_data(filters: Filters) -> list:
             if extra_sandwich_leaves:
                 leaves_taken += extra_sandwich_leaves
 
-            new_allocation, expired_leaves, carry_forwarded_leaves = custom_get_allocated_and_expired_leaves(
+            new_allocation, expired_leaves, carry_forwarded_leaves, penalized_leaves = custom_get_allocated_and_expired_leaves(
                 filters.from_date, filters.to_date, employee.name, leave_type
             )
             opening = custom_get_opening_balance(employee.name, leave_type, filters, carry_forwarded_leaves)
-            penalized_leaves = get_total_penalized_leaves_for_period(employee.name, leave_type, filters.from_date, filters.to_date) or 0
             row.penalized_leaves = flt(penalized_leaves, precision)
             row.leaves_allocated = flt(new_allocation, precision)
-            row.leaves_expired = flt(expired_leaves - penalized_leaves, precision)
+            row.leaves_expired = flt(expired_leaves, precision)
             row.opening_balance = flt(opening, precision)
             row.leaves_taken = flt(leaves_taken, precision)
 

@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-09-18 17:13:37.106614",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Expense Claim",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "<p>Dear {{ expense_approver_name or employee_name}},</p>\n\n<p>The <b>Expense Claim</b> submitted by <b>{{ employee_name }}</b> has been <b>rejected</b>.</p>\n\n<p>\n    You can view the details by clicking the link below:<br>\n    <a href=\"{{ frappe.utils.get_url('/app/expense-claim/' + doc.name) }}\" target=\"_blank\">\n        View Expense Claim\n    </a>\n</p>\n\n<p>This notification is for your information only.  \nNo further action is required.</p>\n\n<p>Regards,<br>\nFinance Team</p>\n",
+ "message_type": "HTML",
+ "modified": "2025-09-18 18:44:49.438993",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Expense Claim Rejection Notification",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "Expense Claim of {{ employee_name }} Has Been Rejected"
+}
