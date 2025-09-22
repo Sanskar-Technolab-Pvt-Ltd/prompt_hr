@@ -1,10 +1,10 @@
 import frappe
-
+from prompt_hr.api.mobile.firebase import register_device_token
 
 # ! prompt_hr.api.mobile.auth.login
 # ? API FOR LOGIN WITH AUTH TOKEN AND ALL
 @frappe.whitelist(allow_guest=1)
-def login(email, password):
+def login(email, password, fcm_token=None):
     try:
         # ? INITIALIZE VARIABLES
         work_location = None
@@ -69,7 +69,8 @@ def login(email, password):
         company = frappe.defaults.get_user_default("Company")
         if not company:
             company = frappe.db.get_single_value("Global Defaults", "default_company")
-
+            
+        register_device_token(fcm_token)    
 
             
     except frappe.DoesNotExistError as e:

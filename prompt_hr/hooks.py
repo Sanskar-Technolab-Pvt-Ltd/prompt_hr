@@ -346,6 +346,9 @@ doc_events = {
     },
     "HR Settings":{
         "before_save": "prompt_hr.py.hr_settings.set_employee_field_names"
+    },
+    "Notification Log": {
+        "after_insert": "prompt_hr.api.mobile.firebase.push_notification_handler"
     }
 }
 
