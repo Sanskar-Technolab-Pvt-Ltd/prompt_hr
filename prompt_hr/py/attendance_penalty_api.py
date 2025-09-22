@@ -560,6 +560,7 @@ def process_late_entry_penalties_for_prompt(
                 and not attendance_request_exists
                 and not other_attendance_request_exists
                 and not full_day_leave_exists(employee, target_date)
+                and not half_day_leave_exist_first_half(employee, target_date)
             ):
                 # ? CHECK HOLIDAY
                 try:
@@ -745,7 +746,7 @@ def target_date_attendance_exists(
         if daily_hour:
             filters.update({"status": ["not in",["Absent","On Leave", "Mispunch", "WeekOff"]]})
         elif late_entry:
-            filters.update({"status": ["not in",["Absent","On Leave", "WeekOff", "Half Day"]]})
+            filters.update({"status": ["not in",["Absent","On Leave", "WeekOff"]]})
         else:
             filters.update({"status": ["not in",["Absent","On Leave", "WeekOff"]]})
 
@@ -1797,6 +1798,36 @@ def auto_approve_scheduler():
     except Exception as e:
         frappe.log_error(f"Error fetching or processing attendance requests:", str(e))
 
+
+def half_day_leave_exist_first_half(employee, target_date):
+    """
+    CHECK IF THERE IS ANY FULL-DAY LEAVE (NOT HALF DAY) FOR THE EMPLOYEE ON THE TARGET DATE.
+    """
+    try:
+        results = frappe.get_all(
+            "Leave Application",
+            filters={
+                "employee": employee,
+                "workflow_state": "Approved",
+                "from_date": ["<=", target_date],
+                "to_date": [">=", target_date],
+                "half_day": 1,
+            },
+            or_filters=[
+                ["half_day_date", "!=", target_date],
+                ["custom_half_day_time", "!=", "Second"]
+            ],
+            fields=["name", "half_day", "half_day_date"]
+        )
+        if results:
+            return True
+        
+        else:
+            return False
+
+    except Exception as e:
+        frappe.log_error(f"Error checking half day leave for {employee} on {target_date}:", frappe.get_traceback())
+        return False
 
 def full_day_leave_exists(employee, target_date):
     """
