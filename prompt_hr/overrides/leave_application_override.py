@@ -1,7 +1,7 @@
 import frappe
-from frappe.utils import getdate, today, flt, time_diff_in_hours
+from frappe.utils import getdate, today, flt, time_diff_in_hours, cint, formatdate, get_link_to_form
 from frappe import _
-from hrms.hr.doctype.leave_application.leave_application import LeaveApplication, get_leave_period, is_lwp
+from hrms.hr.doctype.leave_application.leave_application import LeaveApplication, get_leave_period, is_lwp, OverlapError
 from prompt_hr.py.leave_application import custom_get_number_of_leave_days
 from prompt_hr.prompt_hr.doctype.employee_penalty.employee_penalty import cancel_penalties
 from datetime import timedelta
@@ -218,3 +218,57 @@ class CustomLeaveApplication(LeaveApplication):
             doc.flags.ignore_validate = True  # ignores check leave record validation in attendance
             doc.insert(ignore_permissions=True)
             doc.submit()
+
+
+    def validate_leave_overlap(self):
+        #! HACK! ENSURE NAME IS NOT NULL TO AVOID PROBLEMS WITH != IN SQL
+        if not self.name:
+            self.name = "New Leave Application"
+
+        #! FETCH EXISTING LEAVE APPLICATIONS THAT OVERLAP DATE RANGE
+        for d in frappe.db.sql(
+            """
+            SELECT
+                name, leave_type, posting_date, from_date, to_date,
+                total_leave_days, half_day_date, custom_half_day_time
+            FROM `tabLeave Application`
+            WHERE employee = %(employee)s
+                AND docstatus < 2
+                AND status IN ('Open', 'Approved')
+                AND to_date >= %(from_date)s
+                AND from_date <= %(to_date)s
+                AND name != %(name)s
+            """,
+            {
+                "employee": self.employee,
+                "from_date": self.from_date,
+                "to_date": self.to_date,
+                "name": self.name,
+            },
+            as_dict=1,
+        ):
+            #? CHECK IF CURRENT APPLICATION IS HALF DAY
+            if (
+                cint(self.half_day) == 1
+                and getdate(self.half_day_date) == getdate(d.half_day_date)
+                and (
+                    flt(self.total_leave_days) == 0.5
+                    or getdate(self.from_date) == getdate(d.to_date)
+                    or getdate(self.to_date) == getdate(d.from_date)
+                )
+            ):
+                #? ENSURE NO DUPLICATE HALF-DAY TIME (FIRST/SECOND) FOR SAME DATE
+                if (
+                    self.custom_half_day_time
+                    and d.custom_half_day_time
+                    and self.custom_half_day_time.lower() == d.custom_half_day_time.lower()
+                ):
+                    #! THROW ERROR IF SAME HALF-DAY TIME ALREADY APPLIED
+                    self.throw_overlap_error(d)
+
+                total_leaves_on_half_day = self.get_total_leaves_on_half_day()
+                if total_leaves_on_half_day >= 1:
+                    self.throw_overlap_error(d)
+            else:
+                #! FULL DAY OR OTHER OVERLAP
+                self.throw_overlap_error(d)
