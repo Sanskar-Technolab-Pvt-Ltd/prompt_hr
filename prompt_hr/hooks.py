@@ -353,6 +353,7 @@ doc_events = {
     }
 }
 
+on_logout = "prompt_hr.api.mobile.firebase.clear_token_for_user"
 
 # Scheduled Tasks
 # ---------------

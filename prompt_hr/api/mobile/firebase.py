@@ -88,3 +88,13 @@ def push_notification_handler(doc, method):
 
 
 
+
+def clear_token_for_user():
+    """Clear all FCM tokens for a user (e.g. on logout)"""
+    try:
+        user = frappe.session.user
+        frappe.db.delete("Notification Token", {"user": user})
+        frappe.db.commit()
+    except Exception as e:
+        frappe.log_error("Error in clear_tokens_for_user", frappe.traceback())
+        
