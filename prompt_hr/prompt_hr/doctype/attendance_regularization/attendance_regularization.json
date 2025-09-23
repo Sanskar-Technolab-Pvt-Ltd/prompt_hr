@@ -8,6 +8,7 @@
  "field_order": [
   "employee",
   "employee_name",
+  "reporting_manager",
   "company",
   "department",
   "reason",
@@ -121,12 +122,19 @@
    "label": "Pending Approval At",
    "no_copy": 1,
    "read_only": 1
+  },
+  {
+   "fetch_from": "employee.reports_to",
+   "fieldname": "reporting_manager",
+   "fieldtype": "Link",
+   "label": "Reporting Manager",
+   "options": "Employee"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-09-15 12:47:53.786843",
+ "modified": "2025-09-22 20:03:32.171743",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Attendance Regularization",

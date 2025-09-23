@@ -8,6 +8,7 @@
  "field_order": [
   "employee",
   "employee_name",
+  "attendance_request",
   "pending_approval_at",
   "auto_approve",
   "column_break_yxha",
@@ -88,12 +89,19 @@
    "label": "Pending Approval At",
    "no_copy": 1,
    "read_only": 1
+  },
+  {
+   "fetch_from": "employee.reports_to",
+   "fieldname": "attendance_request",
+   "fieldtype": "Link",
+   "label": "Reporting Manager",
+   "options": "Employee"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-09-15 13:12:59.744309",
+ "modified": "2025-09-22 20:05:54.974359",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "WeekOff Change Request",

@@ -36,8 +36,6 @@ frappe.ui.form.on("Employee Gratuity", {
         }
     },
     employee(frm) {
-        frm.set_value("total_working_year", null);
-        frm.set_value("last_salary_slip", null);
         frm.set_value("gratuity_amount", null);
         frm.set_value("last_drawn_salary", null);
         if (frm.doc.employee) {
@@ -50,6 +48,9 @@ frappe.ui.form.on("Employee Gratuity", {
                     frm.set_value("total_working_year", parseFloat((diff / 365).toFixed(1))); // Set total working years
                 }
             }, 50);
+        }
+        else {
+            frm.set_value("total_working_year", null);
         }
     },
 });
