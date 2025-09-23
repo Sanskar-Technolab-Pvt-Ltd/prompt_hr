@@ -82,7 +82,10 @@ class AttendanceRegularization(Document):
 					regularize_end_time = out_time,
 					emp_id=self.employee
 				)
-				modify_employee_penalty(self.employee, self.regularization_date)
+				try:
+					modify_employee_penalty(self.employee, self.regularization_date)
+				except Exception as e:
+					frappe.log_error("Error in Modifying Employee Penalty", str(e))
 				# * --------------------------------------------------------------------------
 				# attendance_doc = frappe.get_doc("Attendance", self.attendance)
 				# attendance_doc.flags.ignore_validate_update_after_submit = True
