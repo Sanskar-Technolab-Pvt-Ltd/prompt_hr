@@ -1543,6 +1543,7 @@ def auto_approve_scheduler():
     try:
         auto_approve_days = frappe.db.get_single_value("HR Settings", "custom_auto_approve_request_after_days") or 0
         buffer_days = frappe.db.get_single_value("HR Settings", "custom_buffer_days_for_penalty") or 0
+        final_approval_days = frappe.db.get_single_value("HR Settings", "custom_final_stage_auto_approve_after_days") or 0
     except Exception as e:
         frappe.log_error(f"Error in getting auto_approve_days from HR Settings:", {str(e)})
         return
@@ -1567,6 +1568,17 @@ def auto_approve_scheduler():
     else:
         auto_mark_buffer_date = None
 
+
+    if (final_approval_days or final_approval_days == 0) and auto_approve_days:
+        auto_mark_final_approval_date = getdate(
+        add_to_date(today(), days=-(int(final_approval_days) + int(auto_approve_days)+1))
+    )
+        final_approval_start_time  = get_datetime_str(datetime.combine(auto_mark_final_approval_date, time.min))
+        final_approval_end_time = get_datetime_str(datetime.combine(auto_mark_final_approval_date, time.max))
+    
+    else:
+        auto_mark_final_approval_date = None
+
     try:
         employees = get_active_employees()
     except Exception as e:
@@ -1580,9 +1592,10 @@ def auto_approve_scheduler():
     try:
         leave_requests = []
         created_leave_requests = []
+        final_approval_created_requests = []
         if auto_mark_buffer_date:
             # Fetch pending leave application filtered properly with commas in filters
-            leave_requests = frappe.db.get_all(
+            leave_requests = frappe.get_all(
                 "Leave Application",
                 filters={
                     "workflow_state": ["in",["Pending", "Approved by Reporting Manager"]],
@@ -1599,15 +1612,28 @@ def auto_approve_scheduler():
             created_leave_requests = frappe.get_all(
                 "Leave Application",
                 filters={
-                    "workflow_state": ["in",["Pending", "Approved by Reporting Manager"]],
+                    "workflow_state": ["in",["Pending"]],
                     "employee": ["in", employees],
                     "creation": ["between", [start_datetime, end_datetime]],
                 },
                 fields=["name", "employee"],
                 order_by="from_date asc"
             )
-        leave_requests.extend(created_leave_requests)
 
+        if auto_mark_final_approval_date:
+            # Fetch pending leave application filtered properly with commas in filters
+            final_approval_created_requests = frappe.get_all(
+                "Leave Application",
+                filters={
+                    "workflow_state": ["in",["Pending", "Approved by Reporting Manager"]],
+                    "employee": ["in", employees],
+                    "creation": ["between", [final_approval_start_time, final_approval_end_time]],
+                },
+                fields=["name", "employee"],
+                order_by="from_date asc"
+            )
+        
+        leave_requests.extend(final_approval_created_requests)
         for request in leave_requests:
             try:
                 leave_request = frappe.get_doc("Leave Application", request.name)
@@ -1650,6 +1676,25 @@ def auto_approve_scheduler():
                     frappe.log_error(f"Error approving leave request:", str(e))
                     continue
 
+            except Exception as e:
+                frappe.log_error(f"Error approving leave request {request.name}:", str(e))
+                continue
+
+        for request in created_leave_requests:
+            try:
+                leave_request = frappe.get_doc("Leave Application", request.name)
+            except Exception as e:
+                frappe.log_error(f"Error fetching Leave Application {request.name}:", str(e))
+                continue
+            try:
+                try:
+                    if leave_request.workflow_state != "Approved":
+                        leave_request.db_set("custom_auto_approve", 1)
+                        apply_workflow(leave_request, "Approve")
+                except Exception as e:
+                    leave_request.db_set("custom_auto_approve", 0)
+                    frappe.log_error(f"Error approving leave request:", str(e))
+                    continue
             except Exception as e:
                 frappe.log_error(f"Error approving leave request {request.name}:", str(e))
                 continue

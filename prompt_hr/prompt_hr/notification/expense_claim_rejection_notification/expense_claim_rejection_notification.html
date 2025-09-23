@@ -1,0 +1,16 @@
+<p>Dear {{ expense_approver_name or employee_name}},</p>
+
+<p>The <b>Expense Claim</b> submitted by <b>{{ employee_name }}</b> has been <b>rejected</b>.</p>
+
+<p>
+    You can view the details by clicking the link below:<br>
+    <a href="{{ frappe.utils.get_url('/app/expense-claim/' + doc.name) }}" target="_blank">
+        View Expense Claim
+    </a>
+</p>
+
+<p>This notification is for your information only.  
+No further action is required.</p>
+
+<p>Regards,<br>
+Finance Team</p>

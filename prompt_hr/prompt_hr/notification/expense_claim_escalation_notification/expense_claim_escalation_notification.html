@@ -1,0 +1,28 @@
+<p>Dear {{ expense_approver_name or employee_name }},</p>
+
+<p>
+    The <b>Expense Claim</b> submitted by <b>{{ employee_name }}</b>
+    has been <b>{{ stage }}</b>.
+</p>
+
+<p>
+    You can view the claim details by clicking the link below:<br>
+    <a href="{{ frappe.utils.get_url('/app/expense-claim/' + doc.name) }}" target="_blank">
+        View Expense Claim
+    </a>
+</p>
+
+{% if can_approve %}
+<p>
+    You are the designated <b>Expense Approver</b> for this claim.<br>
+    Please review and take the necessary action at the earliest.
+</p>
+{% else %}
+<p>
+    This email is for your information only.<br>
+    No action is required from your side.
+</p>
+{% endif %}
+
+<p>Regards,<br>
+Finance Team</p>

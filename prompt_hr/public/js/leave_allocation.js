@@ -3,11 +3,12 @@ frappe.ui.form.off("Leave Allocation", "add_allocate_leaves_button")
 frappe.ui.form.on("Leave Allocation", {
     refresh: function(frm){
         if (!frm.doc.__islocal) {
-			frappe.db.get_value("Leave Type", frm.doc.leave_type, "is_earned_leave", (r) => {
-				if (!r?.is_earned_leave) return;
-				frm.set_df_property("new_leaves_allocated", "read_only", 1);
-				frm.trigger("add_allocate_leaves_button");
-			});
+			// frappe.db.get_value("Leave Type", frm.doc.leave_type, "is_earned_leave", (r) => {
+				// if (!r?.is_earned_leave) return;
+            frm.set_df_property("new_leaves_allocated", "read_only", 1);
+            frm.trigger("add_allocate_leaves_button");
+            deduct_leaves_button(frm);
+			// });
 		}
         if (frm.doc.employee) {
             frappe.db.get_value("Employee", frm.doc.employee, "gender", function(r) {
@@ -126,5 +127,108 @@ frappe.ui.form.on("Leave Allocation", {
 			},
 			__("Actions"),
 		);
-	},
+    },
+    
+
 });
+
+
+
+function deduct_leaves_button(frm) {
+    
+    frm.add_custom_button(
+        __("Deduct Leaves"),
+        function () {
+            // First, fetch the current leave balance
+            frappe.call({
+                method: "prompt_hr.py.leave_application.custom_get_leave_balance_on",
+                args: {
+                    employee: frm.doc.employee,
+                    leave_type: frm.doc.leave_type,
+                    date: frappe.datetime.get_today(),
+                },
+                callback: function (r) {
+                    if (!r.exc) {
+                        const current_balance = r.message;
+    
+                        if (current_balance === 0) {
+                            frappe.msgprint(__("Current leave balance is 0. Cannot deduct leaves."));
+                        } else {
+                            // Show dialog if balance > 0
+                            const d = new frappe.ui.Dialog({
+                                title: __("Deduct Leaves"),
+                                fields: [
+                                    {
+                                        label: "Current Leave Balance",
+                                        fieldname: "current_balance",
+                                        fieldtype: "Float",
+                                        read_only: 1,
+                                        default: current_balance
+                                    },
+                                    {
+                                        label: "Leaves to be Deducted",
+                                        fieldname: "leaves_to_deduct",
+                                        fieldtype: "Float",
+                                        reqd: 1
+                                    },
+                                    {
+                                        label: "From Date",
+                                        fieldname: "from_date",
+                                        fieldtype: "Date",
+                                        default: frappe.datetime.get_today(),
+                                        read_only: 1
+                                    },
+                                    {
+                                        label: "To Date",
+                                        fieldname: "to_date",
+                                        fieldtype: "Date",
+                                        default: frm.doc.to_date,
+                                        read_only: 1
+                                    }
+                                ],
+                                primary_action_label: __("Deduct"),
+                                primary_action(values) {
+                                    console.log("Hello")
+                                    // Perform actual leave deduction (example backend call)
+
+                                    if (values.leaves_to_deduct > current_balance) {
+                                        console.log("Hello2")
+                                        frappe.msgprint(__("Leaves to be deducted cannot exceed current balance."));
+                                        return;
+                                    }
+                                    
+                                    if (values.leaves_to_deduct <= 0) {
+                                        frappe.msgprint(__("Leaves to be deducted must be greater than zero."));
+                                        return;
+                                    }
+
+                                    frappe.call({
+                                        method: "prompt_hr.py.leave_allocation.custom_deduct_leaves_manually",
+                                        args: {
+                                            doc: frm.doc.name,
+                                            leaves_to_deduct: values.leaves_to_deduct,
+                                            from_date: values.from_date
+                                        },
+                                        callback: function (res) {
+                                            if (!res.exc) {
+                                                // frappe.msgprint(__("Leaves deducted successfully."));
+                                                d.hide();
+                                                frm.reload_doc();
+                                            }
+                                        }
+                                    });
+                                }
+                            });
+    
+                            d.show();
+                        }
+                    } else {
+                        frappe.msgprint(__("Error fetching current leave balance."));
+                    }
+                }
+            });
+        },
+        __("Actions")
+    );
+    
+}

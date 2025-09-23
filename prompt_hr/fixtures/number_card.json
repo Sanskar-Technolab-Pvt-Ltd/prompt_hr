@@ -128,5 +128,31 @@
   "show_percentage_stats": 0,
   "stats_time_interval": "Monthly",
   "type": "Custom"
+ },
+ {
+  "aggregate_function_based_on": "",
+  "color": null,
+  "currency": "INR",
+  "docstatus": 0,
+  "doctype": "Number Card",
+  "document_type": "Leave Application",
+  "dynamic_filters_json": "[]",
+  "filters_config": null,
+  "filters_json": "[[\"Leave Application\",\"workflow_state\",\"in\",[\"Approved by Reporting Manager\",\"Rejected by Reporting Manager\"],false]]",
+  "function": "Count",
+  "is_public": 0,
+  "is_standard": 0,
+  "label": "Leave Application - Approved/Rejected by RM",
+  "method": null,
+  "modified": "2025-09-23 10:28:23.151191",
+  "module": null,
+  "name": "Leave Application - Approved/Rejected by RM",
+  "parent_document_type": "",
+  "report_field": null,
+  "report_function": "Sum",
+  "report_name": null,
+  "show_percentage_stats": 1,
+  "stats_time_interval": "Daily",
+  "type": "Document Type"
  }
 ]

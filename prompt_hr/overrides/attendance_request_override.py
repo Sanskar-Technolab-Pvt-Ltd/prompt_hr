@@ -54,7 +54,6 @@ class CustomAttendanceRequest(AttendanceRequest):
         self.validate_request_overlap()
 
         if self.custom_status == "Pending":
-            self.validate_no_attendance_to_create()
             attendance_exists = get_existing_attendance(self.employee, self.from_date, self.to_date)
             if attendance_exists:
                 buffer_days_for_back_dated_attendance_request = frappe.db.get_single_value(

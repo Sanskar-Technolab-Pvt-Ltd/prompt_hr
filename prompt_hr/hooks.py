@@ -233,6 +233,7 @@ doc_events = {
         "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
     },
     "Employee": {
+        "onload": "prompt_hr.py.employee.onload",
         "on_update": "prompt_hr.py.employee.on_update",
         "autoname": "prompt_hr.py.employee.custom_autoname_employee",
         "validate": "prompt_hr.py.employee.validate",
@@ -346,9 +347,13 @@ doc_events = {
     },
     "HR Settings":{
         "before_save": "prompt_hr.py.hr_settings.set_employee_field_names"
+    },
+    "Notification Log": {
+        "after_insert": "prompt_hr.api.mobile.firebase.push_notification_handler"
     }
 }
 
+on_logout = "prompt_hr.api.mobile.firebase.clear_token_for_user"
 
 # Scheduled Tasks
 # ---------------
@@ -547,7 +552,8 @@ fixtures = [
     #     "doctype": "Workspace",
     #     "filters": {
     #         "name": ["in", [
-    #             "Employee ESS"
+    #             "Employee ESS",
+    #             "Leaves",
     #         ]]
     #     }
     # },
@@ -559,7 +565,8 @@ fixtures = [
     #             "Attendance Regularization - Pending Approval",
     #             "Attendance Request - Pending Approval",
     #             "Shift Request - Pending Approval",
-    #             "WeekOff Change Request - Pending Approval"
+    #             "WeekOff Change Request - Pending Approval",
+    #             "Leave Application - Approved/Rejected by RM",
     #         ]]
     #     }
     # }

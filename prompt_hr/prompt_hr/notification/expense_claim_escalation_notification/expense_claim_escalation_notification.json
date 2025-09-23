@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-09-18 17:14:06.079455",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Expense Claim",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "<p>Dear {{ expense_approver_name or employee_name }},</p>\n\n<p>\n    The <b>Expense Claim</b> submitted by <b>{{ employee_name }}</b>\n    has been <b>{{ stage }}</b>.\n</p>\n\n<p>\n    You can view the claim details by clicking the link below:<br>\n    <a href=\"{{ frappe.utils.get_url('/app/expense-claim/' + doc.name) }}\" target=\"_blank\">\n        View Expense Claim\n    </a>\n</p>\n\n{% if can_approve %}\n<p>\n    You are the designated <b>Expense Approver</b> for this claim.<br>\n    Please review and take the necessary action at the earliest.\n</p>\n{% else %}\n<p>\n    This email is for your information only.<br>\n    No action is required from your side.\n</p>\n{% endif %}\n\n<p>Regards,<br>\nFinance Team</p>\n",
+ "message_type": "HTML",
+ "modified": "2025-09-18 18:44:32.942470",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Expense Claim Escalation Notification",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 0,
+ "send_to_all_assignees": 0,
+ "subject": "Expense Claim of {{ employee_name }} Has Been {{stage}}"
+}

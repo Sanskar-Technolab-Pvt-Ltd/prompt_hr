@@ -11,12 +11,13 @@ class EmployeePenalty(Document):
 
 
 @frappe.whitelist()
-def cancel_penalties(ids, reason = None):
+def cancel_penalties(ids, reason = None, attendance_modified = 0):
     """Cancel penalties and delete linked leave ledger entries efficiently and securely."""
 
     if not ids:
         return
 
+    is_call_from_frontend = True if isinstance(ids, str) else False
     # ? CONVERT TO PYTHON LIST IF IT'S A JSON STRING
     if isinstance(ids, str):
         try:
@@ -35,6 +36,17 @@ def cancel_penalties(ids, reason = None):
         filters={"name": ["in", ids], "is_leave_balance_restore":0},
         fields=["name", "attendance"],
     )
+
+    if not attendance_modified and is_call_from_frontend:
+        is_restored_already = frappe.get_all(
+            "Employee Penalty",
+            filters={"name": ["in", ids], "is_leave_balance_restore":1},
+            fields=["name"]
+        )
+        if is_restored_already:
+            frappe.throw(
+                "Leave balance has already been restored for some or all of the selected Employee Penalty record(s)."
+            )
 
     child_table_data = frappe.get_all(
         "Employee Leave Penalty Details",
@@ -110,14 +122,14 @@ def cancel_penalties(ids, reason = None):
                                 "penalty_date": penalty_date
                             }
                         )
-
-                        frappe.sendmail(
-                            recipients=email_recipients,
-                            subject=subject,
-                            message=message,
-                            reference_doctype="Employee Penalty",
-                            reference_name=penalty_name,
-                        )
+                        if not attendance_modified:
+                            frappe.sendmail(
+                                recipients=email_recipients,
+                                subject=subject,
+                                message=message,
+                                reference_doctype="Employee Penalty",
+                                reference_name=penalty_name,
+                            )
                 
             except Exception as e:
                 frappe.log_error(f"Error sending cancellation notification", str(e))
