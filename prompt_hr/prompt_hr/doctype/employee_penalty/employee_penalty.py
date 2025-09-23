@@ -17,6 +17,7 @@ def cancel_penalties(ids, reason = None, attendance_modified = 0):
     if not ids:
         return
 
+    is_call_from_frontend = True if isinstance(ids, str) else False
     # ? CONVERT TO PYTHON LIST IF IT'S A JSON STRING
     if isinstance(ids, str):
         try:
@@ -35,6 +36,17 @@ def cancel_penalties(ids, reason = None, attendance_modified = 0):
         filters={"name": ["in", ids], "is_leave_balance_restore":0},
         fields=["name", "attendance"],
     )
+
+    if not attendance_modified and is_call_from_frontend:
+        is_restored_already = frappe.get_all(
+            "Employee Penalty",
+            filters={"name": ["in", ids], "is_leave_balance_restore":1},
+            fields=["name"]
+        )
+        if is_restored_already:
+            frappe.throw(
+                "Leave balance has already been restored for some or all of the selected Employee Penalty record(s)."
+            )
 
     child_table_data = frappe.get_all(
         "Employee Leave Penalty Details",
