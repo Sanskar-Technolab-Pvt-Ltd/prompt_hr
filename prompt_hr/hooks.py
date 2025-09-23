@@ -550,7 +550,8 @@ fixtures = [
     #     "doctype": "Workspace",
     #     "filters": {
     #         "name": ["in", [
-    #             "Employee ESS"
+    #             "Employee ESS",
+    #             "Leaves",
     #         ]]
     #     }
     # },
@@ -562,7 +563,8 @@ fixtures = [
     #             "Attendance Regularization - Pending Approval",
     #             "Attendance Request - Pending Approval",
     #             "Shift Request - Pending Approval",
-    #             "WeekOff Change Request - Pending Approval"
+    #             "WeekOff Change Request - Pending Approval",
+    #             "Leave Application - Approved/Rejected by RM",
     #         ]]
     #     }
     # }

@@ -10,10 +10,10 @@ class EmployeeGratuity(Document):
         if not self.date_of_leaving:
             frappe.throw("Date of Leaving is required")
 
-        # Get the last submitted salary slip for the employee
-        last_salary_slip = frappe.get_all(
-            "Salary Slip",
-            filters={"employee": self.employee, "docstatus": 1},
+        # ? GET THE LAST SUBMITTED EMPLOYEE STANDARD SALARY FOR THE EMPLOYEE
+        employee_standard_salary = frappe.get_all(
+            "Employee Standard Salary",
+            filters={"employee": self.employee},
             fields=["name"],
             order_by="creation desc",
             limit=1
@@ -30,11 +30,10 @@ class EmployeeGratuity(Document):
         if already_exists:
             frappe.throw("Employee Gratuity already exists for this employee.", title="Employee Gratuity Exists")
 
-        if not last_salary_slip:
-            frappe.throw("No submitted Salary Slip found for this employee.")
+        if not employee_standard_salary:
+            frappe.throw("No Employee Standard Salary found for this employee.")
 
-        last_salary_slip_name = last_salary_slip[0].name
-        self.last_salary_slip = last_salary_slip_name
+        employee_standard_salary_name = employee_standard_salary[0].name
 
         # Fetch the Employee document
         employee = frappe.get_doc("Employee", self.employee)
@@ -51,7 +50,7 @@ class EmployeeGratuity(Document):
         if company_abbr and company_abbr == prompt_abbr:
             salary_components = frappe.get_all(
                 "Salary Detail",
-                filters={"parent": last_salary_slip_name, "parentfield": "earnings"},
+                filters={"parent": employee_standard_salary_name, "parentfield": "earnings"},
                 fields=["salary_component", "amount"]
             )
             for comp in salary_components:
@@ -67,7 +66,7 @@ class EmployeeGratuity(Document):
         elif company_abbr and company_abbr == indifoss_abbr:
             salary_components = frappe.get_all(
                 "Salary Detail",
-                filters={"parent": last_salary_slip_name, "parentfield": "earnings"},
+                filters={"parent": employee_standard_salary_name, "parentfield": "earnings"},
                 fields=["salary_component", "amount"]
             )
             for comp in salary_components:

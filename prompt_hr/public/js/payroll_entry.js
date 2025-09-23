@@ -32,7 +32,9 @@ frappe.ui.form.on('Pending FnF Details', {
 
 frappe.ui.form.on("Payroll Entry", {
     refresh: (frm) => {
-
+        if (!frm.is_new()) {
+            disable_fields_for_completed_steps(frm)
+        }
         update_fnf_button(frm)
         // if (frm.doc.docstatus === 0 && !frm.is_new()) {
 		// 	frm.page.clear_primary_action();
@@ -364,9 +366,63 @@ frappe.ui.form.on("Payroll Entry", {
 				}).addClass("btn-primary");
 			}
 		});
-	}
+	},
+    custom_new_joinee_and_exit_step_completed: function(frm) {
+        disable_fields_for_completed_steps(frm)
+    },
+    custom_leave_and_attendance_step_completed: function(frm) {
+        disable_fields_for_completed_steps(frm)
+    },
+    custom_adhoc_salary_adjustment_step_completed: function(frm) {
+        disable_fields_for_completed_steps(frm)
+    },
+    custom_restricted_salary_step_completed: function(frm) {
+        disable_fields_for_completed_steps(frm)
+    },
+    custom_salary_withholding_step_completed: function(frm) {
+        disable_fields_for_completed_steps(frm)
+    },
 });
 
+function disable_fields_for_completed_steps(frm) {
+    const stepFieldMap = {
+        "custom_new_joinee_and_exit_step_completed": [
+            "custom_new_joinee_count",
+            "custom_exit_employees_count",
+            "custom_pending_fnf_details"
+        ],
+        "custom_leave_and_attendance_step_completed": [
+            "custom_pending_leave_approval",
+            "custom_lop_summary",
+            "custom_lop_reversal_details"
+        ],
+        "custom_adhoc_salary_adjustment_step_completed": [
+            "custom_adhoc_salary_details"
+        ],
+        "custom_restricted_salary_step_completed": [
+            "custom_remaining_payroll_details",
+            "custom_remaining_bank_details",
+            "custom_is_salary_slip_created"
+        ],
+        "custom_salary_withholding_step_completed": [
+            "custom_salary_withholding_details",
+            "custom_pending_withholding_salary"
+        ]
+    };
+
+    for (let [stepField, fields] of Object.entries(stepFieldMap)) {
+        const isCompleted = frm.doc[stepField] ? 1 : 0;
+        set_fields_read_only(frm, fields, isCompleted);
+    }
+}
+
+function set_fields_read_only(frm, fields, flag) {
+    fields.forEach(field => {
+        console.log(fields)
+        frm.set_df_property(field, "read_only", flag);
+        frm.refresh_field(field);
+    });
+}
 
 function update_fnf_button(frm) {
 
