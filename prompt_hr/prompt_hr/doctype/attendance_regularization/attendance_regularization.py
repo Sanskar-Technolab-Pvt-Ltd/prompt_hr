@@ -7,7 +7,8 @@ from prompt_hr.py.utils import send_notification_email, is_user_reporting_manage
 from frappe.utils import get_datetime, getdate, format_date, get_link_to_form
 from prompt_hr.py.auto_mark_attendance import mark_attendance
 from frappe.utils import get_datetime, add_days
-
+from frappe import _
+from prompt_hr.overrides.attendance_override import modify_employee_penalty
 
 class AttendanceRegularization(Document):
 
@@ -21,6 +22,9 @@ class AttendanceRegularization(Document):
 		# ? NOT ALLOW TO APPLY REGULARIZATION IN FUTURE DATES AND TODAY
 		if get_datetime(self.regularization_date).date() >= getdate():
 			frappe.throw("Attendance Regularization cannot be raised for future or current dates.")
+
+		# ? VALIDATE OUT TIME CANNOT BE LESS THAN IN TIME IN CHILD TABLE
+		validate_in_out_time(self)
 
 		# ? CHECK IF ATTENDANCE REGULARIZATION ALREADY EXISTS FOR THE SAME DATE
 		attendance_regularization_exists = frappe.get_all(
@@ -78,6 +82,7 @@ class AttendanceRegularization(Document):
 					regularize_end_time = out_time,
 					emp_id=self.employee
 				)
+				modify_employee_penalty(self.employee, self.regularization_date)
 				# * --------------------------------------------------------------------------
 				# attendance_doc = frappe.get_doc("Attendance", self.attendance)
 				# attendance_doc.flags.ignore_validate_update_after_submit = True
@@ -180,3 +185,25 @@ class AttendanceRegularization(Document):
 
 		else:
 			self.db_set("pending_approval_at", "")
+
+def validate_in_out_time(doc):
+    """
+    VALIDATE THAT EACH ROW IN THE CHECK-IN / PUNCH DETAILS TABLE
+    HAS AN 'IN TIME' THAT IS STRICTLY EARLIER THAN ITS 'OUT TIME'.
+    RAISES A VALIDATION ERROR IF THE CONDITION IS NOT MET.
+    """
+    #! ENSURE THERE ARE CHECK-IN / PUNCH DETAIL RECORDS
+    if not doc.checkinpunch_details:
+        return
+
+    #? LOOP THROUGH EACH PUNCH DETAIL ROW
+    for row in doc.checkinpunch_details:
+        #? PROCEED ONLY IF BOTH TIMES ARE ENTERED
+        if row.in_time and row.out_time:
+            #? VALIDATE THAT IN-TIME IS STRICTLY BEFORE OUT-TIME
+            if row.in_time >= row.out_time:
+                frappe.throw(
+                    _(
+                        "Row {0}: The check-in time ({1}) must be earlier than the check-out time ({2})."
+                    ).format(row.idx, row.in_time, row.out_time)
+                )

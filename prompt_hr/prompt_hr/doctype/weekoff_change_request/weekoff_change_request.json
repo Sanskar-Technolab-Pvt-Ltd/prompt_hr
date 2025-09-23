@@ -94,6 +94,7 @@
    "fetch_from": "employee.reports_to",
    "fieldname": "attendance_request",
    "fieldtype": "Link",
+   "ignore_user_permissions": 1,
    "label": "Reporting Manager",
    "options": "Employee"
   }
@@ -101,7 +102,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-09-22 20:05:54.974359",
+ "modified": "2025-09-23 15:05:09.156945",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "WeekOff Change Request",

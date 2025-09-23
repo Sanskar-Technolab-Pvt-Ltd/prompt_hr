@@ -11,7 +11,7 @@ class EmployeePenalty(Document):
 
 
 @frappe.whitelist()
-def cancel_penalties(ids, reason = None):
+def cancel_penalties(ids, reason = None, attendance_modified = 0):
     """Cancel penalties and delete linked leave ledger entries efficiently and securely."""
 
     if not ids:
@@ -110,14 +110,14 @@ def cancel_penalties(ids, reason = None):
                                 "penalty_date": penalty_date
                             }
                         )
-
-                        frappe.sendmail(
-                            recipients=email_recipients,
-                            subject=subject,
-                            message=message,
-                            reference_doctype="Employee Penalty",
-                            reference_name=penalty_name,
-                        )
+                        if not attendance_modified:
+                            frappe.sendmail(
+                                recipients=email_recipients,
+                                subject=subject,
+                                message=message,
+                                reference_doctype="Employee Penalty",
+                                reference_name=penalty_name,
+                            )
                 
             except Exception as e:
                 frappe.log_error(f"Error sending cancellation notification", str(e))
