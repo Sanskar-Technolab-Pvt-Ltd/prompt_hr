@@ -1,0 +1,55 @@
+{
+ "add_total_row": 1,
+ "add_translate_data": 0,
+ "columns": [],
+ "creation": "2025-09-23 16:38:06.915036",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "json": "{}",
+ "letter_head": "",
+ "letterhead": null,
+ "modified": "2025-09-23 16:54:08.466479",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Employee Attendance Penalty",
+ "owner": "jignasha@sanskartechnolab.com",
+ "prepared_report": 0,
+ "query": "SELECT\n    ep.name AS \"ID:Link/Employee Penalty:120\",\n    ep.employee AS \"Employee:Link/Employee:150\",\n    e.employee_name AS \"Employee Name:Data:200\",\n    ep.penalty_date AS \"Penalty Date:Date:120\",\n    epd.leave_type AS \"Leave Type:Link/Leave Type:150\",\n    epd.leave_amount AS \"Leave Amount\",\n    epd.reason AS \"Reason:Data:200\",\n    ep.attendance AS \"Attendance:Link/Attendance:150\",\n    at.in_time AS \"Check-In:Datetime:180\",\n    at.out_time AS \"Check-Out:Datetime:180\"\nFROM `tabEmployee Penalty` ep\nLEFT JOIN `tabEmployee Leave Penalty Details` epd \n       ON epd.parent = ep.name\nLEFT JOIN `tabAttendance` at \n       ON at.name = ep.attendance\nLEFT JOIN `tabEmployee` e \n       ON e.name = ep.employee\nwhere ep.is_leave_balance_restore =0\nORDER BY ep.penalty_date DESC, ep.name, epd.idx;\n",
+ "ref_doctype": "Employee Penalty",
+ "report_name": "Employee Attendance Penalty",
+ "report_type": "Query Report",
+ "roles": [
+  {
+   "role": "S - Employee"
+  },
+  {
+   "role": "S - HR Supervisor (RM)"
+  },
+  {
+   "role": "S - HR L2 Manager"
+  },
+  {
+   "role": "S - HR Director (Global Admin)"
+  },
+  {
+   "role": "S - HR L1"
+  },
+  {
+   "role": "S - HR L2"
+  },
+  {
+   "role": "S - HR L3"
+  },
+  {
+   "role": "S - HR L4"
+  },
+  {
+   "role": "System Manager"
+  }
+ ],
+ "timeout": 0
+}
