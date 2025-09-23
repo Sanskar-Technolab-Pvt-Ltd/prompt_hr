@@ -162,3 +162,36 @@ def attendance_calendar_list(
             "data": attendance_list,
             "count": total_count        
         }
+
+
+@frappe.whitelist()
+def attendance_status():
+    try:
+        attendance_status_list = []
+        hr_settings = frappe.get_single("HR Settings")
+
+        if hr_settings:
+            for status in hr_settings.custom_attendance_staus:
+                # Parse color JSON if it's stored as string
+                color_value = frappe.parse_json(status.color).get("color") if status.color else None
+
+                # Each entry is its own dict
+                attendance_status_list.append({
+                    status.status: {"color": color_value}
+                })
+
+    except Exception as e:
+        frappe.log_error("Error While Getting Attendance Status Detail", str(e))
+        frappe.clear_messages()
+        frappe.local.response["message"] = {
+            "success": False,
+            "message": str(e),
+            "data": None,
+        }
+
+    else:
+        frappe.local.response["message"] = {
+            "success": True,
+            "message": "Attendance Status Loaded Successfully!",
+            "data": attendance_status_list,
+        }
