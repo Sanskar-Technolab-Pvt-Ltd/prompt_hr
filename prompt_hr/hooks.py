@@ -554,6 +554,8 @@ fixtures = [
     #         "name": ["in", [
     #             "Employee ESS",
     #             "Leaves",
+    #             "Shift & Attendance",
+    #             "HR"
     #         ]]
     #     }
     # },
