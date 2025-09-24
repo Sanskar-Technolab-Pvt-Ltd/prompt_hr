@@ -49,7 +49,8 @@ frappe.ui.form.on("HR Settings", {
     
     onload: function (frm) { 
         set_employee_fields_in_penalization_criteria(frm);
-        set_employee_fields_in_pre_login_questionnaire(frm)
+        set_employee_fields_in_pre_login_questionnaire(frm);
+        set_employee_fields_in_employee_basic_details(frm)
     },  
 
     custom_deduct_leave_penalty_for_indifoss: function (frm) {
@@ -153,6 +154,27 @@ frappe.ui.form.on("Penalization Criteria", {
     }
 })
 
+frappe.ui.form.on("Employee Basic Details", {
+    custom_employee_basic_detail_fields_add: async function (frm, cdt, cdn) {
+        let options = await getEmployeeFields();
+        if (options.length) {
+        
+            frm.fields_dict["custom_employee_basic_detail_fields"].grid.update_docfield_property(
+                "field_label",
+                "options",
+                options.map(o => o.label)
+            );
+        }
+    },
+    field_label: function (frm, cdt, cdn) {
+        let row = locals[cdt][cdn];
+        if (frm.employee_field_map && row.field_label) {
+            row.employee_field_name = frm.employee_field_map[row.field_label];
+            frm.refresh_field("custom_employee_basic_detail_fields");
+        }
+    }
+})
+
 frappe.ui.form.on("Pre Login Questionnaire", {
     custom_pre_login_questionnaire_add: async function (frm, cdt, cdn) {
         let options = await getEmployeeFields();
@@ -176,6 +198,7 @@ frappe.ui.form.on("Pre Login Questionnaire", {
         frm.refresh_field("custom_pre_login_questionnaire");
     }
 })
+
 async function set_employee_fields_in_penalization_criteria(frm) {
     
     let options = await getEmployeeFields();
@@ -219,6 +242,23 @@ async function set_employee_fields_in_pre_login_questionnaire(frm) {
     }
 }
 
+async function set_employee_fields_in_employee_basic_details(frm) {
+    let options = await getEmployeeFields();
+    if (options.length) {
+        frm.fields_dict["custom_employee_basic_detail_fields"].grid.update_docfield_property(
+            "field_label",
+            "options",
+            options.map(o => o.label)
+        );
+
+        frm.employee_field_map = {};
+        options.forEach(o => {
+            frm.employee_field_map[o.label] = o.fieldname;
+        });
+        frm.refresh_field("custom_employee_basic_detail_fields");
+
+    }
+}
 
 // Function to fetch Employee DocType fields
 async function getEmployeeFields() {
