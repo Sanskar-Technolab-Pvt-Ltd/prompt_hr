@@ -90,7 +90,8 @@
    "fieldname": "leave_penalty_details",
    "fieldtype": "Table",
    "label": "Leave Penalty Details",
-   "options": "Employee Leave Penalty Details"
+   "options": "Employee Leave Penalty Details",
+   "read_only": 1
   },
   {
    "default": "0",
@@ -168,7 +169,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-09-25 14:46:07.160965",
+ "modified": "2025-09-25 19:40:11.483498",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Penalty",
