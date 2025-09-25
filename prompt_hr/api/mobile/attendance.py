@@ -89,8 +89,7 @@ def get(name):
             "message": "Attendance Loaded Successfully!",
             "data": attendance,
         }
-    
-import frappe
+ 
 from datetime import datetime
 from frappe.utils import get_first_day, get_last_day
 
@@ -114,7 +113,7 @@ def attendance_calendar_list(
         filters = {
             "employee": employee,
             "attendance_date": ["between", [month_start, month_end]],
-            "docstatus":1
+            "docstatus": 1,
         }
 
         # Fields to return
@@ -123,7 +122,7 @@ def attendance_calendar_list(
             "employee_name",
             "name",
             "employee",
-            "status"
+            "status",
         ]
 
         # Fetch attendance list
@@ -136,14 +135,25 @@ def attendance_calendar_list(
             limit_start=limit_start,
         )
 
-        # ? GET TOTAL COUNT (manually count the names matching filters)
+        # Get HR Settings and build a status → label map
+        hr_settings = frappe.get_single("HR Settings")
+        status_map = {}
+        if hr_settings and hr_settings.custom_attendance_staus:
+            for row in hr_settings.custom_attendance_staus:
+                label_value = row.label if hasattr(row, "label") and row.label else row.status
+                status_map[row.status] = label_value
+
+        # Replace status with label (if exists)
+        for att in attendance_list:
+            att["status"] = status_map.get(att["status"], att["status"])
+
+        # ? GET TOTAL COUNT
         total_names = frappe.get_list(
             "Attendance",
             filters=filters,
             fields=["name"],
-            ignore_permissions=False
+            ignore_permissions=False,
         )
-        
         total_count = len(total_names)
 
     except Exception as e:
@@ -160,8 +170,9 @@ def attendance_calendar_list(
             "success": True,
             "message": "Attendance List Loaded Successfully!",
             "data": attendance_list,
-            "count": total_count        
+            "count": total_count,
         }
+
 
 
 @frappe.whitelist()
@@ -171,14 +182,18 @@ def attendance_status():
         hr_settings = frappe.get_single("HR Settings")
 
         if hr_settings:
+            seen = set()  # to track unique (color, label) pairs
             for status in hr_settings.custom_attendance_staus:
-                # Parse color JSON if it's stored as string
-                color_value = frappe.parse_json(status.color).get("color") if status.color else None
+                color_value = status.color if getattr(status, "color", None) else status.status
+                label_value = status.label if getattr(status, "label", None) else status.status
 
-                # Each entry is its own dict
-                attendance_status_list.append({
-                    status.status: {"color": color_value}
-                })
+                key = (color_value, label_value)
+                if key not in seen:
+                    seen.add(key)
+                    attendance_status_list.append({
+                        "color": color_value,
+                        "label": label_value
+                    })
 
     except Exception as e:
         frappe.log_error("Error While Getting Attendance Status Detail", str(e))
@@ -194,4 +209,5 @@ def attendance_status():
             "success": True,
             "message": "Attendance Status Loaded Successfully!",
             "data": attendance_status_list,
+            "count": len(attendance_status_list)
         }

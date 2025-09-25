@@ -7,6 +7,7 @@
  "engine": "InnoDB",
  "field_order": [
   "status",
+  "label",
   "color"
  ],
  "fields": [
@@ -24,13 +25,19 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Color"
+  },
+  {
+   "fieldname": "label",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Label"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-09-23 16:32:45.557551",
+ "modified": "2025-09-24 19:31:52.952565",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Attendance Status",
