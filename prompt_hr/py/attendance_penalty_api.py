@@ -1932,6 +1932,7 @@ def send_penalty_notification_emails():
             filters={
                 "employee": ["in", employees],
                 "creation": ["between", [start_datetime, end_datetime]],
+                "is_leave_balance_restore": 0,
             },
             fields=["name", "employee", "penalty_date", "attendance"]
         )
