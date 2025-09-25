@@ -3,6 +3,7 @@ frappe.ui.form.on('Salary Slip', {
     refresh: function (frm) {
         //* TO SHOW A BUTTON TO INFORM THE ACCOUNT USERS ABOUT THE SALARY SLIP
         inform_account_users(frm)
+        set_default_value_for_amended_doc(frm)
 
         // if (!frm.is_new()) {
         //     update_primary_button(frm)
@@ -25,6 +26,14 @@ frappe.ui.form.on('Salary Slip', {
     // }
 
 })
+
+function set_default_value_for_amended_doc(frm) {
+    // ? TO SET DEFAULT VALUE TO ZERO FOR SALARY SLIP RELEASED AND A
+    if (frm.doc.amended_from && frm.is_new()) {
+        frm.set_value("custom_account_user_informed", 0)
+        frm.set_value("custom_is_salary_slip_released", 0)
+    }
+}
 
 // function update_primary_button(frm) {
 //     console.log("Function Called")

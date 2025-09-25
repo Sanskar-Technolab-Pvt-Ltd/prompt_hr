@@ -30,7 +30,6 @@
   {
    "fieldname": "employee",
    "fieldtype": "Link",
-   "ignore_user_permissions": 1,
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Employee",
@@ -113,7 +112,6 @@
    "fetch_from": "employee.employee_name",
    "fieldname": "employee_name",
    "fieldtype": "Data",
-   "ignore_user_permissions": 1,
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Employee Name"
@@ -122,7 +120,6 @@
    "fetch_from": "employee.department",
    "fieldname": "department",
    "fieldtype": "Link",
-   "ignore_user_permissions": 1,
    "in_standard_filter": 1,
    "label": "Department",
    "options": "Department"
@@ -131,7 +128,6 @@
    "fetch_from": "employee.employment_type",
    "fieldname": "employment_type",
    "fieldtype": "Link",
-   "ignore_user_permissions": 1,
    "in_standard_filter": 1,
    "label": "Employment Type",
    "options": "Employment Type"
@@ -140,7 +136,6 @@
    "fetch_from": "employee.custom_work_location",
    "fieldname": "work_location",
    "fieldtype": "Link",
-   "ignore_user_permissions": 1,
    "in_standard_filter": 1,
    "label": "Work Location",
    "options": "Address"
@@ -158,7 +153,6 @@
    "fetch_from": "employee.status",
    "fieldname": "employee_status",
    "fieldtype": "Select",
-   "ignore_user_permissions": 1,
    "in_standard_filter": 1,
    "label": "Employee Status",
    "options": "Active\nInactive\nSuspended\nAbsconded\nLeft"
@@ -174,7 +168,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-09-24 12:20:26.834052",
+ "modified": "2025-09-25 14:46:07.160965",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Penalty",
