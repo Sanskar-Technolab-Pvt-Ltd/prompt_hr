@@ -30,7 +30,6 @@
   {
    "fieldname": "employee",
    "fieldtype": "Link",
-   "ignore_user_permissions": 1,
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Employee",
@@ -41,7 +40,6 @@
    "fetch_from": "employee.employee_name",
    "fieldname": "employee_name",
    "fieldtype": "Data",
-   "ignore_user_permissions": 1,
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Employee Name"
@@ -65,7 +63,6 @@
   {
    "fieldname": "regularization_date",
    "fieldtype": "Date",
-   "ignore_user_permissions": 1,
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Regularization Date",
@@ -106,7 +103,6 @@
    "fetch_from": "employee.department",
    "fieldname": "department",
    "fieldtype": "Link",
-   "ignore_user_permissions": 1,
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Department",
@@ -146,7 +142,6 @@
    "fetch_from": "employee.employment_type",
    "fieldname": "employment_type",
    "fieldtype": "Link",
-   "ignore_user_permissions": 1,
    "in_standard_filter": 1,
    "label": "Employment Type",
    "options": "Employment Type"
@@ -155,7 +150,6 @@
    "fetch_from": "employee.custom_work_location",
    "fieldname": "work_location",
    "fieldtype": "Link",
-   "ignore_user_permissions": 1,
    "in_standard_filter": 1,
    "label": "Work Location",
    "options": "Address"
@@ -164,7 +158,6 @@
    "fetch_from": "employee.status",
    "fieldname": "employee_status",
    "fieldtype": "Select",
-   "ignore_user_permissions": 1,
    "in_standard_filter": 1,
    "label": "Employee Status",
    "options": "Active\nInactive\nSuspended\nAbsconded\nLeft"
@@ -173,7 +166,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-09-23 19:31:01.311852",
+ "modified": "2025-09-25 16:30:54.370586",
  "modified_by": "jignasha@sanskartechnolab.com",
  "module": "Prompt HR",
  "name": "Attendance Regularization",

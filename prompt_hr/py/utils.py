@@ -934,7 +934,24 @@ def get_colored_events(doctype, start, end, field_map, filters=None, fields=None
     filters.append(["attendance_date", "between", [get_datetime(start).date(), get_datetime(end).date()]])
     filters.append(["docstatus", "!=", 2])
     records = add_attendance(filters)
-    add_holidays(records, start, end, employee)
+    try:
+        employee_filter = next((f for f in filters if len(f) > 1 and f[1] == "employee"), None)
+        if employee_filter:
+            employee_value = employee_filter[3]
+            if employee_value:
+                employee = employee_value
+    except:
+        frappe.log_error("Error getting employee filter")
+
+    if isinstance(employee, list):
+        employee_list = employee
+        try:
+            for employee in employee_list:
+                add_holidays(records, start, end, employee)
+        except:
+            frappe.log_error("Error getting employee holiday list")
+    else:  
+        add_holidays(records, start, end, employee)
     status_styles = {
             "Present": {"bg": "#e4f5e9", "text": "#16784c00"},
             "Work From Home": {"bg": "#e4f5e9", "text": "#16784c00"},
@@ -948,13 +965,9 @@ def get_colored_events(doctype, start, end, field_map, filters=None, fields=None
 
     for record in records:
         if record.get("doctype") == "Holiday":
-            match = re.search(r'<p>(.*?)</p>', record.get("title"))
-            if match:
-                status = "Holiday"
-                record["status"] = record.get("title")
-            else:
-                status = "WeekOff"
-                record["status"] = record.get("title").replace("Holiday", "WeekOff")
+            # match = re.search(r'<p>(.*?)</p>', record.get("title"))
+            status = "Holiday"
+            record["status"] = record.get("title")
         else:
             status = record.get(field_map.title)
 
