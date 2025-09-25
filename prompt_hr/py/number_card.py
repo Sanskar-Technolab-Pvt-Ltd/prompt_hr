@@ -27,15 +27,15 @@ def get_pending_records_for_user(filters):
     # Get employees who report to the current employee
     reporting_employees = frappe.get_all("Employee", {"reports_to": employee_id}, pluck="name")
 
-    # Fetch pending records for the current employee
-    user_pending_records = frappe.get_all(
-        filters.get("doctype"),
-        filters={
-            "employee": employee_id,
-            "workflow_state": "Pending",
-        },
-        fields=["name"],
-    )
+    # # Fetch pending records for the current employee
+    # user_pending_records = frappe.get_all(
+    #     filters.get("doctype"),
+    #     filters={
+    #         "employee": employee_id,
+    #         "workflow_state": "Pending",
+    #     },
+    #     fields=["name"],
+    # )
 
     # Fetch pending records for employees reporting to the current employee
     reporting_pending_records = frappe.get_all(
@@ -48,10 +48,10 @@ def get_pending_records_for_user(filters):
     )
 
     # Combine both lists
-    all_pending_records = user_pending_records + reporting_pending_records
+    all_pending_records = reporting_pending_records
     # ? COMBINE EMPLOYEE AND ITS REPORTING EMPLOYEES
     all_employees = reporting_employees
-    all_employees.append(employee_id)
+    # all_employees.append(employee_id)
 
     return {  
         "value": int(len(all_pending_records)),
