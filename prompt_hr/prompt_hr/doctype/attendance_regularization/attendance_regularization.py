@@ -33,6 +33,7 @@ class AttendanceRegularization(Document):
 				"employee": self.employee,
 				"regularization_date": self.regularization_date,
 				"name": ["!=", self.name],
+				"workflow_state": ["!=", "Rejected"]
 			},
 			fields=["name"],
 			limit=1
