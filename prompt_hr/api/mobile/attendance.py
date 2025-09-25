@@ -112,7 +112,7 @@ def attendance_calendar_list(
         # Filters: by employee name and current month
         filters = {
             "employee": employee,
-            # "attendance_date": ["between", [month_start, month_end]],
+            "attendance_date": ["between", [month_start, month_end]],
             "docstatus": 1,
         }
 
@@ -182,16 +182,18 @@ def attendance_status():
         hr_settings = frappe.get_single("HR Settings")
 
         if hr_settings:
+            seen = set()  # to track unique (color, label) pairs
             for status in hr_settings.custom_attendance_staus:
-                color_value = status.color if hasattr(status, "color") and status.color else status.status
-                # If you have a separate label field use that, otherwise fallback
-                label_value = status.label if hasattr(status, "label") and status.label else status.status
+                color_value = status.color if getattr(status, "color", None) else status.status
+                label_value = status.label if getattr(status, "label", None) else status.status
 
-                attendance_status_list.append({
-                    # "status": status.status,
-                    "color": color_value,
-                    "label": label_value
-                })
+                key = (color_value, label_value)
+                if key not in seen:
+                    seen.add(key)
+                    attendance_status_list.append({
+                        "color": color_value,
+                        "label": label_value
+                    })
 
     except Exception as e:
         frappe.log_error("Error While Getting Attendance Status Detail", str(e))
@@ -207,4 +209,5 @@ def attendance_status():
             "success": True,
             "message": "Attendance Status Loaded Successfully!",
             "data": attendance_status_list,
+            "count": len(attendance_status_list)
         }
