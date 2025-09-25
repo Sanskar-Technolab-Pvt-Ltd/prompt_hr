@@ -143,20 +143,19 @@ class AttendanceRegularization(Document):
 					self.employee_notified = 1
 
 	def before_save(self):
-		if (self.regularization_date and self.employee) and not self.attendance:
-			attendance_id = frappe.get_all(
-			"Attendance",
-			filters={
-				"attendance_date": self.regularization_date,
-				"employee": self.employee,
-				"docstatus": ["!=", 2]   # exclude cancelled records
-			},
-			fields=["name"],
-			limit=1
-		)
-   
-		if attendance_id:
-				self.attendance = attendance_id[0].name
+		if (self.regularization_date and self.employee):
+			attendance_id = frappe.db.get_value(
+				"Attendance",
+				{
+					"attendance_date": self.regularization_date,
+					"employee": self.employee,
+					"docstatus": ["!=", 2]   # exclude cancelled records
+				},
+				"name"
+			)
+    
+			if attendance_id:
+				self.attendance = attendance_id
 
 			
 		if not self.checkinpunch_details:
