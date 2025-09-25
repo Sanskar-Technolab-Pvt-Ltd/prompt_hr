@@ -9,7 +9,8 @@ frappe.ui.form.on('Attendance', {
                 args: {
                     doctype: 'Attendance Regularization',
                     filters: {
-                        attendance: frm.doc.name
+                        attendance: frm.doc.name,
+                        status: ["!=", "Rejected"]
                     },
                     fieldname: 'name'
                 },
