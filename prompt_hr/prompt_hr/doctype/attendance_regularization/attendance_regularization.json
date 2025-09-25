@@ -24,6 +24,7 @@
   "employee_notified",
   "auto_approve",
   "section_break_qyza",
+  "time_format_note",
   "checkinpunch_details"
  ],
  "fields": [
@@ -161,13 +162,19 @@
    "in_standard_filter": 1,
    "label": "Employee Status",
    "options": "Active\nInactive\nSuspended\nAbsconded\nLeft"
+  },
+  {
+   "fieldname": "time_format_note",
+   "fieldtype": "HTML",
+   "label": "time_format_note",
+   "options": "<div style=\"color:red; font-weight:bold; margin-bottom:10px;\">Please use the 24-hour time format.</div>"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-09-25 16:30:54.370586",
- "modified_by": "jignasha@sanskartechnolab.com",
+ "modified": "2025-09-25 17:28:04.910860",
+ "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Attendance Regularization",
  "naming_rule": "Expression",
