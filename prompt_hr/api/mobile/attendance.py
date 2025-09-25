@@ -186,13 +186,15 @@ def attendance_status():
             for status in hr_settings.custom_attendance_staus:
                 color_value = status.color if getattr(status, "color", None) else status.status
                 label_value = status.label if getattr(status, "label", None) else status.status
+                is_default = status.is_default if getattr(status, "is_default", None) else 0
 
                 key = (color_value, label_value)
                 if key not in seen:
                     seen.add(key)
                     attendance_status_list.append({
                         "color": color_value,
-                        "label": label_value
+                        "label": label_value,
+                        "is_default":is_default
                     })
 
     except Exception as e:
