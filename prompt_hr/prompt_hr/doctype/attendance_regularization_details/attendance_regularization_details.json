@@ -26,7 +26,7 @@
   {
    "fieldname": "employee_checkin",
    "fieldtype": "Link",
-   "in_list_view": 1,
+   "hidden": 1,
    "label": "Employee Checkin",
    "options": "Employee Checkin"
   }
@@ -35,7 +35,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-04-18 06:50:36.338514",
+ "modified": "2025-09-25 17:07:11.123784",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Attendance Regularization Details",

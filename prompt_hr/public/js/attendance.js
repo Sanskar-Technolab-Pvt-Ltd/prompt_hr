@@ -113,6 +113,13 @@ function show_checkin_dialog(frm) {
                 title: 'Edit Check-in/Out Records',
                 fields: [
                     {
+                        fieldtype: 'HTML',
+                        fieldname: 'time_format_note',
+                        options: `<div style="color:red; font-weight:bold; margin-bottom:10px;">
+                                    Please use the 24-hour time format.
+                                </div>`
+                    },
+                    {
                         label: 'Punch Details',
                         fieldname: 'punch_table',
                         fieldtype: 'Table',
