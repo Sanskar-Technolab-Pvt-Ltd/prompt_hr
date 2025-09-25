@@ -188,7 +188,7 @@ def validate_number_of_days(doc):
             expense_type = expense.expense_type
             #! THROW AN ERROR IF MORE THAN 1 DAY IS SELECTED FOR A SINGLE EXPENSE ROW
             if expense_days > 1:
-                if expense_type not in ["Lodging", "Local Commute"]:
+                if expense_type not in ["Lodging", "Local Commute", "Food"]:
                     raise frappe.ValidationError(
                         _("Row #{0}: Each expense entry must have Days 1 or less. Found {1} days.")
                         .format(expense.idx, expense.custom_days)
@@ -236,7 +236,7 @@ def validate_number_of_days(doc):
                         break
             else:
                 #! FOR NON-DA EXPENSE TYPES, ASSUME FULL DAY
-                if expense.expense_type != "Lodging" and expense.expense_type != "Local Commute":
+                if expense.expense_type != "Lodging" and expense.expense_type != "Local Commute" and expense.expense_type != "Food":
                     expense.custom_days = 1
                 else:
                     #? COMBINE DATE + TIME INTO DATETIME OBJECTS
@@ -370,6 +370,10 @@ def update_da_amount_as_per_time(doc):
                     break   
     for expense in doc.expenses:
         if expense.expense_type == "DA":
+            if da_amount < 0:
+                frappe.throw(
+                    "You Are Not Eligible For DA Allowance"
+                )
             if expense.expense_date != expense.custom_expense_end_date:
                 frappe.throw("Expense Start and End Date Must Be Same For DA")
             if expense.custom_field_visits or expense.custom_service_calls:
@@ -861,7 +865,25 @@ def _process_food_lodging_expense(
     days = cint(days) or 1
     metro = exp.custom_for_metro_city
     expense_type_for_budget_lookup = exp.expense_type.lower()
-
+    if doc.employee:
+        employee_grade = frappe.db.get_value("Employee", doc.employee, "grade")
+        employee_budget_row = frappe.db.get_value(
+                    "Budget Allocation",
+                    {
+                        "parent": travel_budget,
+                        "parentfield": "buget_allocation",
+                        "grade": employee_grade,
+                    },
+                    [
+                        "lodging_allowance_metro",
+                        "lodging_allowance_non_metro",
+                        "meal_allowance_metro",
+                        "meal_allowance_non_metro",
+                        "local_commute_limit_daily",
+                        "local_commute_limit_monthly",
+                    ],
+                    as_dict=True,
+        )
     if expense_type_for_budget_lookup == "food":
         expense_type_for_budget_lookup = "meal"
 
@@ -961,7 +983,9 @@ def _process_food_lodging_expense(
                     
                     #? GET SHARED EMPLOYEE LIMIT VALUE
                     shared_employee_limit = shared_employee_budget_row.get(shared_employee_limit_field, 0)
-                    
+
+                    if shared_employee_limit == 0:
+                        limit = 0
                     #? IF SHARED EMPLOYEE LIMIT IS LESS THAN CURRENT LIMIT → ADD 40% OF THEIR LIMIT
                     if shared_employee_limit < limit:
                         limit = limit + shared_employee_limit * 0.4
@@ -1013,11 +1037,16 @@ def _process_food_lodging_expense(
             break
 
     if exceeded_any_day:
-        if (not exp.custom_attachments):
+        employee_limit_field = f"{expense_type_for_budget_lookup}_allowance_{'metro' if metro else 'non_metro'}"
+        employee_limit = employee_budget_row.get(employee_limit_field, 0)
+
+        if (not exp.custom_attachments) and employee_limit !=0:
             frappe.throw(
                 f"Row #{exp.get('idx')}: Attachment is required as the expense exceeds limits."
             )
-        exp.custom_is_exception = 1
+
+        if employee_limit != 0:
+            exp.custom_is_exception = 1
 
 @frappe.whitelist()
 def get_employees_by_role(doctype, txt, searchfield, start, page_len, filters):

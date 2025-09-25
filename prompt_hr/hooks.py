@@ -526,7 +526,7 @@ fixtures = [
     #     ]
     # ]},
     # {
-    #     "dt":"Role", "filters": [["name", "in", ["Job Requisition", "Head of Department", "Managing Director"]]]
+    #     "dt":"Role", "filters": [["name", "in", ["Job Requisition", "Head of Department", "Managing Director", "S - Payroll Accounting", "Travel Desk User", "Reporting Manager", "IT User", "Admin User"]]]
     # },
     # {
     #     "dt":"Workflow", "filters": [["name", "in", ["Job Requisition","Loan Application", "Compensatory Leave Request", "Leave Application", "Expense Claim", "Travel Request", "Shift Request", "WeekOff Change Request", "Attendance Regularization", "Attendance Request"]]]
@@ -554,6 +554,8 @@ fixtures = [
     #         "name": ["in", [
     #             "Employee ESS",
     #             "Leaves",
+    #             "Shift & Attendance",
+    #             "HR"
     #         ]]
     #     }
     # },

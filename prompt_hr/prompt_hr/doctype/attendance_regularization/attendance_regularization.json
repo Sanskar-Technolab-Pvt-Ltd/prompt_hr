@@ -24,13 +24,13 @@
   "employee_notified",
   "auto_approve",
   "section_break_qyza",
+  "time_format_note",
   "checkinpunch_details"
  ],
  "fields": [
   {
    "fieldname": "employee",
    "fieldtype": "Link",
-   "ignore_user_permissions": 1,
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Employee",
@@ -41,7 +41,6 @@
    "fetch_from": "employee.employee_name",
    "fieldname": "employee_name",
    "fieldtype": "Data",
-   "ignore_user_permissions": 1,
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Employee Name"
@@ -65,7 +64,6 @@
   {
    "fieldname": "regularization_date",
    "fieldtype": "Date",
-   "ignore_user_permissions": 1,
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Regularization Date",
@@ -106,7 +104,6 @@
    "fetch_from": "employee.department",
    "fieldname": "department",
    "fieldtype": "Link",
-   "ignore_user_permissions": 1,
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Department",
@@ -146,7 +143,6 @@
    "fetch_from": "employee.employment_type",
    "fieldname": "employment_type",
    "fieldtype": "Link",
-   "ignore_user_permissions": 1,
    "in_standard_filter": 1,
    "label": "Employment Type",
    "options": "Employment Type"
@@ -155,7 +151,6 @@
    "fetch_from": "employee.custom_work_location",
    "fieldname": "work_location",
    "fieldtype": "Link",
-   "ignore_user_permissions": 1,
    "in_standard_filter": 1,
    "label": "Work Location",
    "options": "Address"
@@ -164,17 +159,22 @@
    "fetch_from": "employee.status",
    "fieldname": "employee_status",
    "fieldtype": "Select",
-   "ignore_user_permissions": 1,
    "in_standard_filter": 1,
    "label": "Employee Status",
    "options": "Active\nInactive\nSuspended\nAbsconded\nLeft"
+  },
+  {
+   "fieldname": "time_format_note",
+   "fieldtype": "HTML",
+   "label": "time_format_note",
+   "options": "<div style=\"color:red; font-weight:bold; margin-bottom:10px;\">Please use the 24-hour time format.</div>"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-09-23 19:31:01.311852",
- "modified_by": "jignasha@sanskartechnolab.com",
+ "modified": "2025-09-25 17:28:04.910860",
+ "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Attendance Regularization",
  "naming_rule": "Expression",

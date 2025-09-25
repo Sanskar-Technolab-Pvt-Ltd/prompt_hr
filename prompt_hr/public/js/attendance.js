@@ -9,7 +9,8 @@ frappe.ui.form.on('Attendance', {
                 args: {
                     doctype: 'Attendance Regularization',
                     filters: {
-                        attendance: frm.doc.name
+                        attendance: frm.doc.name,
+                        status: ["!=", "Rejected"]
                     },
                     fieldname: 'name'
                 },
@@ -112,6 +113,13 @@ function show_checkin_dialog(frm) {
             const d = new frappe.ui.Dialog({
                 title: 'Edit Check-in/Out Records',
                 fields: [
+                    {
+                        fieldtype: 'HTML',
+                        fieldname: 'time_format_note',
+                        options: `<div style="color:red; font-weight:bold; margin-bottom:10px;">
+                                    Please use the 24-hour time format.
+                                </div>`
+                    },
                     {
                         label: 'Punch Details',
                         fieldname: 'punch_table',

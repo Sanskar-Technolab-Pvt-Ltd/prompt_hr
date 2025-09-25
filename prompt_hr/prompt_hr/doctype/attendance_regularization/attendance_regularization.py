@@ -33,6 +33,7 @@ class AttendanceRegularization(Document):
 				"employee": self.employee,
 				"regularization_date": self.regularization_date,
 				"name": ["!=", self.name],
+				"workflow_state": ["!=", "Rejected"]
 			},
 			fields=["name"],
 			limit=1
@@ -142,14 +143,21 @@ class AttendanceRegularization(Document):
 					self.employee_notified = 1
 
 	def before_save(self):
-		if (self.regularization_date and self.employee) and not self.attendance:
+		if (self.regularization_date and self.employee):
 			attendance_id = frappe.db.get_value(
 				"Attendance",
-				{"attendance_date": self.regularization_date, "employee": self.employee},
+				{
+					"attendance_date": self.regularization_date,
+					"employee": self.employee,
+					"docstatus": ["!=", 2]   # exclude cancelled records
+				},
+				"name"
 			)
+    
 			if attendance_id:
 				self.attendance = attendance_id
 
+			
 		if not self.checkinpunch_details:
 			frappe.throw("Checkin details not found", title="Data Missing")
 		if self.get("status") in ["Approved", "Rejected"]:

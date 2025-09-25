@@ -10,6 +10,7 @@
   "employee_name",
   "reporting_manager",
   "department",
+  "designation",
   "employment_type",
   "work_location",
   "employee_status",
@@ -29,7 +30,6 @@
   {
    "fieldname": "employee",
    "fieldtype": "Link",
-   "ignore_user_permissions": 1,
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Employee",
@@ -90,7 +90,8 @@
    "fieldname": "leave_penalty_details",
    "fieldtype": "Table",
    "label": "Leave Penalty Details",
-   "options": "Employee Leave Penalty Details"
+   "options": "Employee Leave Penalty Details",
+   "read_only": 1
   },
   {
    "default": "0",
@@ -112,7 +113,6 @@
    "fetch_from": "employee.employee_name",
    "fieldname": "employee_name",
    "fieldtype": "Data",
-   "ignore_user_permissions": 1,
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Employee Name"
@@ -121,7 +121,6 @@
    "fetch_from": "employee.department",
    "fieldname": "department",
    "fieldtype": "Link",
-   "ignore_user_permissions": 1,
    "in_standard_filter": 1,
    "label": "Department",
    "options": "Department"
@@ -130,7 +129,6 @@
    "fetch_from": "employee.employment_type",
    "fieldname": "employment_type",
    "fieldtype": "Link",
-   "ignore_user_permissions": 1,
    "in_standard_filter": 1,
    "label": "Employment Type",
    "options": "Employment Type"
@@ -139,7 +137,6 @@
    "fetch_from": "employee.custom_work_location",
    "fieldname": "work_location",
    "fieldtype": "Link",
-   "ignore_user_permissions": 1,
    "in_standard_filter": 1,
    "label": "Work Location",
    "options": "Address"
@@ -157,17 +154,23 @@
    "fetch_from": "employee.status",
    "fieldname": "employee_status",
    "fieldtype": "Select",
-   "ignore_user_permissions": 1,
    "in_standard_filter": 1,
    "label": "Employee Status",
    "options": "Active\nInactive\nSuspended\nAbsconded\nLeft"
+  },
+  {
+   "fetch_from": "employee.designation",
+   "fieldname": "designation",
+   "fieldtype": "Link",
+   "label": "Designation",
+   "options": "Designation"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-09-23 19:55:41.426556",
- "modified_by": "jignasha@sanskartechnolab.com",
+ "modified": "2025-09-25 19:40:11.483498",
+ "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Penalty",
  "naming_rule": "Expression",
