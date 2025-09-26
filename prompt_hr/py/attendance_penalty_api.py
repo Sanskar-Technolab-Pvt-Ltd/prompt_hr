@@ -2022,16 +2022,16 @@ def send_penalty_notification_emails():
                         except Exception as e:
                             frappe.log_error("Error in appending child rows for penalty email", str(e))
                             continue
-                penalty_emails_doc = frappe.get_doc({
-                    "doctype": "Penalty Emails",
-                    "status": "Not Sent",
-                    "email_details": child_rows,
-                    "date": getdate(),
-                    "remarks": f"Consolidated penalty notification emails prepared on {format_date(getdate())} for attendance irregularities dated {format_date(penalty_attendance_date)}."
-                })
+                    penalty_emails_doc = frappe.get_doc({
+                        "doctype": "Penalty Emails",
+                        "status": "Not Sent",
+                        "email_details": child_rows,
+                        "date": getdate(),
+                        "remarks": f"Consolidated penalty notification emails prepared on {format_date(getdate())} for attendance irregularities dated {format_date(penalty_attendance_date)}."
+                    })
 
-                penalty_emails_doc.insert(ignore_permissions=True)
-                frappe.db.commit()
+                    penalty_emails_doc.insert(ignore_permissions=True)
+                    frappe.db.commit()
             except Exception as e:
                 frappe.log_error("Error in creating Penalty Emails Doc", str(e))
 
