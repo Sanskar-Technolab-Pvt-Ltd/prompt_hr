@@ -1098,7 +1098,7 @@ def send_payroll_entry(payroll_entry_id, from_date, to_date, company):
             month_label = frappe.utils.formatdate(from_date, "MMM")  # Extract Month from from_date
             year = frappe.utils.formatdate(from_date, "YYYY")  # Extract Year from from_date
             salary_report_link = frappe.utils.get_url(
-                f"/app/query-report/Monthly%20Salary%20Report?month={month_label}&year={year}&currency=INR&company={company.replace(' ', '+')}&status=Draft"
+                f"/app/query-report/Monthly%20Salary%20Register?month={month_label}&year={year}&currency=INR&company={company.replace(' ', '+')}&status=Draft"
             )            
 
             # LOOP OVER EACH USER
@@ -1115,7 +1115,7 @@ def send_payroll_entry(payroll_entry_id, from_date, to_date, company):
                     
                     <p><b>Reference Reports:</b></p>
                     <ol>
-                        <li><a href="{salary_report_link}">Monthly Salary Report</a></li>
+                        <li><a href="{salary_report_link}">Monthly Salary Register</a></li>
                     </ol>
                 """
 
