@@ -92,6 +92,7 @@ doctype_list_js = {
     "Job Requisition": "public/js/job_requisition_list.js",
     "Travel Request": "public/js/travel_request_list.js",
     "Expense Claim": "public/js/expense_claim_list.js",
+    "Salary Slip": "public/js/salary_slip_list.js"
 }
 
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}

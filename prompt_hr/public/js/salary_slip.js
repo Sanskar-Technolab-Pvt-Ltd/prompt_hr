@@ -11,6 +11,47 @@ frappe.ui.form.on('Salary Slip', {
                 
     },
 
+    before_cancel: function (frm) {
+        // ? Stop the automatic cancel flow
+        frappe.validated = false;
+
+        frappe.prompt([
+            {
+                fieldname: 'cancel_reason',
+                fieldtype: 'Small Text',
+                label: 'Cancellation Reason',
+                reqd: 1
+            }
+        ], function (values) {
+
+            // ? Save the reason
+            frappe.call({
+                method: 'frappe.client.set_value',
+                args: {
+                    doctype: frm.doc.doctype,
+                    name: frm.doc.name,
+                    fieldname: 'custom_reason_for_cancellation',
+                    value: values.cancel_reason
+                },
+                callback: function () {
+                    // ? CANCEL THE DOCUMENT
+                    frappe.call({
+                        method: 'frappe.client.cancel',
+                        args: {
+                            doctype: frm.doc.doctype,
+                            name: frm.doc.name
+                        },
+                        callback: function () {
+                            frappe.show_alert(__('Document Cancelled'));
+                            frm.reload_doc();
+                        }
+                    });
+                }
+            });
+
+        }, 'Cancellation Reason Required', 'Submit');
+    }
+
     // custom_account_user_informed(frm) {
     //     update_primary_button(frm);
     // },
