@@ -9,6 +9,7 @@ from frappe.utils.response import build_response
 from frappe import _
 import traceback
 import calendar
+import io, zipfile
 
 
 # ? ON UPDATE CONTROLLER METHOD
@@ -566,6 +567,10 @@ def download_lop_reversal_template(payroll_entry_id):
     return build_response("download")
 
 
+import io, zipfile
+from frappe.utils.xlsxutils import make_xlsx
+import frappe
+
 @frappe.whitelist()
 def download_adhoc_salary_template(payroll_entry_id):
     # * Fetch the Payroll Entry document
@@ -591,13 +596,38 @@ def download_adhoc_salary_template(payroll_entry_id):
         for emp_id, emp_name in employee_list:
             excel_data.append([emp_id, emp_name, "", ""])
 
-    # * Generate the XLSX file from the data
+    # * Generate the Adhoc Salary XLSX file
     xlsx_file = make_xlsx(excel_data, "Adhoc Salary Details Template")
     xlsx_file.seek(0)
 
-    # * Set response for file download
-    frappe.local.response.filename = "Adhoc Salary Details Template.xlsx"
-    frappe.local.response.filecontent = xlsx_file.read()
+    # * Fetch all Salary Components
+    salary_components = frappe.get_all(
+        "Salary Component",
+        filters={"disabled": 0},
+        fields=["name", "salary_component_abbr", "type"]
+    )
+
+    # * Generate Salary Components XLSX file
+    sc_xlsx_file = None
+    if salary_components:
+        excel_sc_data = [["Name", "Abbr", "Type"]]
+        for sc in salary_components:
+            excel_sc_data.append([sc.name, sc.salary_component_abbr, sc.type])
+
+        sc_xlsx_file = make_xlsx(excel_sc_data, "Salary Components List")
+        sc_xlsx_file.seek(0)
+
+    # * Create a ZIP containing both files
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("Adhoc Salary Template.xlsx", xlsx_file.read())
+        if sc_xlsx_file:
+            sc_xlsx_file.seek(0)
+            zf.writestr("Salary Components List.xlsx", sc_xlsx_file.read())
+
+    zip_buffer.seek(0)
+    frappe.local.response.filename = "Payroll_Adhoc_Files.zip"
+    frappe.local.response.filecontent = zip_buffer.read()
     frappe.local.response.type = "download"
 
     return build_response("download")
