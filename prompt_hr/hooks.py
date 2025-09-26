@@ -96,7 +96,10 @@ doctype_list_js = {
 }
 
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
-doctype_calendar_js = {"Attendance" : "public/js/attendance_calendar.js"}
+doctype_calendar_js = {
+    "Attendance" : "public/js/attendance_calendar.js",
+    "Leave Application" : "public/js/leave_application_calendar.js"
+}
 
 # Svg Icons
 # ------------------

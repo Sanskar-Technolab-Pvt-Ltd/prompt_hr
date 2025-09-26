@@ -1,7 +1,7 @@
 // Copyright (c) 2025, Jignasha Chavda and contributors
 // For license information, please see license.txt
 
-frappe.query_reports["Wages Register"] = {
+frappe.query_reports["Monthly Salary Report"] = {
     filters: [
         {
             fieldname: "month",
@@ -64,7 +64,7 @@ frappe.query_reports["Wages Register"] = {
                 frappe.call({
                     method: "prompt_hr.py.accounting_team_notifications.send_esic_challan_notification",
                     args: {
-                        report_name: "Wages Register",
+                        report_name: "Monthly Salary",
                         url: window.location.href,
                     },
                     callback: function(r) {

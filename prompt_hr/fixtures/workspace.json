@@ -200,7 +200,7 @@
     "is_query_report": 1,
     "label": "Leave Balance",
     "link_count": 0,
-    "link_to": "Employee Leave Balance",
+    "link_to": "Leave Balance",
     "link_type": "Report",
     "onboard": 0,
     "only_for": "India",
@@ -218,7 +218,7 @@
     "is_query_report": 1,
     "label": "Leave Balance Summary",
     "link_count": 0,
-    "link_to": "Employee Leave Balance Summary",
+    "link_to": "Leave Balance Summary",
     "link_type": "Report",
     "onboard": 0,
     "only_for": "India",
@@ -229,7 +229,7 @@
     "type": "Link"
    }
   ],
-  "modified": "2025-09-24 14:58:55.415116",
+  "modified": "2025-09-26 16:37:01.005407",
   "module": null,
   "name": "Employee ESS",
   "number_cards": [
