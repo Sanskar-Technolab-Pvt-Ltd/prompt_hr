@@ -2754,7 +2754,6 @@ def process_tour_visit_da(employee, company, from_date, to_date, expense_claim_n
             ],
             fields=["name", "tour_start_date", "tour_end_date", "customer", "tour_start_date_time", "tour_end_date_time"]
         )
-        print(tour_visits)
         #? CALCULATE ELIGIBLE HOURS PER DAY AFTER APPLYING EXCLUDE TIME RANGE
         date_wise_da_hours = calculate_date_wise_hours(
             visits=tour_visits,
