@@ -9,7 +9,8 @@ from frappe.utils.response import build_response
 from frappe import _
 import traceback
 import calendar
-import io, zipfile
+import io
+from openpyxl import Workbook
 
 
 # ? ON UPDATE CONTROLLER METHOD
@@ -578,56 +579,52 @@ def download_adhoc_salary_template(payroll_entry_id):
 
     # * Get the list of employees in this Payroll Entry
     employee_list = [(emp.employee, emp.employee_name) for emp in payroll_entry.employees]
+    adhoc_data = [["Employee", "Employee Name", "Salary Component", "Amount"]]
 
-    # * Prepare Excel header
-    excel_data = [["Employee", "Employee Name", "Salary Component", "Amount"]]
-
-    # * Add existing adhoc salary details if they exist
     if payroll_entry.custom_adhoc_salary_details:
         for detail in payroll_entry.custom_adhoc_salary_details:
-            excel_data.append([
+            adhoc_data.append([
                 detail.employee,
                 detail.employee_name,
                 detail.salary_component,
                 detail.amount
             ])
     else:
-        # * Otherwise, generate empty rows for manual entry
         for emp_id, emp_name in employee_list:
-            excel_data.append([emp_id, emp_name, "", ""])
+            adhoc_data.append([emp_id, emp_name, "", ""])
 
-    # * Generate the Adhoc Salary XLSX file
-    xlsx_file = make_xlsx(excel_data, "Adhoc Salary Details Template")
-    xlsx_file.seek(0)
-
-    # * Fetch all Salary Components
+    # Prepare data for the Salary Components sheet
     salary_components = frappe.get_all(
         "Salary Component",
         filters={"disabled": 0},
         fields=["name", "salary_component_abbr", "type"]
     )
+    sc_data = [["Name", "Abbr", "Type"]]
+    for sc in salary_components:
+        sc_data.append([sc.name, sc.salary_component_abbr, sc.type])
 
-    # * Generate Salary Components XLSX file
-    sc_xlsx_file = None
-    if salary_components:
-        excel_sc_data = [["Name", "Abbr", "Type"]]
-        for sc in salary_components:
-            excel_sc_data.append([sc.name, sc.salary_component_abbr, sc.type])
+    # Create Excel workbook and add sheets
+    wb = Workbook()
+    ws1 = wb.active
+    ws1.title = "Adhoc Salary Details"
 
-        sc_xlsx_file = make_xlsx(excel_sc_data, "Salary Components List")
-        sc_xlsx_file.seek(0)
+    # Write adhoc_data to first sheet
+    for row in adhoc_data:
+        ws1.append(row)
 
-    # * Create a ZIP containing both files
-    zip_buffer = io.BytesIO()
-    with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr("Adhoc Salary Template.xlsx", xlsx_file.read())
-        if sc_xlsx_file:
-            sc_xlsx_file.seek(0)
-            zf.writestr("Salary Components List.xlsx", sc_xlsx_file.read())
+    # Add second sheet for Salary Components
+    ws2 = wb.create_sheet(title="Salary Components List")
+    for row in sc_data:
+        ws2.append(row)
 
-    zip_buffer.seek(0)
-    frappe.local.response.filename = "Payroll_Adhoc_Files.zip"
-    frappe.local.response.filecontent = zip_buffer.read()
+    # Save workbook to bytes
+    excel_buffer = io.BytesIO()
+    wb.save(excel_buffer)
+    excel_buffer.seek(0)
+
+    # Set response to download the Excel file
+    frappe.local.response.filename = "Payroll_Adhoc_and_Salary_Components.xlsx"
+    frappe.local.response.filecontent = excel_buffer.read()
     frappe.local.response.type = "download"
 
     return build_response("download")
@@ -1101,7 +1098,7 @@ def send_payroll_entry(payroll_entry_id, from_date, to_date, company):
             month_label = frappe.utils.formatdate(from_date, "MMM")  # Extract Month from from_date
             year = frappe.utils.formatdate(from_date, "YYYY")  # Extract Year from from_date
             salary_report_link = frappe.utils.get_url(
-                f"/app/query-report/Wages%20Register?month={month_label}&year={year}&currency=INR&company={company.replace(' ', '+')}&docstatus=Submitted"
+                f"/app/query-report/Monthly%20Salary%20Report?month={month_label}&year={year}&currency=INR&company={company.replace(' ', '+')}&status=Draft"
             )            
 
             # LOOP OVER EACH USER
@@ -1118,7 +1115,7 @@ def send_payroll_entry(payroll_entry_id, from_date, to_date, company):
                     
                     <p><b>Reference Reports:</b></p>
                     <ol>
-                        <li><a href="{salary_report_link}">Wages Register</a></li>
+                        <li><a href="{salary_report_link}">Monthly Salary Report</a></li>
                     </ol>
                 """
 
