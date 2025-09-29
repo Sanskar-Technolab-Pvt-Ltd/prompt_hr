@@ -538,6 +538,10 @@ function claim_extra_expenses(frm) {
                         dialog.set_df_property("service_call", "hidden", !isRequired);
                         dialog.set_df_property("customer", "hidden", isRequired);
                         dialog.set_df_property("customer", "reqd", !isRequired);
+                        dialog.set_df_property("from_date", "reqd", isRequired);
+                        dialog.set_df_property("to_date", "reqd", isRequired);
+                        dialog.set_df_property("from_date", "hidden", !isRequired);
+                        dialog.set_df_property("to_date", "hidden", !isRequired);
 
                         dialog.fields_dict.field_visit.refresh();
                         dialog.fields_dict.service_call.refresh();
@@ -554,6 +558,10 @@ function claim_extra_expenses(frm) {
                         dialog.set_df_property("tour_visit", "hidden", !isRequired);
                         dialog.set_df_property("customer", "hidden", isRequired);
                         dialog.set_df_property("customer", "reqd", !isRequired);
+                        dialog.set_df_property("from_date", "reqd", isRequired);
+                        dialog.set_df_property("to_date", "reqd", isRequired);
+                        dialog.set_df_property("from_date", "hidden", !isRequired);
+                        dialog.set_df_property("to_date", "hidden", !isRequired);
                         dialog.fields_dict.field_visit.refresh();
                         dialog.fields_dict.service_call.refresh();
                     }
