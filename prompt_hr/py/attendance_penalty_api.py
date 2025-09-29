@@ -411,7 +411,8 @@ def process_late_entry_penalties_for_prompt(
     penalty_buffer_days,
     priority_field,
     target_date,
-    custom_buffer_days
+    custom_buffer_days,
+    weekoff_change = False
 ):
     """
     Process late entry penalties for a given employee based on buffer days and attendance records.
@@ -564,8 +565,9 @@ def process_late_entry_penalties_for_prompt(
             ):
                 # ? CHECK HOLIDAY
                 try:
-                    if get_holiday_dates_for_employee(employee, target_date, target_date):
-                        continue
+                    if not weekoff_change:
+                        if get_holiday_dates_for_employee(employee, target_date, target_date):
+                            continue
                 except Exception as e:
                     frappe.log_error(
                         f"Error in Getting Holiday Date",str(e)
@@ -787,7 +789,8 @@ def process_daily_hours_penalties_for_prompt(
     target_date,
     percentage_for_daily_hour_penalty,
     priority_field,
-    custom_buffer_days
+    custom_buffer_days,
+    weekoff_change = False
 ):
     """
     Process daily hours penalties for a given employee based on buffer days and attendance records.
@@ -902,8 +905,9 @@ def process_daily_hours_penalties_for_prompt(
             continue
         # ? CHECK HOLIDAY
         try:
-            if get_holiday_dates_for_employee(employee, target_date, target_date):
-                continue
+            if not weekoff_change:
+                if get_holiday_dates_for_employee(employee, target_date, target_date):
+                    continue
         except Exception as e:
             frappe.log_error(
                 f"Error in Getting Holiday Date",str(e)
@@ -1273,7 +1277,7 @@ def get_leave_allocation_id(employee, leave_type, attendance_date):
 
 
 def process_no_attendance_penalties_for_prompt(
-    employees, penalty_buffer_days, target_date, priority_field, custom_buffer_days
+    employees, penalty_buffer_days, target_date, priority_field, custom_buffer_days, weekoff_change = False
 ):
     """
     PROCESS NO ATTENDANCE PENALTIES FOR EMPLOYEES WHO WERE NOT PRESENT
@@ -1310,8 +1314,9 @@ def process_no_attendance_penalties_for_prompt(
         for emp in employees_without_attendance:
             # ? CHECK HOLIDAY
             try:
-                if get_holiday_dates_for_employee(emp, target_date, target_date):
-                    continue
+                if not weekoff_change:
+                    if get_holiday_dates_for_employee(emp, target_date, target_date):
+                        continue
             except Exception as e:
                 frappe.log_error(
                     f"Error in Getting Holiday Date",str(e)
@@ -1390,7 +1395,7 @@ def process_no_attendance_penalties_for_prompt(
 
 
 def process_mispunch_penalties_for_prompt(
-    employees, penalty_buffer_days, target_date, priority_field, custom_buffer_days
+    employees, penalty_buffer_days, target_date, priority_field, custom_buffer_days, weekoff_change = False
 ):
     """
     PROCESS MIS-PUNCH PENALTIES FOR EMPLOYEES WHO HAD MIS-PUNCHES
@@ -1442,8 +1447,9 @@ def process_mispunch_penalties_for_prompt(
     for emp in mispunch_records.keys():
         # ? CHECK HOLIDAY
         try:
-            if get_holiday_dates_for_employee(emp, target_date, target_date):
-                continue
+            if not weekoff_change:
+                if get_holiday_dates_for_employee(emp, target_date, target_date):
+                    continue
         except Exception as e:
             frappe.log_error(
                 f"Error in Getting Holiday Date",str(e)

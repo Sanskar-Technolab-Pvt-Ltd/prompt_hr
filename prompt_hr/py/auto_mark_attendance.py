@@ -424,12 +424,12 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
     
     #* Checking if attendance exists then move to another employee
     if not regularize_attendance:
-        attendance_exists = frappe.db.exists("Attendance", {"employee": employee_data.get("name"), "attendance_date": mark_attendance_date, "status": ["!=", "Half Day"]})
+        attendance_exists = frappe.db.exists("Attendance", {"employee": employee_data.get("name"), "docstatus":["!=", 2],"attendance_date": mark_attendance_date, "status": ["!=", "Half Day"]})
         if attendance_exists:
             return 0
     
     #* CHECKING IS THERE ANY HALF DAY ATTENDANCE OR NOT
-    half_day_attendance = frappe.db.get_value("Attendance", {"employee": employee_data.get("name"), "attendance_date": mark_attendance_date, "status": "Half Day", "leave_application": ["is", "set"]}, ["name", "custom_half_day_time"], as_dict=True)
+    half_day_attendance = frappe.db.get_value("Attendance", {"employee": employee_data.get("name"), "docstatus":["!=", 2],"attendance_date": mark_attendance_date, "status": "Half Day", "leave_application": ["is", "set"]}, ["name", "custom_half_day_time"], as_dict=True)
     
 
     if not half_day_attendance:
@@ -654,7 +654,7 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
     
     if is_half_day or attendance_id:
             if not attendance_id:
-                attendance_id = frappe.db.get_value("Attendance", {"employee": employee_data.get("name"), "attendance_date": mark_attendance_date}, "name")
+                attendance_id = frappe.db.get_value("Attendance", {"employee": employee_data.get("name"), "attendance_date": mark_attendance_date,"docstatus":["!=", 2]}, "name")
             
             if attendance_id:
                 update_attendance(attendance_id, {

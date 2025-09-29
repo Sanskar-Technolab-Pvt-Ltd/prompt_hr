@@ -352,7 +352,48 @@ frappe.ui.form.on("Payroll Entry", {
 			}).addClass("btn-primary");
 		}
     },
-    
+
+    custom_new_joinee_and_exit_refresh: function (frm) {
+        frappe.call({
+            method: "prompt_hr.py.payroll_entry.refresh_new_joinee_and_exit_tab",
+            args: {
+                docname: frm.doc.name
+            },
+            freeze: true,
+            callback: function (r) {
+                    frappe.msgprint(__("New Joinee and Exit Tab refreshed successfully."));
+                    frm.reload_doc()
+            }
+        });
+    },
+
+    custom_leave_and_attendance_refresh: function (frm) {
+        frappe.call({
+            method: "prompt_hr.py.payroll_entry.refresh_leave_and_attendance_tab",
+            args: {
+                docname: frm.doc.name
+            },
+            freeze: true,
+            callback: function (r) {
+                    frappe.msgprint(__("Leave And Attendance Updated Succesfully"));
+                    frm.reload_doc()
+            }
+        });
+    },
+
+    custom_restricted_salary_refresh: function(frm) {
+        frappe.call({
+            method: "prompt_hr.py.payroll_entry.refresh_restricted_salary_tab",
+            args: {
+                docname: frm.doc.name
+            },
+            freeze: true,
+            callback: function (r) {
+                    frappe.msgprint(__("Restricted Salary Updated Succesfully"));
+                    frm.reload_doc()
+            }
+        });
+    },
     add_bank_entry_button: function (frm) {
 		frm.call("has_bank_entries").then((r) => {
             if (!r.message.has_bank_entries) {

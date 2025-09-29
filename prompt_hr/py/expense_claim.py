@@ -182,10 +182,17 @@ def validate_number_of_days(doc):
     try:
         meal_configs = fetch_meal_allowance_settings()
         meal_configs = sorted(meal_configs, key=lambda x: x["from_hours"])
+        employee_grade = frappe.db.get_value("Employee", doc.employee, "grade")
         #? ENSURE THAT EACH EXPENSE ENTRY HAS custom_days <= 1
         for expense in doc.expenses:
             expense_days = expense.custom_days or 0
             expense_type = expense.expense_type
+
+            if get_allowance_budgets(employee_grade,doc.company,expense_type, expense.custom_for_metro_city) == -1:
+                raise frappe.ValidationError(
+                    _("Row #{0}: Expense Type {1} is not allowed for Employee Grade {2}.")
+                    .format(expense.idx, expense_type, employee_grade)
+                )
             #! THROW AN ERROR IF MORE THAN 1 DAY IS SELECTED FOR A SINGLE EXPENSE ROW
             if expense_days > 1:
                 if expense_type not in ["Lodging", "Local Commute", "Food"]:
@@ -2790,3 +2797,54 @@ def process_tour_visit_da(employee, company, from_date, to_date, expense_claim_n
 
     except Exception as e:
         frappe.throw(str(e))
+
+
+def get_allowance_budgets(employee_grade, company, expense_type, metro):
+    """
+    FETCHES THE LATEST ALLOWANCE BUDGET FOR THE GIVEN EMPLOYEE GRADE, COMPANY, AND EXPENSE TYPE.
+    """
+    #! FETCH LATEST SUBMITTED TRAVEL BUDGET DOCUMENT FOR THE GIVEN COMPANY
+    travel_budget_docs = frappe.get_all(
+        "Travel Budget",
+        filters={"docstatus": 1, "company": company},
+        fields=["name"],
+        order_by="creation desc",
+        limit=1
+    )
+
+    if not travel_budget_docs:
+        return 0  # ! NO TRAVEL BUDGET FOUND
+
+    travel_budget_name = travel_budget_docs[0].name
+
+    #! FETCH BUDGET ALLOCATION FOR GIVEN GRADE
+    budget_allocations = frappe.get_all(
+        "Budget Allocation",
+        filters={
+            "parent": travel_budget_name,  # ! CORRECT FIELD
+            "parenttype": "Travel Budget",
+            "grade": employee_grade
+        },
+        fields=["*"],
+        order_by="creation desc",
+        limit=1
+    )
+
+    if not budget_allocations:
+        return 0  # ! NO ALLOCATION FOUND
+
+    budget = budget_allocations[0]
+
+    #! DETERMINE FIELD KEY BASED ON EXPENSE TYPE
+    if expense_type == "DA":
+        key = "da_allowance"
+    elif expense_type == "Local Commute":
+        key = "local_commute_limit_monthly"
+    elif expense_type == "Food":
+        key = "meal_allowance_metro" if metro else "meal_allowance_non_metro"
+    elif expense_type == "Lodging":
+        key = "lodging_allowance_metro" if metro else "lodging_allowance_non_metro"
+    else:
+        return 0  # ! EXPENSE TYPE NOT RECOGNIZED
+
+    return budget.get(key, 0)

@@ -1,5 +1,5 @@
 {
- "add_total_row": 0,
+ "add_total_row": 1,
  "add_translate_data": 0,
  "columns": [],
  "creation": "2025-09-26 19:17:46.806740",
@@ -11,7 +11,7 @@
  "is_standard": "Yes",
  "letter_head": "Prompt - Letter Head",
  "letterhead": null,
- "modified": "2025-09-26 19:17:46.806740",
+ "modified": "2025-09-29 19:10:57.190250",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Monthly Salary Register",

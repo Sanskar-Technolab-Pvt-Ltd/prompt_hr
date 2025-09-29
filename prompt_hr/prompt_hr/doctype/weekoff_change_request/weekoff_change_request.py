@@ -6,6 +6,10 @@ from frappe import _, throw
 from frappe.utils import getdate, today, formatdate
 from frappe.model.document import Document
 from prompt_hr.py.utils import send_notification_email, is_user_reporting_manager_or_hr, get_reporting_manager_info
+from prompt_hr.overrides.attendance_override import modify_employee_penalty
+from prompt_hr.prompt_hr.doctype.employee_penalty.employee_penalty import cancel_penalties
+from prompt_hr.py.auto_mark_attendance import mark_attendance
+
 
 class WeekOffChangeRequest(Document):
 
@@ -66,6 +70,57 @@ class WeekOffChangeRequest(Document):
 		current_user = frappe.session.user
 		if self.status == "Approved":
 			is_rh = is_user_reporting_manager_or_hr(current_user, self.employee)
+			#! PROCESS WEEKOFF CHANGES FOR EMPLOYEE
+			if not is_rh.get("error"):
+				today = getdate()
+
+				def process_weekoff_attendance(date, is_existing):
+					att_list = frappe.get_all(
+						"Attendance",
+						filters={
+							"employee": self.employee,
+							"docstatus": ["!=", 2],
+							"attendance_date": date
+						},
+						fields=["name", "attendance_date", "custom_employee_penalty_id"],
+						limit=1
+					)
+
+					if att_list:
+						attendance = att_list[0]
+
+						# Cancel penalties if any
+						if attendance.custom_employee_penalty_id:
+							cancel_penalties(
+								attendance.custom_employee_penalty_id,
+								"Weekoff change request Approve",
+								1
+							)
+
+						# Cancel old attendance
+						frappe.get_doc("Attendance", attendance.name).cancel()
+					print("ATtendance")
+					# Mark attendance
+					mark_attendance(
+						attendance_date=date,
+						company=self.company,
+						regularize_attendance=0,
+						emp_id=self.employee
+					)
+
+					# Update employee penalty
+					modify_employee_penalty(self.employee, date, is_existing)
+
+				for weekoff_detail in self.weekoff_details:
+					existing_date = getdate(weekoff_detail.existing_weekoff_date)
+					if existing_date < today:
+						process_weekoff_attendance(weekoff_detail.existing_weekoff_date, True)
+
+					new_date = getdate(weekoff_detail.new_weekoff_date)
+					if new_date < today:
+						process_weekoff_attendance(weekoff_detail.new_weekoff_date, False)
+
+
 			if not is_rh.get("error") and is_rh.get("is_rh"):
 				emp_user_id = frappe.db.get_value("Employee", self.employee, "user_id")
 				if emp_user_id:
