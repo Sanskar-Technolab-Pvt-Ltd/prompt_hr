@@ -4,6 +4,7 @@ from dateutil.relativedelta import relativedelta
 from datetime import datetime
 from frappe.utils import getdate
 import frappe.utils
+from prompt_hr.overrides.payroll_entry_override import CustomPayrollEntry
 from frappe.utils.xlsxutils import make_xlsx, read_xlsx_file_from_attached_file
 from frappe.utils.response import build_response
 from frappe import _
@@ -1230,3 +1231,88 @@ def get_month_options_up_to_current():
         options.append(f"{month_name}-{current_year}")
 
     return options
+
+@frappe.whitelist()
+def refresh_new_joinee_and_exit_tab(docname):
+    #! FETCH PAYROLL ENTRY DOCUMENT
+    doc = frappe.get_doc("Payroll Entry", docname)
+
+    #! UPDATE NEW JOINEE COUNT
+    set_new_joinee_count(doc)
+
+    #! GET EMPLOYEES FROM CURRENT PAYROLL ENTRY
+    employees = doc.employees
+
+    #! APPEND EXIT EMPLOYEES TO PAYROLL ENTRY
+    CustomPayrollEntry.append_exit_employees(doc, employees)
+
+    #! UPDATE EXIT EMPLOYEES COUNT FIELD IN DATABASE
+    doc.db_set("custom_exit_employees_count", doc.custom_exit_employees_count)
+
+    #! CONVERT EXISTING PENDING FNF DETAILS CHILD TABLE TO DICT LIST
+    fnf_rows = [row.as_dict() for row in doc.custom_pending_fnf_details]
+
+    #! DELETE EXISTING CHILD ROWS FROM DATABASE DIRECTLY
+    frappe.db.sql("""
+        DELETE FROM `tabPending FnF Details`
+        WHERE parent=%s AND parentfield=%s AND parenttype=%s
+    """, (docname, "custom_pending_fnf_details", "Payroll Entry"))
+    frappe.db.commit()  # ! COMMIT DELETE CHANGES IMMEDIATELY
+
+    #! RE-INSERT CHILD ROWS DIRECTLY FROM SAVED DATA
+    for fnf in fnf_rows:
+        child_doc = frappe.get_doc({
+            "doctype": "Pending FnF Details",               #? CHILD DOCTYPE NAME
+            "parent": docname,                              #? LINK TO PARENT
+            "parentfield": "custom_pending_fnf_details",    #? CHILD TABLE FIELDNAME
+            "parenttype": "Payroll Entry",                 #? PARENT DOCTYPE
+            "employee": fnf.get("employee"),
+            "is_fnf_processed": fnf.get("is_fnf_processed"),
+            "fnf_record": fnf.get("fnf_record"),
+            "hold_fnf": fnf.get("hold_fnf"),
+        })
+        #! INSERT CHILD RECORD WITHOUT SAVING PARENT, IGNORE PERMISSIONS
+        child_doc.insert(ignore_permissions=True)
+
+    #! FINAL COMMIT TO SAVE ALL INSERTED CHILD RECORDS
+    frappe.db.commit()
+
+@frappe.whitelist()
+def refresh_leave_and_attendance_tab(docname):
+    doc = frappe.get_doc("Payroll Entry", docname)
+
+    # ! PRESERVE existing lop_adjustment and remarks
+    existing_lop_data = {}
+    for row in doc.get("custom_lop_summary") or []:
+        existing_lop_data[row.employee] = {
+            "lop_adjustment": row.lop_adjustment,
+            "remarks": row.remarks
+        }
+
+    # ! Call original append functions
+    append_pending_leave_approvals(doc)
+    append_lop_summary(doc)
+
+    # ? Get actual child table rows from DB
+    lop_rows = frappe.get_all(
+        "LOP Summary",
+        filters={"parent": doc.name, "parentfield": "custom_lop_summary", "parenttype": doc.doctype},
+        fields=["name", "employee"]
+    )
+
+    # ? Restore preserved fields
+    for row in lop_rows:
+        employee = row.employee
+        if employee in existing_lop_data:
+            preserved = existing_lop_data[employee]
+            frappe.db.set_value("LOP Summary", row.name, "lop_adjustment", preserved.get("lop_adjustment") or 0)
+            frappe.db.set_value("LOP Summary", row.name, "remarks", preserved.get("remarks") or "")
+
+@frappe.whitelist()
+def refresh_restricted_salary_tab(docname):
+    doc = frappe.get_doc("Payroll Entry", docname)
+    # ? APPEND EMPLOYEES MISSING PF/ESI DETAILS
+    append_employees_with_incomplete_payroll_details(doc)
+
+    # ? APPEND EMPLOYEES MISSING BANK DETAILS
+    append_employees_with_incomplete_bank_details(doc)
