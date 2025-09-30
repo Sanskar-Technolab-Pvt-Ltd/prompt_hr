@@ -5,7 +5,7 @@ from hrms.hr.utils import get_holiday_dates_for_employee
 from datetime import datetime, timedelta, time, date
 from prompt_hr.scheduler_methods import send_penalty_warnings
 from frappe.model.workflow import apply_workflow
-
+from prompt_hr.py.leave_application import apply_sandwich_rule
 
 def get_active_employees():
     return frappe.db.get_all("Employee", {"status": "Active"}, "name", pluck="name")
@@ -646,9 +646,31 @@ def calculate_leave_deductions_based_on_priority(
             deduction_of_leave = config.get("deduction_of_leave")
 
             deduction_unit = 0.5 if deduction_of_leave == "Half Day" else 1.0
+                    
 
             # ! CALCULATE LEAVE AMOUNT TO BE DEDUCTED
             leave_amount = min(deduction_amount, deduction_unit)
+            sandwich_rule_applied = 0
+            try:
+                if reason == "No Attendance":
+                    # ? CHECK FOR SANDWICH CRITERIA
+                    custom_doc = frappe._dict(
+                        employee=employee,
+                        leave_type=leave_type,
+                        workflow_state="Approved",
+                        from_date=attendance_date,
+                        to_date=attendance_date,
+                    )
+                    extra_days, extra_days_prev, extra_days_next = apply_sandwich_rule(
+                            custom_doc,
+                    )
+                    if extra_days:
+                        leave_amount += extra_days
+                        sandwich_rule_applied = 1
+            except:
+                frappe.log_error(
+                    "Error in Sandwich Rule", str(e)
+                )
             if deduction_type == "Deduct Earned Leave":
                 balance = leave_balances.get(leave_type, 0.0)
                 # ? CHECK IF LEAVE BALANCE IS SUFFICIENT
@@ -665,6 +687,7 @@ def calculate_leave_deductions_based_on_priority(
                             "leave_ledger_entry": "",
                             "remarks": remarks,
                             "earned_leave": leave_amount,
+                            "sandwich_rule_applied":sandwich_rule_applied
                         }
                     }
 
@@ -681,6 +704,7 @@ def calculate_leave_deductions_based_on_priority(
                         "leave_ledger_entry": "",
                         "remarks": remarks,
                         "leave_without_pay": leave_amount,
+                        "sandwich_rule_applied":sandwich_rule_applied
                     }
                 }
         except Exception as e:
@@ -1029,6 +1053,10 @@ def create_penalty_records(penalty_entries, target_date):
                         penalty_doc.deduct_leave_without_pay += details.get(
                             "leave_without_pay", 0
                         )
+                        if not penalty_doc.sandwich_rule_applied:
+                            penalty_doc.sandwich_rule_applied = details.get(
+                                "sandwich_rule_applied", 0
+                            )
                         penalty_doc.total_leave_penalty = (
                             penalty_doc.deduct_earned_leave
                             + penalty_doc.deduct_leave_without_pay
@@ -1094,6 +1122,7 @@ def create_penalty_records(penalty_entries, target_date):
                             "employee": employee,
                             "attendance": details["attendance"],
                             "penalty_date": target_date,
+                            "sandwich_rule_applied": details.get("sandwich_rule_applied", 0),
                             "deduct_earned_leave": details.get("earned_leave", 0),
                             "deduct_leave_without_pay": details.get("leave_without_pay", 0),
                             "total_leave_penalty": details.get("earned_leave", 0)
@@ -1849,6 +1878,60 @@ def auto_approve_scheduler():
     except Exception as e:
         frappe.log_error(f"Error fetching or processing attendance requests:", str(e))
 
+    # ? Approve only one weekoff change request
+    try:
+        weekoff_change_requests = []
+        weekoff_change_requests_created = []
+        if auto_mark_buffer_date:
+            #! FETCH CHILD RECORDS WHERE EITHER existing_weekoff_date OR new_weekoff_date = auto_mark_buffer_date
+            weekoff_change_request_child_table = frappe.get_all(
+                "WeekOff Request Details",
+                or_filters=[
+                    ["existing_weekoff_date", "=", auto_mark_buffer_date],
+                    ["new_weekoff_date", "=", auto_mark_buffer_date],
+                ],
+                fields=["parent"]
+            )
+
+            #! COLLECT PARENT REQUEST NAMES
+            parent_names = [row.parent for row in weekoff_change_request_child_table]
+
+            #! FETCH PENDING WEEKOFF CHANGE REQUESTS WITH OR FILTERS
+            weekoff_change_requests = frappe.get_all(
+                "WeekOff Change Request",
+                filters=[
+                    ["workflow_state", "=", "Pending"],
+                    ["employee", "in", employees],
+                    ["name", "in", parent_names]
+                ],
+                fields=["name", "employee"],
+            )
+
+        if auto_mark_date_after_creation:
+            weekoff_change_requests_created = frappe.get_all(
+                "WeekOff Change Request",
+                filters={
+                    "workflow_state": "Pending",
+                    "employee": ["in", employees],
+                    "creation": ["between", [start_datetime, end_datetime]],
+                },
+                fields=["name", "employee"],
+            )
+
+        weekoff_change_requests.extend(weekoff_change_requests_created)
+
+        for request in weekoff_change_requests:
+            try:
+                weekoff_change_request = frappe.get_doc("WeekOff Change Request", request.name)
+                weekoff_change_request.db_set("auto_approve", 1)
+                apply_workflow(weekoff_change_request, "Approve")
+            except Exception as e:
+                weekoff_change_request.db_set("auto_approve", 0)
+                frappe.log_error(f"Error approving weekoff change request {request.name}:", str(e))
+                continue
+
+    except Exception as e:
+        frappe.log_error(f"Error fetching or processing weekoff change requests:", str(e))
 
 def half_day_leave_exist_first_half(employee, target_date):
     """
