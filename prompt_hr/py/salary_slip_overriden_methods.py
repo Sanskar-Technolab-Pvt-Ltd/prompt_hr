@@ -100,7 +100,7 @@ def custom_create_salary_slips_for_employees(employees, args, publish_progress=T
 													fnf_receivable_details = frappe.db.get_all("Full and Final Outstanding Statement", {"parenttype": "Full and Final Statement", "parent": fnf.fnf_record, "parentfield": "receivables"}, ["component as salary_component", "amount"])
 
 													if fnf_payable_details:
-														salary_slip_doc.earnings = []
+														# salary_slip_doc.earnings = []
 
 														for payable in fnf_payable_details:
 															salary_slip_doc.append("earnings", {
@@ -108,7 +108,7 @@ def custom_create_salary_slips_for_employees(employees, args, publish_progress=T
 																"amount": payable.get("amount")
 															})
 													if fnf_receivable_details:
-														salary_slip_doc.deductions = []
+														# salary_slip_doc.deductions = []
 														for receivable in fnf_receivable_details:
 															salary_slip_doc.append("deductions", {
 																"salary_component": receivable.get("salary_component"),
@@ -151,7 +151,7 @@ def custom_create_salary_slips_for_employees(employees, args, publish_progress=T
 								fnf_receivable_details = frappe.db.get_all("Full and Final Outstanding Statement", {"parenttype": "Full and Final Statement", "parent": fnf.fnf_record, "parentfield": "receivables"}, ["component as salary_component", "amount"])
 
 								if fnf_payable_details:
-									salary_slip_doc.earnings = []
+									# salary_slip_doc.earnings = []
 
 									for payable in fnf_payable_details:
 										salary_slip_doc.append("earnings", {
@@ -159,7 +159,7 @@ def custom_create_salary_slips_for_employees(employees, args, publish_progress=T
 											"amount": payable.get("amount")
 										})
 								if fnf_receivable_details:
-									salary_slip_doc.deductions = []
+									# salary_slip_doc.deductions = []
 									for receivable in fnf_receivable_details:
 										salary_slip_doc.append("deductions", {
 											"salary_component": receivable.get("salary_component"),

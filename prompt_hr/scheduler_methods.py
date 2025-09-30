@@ -3093,7 +3093,6 @@ def daily_attendance_request_rituals():
             request_map.setdefault(req.employee, []).append(req)
 
 
-        frappe.log_error("daily_attendance_request_rituals_error", f"\n\n request_map {request_map} \n\n")
         for employee, requests in request_map.items():
             current_scheme = employee_map.get(employee)
             active_request = None
@@ -3122,7 +3121,6 @@ def daily_attendance_request_rituals():
                         emp_doc = frappe.get_doc("Employee", employee) or None
                         emp_doc.custom_attendance_capture_scheme = new_scheme
                         emp_doc.flags.ignore_mandatory = True
-                        
                         
                         try:
                             emp_doc.save(ignore_permissions=True)
