@@ -21,7 +21,7 @@ from frappe.utils import (
 from dateutil import relativedelta
 from hrms.hr.utils import create_additional_leave_ledger_entry, get_monthly_earned_leave
 import datetime
-from erpnext.setup.doctype.employee.employee import get_holiday_list_for_employee
+from erpnext.setup.doctype.employee.employee import get_holiday_list_for_employee, is_holiday
 from hrms.hr.report.employee_leave_balance.employee_leave_balance import get_leave_ledger_entries, get_employees, get_leave_types
 from hrms.hr.utils import get_holiday_dates_for_employee
 from hrms.hr.doctype.leave_application.leave_application import (
@@ -45,13 +45,21 @@ def on_cancel(doc, method):
     if doc.get("custom_leave_status"):
         doc.db_set("custom_leave_status", "Cancelled")
 
+    try:
+        handle_penalties_for_sandwich_rule(doc.from_date, doc.to_date, doc.employee, doc.company)
+    except Exception as e:
+        frappe.log_error(
+            "Error in handle_penalties_for_sandwich_rule", str(e)
+        )
+
 def before_save(doc, method):
     if hasattr(doc, '_original_date'):  
         doc.set("from_date", doc._original_date)
         if hasattr(doc, '_half_day'):
                 doc.set("half_day", 1)
                 if hasattr(doc, "_half_day_date"):
-                    doc.set("half_day_date", doc._half_day_date) 
+                    doc.set("half_day_date", doc._half_day_date)
+
     doc.total_leave_days = custom_get_number_of_leave_days(
             doc.employee,
             doc.leave_type,
@@ -62,6 +70,42 @@ def before_save(doc, method):
             None,
             doc.custom_half_day_time
     )
+    initial_sandwich_rule_apply_value = doc.custom_auto_apply_sandwich_rule
+    extra_leave_days, extra_leave_days_prev, extra_leave_days_next = apply_sandwich_rule(doc)
+    if extra_leave_days > 0:
+        doc.total_leave_days = (doc.total_leave_days or 0) + extra_leave_days
+        doc.custom_leave_deducted_sandwich_rule = 0
+        doc.custom_auto_apply_sandwich_rule = 1
+        if extra_leave_days_prev > 0:
+            doc.from_date = add_days(doc.from_date, -extra_leave_days_prev)
+        if extra_leave_days_next > 0:
+            doc.to_date = add_days(doc.to_date, extra_leave_days_next)
+        precision = cint(frappe.db.get_single_value("System Settings", "float_precision")) or 2
+
+        leave_balance = custom_get_leave_balance_on(
+                doc.employee,
+                doc.leave_type,
+                doc.from_date,
+                doc.to_date,
+                consider_all_leaves_in_the_allocation_period=True,
+                for_consumption=True,
+            )
+        leave_balance_for_consumption = flt(
+            leave_balance.get("leave_balance_for_consumption"), precision
+        )
+        is_lwp = frappe.db.get_value("Leave Type", doc.leave_type,"is_lwp")
+        if (not leave_balance_for_consumption or doc.total_leave_days > leave_balance_for_consumption) and not is_lwp:
+            frappe.throw(f"Extra {extra_leave_days} Sandwich Leaves will be Added, Hence Total Apply Leave is More Than Leave Balance")
+        if not initial_sandwich_rule_apply_value:
+            frappe.msgprint(
+                msg=f"{extra_leave_days} additional day(s) have been included as per the Sandwich Rule.",
+                title="Leave Adjustment Notice",
+                indicator="blue"
+            )
+    else:
+        doc.custom_leave_deducted_sandwich_rule = 0
+        doc.custom_auto_apply_sandwich_rule = 0
+
     employee_doc = frappe.get_doc("Employee", doc.employee)
     reporting_manager = None
     if employee_doc.reports_to:
@@ -119,7 +163,7 @@ def apply_sandwich_rule(doc):
     """
 
     #? CHECK ONLY IF LEAVE IS APPROVED
-    if doc.workflow_state != "Approved":
+    if doc.workflow_state not in ["Approved", "Pending", "Approved by Reporting Manager"]:
         return 0, 0, 0
 
     #! FETCH RULES FROM LEAVE TYPE
@@ -311,6 +355,8 @@ def apply_sandwich_rule(doc):
 
 def before_submit(doc, method):
     extra_leave_days, extra_leave_days_prev, extra_leave_days_next = apply_sandwich_rule(doc)
+    initial_sandwich_rule_apply_value = doc.custom_auto_apply_sandwich_rule
+
     if doc.custom_leave_status == "Approved":    
         if hasattr(doc, '_original_date'):
             doc.set("from_date", doc._original_date)
@@ -365,11 +411,14 @@ def before_submit(doc, method):
         is_lwp = frappe.db.get_value("Leave Type", doc.leave_type,"is_lwp")
         if (not leave_balance_for_consumption or doc.total_leave_days > leave_balance_for_consumption) and not is_lwp:
             frappe.throw(f"Extra {extra_leave_days} Sandwich Leaves will be Added, Hence Total Apply Leave is More Than Leave Balance")
-        frappe.msgprint(
-            msg=f"{extra_leave_days} additional day(s) have been included as per the Sandwich Rule.",
-            title="Leave Adjustment Notice",
-            indicator="blue"
-        )
+        if not initial_sandwich_rule_apply_value:   
+            frappe.msgprint(
+                msg=f"{extra_leave_days} additional day(s) have been included as per the Sandwich Rule.",
+                title="Leave Adjustment Notice",
+                indicator="blue"
+            )
+    else:
+        doc.custom_leave_deducted_sandwich_rule = 0
 
 def on_submit(doc,method=None):
 
@@ -1958,10 +2007,33 @@ def get_leave_for_date(employee, date):
         as_dict=True
     )
 
+    penalty = frappe.db.get_value(
+        "Employee Penalty",
+        {
+            "employee": employee,
+            "penalty_date": date,
+            "is_leave_balance_restore": 0
+        },
+        ["name"],
+        as_dict=True,
+    )
+
+    if penalty:
+        penalty_child_table = frappe.get_all("Employee Leave Penalty Details", filters={
+            "parent": penalty.name,
+        }, fields=["*"])
+        if penalty_child_table:
+            for row in penalty_child_table:
+                if row.reason == "No Attendance":
+                    return {"type":"Full Day", "time":None}
+
     if leave:
         if leave.half_day and getdate(leave.half_day_date) == date:
             return {"type":"Half Day", "time":leave.custom_half_day_time}
         return {"type":"Full Day", "time":leave.custom_half_day_time}
+    
+    if penalty:
+        return {"type":"Full Day", "time":None}
 
     return None
 
@@ -2126,3 +2198,201 @@ def get_total_penalized_leaves_for_period(employee, leave_type, from_date, to_da
     penalized_leaves = abs(sum([flt(d.leaves) for d in penalized_leave_ledger_entry]))
 
     return penalized_leaves
+
+def handle_penalties_for_sandwich_rule(from_date,to_date, employee, company):
+    """
+    UPDATE LEAVE BALANCE AND PENALTIES FOR SANDWICH RULE CASES
+    """
+
+    #! GET LEAVE PERIOD RANGE
+    leave_period = get_leave_period(from_date, to_date, company)
+    if leave_period:
+        leave_period = leave_period[0]
+    year = getdate(from_date).year
+    leave_period_start_date = leave_period.get("from_date") if leave_period else getdate(f"{year}-01-01")
+    leave_period_end_date = leave_period.get("to_date") if leave_period else getdate(f"{year}-12-31")
+
+    #! SET START DATE FOR LOOP
+    current_date = getdate(from_date)
+
+    #! FETCH ALL PENALTIES OF EMPLOYEE WHERE BALANCE IS NOT RESTORED
+    all_penalties_of_employee = frappe.get_all(
+        "Employee Penalty",
+        filters={"employee": employee, "company": company, "is_leave_balance_restore": 0,"sandwich_rule_applied": 1},
+        fields=["name", "penalty_date"],
+    )
+
+    penalty_list = [p.name for p in all_penalties_of_employee]
+    #! FETCH ALL PENALTY DETAILS WHERE SANDWICH RULE ALREADY APPLIED
+    all_no_attendance_penalty_sandwich_rule_applied = frappe.get_all(
+        "Employee Leave Penalty Details",
+        filters={
+            "parent": ["in", penalty_list],
+            "reason": "No Attendance",
+        },
+        fields=["parent"]
+    )
+    #? INCLUDE PENALTIES THAT HAVE SANDWICH RULE
+    included_parents = {d.parent for d in all_no_attendance_penalty_sandwich_rule_applied}
+
+    #! BUILD PENALTY DICT (DATE -> PENALTY NAME)
+    penalty_dict = {
+        p.penalty_date: p.name
+        for p in all_penalties_of_employee
+        if p.name in included_parents
+    }
+
+    #! FETCH APPROVED LEAVE APPLICATIONS FOR EMPLOYEE
+    leave_applications = frappe.get_all(
+        "Leave Application",
+        filters={
+            "employee": employee,
+            "from_date": ["<=", leave_period_end_date],
+            "to_date": [">=", leave_period_start_date],
+            "workflow_state": "Approved",
+            "custom_auto_apply_sandwich_rule": 1,
+            "docstatus": 1
+        },
+        fields=["name", "from_date", "to_date", "leave_type"]
+    )
+
+    #! HELPER FUNCTION → CHECK IF DATE IS IN APPROVED LEAVE
+    def get_leave_application_for_date(date):
+        """
+        RETURNS THE NAME OF THE LEAVE APPLICATION THAT INCLUDES THE GIVEN DATE, IF ANY.
+        OTHERWISE RETURNS None
+        """
+        for app in leave_applications:
+            if getdate(app.from_date) <= date <= getdate(app.to_date):
+                return app.name
+        return None
+
+
+    #? LOOP FORWARD FROM PENALTY DATE UNTIL END OF PERIOD
+    while add_days(current_date, 1) <= leave_period_end_date:
+        current_date = add_days(current_date, 1)
+        leave_app = get_leave_application_for_date(current_date)
+
+        #! CASE 1: NEXT DATE IS HOLIDAY → CONTINUE LOOP
+        if is_holiday(employee, current_date, False):
+            continue
+
+        #! CASE 2: NEXT DATE ALSO HAS PENALTY
+        elif penalty_dict.get(current_date):
+            try:
+                modify_penalty_acc_to_sandwich_rule(penalty_dict[current_date], current_date)
+            except:
+                frappe.log_error("Error in Updating Penalty and Leave Balance For Sandwich Rule")
+            break
+
+        #! CASE 3: NEXT DATE FALLS IN AN APPROVED LEAVE APPLICATION
+        elif leave_app:
+            try:
+                update_leave_application_acc_to_sandwich_rule(leave_app, current_date)
+            except:
+                frappe.log_error("Error in Updating Leave Application For Sandwich Rule")
+            break
+
+        #? OTHERWISE → BREAK LOOP (NO LEAVE OR PENALTY FOUND)
+        else:
+            break
+
+    #! SET START DATE FOR LOOP
+    current_date = getdate(to_date)
+    while add_days(current_date, -1) >= leave_period_start_date:
+        current_date = add_days(current_date, -1)
+        leave_app = get_leave_application_for_date(current_date)
+
+        #! CASE 1: NEXT DATE IS HOLIDAY → CONTINUE LOOP
+        if is_holiday(employee, current_date, False):
+            continue
+    
+        #! CASE 2: NEXT DATE ALSO HAS PENALTY
+        elif penalty_dict.get(current_date):
+            try:
+                modify_penalty_acc_to_sandwich_rule(penalty_dict[current_date], current_date)
+            except:
+                frappe.log_error("Error in Updating Penalty and Leave Balance For Sandwich Rule")
+            break
+
+        elif leave_app:
+            try:
+                update_leave_application_acc_to_sandwich_rule(leave_app, current_date)
+            except:
+                frappe.log_error("Error in Updating Leave Application For Sandwich Rule")
+            break
+
+        #? OTHERWISE → BREAK LOOP (NO LEAVE OR PENALTY FOUND)
+        else:
+            break
+
+def modify_penalty_acc_to_sandwich_rule(penalty_name, date):
+    """Update Employee Penalty and Leave Balance"""
+    total_earned_leave_reduce = 0
+    total_lwp_leave_reduce = 0
+    penalty_child_data_records = frappe.get_all(
+        "Employee Leave Penalty Details",
+        filters={"parent": penalty_name, "reason": "No Attendance"},
+        fields=["name", "leave_ledger_entry", "leave_type", "leave_amount", "reason"]
+    )
+    penalty_datas = frappe.get_all(""
+    "Employee Penalty", filters= {"name": penalty_name, "penalty_date":date}, fields=["name", "deduct_earned_leave", "deduct_leave_without_pay", "total_leave_penalty"],
+    limit = 1)
+    for data in penalty_child_data_records:
+        if data.leave_ledger_entry:
+            if data.leave_amount > 1:
+                total_earned_leave_reduce += data.leave_amount - 1
+                frappe.db.set_value("Employee Leave Penalty Details", data.name, "leave_amount", 1)
+                frappe.db.set_value("Leave Ledger Entry", data.leave_ledger_entry, "leaves", -1)
+
+        else:
+            if data.leave_amount > 1:
+                total_lwp_leave_reduce += data.leave_amount - 1
+                frappe.db.set_value("Employee Leave Penalty Details", data.name, "leave_amount", 1)
+
+    frappe.db.set_value("Employee Penalty", penalty_name, "sandwich_rule_applied", 0)
+    frappe.db.set_value("Employee Penalty", penalty_name, "deduct_earned_leave", penalty_datas[0].deduct_earned_leave - total_earned_leave_reduce)
+    frappe.db.set_value("Employee Penalty", penalty_name, "deduct_leave_without_pay", penalty_datas[0].deduct_leave_without_pay - total_lwp_leave_reduce)
+    frappe.db.set_value("Employee Penalty", penalty_name, "total_leave_penalty", penalty_datas[0].total_leave_penalty - (total_earned_leave_reduce + total_lwp_leave_reduce))
+
+
+def update_leave_application_acc_to_sandwich_rule(leave_app, date):
+    """Update Leave Application and Leave Balance"""
+    leave_app_data = frappe.get_all(
+        "Leave Application",
+        filters={"name": leave_app, "workflow_state": "Approved"},
+        fields=["name", "employee", "from_date", "to_date", "half_day", "half_day_date", "custom_half_day_time", "leave_type", "total_leave_days", "custom_leave_deducted_sandwich_rule"],
+        limit = 1,
+    )
+    if leave_app_data:
+        leave_app_data = leave_app_data[0]
+
+    total_days = custom_get_number_of_leave_days(
+                    leave_app_data.employee,
+                    leave_app_data.leave_type,
+                    leave_app_data.from_date,
+                    leave_app_data.to_date,
+                    leave_app_data.half_day,
+                    leave_app_data.half_day_date,
+                    None,
+                    leave_app_data.custom_half_day_time
+                )
+
+    if total_days > 0:
+        sandwich_days = total_days + (leave_app_data.custom_leave_deducted_sandwich_rule or 0) - (leave_app_data.total_leave_days or 0)
+
+        if sandwich_days < 0:
+            sandwich_days = 0
+        frappe.db.set_value("Leave Application", leave_app, "custom_auto_apply_sandwich_rule", 0)
+        frappe.db.set_value("Leave Application", leave_app, "total_leave_days", total_days)
+        frappe.db.set_value("Leave Application", leave_app, "custom_leave_deducted_sandwich_rule", sandwich_days)
+
+        leave_ledger = frappe.get_all(
+            "Leave Ledger Entry",
+            filters={"transaction_name": leave_app_data.name, "transaction_type": "Leave Application", "docstatus":1, "is_expired":0},
+            fields=["name", "leaves"],
+            limit = 1,
+        )
+
+        if leave_ledger:
+            frappe.db.set_value("Leave Ledger Entry", leave_ledger[0].name, "leaves", -1*total_days)

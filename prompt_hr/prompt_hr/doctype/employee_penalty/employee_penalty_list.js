@@ -32,7 +32,10 @@ frappe.listview_settings["Employee Penalty"] = {
                         freeze_message: __("Cancelling penalties, please wait..."),
                         callback: function (r) {
                             if (r.message) {
-                                frappe.msgprint(__("Penalties cancelled successfully"));
+                                if(r.message.status == "success")
+                                {
+                                    frappe.msgprint(__("Penalties cancelled successfully"));
+                                }
                                 list_view.refresh();
                                 dialog.hide();
                             }

@@ -4,7 +4,9 @@
 import frappe
 import json
 from frappe.model.document import Document
+from frappe import _
 
+from prompt_hr.py.leave_application import handle_penalties_for_sandwich_rule
 
 class EmployeePenalty(Document):
     pass
@@ -25,12 +27,6 @@ def cancel_penalties(ids, reason = None, attendance_modified = 0):
         except Exception:
             ids = [ids]
 
-    # ? GATHER ALL LEAVE LEDGER ENTRY IDS AND PENALTY-ROW PAIRS
-    leave_entries_to_delete = []
-    penalty_leave_pairs = []
-    attendance_penalty_pairs = []
-    notification_doc = frappe.get_doc("Notification", "Employee Penalty Cancellation")
-
     penalties = frappe.get_all(
         "Employee Penalty",
         filters={"name": ["in", ids], "is_leave_balance_restore":0},
@@ -48,11 +44,39 @@ def cancel_penalties(ids, reason = None, attendance_modified = 0):
                 "Leave balance has already been restored for some or all of the selected Employee Penalty record(s)."
             )
 
+    if len(penalties) > 30:
+        frappe.enqueue(
+            handle_cancel_penalties,
+            timeout=3000,
+            penalties=penalties,
+            reason=reason,
+            attendance_modified=attendance_modified
+        )
+        frappe.msgprint(
+            _("Penalty cancellation is running in the background."),
+            alert=True,
+            indicator="blue",
+        )
+        return {"status":"background_job"}
+
+    else:
+        return handle_cancel_penalties(penalties, reason, attendance_modified)
+
+
+def handle_cancel_penalties(penalties, reason, attendance_modified):
     child_table_data = frappe.get_all(
         "Employee Leave Penalty Details",
         filters={"parent": ["in", [p.name for p in penalties]]},
-        fields=["name", "leave_ledger_entry"]
+        fields=["name", "leave_ledger_entry", "reason", "parent"]
     )
+
+    # ? GATHER ALL LEAVE LEDGER ENTRY IDS AND PENALTY-ROW PAIRS
+    leave_entries_to_delete = []
+    penalty_leave_pairs = []
+    attendance_penalty_pairs = []
+    sandwich_rule_penalty_pairs = []
+    notification_doc = frappe.get_doc("Notification", "Employee Penalty Cancellation")
+    datas = []
 
     # ? HANDLE ATTENDANCE FIELD IN PARENT PENALTY
     for penalty in penalties:
@@ -64,6 +88,18 @@ def cancel_penalties(ids, reason = None, attendance_modified = 0):
         if data.leave_ledger_entry:
             leave_entries_to_delete.append(data.leave_ledger_entry)
             penalty_leave_pairs.append(("Employee Leave Penalty Details", data.name))
+
+        if data.reason == "No Attendance":
+            sandwich_rule_penalty_pairs.append(("Employee Penalty", data.parent))
+
+    for doctype, row_name in sandwich_rule_penalty_pairs:
+        data = frappe.get_all(
+            "Employee Penalty",
+            filters={"name": row_name},
+            fields=["name", "employee", "penalty_date", 'company'],
+        )
+        if data:
+            datas.extend(data)
 
     # ? SET 'leave_ledger_entry' TO NONE IN CHILD TABLE
     for doctype, row_name in penalty_leave_pairs:
@@ -139,5 +175,15 @@ def cancel_penalties(ids, reason = None, attendance_modified = 0):
     if leave_entries_to_delete:
         frappe.db.delete("Leave Ledger Entry", {"name": ["in", leave_entries_to_delete]})
 
+    if datas:
+        try:
+            for data in datas:
+                try:
+                    handle_penalties_for_sandwich_rule(data.penalty_date, data.penalty_date, data.employee, data.company)
+                except:
+                    frappe.log_error("Error in Updating Penalty and Leave Balance For Sandwich Rule")
+        except:
+            frappe.log_error("Error in Updating Penalty and Leave Balance For Sandwich Rule")
+
     frappe.db.commit()
-    return True
+    return {"status":"success"}
