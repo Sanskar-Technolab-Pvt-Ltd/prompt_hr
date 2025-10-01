@@ -433,8 +433,8 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
     
 
     if not half_day_attendance:
-        is_half_day_attendance_with_out_leave_application = frappe.db.exists("Attendance",{"employee": employee_data.get("name"), "attendance_date": mark_attendance_date, "status": "Half Day"})
-        
+        is_half_day_attendance_with_out_leave_application = frappe.db.exists("Attendance",{"employee": employee_data.get("name"), "docstatus":["!=", 2] ,"attendance_date": mark_attendance_date, "status": "Half Day"})
+
         if is_half_day_attendance_with_out_leave_application and not regularize_attendance:
             return 0
     
