@@ -122,6 +122,7 @@ class WeekOffChangeRequest(Document):
                         throw("Please Set Correct New weekoff Day as per the date")
 
     def validate(self):
+        validate_for_sandwich_policy(self)
         sent_auto_approve_emails = frappe.db.get_single_value("HR Settings", "custom_send_auto_approve_doc_emails") or 0
         # *CHECKING IF THE EXISTING DETAILS IS VALID OR NOT, IF INVALID SHOWING AN ALERT TELLING USER THAT THE EXISTING DATE ENTERED DOES NOT EXISTS IN HOLIDAY LIST
         if self.weekoff_details:
@@ -214,11 +215,10 @@ class WeekOffChangeRequest(Document):
             weekoff_details = self.weekoff_details
 
             # ? CREATE NEW HOLIDAY LIST IF NOT EXISTS
-            new_list = create_new_holiday_list_for_employee(self.employee, holiday_list, weekoff_details)
+            new_list = create_new_holiday_list_for_employee(self.employee, holiday_list, weekoff_details, self.name)
             if new_list:
                 frappe.db.set_value("Employee", self.employee, "holiday_list", new_list)
 
-        validate_for_sandwich_policy(self)
 
     def after_insert(self):
 
@@ -351,7 +351,7 @@ def check_if_leave_application_exists(doc):
 
 
 # ? FUNCTION TO CREATE A NEW HOLIDAY LIST FOR AN EMPLOYEE WITH UPDATED WEEK-OFF DATES
-def create_new_holiday_list_for_employee(employee, base_holiday_list, weekoff_details):
+def create_new_holiday_list_for_employee(employee, base_holiday_list, weekoff_details, docname):
     """
     CREATE A NEW HOLIDAY LIST FOR THE GIVEN EMPLOYEE.
     - COPIES HOLIDAYS FROM THE BASE HOLIDAY LIST.
@@ -378,7 +378,7 @@ def create_new_holiday_list_for_employee(employee, base_holiday_list, weekoff_de
 
     #! CREATE NEW HOLIDAY LIST DOC FOR EMPLOYEE
     new_holiday_list_doc = frappe.new_doc("Holiday List")
-    new_holiday_list_doc.holiday_list_name = f"{employee} - {frappe.utils.nowdate()}"
+    new_holiday_list_doc.holiday_list_name = f"{employee} - {docname}"
     new_holiday_list_doc.is_default = 0
     new_holiday_list_doc.from_date  = get_year_start(getdate(), as_str=False)
     new_holiday_list_doc.to_date = get_year_ending(getdate())
