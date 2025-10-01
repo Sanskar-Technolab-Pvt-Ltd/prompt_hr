@@ -58,7 +58,8 @@ def before_save(doc, method):
         if hasattr(doc, '_half_day'):
                 doc.set("half_day", 1)
                 if hasattr(doc, "_half_day_date"):
-                    doc.set("half_day_date", doc._half_day_date) 
+                    doc.set("half_day_date", doc._half_day_date)
+
     doc.total_leave_days = custom_get_number_of_leave_days(
             doc.employee,
             doc.leave_type,
@@ -69,6 +70,42 @@ def before_save(doc, method):
             None,
             doc.custom_half_day_time
     )
+    initial_sandwich_rule_apply_value = doc.custom_auto_apply_sandwich_rule
+    extra_leave_days, extra_leave_days_prev, extra_leave_days_next = apply_sandwich_rule(doc)
+    if extra_leave_days > 0:
+        doc.total_leave_days = (doc.total_leave_days or 0) + extra_leave_days
+        doc.custom_leave_deducted_sandwich_rule = 0
+        doc.custom_auto_apply_sandwich_rule = 1
+        if extra_leave_days_prev > 0:
+            doc.from_date = add_days(doc.from_date, -extra_leave_days_prev)
+        if extra_leave_days_next > 0:
+            doc.to_date = add_days(doc.to_date, extra_leave_days_next)
+        precision = cint(frappe.db.get_single_value("System Settings", "float_precision")) or 2
+
+        leave_balance = custom_get_leave_balance_on(
+                doc.employee,
+                doc.leave_type,
+                doc.from_date,
+                doc.to_date,
+                consider_all_leaves_in_the_allocation_period=True,
+                for_consumption=True,
+            )
+        leave_balance_for_consumption = flt(
+            leave_balance.get("leave_balance_for_consumption"), precision
+        )
+        is_lwp = frappe.db.get_value("Leave Type", doc.leave_type,"is_lwp")
+        if (not leave_balance_for_consumption or doc.total_leave_days > leave_balance_for_consumption) and not is_lwp:
+            frappe.throw(f"Extra {extra_leave_days} Sandwich Leaves will be Added, Hence Total Apply Leave is More Than Leave Balance")
+        if not initial_sandwich_rule_apply_value:
+            frappe.msgprint(
+                msg=f"{extra_leave_days} additional day(s) have been included as per the Sandwich Rule.",
+                title="Leave Adjustment Notice",
+                indicator="blue"
+            )
+    else:
+        doc.custom_leave_deducted_sandwich_rule = 0
+        doc.custom_auto_apply_sandwich_rule = 0
+
     employee_doc = frappe.get_doc("Employee", doc.employee)
     reporting_manager = None
     if employee_doc.reports_to:
@@ -126,7 +163,7 @@ def apply_sandwich_rule(doc):
     """
 
     #? CHECK ONLY IF LEAVE IS APPROVED
-    if doc.workflow_state != "Approved":
+    if doc.workflow_state not in ["Approved", "Pending", "Approved by Reporting Manager"]:
         return 0, 0, 0
 
     #! FETCH RULES FROM LEAVE TYPE
@@ -318,6 +355,8 @@ def apply_sandwich_rule(doc):
 
 def before_submit(doc, method):
     extra_leave_days, extra_leave_days_prev, extra_leave_days_next = apply_sandwich_rule(doc)
+    initial_sandwich_rule_apply_value = doc.custom_auto_apply_sandwich_rule
+
     if doc.custom_leave_status == "Approved":    
         if hasattr(doc, '_original_date'):
             doc.set("from_date", doc._original_date)
@@ -372,11 +411,14 @@ def before_submit(doc, method):
         is_lwp = frappe.db.get_value("Leave Type", doc.leave_type,"is_lwp")
         if (not leave_balance_for_consumption or doc.total_leave_days > leave_balance_for_consumption) and not is_lwp:
             frappe.throw(f"Extra {extra_leave_days} Sandwich Leaves will be Added, Hence Total Apply Leave is More Than Leave Balance")
-        frappe.msgprint(
-            msg=f"{extra_leave_days} additional day(s) have been included as per the Sandwich Rule.",
-            title="Leave Adjustment Notice",
-            indicator="blue"
-        )
+        if not initial_sandwich_rule_apply_value:   
+            frappe.msgprint(
+                msg=f"{extra_leave_days} additional day(s) have been included as per the Sandwich Rule.",
+                title="Leave Adjustment Notice",
+                indicator="blue"
+            )
+    else:
+        doc.custom_leave_deducted_sandwich_rule = 0
 
 def on_submit(doc,method=None):
 
