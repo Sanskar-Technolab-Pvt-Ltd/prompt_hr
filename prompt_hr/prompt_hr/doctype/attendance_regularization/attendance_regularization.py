@@ -219,6 +219,8 @@ class AttendanceRegularization(Document):
                 frappe.throw(
                     f"Attendance Regularization cannot be raised for past dates more than {attendance_regularization_limit} days."
                 )
+        
+        validate_checkinpunch_details(self)
 
     def before_validate(self):
         if not self.is_new():
@@ -267,3 +269,29 @@ def validate_in_out_time(doc):
                         "Row {0}: The check-in time ({1}) must be earlier than the check-out time ({2})."
                     ).format(row.idx, row.in_time, row.out_time)
                 )
+# ? FUNCTION TO VALIDATE CHECK-IN / PUNCH DETAILS TABLE
+def validate_checkinpunch_details(doc):
+    """
+    VALIDATE THAT THE CHECK-IN / PUNCH DETAILS TABLE
+    HAS AT LEAST ONE ROW WITH A NON-EMPTY 'IN TIME' OR 'OUT TIME'.
+    RAISES A VALIDATION ERROR IF THE CONDITION IS NOT MET.
+    """
+
+    #! ENSURE THERE ARE CHECK-IN / PUNCH DETAIL RECORDS
+    if not doc.checkinpunch_details:
+        frappe.throw(
+            _("Please add at least one entry in the Check-in/Punch Details table."),
+            title="No Check-in/Punch Details",
+        )
+    
+
+    # ? CHECK IF AT LEAST ONE ROW HAS A VALID (NON-EMPTY) IN/OUT TIME
+    if not any(
+        (row.in_time and str(row.in_time).strip()) and 
+        (row.out_time and str(row.out_time).strip()) 
+        for row in doc.checkinpunch_details
+    ):
+        frappe.throw(
+            _("Please enter In Time and Out Time in the Check-in/Punch Details table."),
+            title="Incomplete Check-in/Punch Details",
+        )
