@@ -3,13 +3,15 @@
 
 import frappe
 from frappe import _, throw
-from frappe.utils import getdate, today, formatdate
+from frappe.utils import getdate, today, formatdate, add_days, get_year_start, get_year_ending
 from frappe.model.document import Document
 from prompt_hr.py.utils import (
     send_notification_email,
     is_user_reporting_manager_or_hr,
     get_reporting_manager_info,
 )
+from erpnext.setup.doctype.employee.employee import is_holiday
+from hrms.hr.utils import get_leave_period
 from prompt_hr.overrides.attendance_override import modify_employee_penalty
 from prompt_hr.prompt_hr.doctype.employee_penalty.employee_penalty import (
     cancel_penalties,
@@ -34,6 +36,66 @@ class WeekOffChangeRequest(Document):
                 )
         else:
             self.db_set("pending_approval_at", "")
+
+        current_user = frappe.session.user
+        if self.status == "Approved":
+            is_rh = is_user_reporting_manager_or_hr(current_user, self.employee)
+            #! PROCESS WEEKOFF CHANGES FOR EMPLOYEE
+            if not is_rh.get("error"):
+                today = getdate()
+
+                def process_weekoff_attendance(date, is_existing):
+                    att_list = frappe.get_all(
+                        "Attendance",
+                        filters={
+                            "employee": self.employee,
+                            "docstatus": ["!=", 2],
+                            "attendance_date": date,
+                        },
+                        fields=[
+                            "name",
+                            "attendance_date",
+                            "custom_employee_penalty_id",
+                        ],
+                        limit=1,
+                    )
+
+                    if att_list:
+                        attendance = att_list[0]
+
+                        # Cancel penalties if any
+                        if attendance.custom_employee_penalty_id:
+                            cancel_penalties(
+                                attendance.custom_employee_penalty_id,
+                                "Weekoff change request Approve",
+                                1,
+                            )
+
+                        # Cancel old attendance
+                        frappe.get_doc("Attendance", attendance.name).cancel()
+                    # Mark attendance
+                    mark_attendance(
+                        attendance_date=date,
+                        company=self.company,
+                        regularize_attendance=0,
+                        emp_id=self.employee,
+                    )
+
+                    # Update employee penalty
+                    modify_employee_penalty(self.employee, date, is_existing)
+
+                for weekoff_detail in self.weekoff_details:
+                    existing_date = getdate(weekoff_detail.existing_weekoff_date)
+                    if existing_date < today:
+                        process_weekoff_attendance(
+                            weekoff_detail.existing_weekoff_date, True
+                        )
+
+                    new_date = getdate(weekoff_detail.new_weekoff_date)
+                    if new_date < today:
+                        process_weekoff_attendance(
+                            weekoff_detail.new_weekoff_date, False
+                        )
 
     def before_insert(self):
 
@@ -60,7 +122,7 @@ class WeekOffChangeRequest(Document):
                         throw("Please Set Correct New weekoff Day as per the date")
 
     def validate(self):
-
+        sent_auto_approve_emails = frappe.db.get_single_value("HR Settings", "custom_send_auto_approve_doc_emails") or 0
         # *CHECKING IF THE EXISTING DETAILS IS VALID OR NOT, IF INVALID SHOWING AN ALERT TELLING USER THAT THE EXISTING DATE ENTERED DOES NOT EXISTS IN HOLIDAY LIST
         if self.weekoff_details:
             for row in self.weekoff_details:
@@ -101,66 +163,8 @@ class WeekOffChangeRequest(Document):
 
         # *CHECKING IF THE CURRENT USER IS THE EMPLOYEE USER LINKED TO DOCUMENT THEN WHEN WE SAVES THIS DOCUMENT THEN SENDING AN EMAIL TO THE EMPLOYEE'S REPORTING HEAD ABOUT THE CREATION WEEKOFF CHANGE REQUEST
         current_user = frappe.session.user
-        if self.status == "Approved":
+        if self.status == "Approved" and (not self.auto_approve or sent_auto_approve_emails):
             is_rh = is_user_reporting_manager_or_hr(current_user, self.employee)
-            #! PROCESS WEEKOFF CHANGES FOR EMPLOYEE
-            if not is_rh.get("error"):
-                today = getdate()
-
-                def process_weekoff_attendance(date, is_existing):
-                    att_list = frappe.get_all(
-                        "Attendance",
-                        filters={
-                            "employee": self.employee,
-                            "docstatus": ["!=", 2],
-                            "attendance_date": date,
-                        },
-                        fields=[
-                            "name",
-                            "attendance_date",
-                            "custom_employee_penalty_id",
-                        ],
-                        limit=1,
-                    )
-
-                    if att_list:
-                        attendance = att_list[0]
-
-                        # Cancel penalties if any
-                        if attendance.custom_employee_penalty_id:
-                            cancel_penalties(
-                                attendance.custom_employee_penalty_id,
-                                "Weekoff change request Approve",
-                                1,
-                            )
-
-                        # Cancel old attendance
-                        frappe.get_doc("Attendance", attendance.name).cancel()
-                    print("ATtendance")
-                    # Mark attendance
-                    mark_attendance(
-                        attendance_date=date,
-                        company=self.company,
-                        regularize_attendance=0,
-                        emp_id=self.employee,
-                    )
-
-                    # Update employee penalty
-                    modify_employee_penalty(self.employee, date, is_existing)
-
-                for weekoff_detail in self.weekoff_details:
-                    existing_date = getdate(weekoff_detail.existing_weekoff_date)
-                    if existing_date < today:
-                        process_weekoff_attendance(
-                            weekoff_detail.existing_weekoff_date, True
-                        )
-
-                    new_date = getdate(weekoff_detail.new_weekoff_date)
-                    if new_date < today:
-                        process_weekoff_attendance(
-                            weekoff_detail.new_weekoff_date, False
-                        )
-
             if not is_rh.get("error") and is_rh.get("is_rh"):
                 emp_user_id = frappe.db.get_value("Employee", self.employee, "user_id")
                 if emp_user_id:
@@ -179,7 +183,7 @@ class WeekOffChangeRequest(Document):
                     )
             elif is_rh.get("error"):
                 throw(f"{is_rh.get('message')}")
-        if self.status == "Rejected":
+        if self.status == "Rejected" and (not self.auto_approve or sent_auto_approve_emails):
             is_rh = is_user_reporting_manager_or_hr(current_user, self.employee)
             if not is_rh.get("error") and is_rh.get("is_rh"):
                 emp_user_id = frappe.db.get_value("Employee", self.employee, "user_id")
@@ -210,7 +214,11 @@ class WeekOffChangeRequest(Document):
             weekoff_details = self.weekoff_details
 
             # ? CREATE NEW HOLIDAY LIST IF NOT EXISTS
-            create_new_holiday_list(holiday_list, weekoff_details)
+            new_list = create_new_holiday_list_for_employee(self.employee, holiday_list, weekoff_details)
+            if new_list:
+                frappe.db.set_value("Employee", self.employee, "holiday_list", new_list)
+
+        validate_for_sandwich_policy(self)
 
     def after_insert(self):
 
@@ -342,39 +350,240 @@ def check_if_leave_application_exists(doc):
                     )
 
 
-# ? FUNCTION TO UPDATE HOLIDAY LIST WITH NEW WEEK-OFF DATES
-def create_new_holiday_list(holiday_list, weekoff_details):
+# ? FUNCTION TO CREATE A NEW HOLIDAY LIST FOR AN EMPLOYEE WITH UPDATED WEEK-OFF DATES
+def create_new_holiday_list_for_employee(employee, base_holiday_list, weekoff_details):
     """
-    Replace week-off dates in the Holiday List with new ones.
-    Other existing holidays remain unchanged.
+    CREATE A NEW HOLIDAY LIST FOR THE GIVEN EMPLOYEE.
+    - COPIES HOLIDAYS FROM THE BASE HOLIDAY LIST.
+    - REPLACES/ADDS NEW WEEK-OFF DATES FROM weekoff_details.
+    - CREATES NEW LIST ONLY IF ALL NEW WEEK-OFF DATES ARE NOT ALREADY IN BASE LIST.
     """
 
     if not weekoff_details:
         return
 
-    # ? FETCH HOLIDAY LIST DOC
-    holiday_list_doc = frappe.get_doc("Holiday List", holiday_list)
+    #! FETCH BASE HOLIDAY LIST DOC
+    base_holiday_list_doc = frappe.get_doc("Holiday List", base_holiday_list)
 
-    # ? REMOVE EXISTING WEEK-OFF HOLIDAYS (optional: identify by description containing 'WeekOff Changed')
-    holiday_list_doc.holiday_details = [
-        row for row in holiday_list_doc.holiday_details
-        if "WeekOff Changed" not in row.description
-    ]
+    #! COLLECT ALL HOLIDAY DATES IN BASE LIST
+    base_holiday_dates = {row.holiday_date for row in base_holiday_list_doc.holidays}
 
-    # ? ADD NEW WEEK-OFF DATES
-    for row in weekoff_details:
-        old_date = row.get("old_weekoff_date")
-        new_date = row.get("new_weekoff_date")
-        if old_date and new_date:
-            holiday_list_doc.append(
-                "holiday_details",
+    #! COLLECT ALL NEW WEEK-OFF DATES
+    new_weekoff_dates = {row.get("new_weekoff_date") for row in weekoff_details if row.get("new_weekoff_date")}
+
+    #! CHECK: IF ANY NEW DATE ALREADY EXISTS IN BASE HOLIDAY LIST, THEN DO NOT CREATE NEW LIST
+    if any(new_date in base_holiday_dates for new_date in new_weekoff_dates):
+        frappe.logger().info(f"Skipping holiday list creation for {employee}: some new dates already in base list")
+        return None
+
+    #! CREATE NEW HOLIDAY LIST DOC FOR EMPLOYEE
+    new_holiday_list_doc = frappe.new_doc("Holiday List")
+    new_holiday_list_doc.holiday_list_name = f"{employee} - {frappe.utils.nowdate()}"
+    new_holiday_list_doc.is_default = 0
+    new_holiday_list_doc.from_date  = get_year_start(getdate(), as_str=False)
+    new_holiday_list_doc.to_date = get_year_ending(getdate())
+
+    #! COLLECT OLD WEEK-OFF DATES FROM weekoff_details
+    old_weekoff_dates = [row.get("existing_weekoff_date") for row in weekoff_details if row.get("existing_weekoff_date")]
+
+    #! COPY EXISTING HOLIDAYS, BUT SKIP ONLY OLD WEEK-OFF DATES
+    for row in base_holiday_list_doc.holidays:
+        if row.holiday_date not in old_weekoff_dates:
+            new_holiday_list_doc.append(
+                "holidays",
                 {
-                    "holiday_date": new_date,
-                    "description": f"WeekOff Changed from {frappe.utils.formatdate(old_date, 'dd-mm-yyyy')} "
-                                   f"to {frappe.utils.formatdate(new_date, 'dd-mm-yyyy')}",
+                    "holiday_date": row.holiday_date,
+                    "description": row.description or "Holiday",
                 },
             )
 
-    # ? SAVE AND COMMIT
-    holiday_list_doc.save()
+    #! ADD NEW WEEK-OFF HOLIDAYS
+    for row in weekoff_details:
+        old_date = row.get("existing_weekoff_date")
+        new_date = row.get("new_weekoff_date")
+        if old_date and new_date:
+            new_holiday_list_doc.append(
+                "holidays",
+                {
+                    "holiday_date": new_date,
+                    "description": f"WeekOff Changed from {frappe.utils.formatdate(old_date, 'dd-mm-yyyy')} "
+                                    f"to {frappe.utils.formatdate(new_date, 'dd-mm-yyyy')}",
+                },
+            )
+
+    #! SAVE NEW HOLIDAY LIST
+    new_holiday_list_doc.insert(ignore_permissions=True)
     frappe.db.commit()
+
+    return new_holiday_list_doc.name
+
+
+def validate_for_sandwich_policy(doc):
+    """
+    VALIDATES WHETHER A WEEKOFF CHANGE REQUEST VIOLATES THE SANDWICH LEAVE POLICY.
+
+    IF AN APPROVED LEAVE IS FOUND EITHER BEFORE OR AFTER THE REQUESTED WEEKOFF DATE,
+    IT WILL RAISE AN ERROR TO PREVENT WEEKOFF CHANGE.
+    """
+
+    #! EXIT EARLY IF NO WEEKOFF DETAILS
+    if not doc.weekoff_details:
+        return
+
+    for weekoff_detail in doc.weekoff_details:
+        #! FLAGS TO TRACK SANDWICH LEAVE DETECTION
+        leave_before_weekoff = 0
+        leave_after_weekoff = 0
+
+        if weekoff_detail.existing_weekoff_date and weekoff_detail.new_weekoff_date:
+            #! GET LEAVE PERIOD RANGE FOR THE COMPANY
+            leave_period = get_leave_period(
+                weekoff_detail.new_weekoff_date,
+                weekoff_detail.new_weekoff_date,
+                doc.company
+            )
+
+            if leave_period:
+                leave_period = leave_period[0]
+
+            year = getdate(weekoff_detail.new_weekoff_date).year
+            leave_period_start = leave_period.get("from_date") if leave_period else getdate(f"{year}-01-01")
+            leave_period_end = leave_period.get("to_date") if leave_period else getdate(f"{year}-12-31")
+
+            #! FETCH APPROVED LEAVE APPLICATIONS FOR THIS EMPLOYEE WITHIN THE PERIOD
+            leave_applications = frappe.get_all(
+                "Leave Application",
+                filters={
+                    "employee": doc.employee,
+                    "from_date": ["<=", leave_period_end],
+                    "to_date": [">=", leave_period_start],
+                    "workflow_state": "Approved",
+                    "docstatus": 1
+                },
+                fields=["name", "from_date", "to_date", "leave_type"]
+            )
+
+            #! HELPER FUNCTION TO CHECK IF A DATE FALLS IN AN APPROVED LEAVE
+            def get_leave_application_on_date(date):
+                """
+                RETURNS THE LEAVE APPLICATION NAME IF THE GIVEN DATE IS WITHIN AN APPROVED LEAVE.
+                OTHERWISE RETURNS None.
+                """
+                for app in leave_applications:
+                    if getdate(app.from_date) <= date <= getdate(app.to_date):
+                        return {"name":app.name, "leave_type":app.leave_type}
+                return {}
+
+            # --------------------------------------------------------------------
+            #! CHECK FORWARD DIRECTION (AFTER NEW WEEKOFF DATE)
+            # --------------------------------------------------------------------
+            check_date = getdate(weekoff_detail.new_weekoff_date)
+
+            while add_days(check_date, 1) <= leave_period_end:
+                check_date = add_days(check_date, 1)
+                leave_app = get_leave_application_on_date(check_date)
+
+                #? IF DATE IS HOLIDAY → CONTINUE LOOP
+                if is_holiday(doc.employee, check_date, False):
+                    continue
+
+                #? IF DATE IS IN LEAVE → MARK SANDWICH
+                elif leave_app:
+                    if sandwich_rule_applicable_to_employee(doc.employee, leave_app["leave_type"]):
+                        leave_after_weekoff = 1
+                    break
+
+                #? OTHERWISE → BREAK LOOP
+                else:
+                    break
+
+            # --------------------------------------------------------------------
+            #! CHECK BACKWARD DIRECTION (BEFORE NEW WEEKOFF DATE)
+            # --------------------------------------------------------------------
+            check_date = getdate(weekoff_detail.new_weekoff_date)
+
+            while add_days(check_date, -1) >= leave_period_start:
+                check_date = add_days(check_date, -1)
+                leave_app = get_leave_application_on_date(check_date)
+
+                #? IF DATE IS HOLIDAY → CONTINUE LOOP
+                if is_holiday(doc.employee, check_date, False):
+                    continue
+
+                #? IF DATE IS IN LEAVE → MARK SANDWICH
+                elif leave_app:
+                    if sandwich_rule_applicable_to_employee(doc.employee, leave_app["leave_type"]):
+                        leave_before_weekoff = 1
+                    break
+
+                #? OTHERWISE → BREAK LOOP
+                else:
+                    break
+
+        # ------------------------------------------------------------------------
+        #! FINAL VALIDATION → IF LEAVE FOUND EITHER SIDE, BLOCK WEEKOFF CHANGE
+        # ------------------------------------------------------------------------
+        if leave_before_weekoff or leave_after_weekoff:
+            frappe.throw("Weekoff change denied due to Sandwich Leave Policy.")
+
+
+def sandwich_rule_applicable_to_employee(employee, leave_type):
+    leave_type_doc = frappe.get_doc("Leave Type", leave_type)
+    sandwich_rule_applicable = 0
+    if any([
+        leave_type_doc.custom_sw_applicable_to_business_unit,
+        leave_type_doc.custom_sw_applicable_to_department,
+        leave_type_doc.custom_sw_applicable_to_location,
+        leave_type_doc.custom_sw_applicable_to_employment_type,
+        leave_type_doc.custom_sw_applicable_to_grade,
+        leave_type_doc.custom_sw_applicable_to_product_line
+    ]):
+        employee_doc = frappe.get_doc("Employee", employee)
+
+        criteria = [
+            ("custom_sw_applicable_to_business_unit", "custom_business_unit"),
+            ("custom_sw_applicable_to_department", "department"),
+            ("custom_sw_applicable_to_location", "custom_work_location"),
+            ("custom_sw_applicable_to_employment_type", "employment_type"),
+            ("custom_sw_applicable_to_grade", "grade"),
+            ("custom_sw_applicable_to_product_line", "custom_product_line"),
+        ]
+
+        for leave_field, employee_field in criteria:
+            leave_values = getattr(leave_type_doc, leave_field)
+            employee_value = getattr(employee_doc, employee_field)
+
+            if not leave_values:
+                continue
+
+            leave_ids = []
+
+            if isinstance(leave_values, list) and isinstance(leave_values[0], frappe.model.document.Document):
+                for d in leave_values:
+                    if not d:
+                        continue
+
+                    if leave_field == "custom_sw_applicable_to_product_line":
+                        leave_ids.append(frappe.get_doc("Product Line Multiselect", d.name).indifoss_product)
+                    elif leave_field == "custom_sw_applicable_to_business_unit":
+                        leave_ids.append(frappe.get_doc("Business Unit Multiselect", d.name).business_unit)
+                    elif leave_field == "custom_sw_applicable_to_department":
+                        leave_ids.append(frappe.get_doc("Department Multiselect", d.name).department)
+                    elif leave_field == "custom_sw_applicable_to_location":
+                        leave_ids.append(frappe.get_doc("Work Location Multiselect", d.name).work_location)
+                    elif leave_field == "custom_sw_applicable_to_employment_type":
+                        leave_ids.append(frappe.get_doc("Employment Type Multiselect", d.name).employment_type)
+                    elif leave_field == "custom_sw_applicable_to_grade":
+                        leave_ids.append(frappe.get_doc("Grade Multiselect", d.name).grade)
+            
+            if employee_value in leave_ids:
+                sandwich_rule_applicable = 1
+                break
+
+    else:
+        sandwich_rule_applicable = 1
+
+    if not sandwich_rule_applicable:
+        return False
+    
+    return True
