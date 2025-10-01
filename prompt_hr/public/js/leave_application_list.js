@@ -136,6 +136,17 @@ frappe.listview_settings["Leave Application"] = {
 				});
 			}
 		}
+
+    // ? ADD GET_QUERY FOR WORKFLOW STATE FILTER DROPDOWN
+    if (listview.page.fields_dict.workflow_state) {
+        listview.page.fields_dict.workflow_state.get_query = function() {
+            return {
+                filters: {
+                    name: ["in", ["Approved", "Pending", "Approved", "Approved by Reporting Manager", "Rejected", "Rejected by Reporting Manager"]]
+                }
+            };
+        };
+    }
 	},
     hide_name_column: true,
 };
