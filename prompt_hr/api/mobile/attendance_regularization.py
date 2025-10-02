@@ -367,3 +367,62 @@ def get_employees_with_session_user():
             "message": str(e),
             "employees": [],
         }
+
+
+@frappe.whitelist()
+def get_checkin_punch_details(regularization_date):
+    try:
+        user = frappe.session.user
+        employee = frappe.get_value("Employee", {"user_id": user}, "name")
+        # Fetch employee check-ins for the given date
+        checkins = frappe.get_list(
+            "Employee Checkin",
+            filters={
+                "employee": employee,
+                "time": ["between", [regularization_date, regularization_date]]
+            },
+            fields=["name", "time", "log_type"],
+            order_by="time asc"
+        )
+
+        paired_rows = []
+        current_in = None
+
+        # helper: extract only HH:mm:ss from datetime
+        def extract_time(dt):
+            return dt.split(" ")[1] if dt else ""
+
+        for entry in checkins:
+            if entry.log_type == "IN":
+                current_in = {
+                    "in_time": extract_time(str(entry.time)),
+                    "out_time": ""
+                }
+            elif entry.log_type == "OUT":
+                if current_in:
+                    current_in["out_time"] = extract_time(str(entry.time))
+                    paired_rows.append(current_in)
+                    current_in = None
+                else:
+                    paired_rows.append({
+                        "in_time": "",
+                        "out_time": extract_time(str(entry.time))
+                    })
+
+        # if last IN has no OUT
+        if current_in:
+            paired_rows.append(current_in)
+
+    except Exception as e:
+        frappe.log_error("Error While Getting Check-in Punch Details", str(e))
+        frappe.local.response["message"] = {
+            "success": False,
+            "message": str(e),
+            "data": None
+        }
+    else:
+        frappe.local.response["message"] = {
+            "success": True,
+            "message": "Check-in Punch Details Loaded Successfully!",
+            "data": paired_rows
+        }
