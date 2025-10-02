@@ -469,8 +469,9 @@ def resignation_form_url():
         if hr_setting.custom_resignation_url:
             path = hr_setting.custom_resignation_url.format(name=employee_name)
         else:
-            path = f"/app/employee/{employee_name}"
+            path = f"/app/employee/"
 
+        path += "/{employee_name}"
         # ? PARSE EXISTING URL TO MERGE QUERY PARAMS SAFELY
         url_parts = urlparse(urljoin(base_url, path))
         query_dict = parse_qs(url_parts.query)
