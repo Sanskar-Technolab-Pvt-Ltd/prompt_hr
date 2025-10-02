@@ -170,8 +170,11 @@ frappe.ui.form.on("Employee Basic Details", {
         let row = locals[cdt][cdn];
         if (frm.employee_field_map && row.field_label) {
             row.employee_field_name = frm.employee_field_map[row.field_label];
-            frm.refresh_field("custom_employee_basic_detail_fields");
         }
+        if (frm.employee_field_type_map && row.field_label) {
+            row.field_type = frm.employee_field_type_map[row.field_label];
+        }
+        frm.refresh_field("custom_employee_basic_detail_fields");
     }
 })
 
@@ -244,6 +247,8 @@ async function set_employee_fields_in_pre_login_questionnaire(frm) {
 
 async function set_employee_fields_in_employee_basic_details(frm) {
     let options = await getEmployeeFields();
+    let type_options = await getEmployeeFieldTypes();
+
     if (options.length) {
         frm.fields_dict["custom_employee_basic_detail_fields"].grid.update_docfield_property(
             "field_label",
@@ -252,8 +257,13 @@ async function set_employee_fields_in_employee_basic_details(frm) {
         );
 
         frm.employee_field_map = {};
+        frm.employee_field_type_map = {};
+
         options.forEach(o => {
             frm.employee_field_map[o.label] = o.fieldname;
+        });
+        type_options.forEach(o => {
+            frm.employee_field_type_map[o.label] = o.fieldtype;
         });
         frm.refresh_field("custom_employee_basic_detail_fields");
 

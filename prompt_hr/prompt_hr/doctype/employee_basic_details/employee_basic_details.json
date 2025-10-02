@@ -7,6 +7,7 @@
  "engine": "InnoDB",
  "field_order": [
   "field_label",
+  "field_type",
   "employee_field_name"
  ],
  "fields": [
@@ -20,14 +21,21 @@
    "fieldname": "employee_field_name",
    "fieldtype": "Data",
    "label": "Employee Field Name"
+  },
+  {
+   "fieldname": "field_type",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Field Type",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-09-24 10:57:05.877635",
- "modified_by": "jignasha@sanskartechnolab.com",
+ "modified": "2025-10-02 11:16:03.028203",
+ "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Basic Details",
  "owner": "Administrator",
