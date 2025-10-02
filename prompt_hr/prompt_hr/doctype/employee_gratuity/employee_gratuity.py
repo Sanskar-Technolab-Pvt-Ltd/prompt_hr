@@ -75,13 +75,14 @@ class EmployeeGratuity(Document):
                     total_earning += comp.amount
                     break
 
-        self.last_drawn_salary = total_earning
-        self.last_drawn_basic = last_drawn_basic
-        self.last_drawn_da = last_drawn_da
+        self.last_drawn_salary = round(total_earning)
+        self.last_drawn_basic = round(last_drawn_basic)
+        self.last_drawn_da = round(last_drawn_da)
 
         # Calculate gratuity amount if total_earning and total_working_year are set
         if total_earning > 0 and self.total_working_year:
             self.gratuity_amount = self.last_drawn_salary * (15 / 26) * self.total_working_year
+            self.gratuity_amount = round(self.gratuity_amount)
         else:
             self.gratuity_amount = 0  # or leave blank if field is Data type
 

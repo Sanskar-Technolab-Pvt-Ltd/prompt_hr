@@ -82,7 +82,7 @@ frappe.ui.form.on("Full and Final Statement", {
       .then((records) => {
         frm.set_value(
           "custom_monthly_salary",
-          records && records.length > 0 ? records[0].base : 0
+          records && records.length > 0 ? Math.round(records[0].base) : 0
         );
       });
   },

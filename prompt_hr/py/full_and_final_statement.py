@@ -96,7 +96,7 @@ def custom_create_component_row(doc, components, component_type):
                     "amount": (
                             0
                             if not doc.custom_unserved_notice_days or not doc.custom_monthly_salary
-                            else (doc.custom_unserved_notice_days * doc.custom_monthly_salary) / 30
+                            else round((doc.custom_unserved_notice_days * doc.custom_monthly_salary) / 30)
                         ),
 
                 },
@@ -116,7 +116,7 @@ def custom_create_component_row(doc, components, component_type):
                             "component": component,
                             "reference_document_type": "Expense Claim",
                             "reference_document": expense_claim.name,
-                            "amount": expense_claim.total_claimed_amount,
+                            "amount": round(expense_claim.total_claimed_amount),
                         },
                     )
         elif component == "Leave Encashment":
@@ -134,7 +134,7 @@ def custom_create_component_row(doc, components, component_type):
                             "component": component,
                             "reference_document_type": "Leave Encashment",
                             "reference_document": leave_encashment_doc.name,
-                            "amount": leave_encashment_doc.encashment_amount,
+                            "amount": round(leave_encashment_doc.encashment_amount),
                         },
                     )
         elif component == "Employee Advance":
@@ -152,7 +152,7 @@ def custom_create_component_row(doc, components, component_type):
                             "component": component,
                             "reference_document_type": "Employee Advance",
                             "reference_document": employee_advance_doc.name,
-                            "amount": employee_advance_doc.advance_amount,
+                            "amount": round(employee_advance_doc.advance_amount),
                         },
                     )
         elif component == "Loan":
@@ -170,7 +170,7 @@ def custom_create_component_row(doc, components, component_type):
                             "component": component,
                             "reference_document_type": "Loan",
                             "reference_document": loan_doc.name,
-                            "amount": loan_doc.total_payment - loan_doc.total_amount_paid,
+                            "amount": round(loan_doc.total_payment - loan_doc.total_amount_paid),
                         },
                     )
 
@@ -202,7 +202,7 @@ def custom_create_component_row(doc, components, component_type):
                                     {
                                         "status": "Unsettled",
                                         "component": component,
-                                        "amount": detail.imprest_amount,
+                                        "amount": round(detail.imprest_amount),
                                     },
                                 )
 
@@ -226,7 +226,7 @@ def on_update(doc, method):
 
     for row in doc.receivables:
         if row.component == "Notice Period Recovery":
-            row.amount = amount  # Update the amount for the "Notice Period Recovery" row
+            row.amount = round(amount)  # Update the amount for the "Notice Period Recovery" row
             break
 
 @frappe.whitelist()
