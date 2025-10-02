@@ -22,6 +22,7 @@
   "attendance",
   "total_leave_penalty",
   "is_leave_balance_restore",
+  "sandwich_rule_applied",
   "cancellation_reason",
   "section_break_tpof",
   "leave_penalty_details"
@@ -164,12 +165,19 @@
    "fieldtype": "Link",
    "label": "Designation",
    "options": "Designation"
+  },
+  {
+   "default": "0",
+   "fieldname": "sandwich_rule_applied",
+   "fieldtype": "Check",
+   "label": "Sandwich Rule Applied?",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-09-25 19:40:11.483498",
+ "modified": "2025-09-30 12:56:20.398556",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Penalty",

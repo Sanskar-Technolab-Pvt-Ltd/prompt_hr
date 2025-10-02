@@ -276,12 +276,13 @@ function claim_extra_expenses(frm) {
         const service_roles = ["S - Service Engineer", "Service Engineer", "S - Service Director"];
         const all_perm_roles = ["S - HR L5", "S - HR L4", "S - HR L3", "S - HR L2", "S - HR L1", "S - HR L2 Manager", "S - HR Supervisor (RM)", "System Manager", "S - HR Director (Global Admin)"]
         const sales_roles = ["S - Sales Director", "S - Sales Manager", "S - Sales Supervisor", "S - Sales Executive"];
-        let field_visit_cache = [];
-        let tour_visit_cache = []
+        let all_tour_visit_cache = []
         let customer_cache = [];
+        let filtered_tour_visit_cache = []
+        let all_field_visit_cache = [];
+        let filtered_field_visit_cache = [];
 
-        // ? FIELD VISIT LIST STORE IN CACHE
-        // ? REASON : GET DATA CALLS API SO IT T
+        // ? INITIAL LOAD ALL FIELD VISITS
         frappe.db.get_list("Field Visit", {
             fields: ["name"],
             filters: {
@@ -290,25 +291,67 @@ function claim_extra_expenses(frm) {
             },
             limit_page_length: 0
         }).then(records => {
-            field_visit_cache = records.map(r => r.name);
+            all_field_visit_cache = records.map(r => r.name);
+            filtered_field_visit_cache = [...all_field_visit_cache]; // default: all
         });
+
+        // ? FETCH FILTERED FIELD VISITS BY DATE RANGE
+        function fetchFilteredFieldVisits(frm, from_date, to_date) {
+            const from_datetime = from_date + " 00:00:00";
+            const to_datetime = to_date + " 23:59:59";
+            return frappe.db.get_list("Field Visit", {
+                fields: ["name"],
+                filters: {
+                    service_mode: "On Site(Customer Premise)",
+                    field_visited_by: frm.doc.employee,
+                    status: "Visit Completed",
+                    visit_ended: ["between", [from_datetime, to_datetime]]
+                },
+                limit_page_length: 0
+            }).then(records => {
+                filtered_field_visit_cache = records.map(r => r.name);
+            });
+        }
+
+        // ? FETCH FILTERED TOUR VISITS BY DATE RANGE
+        function fetchFilteredTourVisits(frm, from_date, to_date) {
+            return frappe.db.get_list("Tour Visit", {
+                fields: ["name"],
+                filters: {
+                    person: frm.doc.employee,
+                    status: "Completed",
+                    tour_end_date: ["between", [from_date, to_date]]
+                },
+                limit_page_length: 0
+            }).then(records => {
+                filtered_tour_visit_cache = records.map(r => r.name);
+            });
+        }
+
         frappe.db.get_list("Tour Visit", {
             fields: ["name"],
             filters: {
-                person: frm.doc.employee
+                person: frm.doc.employee,
+                status: "Completed",
             },
             limit_page_length: 0
         }).then(records => {
-            tour_visit_cache = records.map(r => r.name);
+            all_tour_visit_cache = records.map(r => r.name);
+            filtered_tour_visit_cache = [...all_tour_visit_cache];
         });
 
         // ? CONSTRUCT CUSTOMER CACHE TO GET DATA FASTER
         frappe.db.get_list("Customer", {
-            fields: ["name"],
+            fields: ["name", "customer_name"],
             limit_page_length: 0
         }).then(records => {
-            customer_cache  = records.map(r => r.name);
+            // ? STORE AS OBJECTS { value: name, label: customer_name }
+            customer_cache = records.map(r => ({
+                value: r.name,
+                label: r.customer_name || r.name  // fallback if customer_name is empty
+            }));
         });
+
 
         let userRoles = frappe.user_roles || [];
 
@@ -384,7 +427,15 @@ function claim_extra_expenses(frm) {
                     label: 'From Date',
                     fieldname: 'from_date',
                     fieldtype: 'Date',
-                    hidden: 1
+                    hidden: 1,
+                    onchange: async function () {
+                        const from_date = dialog.get_value("from_date");
+                        const to_date = dialog.get_value("to_date");
+                        if (from_date && to_date) {
+                            await fetchFilteredFieldVisits(frm, from_date, to_date);
+                            await fetchFilteredTourVisits(frm, from_date, to_date);
+                        }
+                    }
                 },
                 {
                     label: 'From Time',
@@ -396,7 +447,15 @@ function claim_extra_expenses(frm) {
                     label: 'To Date',
                     fieldname: 'to_date',
                     fieldtype: 'Date',
-                    hidden: 1
+                    hidden: 1,
+                    onchange: async function () {
+                        const from_date = dialog.get_value("from_date");
+                        const to_date = dialog.get_value("to_date");
+                        if (from_date && to_date) {
+                            await fetchFilteredFieldVisits(frm, from_date, to_date);
+                            await fetchFilteredTourVisits(frm, from_date, to_date);
+                        }
+                    }
                 },
                 {
                     label: 'To Time',
@@ -413,8 +472,8 @@ function claim_extra_expenses(frm) {
                     hidden: 1,
                     get_data: function (txt) {
                         return customer_cache
-                            .filter(d => !txt || d.toLowerCase().includes(txt.toLowerCase()))
-                            .map(d => ({ value: d, description: "" }));
+                        .filter(d => !txt || d.label.toLowerCase().includes(txt.toLowerCase()))
+                        .map(d => ({ value: d.value, description: d.label }));
                     }
                 },
 
@@ -425,7 +484,7 @@ function claim_extra_expenses(frm) {
                     fieldtype: "MultiSelectList",
                     hidden: 1,
                     get_data: function (txt) {
-                        return field_visit_cache
+                        return filtered_field_visit_cache
                             .filter(d => !txt || d.toLowerCase().includes(txt.toLowerCase()))
                             .map(d => ({ value: d, description: "" }));
                     }
@@ -452,7 +511,7 @@ function claim_extra_expenses(frm) {
                     fieldtype: "MultiSelectList",
                     hidden: 1,
                     get_data: function (txt) {
-                        return tour_visit_cache
+                        return filtered_tour_visit_cache
                             .filter(d => !txt || d.toLowerCase().includes(txt.toLowerCase()))
                             .map(d => ({ value: d, description: "" }));
                     }
@@ -479,6 +538,10 @@ function claim_extra_expenses(frm) {
                         dialog.set_df_property("service_call", "hidden", !isRequired);
                         dialog.set_df_property("customer", "hidden", isRequired);
                         dialog.set_df_property("customer", "reqd", !isRequired);
+                        dialog.set_df_property("from_date", "reqd", isRequired);
+                        dialog.set_df_property("to_date", "reqd", isRequired);
+                        dialog.set_df_property("from_date", "hidden", !isRequired);
+                        dialog.set_df_property("to_date", "hidden", !isRequired);
 
                         dialog.fields_dict.field_visit.refresh();
                         dialog.fields_dict.service_call.refresh();
@@ -495,6 +558,10 @@ function claim_extra_expenses(frm) {
                         dialog.set_df_property("tour_visit", "hidden", !isRequired);
                         dialog.set_df_property("customer", "hidden", isRequired);
                         dialog.set_df_property("customer", "reqd", !isRequired);
+                        dialog.set_df_property("from_date", "reqd", isRequired);
+                        dialog.set_df_property("to_date", "reqd", isRequired);
+                        dialog.set_df_property("from_date", "hidden", !isRequired);
+                        dialog.set_df_property("to_date", "hidden", !isRequired);
                         dialog.fields_dict.field_visit.refresh();
                         dialog.fields_dict.service_call.refresh();
                     }
@@ -601,19 +668,21 @@ function claim_extra_expenses(frm) {
                 });
             } else if (expenseType === "Non DA") {
                 if (visit_type === "Field Visit") {
-                    ["field_visit", "service_call", "number_of_row", "add_without_fv_sc"].forEach(f => {
+                    ["field_visit", "from_date", "to_date", "service_call", "number_of_row", "add_without_fv_sc"].forEach(f => {
                         dialog.set_df_property(f, "hidden", 0);
                     });
-                    ["field_visit", "service_call"].forEach(f => {
+                    ["field_visit", "service_call", "from_date", "to_date",].forEach(f => {
                         dialog.set_df_property(f, "reqd", 1);
                     });
                     dialog.set_value("add_without_fv_sc", 0);
                 } else if (visit_type === "Tour Visit") {
 
-                    ["tour_visit","number_of_row", "add_without_tv"].forEach(f => {
+                    ["tour_visit","number_of_row", "add_without_tv", "from_date", "to_date"].forEach(f => {
                         dialog.set_df_property(f, "hidden", 0);
                     });
                         dialog.set_df_property("tour_visit", "reqd", 1);
+                        dialog.set_df_property("from_date", "reqd", 1);
+                        dialog.set_df_property("to_date", "reqd", 1);
                         dialog.set_value("add_without_tv", 0);
                 }
             }

@@ -92,10 +92,14 @@ doctype_list_js = {
     "Job Requisition": "public/js/job_requisition_list.js",
     "Travel Request": "public/js/travel_request_list.js",
     "Expense Claim": "public/js/expense_claim_list.js",
+    "Salary Slip": "public/js/salary_slip_list.js"
 }
 
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
-doctype_calendar_js = {"Attendance" : "public/js/attendance_calendar.js"}
+doctype_calendar_js = {
+    "Attendance" : "public/js/attendance_calendar.js",
+    "Leave Application" : "public/js/leave_application_calendar.js"
+}
 
 # Svg Icons
 # ------------------
@@ -267,6 +271,9 @@ doc_events = {
         "before_submit": "prompt_hr.py.attendance_request.before_submit",
         "on_update": "prompt_hr.py.attendance_request.on_update",
     },
+    # "Attendance":{
+    #     "on_submit":""
+    # },
     "Payroll Entry": {
         "on_update": "prompt_hr.py.payroll_entry.on_update",
         "on_submit": "prompt_hr.py.payroll_entry.on_submit",
@@ -290,7 +297,8 @@ doc_events = {
         "before_validate": "prompt_hr.py.leave_application.before_validate",
         "validate": "prompt_hr.py.leave_application.validate",
         "before_submit": "prompt_hr.py.leave_application.before_submit",
-        "on_submit": "prompt_hr.py.leave_application.on_submit"
+        "on_submit": "prompt_hr.py.leave_application.on_submit",
+        # "after_save":"prompt_hr.py.leave_application.after_save"
     },
     "Expense Claim": {
         "before_save": "prompt_hr.py.expense_claim.before_save",
@@ -343,13 +351,17 @@ doc_events = {
         "validate": "prompt_hr.py.income_tax_slab.validate",
     },
     "Employee Checkin": {
-        "before_insert": "prompt_hr.py.employee_checkin.before_insert"
+        "before_insert": "prompt_hr.py.employee_checkin.before_insert",
+        "on_update":"prompt_hr.py.employee_checkin.on_update"
     },
     "HR Settings":{
         "before_save": "prompt_hr.py.hr_settings.set_employee_field_names"
     },
     "Notification Log": {
         "after_insert": "prompt_hr.api.mobile.firebase.push_notification_handler"
+    },
+    "Shift Request":{
+        "on_update":"prompt_hr.py.shift_request.on_update"
     }
 }
 

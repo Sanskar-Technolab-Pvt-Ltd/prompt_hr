@@ -105,5 +105,48 @@ frappe.listview_settings["Leave Application"] = {
             }
         });
     },
+    refresh: function(listview) {
+        if (listview.view_name === "Calendar") {
+			if (!listview.has_set_employee_filter) {
+				listview.has_set_employee_filter = true;
+	
+				frappe.call({
+					method: "frappe.client.get_value",
+					args: {
+						doctype: "Employee",
+						filters: {
+							user_id: frappe.session.user
+						},
+						fieldname: "name"
+					},
+					callback: function (r) {
+						if (r.message && r.message.name) {
+                            if (listview.filter_area) {
+                                // remove every filter pill
+                                listview.filter_area.clear(); 
+                            }
+							listview.filter_area.add([
+								["Leave Application", "employee", "=", r.message.name]
+							]);
+							if (listview.filter_area.apply) {
+								listview.filter_area.apply();
+							}
+						}
+					}
+				});
+			}
+		}
+
+    // ? ADD GET_QUERY FOR WORKFLOW STATE FILTER DROPDOWN
+    if (listview.page.fields_dict.workflow_state) {
+        listview.page.fields_dict.workflow_state.get_query = function() {
+            return {
+                filters: {
+                    name: ["in", ["Approved", "Pending", "Approved", "Approved by Reporting Manager", "Rejected", "Rejected by Reporting Manager"]]
+                }
+            };
+        };
+    }
+	},
     hide_name_column: true,
 };

@@ -141,7 +141,7 @@
   "transitions": [
    {
     "action": "Approve",
-    "allow_self_approval": 0,
+    "allow_self_approval": 1,
     "allowed": "S - Employee",
     "condition": "frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Employee\",doc.applicant,\"reports_to\"), \"user_id\") or frappe.session.user == \"Administrator\"\n",
     "next_state": "Approved",
@@ -154,7 +154,7 @@
    },
    {
     "action": "Reject",
-    "allow_self_approval": 0,
+    "allow_self_approval": 1,
     "allowed": "S - Employee",
     "condition": "frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Employee\",doc.applicant,\"reports_to\"), \"user_id\") or frappe.session.user == \"Administrator\"\n",
     "next_state": "Rejected",
@@ -167,7 +167,7 @@
    },
    {
     "action": "Approve",
-    "allow_self_approval": 0,
+    "allow_self_approval": 1,
     "allowed": "S - Employee",
     "condition": "frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Business Unit\", frappe.db.get_value(\"Employee\", doc.applicant, \"custom_business_unit\"), \"business_unit_head\"), \"user_id\") or frappe.session.user == \"Administrator\"",
     "next_state": "Approved by BU Head",
@@ -180,7 +180,7 @@
    },
    {
     "action": "Reject",
-    "allow_self_approval": 0,
+    "allow_self_approval": 1,
     "allowed": "S - Employee",
     "condition": "frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Business Unit\", frappe.db.get_value(\"Employee\", doc.applicant, \"custom_business_unit\"), \"business_unit_head\"), \"user_id\") or frappe.session.user == \"Administrator\"",
     "next_state": "Rejected by BU Head",
@@ -193,7 +193,7 @@
    },
    {
     "action": "Approve",
-    "allow_self_approval": 0,
+    "allow_self_approval": 1,
     "allowed": "S - HR Director (Global Admin)",
     "condition": "",
     "next_state": "Approved by HR",
@@ -206,7 +206,7 @@
    },
    {
     "action": "Reject",
-    "allow_self_approval": 0,
+    "allow_self_approval": 1,
     "allowed": "S - HR Director (Global Admin)",
     "condition": "",
     "next_state": "Rejected by HR",
@@ -507,7 +507,7 @@
   "transitions": [
    {
     "action": "Approve",
-    "allow_self_approval": 0,
+    "allow_self_approval": 1,
     "allowed": "S - Employee",
     "condition": "frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Employee\",doc.employee,\"reports_to\"), \"user_id\") or frappe.session.user == \"Administrator\"\n",
     "next_state": "Approved",
@@ -520,7 +520,7 @@
    },
    {
     "action": "Reject",
-    "allow_self_approval": 0,
+    "allow_self_approval": 1,
     "allowed": "S - Employee",
     "condition": "frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Employee\",doc.employee,\"reports_to\"), \"user_id\") or frappe.session.user == \"Administrator\"\n",
     "next_state": "Rejected",
@@ -917,7 +917,7 @@
   "transitions": [
    {
     "action": "Approve",
-    "allow_self_approval": 0,
+    "allow_self_approval": 1,
     "allowed": "S - Employee",
     "condition": "frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Employee\",doc.employee,\"reports_to\"), \"user_id\") or frappe.session.user == \"Administrator\"\n",
     "next_state": "Approved",
@@ -930,7 +930,7 @@
    },
    {
     "action": "Reject",
-    "allow_self_approval": 0,
+    "allow_self_approval": 1,
     "allowed": "S - Employee",
     "condition": "frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Employee\",doc.employee,\"reports_to\"), \"user_id\") or frappe.session.user == \"Administrator\"\n",
     "next_state": "Rejected",
@@ -1034,7 +1034,7 @@
   "transitions": [
    {
     "action": "Approve",
-    "allow_self_approval": 0,
+    "allow_self_approval": 1,
     "allowed": "S - Employee",
     "condition": "frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Employee\",doc.employee,\"reports_to\"), \"user_id\") or frappe.session.user == \"Administrator\"\n",
     "next_state": "Approved",
@@ -1047,7 +1047,7 @@
    },
    {
     "action": "Reject",
-    "allow_self_approval": 0,
+    "allow_self_approval": 1,
     "allowed": "S - Employee",
     "condition": "frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Employee\",doc.employee,\"reports_to\"), \"user_id\") or frappe.session.user == \"Administrator\"\n",
     "next_state": "Rejected",
@@ -1167,7 +1167,7 @@
   "transitions": [
    {
     "action": "Approve",
-    "allow_self_approval": 0,
+    "allow_self_approval": 1,
     "allowed": "S - Employee",
     "condition": "frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Employee\",doc.employee,\"reports_to\"), \"user_id\") or frappe.session.user == \"Administrator\"\n",
     "next_state": "Approved",
@@ -1180,7 +1180,7 @@
    },
    {
     "action": "Reject",
-    "allow_self_approval": 0,
+    "allow_self_approval": 1,
     "allowed": "S - Employee",
     "condition": "frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Employee\",doc.employee,\"reports_to\"), \"user_id\") or frappe.session.user == \"Administrator\"\n",
     "next_state": "Rejected",
@@ -1284,7 +1284,7 @@
   "transitions": [
    {
     "action": "Approve",
-    "allow_self_approval": 0,
+    "allow_self_approval": 1,
     "allowed": "S - Employee",
     "condition": "frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Employee\",doc.employee,\"reports_to\"), \"user_id\") or frappe.session.user == \"Administrator\"\n",
     "next_state": "Approved",
@@ -1297,7 +1297,7 @@
    },
    {
     "action": "Reject",
-    "allow_self_approval": 0,
+    "allow_self_approval": 1,
     "allowed": "S - Employee",
     "condition": "frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Employee\",doc.employee,\"reports_to\"), \"user_id\") or frappe.session.user == \"Administrator\"\n",
     "next_state": "Rejected",
@@ -1475,7 +1475,7 @@
    },
    {
     "action": "Escalate",
-    "allow_self_approval": 0,
+    "allow_self_approval": 1,
     "allowed": "All",
     "condition": "frappe.session.user == doc.expense_approver",
     "next_state": "Escalated",
@@ -1488,7 +1488,7 @@
    },
    {
     "action": "Approve",
-    "allow_self_approval": 0,
+    "allow_self_approval": 1,
     "allowed": "All",
     "condition": "frappe.session.user != doc.expense_approver",
     "next_state": "Sent to Accounting Team",
@@ -1501,7 +1501,7 @@
    },
    {
     "action": "Reject",
-    "allow_self_approval": 0,
+    "allow_self_approval": 1,
     "allowed": "All",
     "condition": "frappe.session.user != doc.expense_approver",
     "next_state": "Rejected",
@@ -1685,7 +1685,7 @@
   "transitions": [
    {
     "action": "Approve",
-    "allow_self_approval": 0,
+    "allow_self_approval": 1,
     "allowed": "S - Employee",
     "condition": "(frappe.session.user == \"Administrator\" or frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Employee\", doc.employee, \"reports_to\"), \"user_id\") or frappe.db.get_value(\"Has Role\", {\"parent\": frappe.session.user, \"role\": \"S - HR Director (Global Admin)\"}, \"name\")) and (doc.leave_type == \"Leave Without Pay\" or doc.leave_type == \"Casual Leave\")\n",
     "next_state": "Approved",
@@ -1698,7 +1698,7 @@
    },
    {
     "action": "Reject",
-    "allow_self_approval": 0,
+    "allow_self_approval": 1,
     "allowed": "S - Employee",
     "condition": "(frappe.session.user == \"Administrator\" or frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Employee\", doc.employee, \"reports_to\"), \"user_id\") or frappe.db.get_value(\"Has Role\", {\"parent\": frappe.session.user, \"role\": \"S - HR Director (Global Admin)\"}, \"name\")) and (doc.leave_type == \"Leave Without Pay\" or doc.leave_type == \"Casual Leave\")\n",
     "next_state": "Rejected",
@@ -1711,7 +1711,7 @@
    },
    {
     "action": "Approve",
-    "allow_self_approval": 0,
+    "allow_self_approval": 1,
     "allowed": "S - Employee",
     "condition": "frappe.session.user == \"Administrator\" or frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Employee\", doc.employee, \"reports_to\"), \"user_id\") or frappe.db.get_value(\"Has Role\", {\"parent\": frappe.session.user, \"role\": \"S - HR Director (Global Admin)\"}, \"name\")\n",
     "next_state": "Extension Approved",
@@ -1724,7 +1724,7 @@
    },
    {
     "action": "Reject",
-    "allow_self_approval": 0,
+    "allow_self_approval": 1,
     "allowed": "S - Employee",
     "condition": "frappe.session.user == \"Administrator\" or frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Employee\", doc.employee, \"reports_to\"), \"user_id\") or frappe.db.get_value(\"Has Role\", {\"parent\": frappe.session.user, \"role\": \"S - HR Director (Global Admin)\"}, \"name\")\n",
     "next_state": "Extension Rejected",

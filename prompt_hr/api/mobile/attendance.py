@@ -89,7 +89,8 @@ def get(name):
             "message": "Attendance Loaded Successfully!",
             "data": attendance,
         }
- 
+
+import json 
 from datetime import datetime
 from frappe.utils import get_first_day, get_last_day
 
@@ -97,6 +98,7 @@ from frappe.utils import get_first_day, get_last_day
 def attendance_calendar_list(
     employee=None,
     order_by=None,
+    attendance_date=None,
     limit_page_length=0,
     limit_start=0,
 ):
@@ -104,6 +106,8 @@ def attendance_calendar_list(
         if not employee:
             frappe.throw("Employee is required")
 
+        if attendance_date and isinstance(attendance_date, str):
+            attendance_date = json.loads(attendance_date)
         # Get current month's start and end date
         today = datetime.today()
         month_start = get_first_day(today).strftime("%Y-%m-%d")
@@ -112,7 +116,7 @@ def attendance_calendar_list(
         # Filters: by employee name and current month
         filters = {
             "employee": employee,
-            "attendance_date": ["between", [month_start, month_end]],
+            "attendance_date": ["between", [month_start, month_end]] if not attendance_date else attendance_date,
             "docstatus": 1,
         }
 

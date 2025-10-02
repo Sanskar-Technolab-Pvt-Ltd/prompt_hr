@@ -40,7 +40,7 @@ class CustomAttendance(Attendance):
                     )
 
 
-def modify_employee_penalty(employee, attendance_date):
+def modify_employee_penalty(employee, attendance_date, weekoff_change=False):
     hr_settings = frappe.get_single("HR Settings")
     today_date = getdate()
     attendance_date = getdate(attendance_date)
@@ -131,7 +131,8 @@ def modify_employee_penalty(employee, attendance_date):
             0,
             "custom_late_coming_leave_penalty_configuration",
             attendance_date,
-            True
+            True,
+            weekoff_change
         )
             if late_penalty:
                 create_penalty_records(late_penalty, attendance_date)
@@ -143,7 +144,8 @@ def modify_employee_penalty(employee, attendance_date):
             attendance_date,
             percentage_for_daily_hour_penalty,
             "custom_daily_hour_leave_penalty_configuration",
-            True
+            True,
+            weekoff_change
         )
             if daily_hour_penalty:
                 create_penalty_records(daily_hour_penalty, attendance_date)
@@ -154,7 +156,8 @@ def modify_employee_penalty(employee, attendance_date):
                 0,
                 attendance_date,
                 "custom_attendance_mispunch_leave_penalty_configuration",
-                True
+                True,
+                weekoff_change
             )
             if mispunch_penalty:
                 create_penalty_records(mispunch_penalty, attendance_date)
@@ -166,6 +169,7 @@ def modify_employee_penalty(employee, attendance_date):
                 attendance_date,
                 "custom_no_attendance_leave_penalty_configuration",
                 True,
+                weekoff_change
             )
             if no_attendance_penalty:
                 create_penalty_records(no_attendance_penalty,attendance_date)

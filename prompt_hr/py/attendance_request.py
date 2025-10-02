@@ -1,5 +1,5 @@
 import frappe
-
+from frappe import _
 from frappe import throw
 from prompt_hr.py.utils import (
     send_notification_email,
@@ -117,6 +117,9 @@ def notify_reporting_manager(doc, event):
         frappe.throw(str(e))
 
 def on_update(doc, method=None):
+    
+    share_leave_with_manager(doc)
+    
     if doc.workflow_state == "Pending":
         manager_docname = frappe.db.get_value("Employee", doc.employee, "reports_to")
         if manager_docname:
@@ -130,3 +133,50 @@ def on_update(doc, method=None):
                 doc.db_set("custom_pending_approval_at", f"{manager.name} - {manager.employee_name}")
     else:
         doc.db_set("custom_pending_approval_at", "")
+        
+        
+        
+def share_leave_with_manager(leave_doc):
+   
+    # Get employee linked to this leave
+    employee_id = leave_doc.employee
+    
+    if not employee_id:
+        return
+
+    # Get the manager linked in Employee's custom_dotted_line_manager field
+    manager_id = frappe.db.get_value("Employee", employee_id, "custom_dotted_line_manager")
+    
+    if not manager_id:
+        return
+
+    # Get the manager's user ID (needed for sharing the document)
+    manager_user_id = frappe.db.get_value("Employee", manager_id, "user_id")
+    
+    if not manager_user_id:
+        return
+
+    # Check if the Attendance Request is already shared with the manager
+    existing_share = frappe.db.exists("DocShare", {
+        "share_doctype": "Attendance Request",
+        "share_name": leave_doc.name,
+        "user": manager_user_id
+    })
+
+    if existing_share:
+        return
+
+    # Share the Attendance Request with manager (read-only)
+    frappe.share.add_docshare(
+        doctype="Attendance Request",
+        name=leave_doc.name,
+        user=manager_user_id,
+        read=1,      # Read permission
+        write=0,
+        share=0
+    )
+
+
+    
+
+

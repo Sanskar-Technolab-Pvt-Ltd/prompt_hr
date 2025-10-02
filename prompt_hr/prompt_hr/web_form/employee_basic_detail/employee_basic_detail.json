@@ -11,17 +11,17 @@
  "client_script": "",
  "condition_json": "[]",
  "creation": "2025-09-24 11:10:48.437231",
- "custom_css": ".web-list-table .list-col-checkbox,  \n.web-list-table th:first-child {  \n    display: none !important;  \n}\n",
+ "custom_css": "",
  "doc_type": "Employee",
  "docstatus": 0,
  "doctype": "Web Form",
  "idx": 0,
  "is_standard": 1,
  "list_columns": [],
- "list_title": "Employee Basic Details",
- "login_required": 1,
+ "list_title": "",
+ "login_required": 0,
  "max_attachment_size": 0,
- "modified": "2025-09-24 13:22:22.631620",
+ "modified": "2025-10-02 10:32:53.038830",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "employee-basic-detail",
@@ -29,22 +29,8 @@
  "published": 1,
  "route": "employee-basic-detail",
  "show_attachments": 0,
- "show_list": 1,
+ "show_list": 0,
  "show_sidebar": 0,
  "title": "Employee Basic Detail",
- "web_form_fields": [
-  {
-   "allow_read_on_all_link_options": 0,
-   "fieldname": "employee_name",
-   "fieldtype": "Text",
-   "hidden": 0,
-   "label": "Employee Name",
-   "max_length": 0,
-   "max_value": 0,
-   "precision": "",
-   "read_only": 1,
-   "reqd": 0,
-   "show_in_filter": 1
-  }
- ]
+ "web_form_fields": []
 }

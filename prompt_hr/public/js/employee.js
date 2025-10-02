@@ -24,6 +24,8 @@ frappe.ui.form.on("Employee", {
         // ? SET AUTOCOMPLETE OPTIONS FOR CURRENT AND PERMANENT STATE
         set_state_options(frm, "custom_current_state", "custom_current_country");
         set_state_options(frm, "custom_permanent_state", "custom_permanent_country");
+
+
         // ? SET FILTERS FOR CURRENT AND PERMANENT DISTRICT, SUB DISTRICT
         handle_location_change(frm, "custom_current")
         handle_location_change(frm, "custom_permanent")
@@ -32,11 +34,11 @@ frappe.ui.form.on("Employee", {
 
         addEmployeeDetailsChangesButton(frm);
         // ? ADD APPROVAL BUTTON FOR LOGIN QUESTIONNAIRE TO EMPLOYEE
-        if (!frm.is_new() && !frm.doc.custom_employees_all_response_approve){
+        if (!frm.is_new() && !frm.doc.custom_employees_all_response_approve) {
             addApproveEmployeeDetailsButton(frm);
         }
         add_profile_completion_percentage(frm)
-        frappe.db.get_value('Employee', {'name': frm.doc.name}, 'user_id').then(r => {
+        frappe.db.get_value('Employee', { 'name': frm.doc.name }, 'user_id').then(r => {
             if (!frappe.user_roles.includes("S - HR Director (Global Admin)") && !frappe.user_roles.includes("System Manager") && !frappe.user_roles.includes("S - HR L1") && !frappe.user_roles.includes("S - HR L2")) {
                 if (frappe.session.user != r.message.user_id) {
                     const fields_to_hidden = ["salary_currency", "custom_salary_structure_based_on", "ctc", "custom_gross_salary", "payroll_cost_center", "salary_mode", "pan_number", "provident_fund_account", "custom_esi_number", "custom_esic_ip_number", "custom_uan_number", "custom_aadhaar_number", "custom_name_as_per_aadhaar", "custom_pran_number", "custom_mealcard_ref_number", "custom_mealcard_number", "custom_income_tax_regime", "custom_consents", "bank_details_section", "custom_nominee_details_section", "health_insurance_section", "custom_submitted_document", "passport_details_section", "marital_status", "custom_religion", "family_background", "blood_group", "health_details", "custom_physically_handicaped", "bio", "custom_expense_details", "new_workplace", "leave_encashed", "encashment_date", "custom_ff_settlement_date", "custom_is_fit_to_be_rehired", "held_on", "custom_is_notice_period_served", "reason_for_leaving", "feedback", "custom_is_overtime_applicable", "approvers_section", "custom_probation_extension", "custom_probation_details", "custom_section_break_mm3qg", "custom_mrf_id", "scheduled_confirmation_date", "job_applicant", "custom_contract_start_date", "custom_contract_start_date", "date_of_retirement"]
@@ -50,7 +52,7 @@ frappe.ui.form.on("Employee", {
 
         frm.set_query("custom_leave_policy", () => {
             return {
-                query:"prompt_hr.overrides.leave_policy_assignment_override.filter_leave_policy_for_display",
+                query: "prompt_hr.overrides.leave_policy_assignment_override.filter_leave_policy_for_display",
                 filters: {
                     gender: frm.doc.gender,
                     company: frm.doc.company,
@@ -145,54 +147,57 @@ frappe.ui.form.on("Employee", {
             }, __("Release Letters"));
         }
 
+        // ? AUTO-CLICK "Raise Resignation" BUTTON IF URL PARAMETER IS PRESENT
+        raise_resignation_button_auto_click_from_url(frm);
+
     },
-    custom_current_country (frm) {
+    custom_current_country(frm) {
         set_state_options(frm, "custom_current_state", "custom_current_country");
         handle_location_change(frm, "custom_current")
 
     },
-    custom_permanent_country (frm) {
+    custom_permanent_country(frm) {
         set_state_options(frm, "custom_permanent_state", "custom_permanent_country");
         handle_location_change(frm, "custom_permanent")
 
     },
     custom_current_district(frm) {
-        if (frm.doc.custom_current_country == "India"){
+        if (frm.doc.custom_current_country == "India") {
             set_city_autocomplete_options(frm, "custom_current_city", { state: frm.doc.custom_current_state, district: frm.doc.custom_current_district });
             handle_location_change(frm, "custom_current")
         }
     },
     custom_permanent_district(frm) {
-        if (frm.doc.custom_current_country == "India"){
+        if (frm.doc.custom_current_country == "India") {
             set_city_autocomplete_options(frm, "custom_permanent_city", { state: frm.doc.custom_permanent_state, district: frm.doc.custom_permanent_district });
             handle_location_change(frm, "custom_permanent")
 
         }
     },
-    custom_current_state (frm) {
-        if (frm.doc.custom_current_country == "India"){
+    custom_current_state(frm) {
+        if (frm.doc.custom_current_country == "India") {
             set_city_autocomplete_options(frm, "custom_current_city", { state: frm.doc.custom_current_state });
             handle_location_change(frm, "custom_current")
 
         }
     },
-    custom_permanent_state (frm) {
-        if (frm.doc.custom_permanent_country == "India"){
+    custom_permanent_state(frm) {
+        if (frm.doc.custom_permanent_country == "India") {
             set_city_autocomplete_options(frm, "custom_permanent_city", { state: frm.doc.custom_permanent_state });
             handle_location_change(frm, "custom_permanent")
         }
     },
 
-    custom_current_sub_district (frm) {
-        if (frm.doc.custom_current_country == "India"){
+    custom_current_sub_district(frm) {
+        if (frm.doc.custom_current_country == "India") {
             set_city_autocomplete_options(frm, "custom_current_city", { state: frm.doc.custom_current_state, district: frm.doc.custom_current_district, sub_district: frm.doc.custom_current_sub_district });
             handle_location_change(frm, "custom_current")
 
         }
     },
 
-    custom_permanent_sub_district (frm) {
-        if (frm.doc.custom_permanent_country == "India"){
+    custom_permanent_sub_district(frm) {
+        if (frm.doc.custom_permanent_country == "India") {
             set_city_autocomplete_options(frm, "custom_permanent_city", { state: frm.doc.custom_permanent_state, district: frm.doc.custom_permanent_district, sub_district: frm.doc.custom_permanent_sub_district });
             handle_location_change(frm, "custom_permanent")
         }
@@ -294,7 +299,7 @@ function addApproveEmployeeDetailsButton(frm) {
             const employeeResponseIsTable = (() => {
                 try {
                     let parsed = JSON.parse(row.employee_response);
-            
+
                     // ! RETURN FALSE IF EMPTY ARRAY OR EMPTY OBJECT
                     if (Array.isArray(parsed)) {
                         return parsed.length > 0;
@@ -302,13 +307,13 @@ function addApproveEmployeeDetailsButton(frm) {
                     if (parsed && typeof parsed === "object") {
                         return Object.keys(parsed).length > 0;
                     }
-            
+
                     return false;
                 } catch {
                     return false;
                 }
             })();
-            
+
             let fieldBlock = [
                 {
                     fieldname: `section_break_${idx}`,
@@ -395,8 +400,8 @@ function addApproveEmployeeDetailsButton(frm) {
                         fieldname: `employee_response_${idx}`,
                         fieldtype: 'Data',
                         label: 'Employee Response',
-                        default:  (!row.employee_response || row.employee_response === "null" || row.employee_response === "[]" || 
-                            row.employee_response === "{}" ) ? "" : row.employee_response,
+                        default: (!row.employee_response || row.employee_response === "null" || row.employee_response === "[]" ||
+                            row.employee_response === "{}") ? "" : row.employee_response,
                         read_only: 1
                     }
                 ]),
@@ -407,8 +412,8 @@ function addApproveEmployeeDetailsButton(frm) {
                     label: 'Action',
                     options: ['Approve', 'Reject'],
                     default: row.status === "Approve" ? "Approve" : "",
-                    read_only: (row.status === "Approve" || !row.employee_response || row.employee_response === "null" || row.employee_response === "[]" || 
-                        row.employee_response === "{}" ) ? 1 : 0
+                    read_only: (row.status === "Approve" || !row.employee_response || row.employee_response === "null" || row.employee_response === "[]" ||
+                        row.employee_response === "{}") ? 1 : 0
                 },
                 ...(row.attach ? [{
                     fieldname: `attachment_${idx}`,
@@ -418,19 +423,19 @@ function addApproveEmployeeDetailsButton(frm) {
                 }] : [])
             ];
 
-        // Grouping logic
-        if (row.status === "Approve") {
-            approvedFields.push(...fieldBlock);
-        } else if (
-            !row.employee_response || 
-            row.employee_response === "[]" || 
-            row.employee_response === "{}"
-        ) {
-            pendingFields.push(...fieldBlock);
-        } else {
-            takeActionFields.push(...fieldBlock);
-        }
-    });
+            // Grouping logic
+            if (row.status === "Approve") {
+                approvedFields.push(...fieldBlock);
+            } else if (
+                !row.employee_response ||
+                row.employee_response === "[]" ||
+                row.employee_response === "{}"
+            ) {
+                pendingFields.push(...fieldBlock);
+            } else {
+                takeActionFields.push(...fieldBlock);
+            }
+        });
 
         let dialogFields = [
             ...buildSection("⏳ Pending Responses", "section_break_pending", pendingFields, "No pending responses."),
@@ -500,10 +505,10 @@ function addApproveEmployeeDetailsButton(frm) {
                         args: {
                             doc: frm.doc
                         },
-                        callback: function(r) {
+                        callback: function (r) {
                             let allApproved = (frm.doc.custom_pre_login_questionnaire_response || [])
                                 .every(r => r.status === "Approve");
-                
+
                             if (allApproved) {
                                 frm.save().then(() => {
                                     frappe.msgprint("All responses approved. Employee fields updated successfully.");
@@ -514,12 +519,12 @@ function addApproveEmployeeDetailsButton(frm) {
                         }
                     });
                 });
-                
+
             }
         });
 
         dialog.show();
-        }, __("Actions"));
+    }, __("Actions"));
 }
 
 function set_state_options(frm, state_field_name, country_field_name) {
@@ -539,25 +544,25 @@ function createEmployeeResignationButton(frm) {
         // ? FETCH RESIGNATION QUESTIONS FROM BACKEND
         frappe.call({
             method: "prompt_hr.py.employee.get_raise_resignation_questions",
-            args: {"company": frm.doc.company},
+            args: { "company": frm.doc.company },
             callback: function (res) {
                 if (res.message && res.message.length > 0) {
                     const questions = res.message;
 
                     // ? DYNAMICALLY CREATE DIALOG FIELDS BASED ON QUESTIONS
                     const fields = questions.map(q => {
-                    let field = {
-                        label: q.question_detail || q.question,
-                        fieldname: q.question,   // use LMS Question docname directly
-                        reqd: true
-                    };
+                        let field = {
+                            label: q.question_detail || q.question,
+                            fieldname: q.question,   // use LMS Question docname directly
+                            reqd: true
+                        };
 
-                    if (q.type !== "Open Ended" || !q.custom_input_type) {
-                        field.fieldtype = "Data";
-                        return field;
-                    }
+                        if (q.type !== "Open Ended" || !q.custom_input_type) {
+                            field.fieldtype = "Data";
+                            return field;
+                        }
 
-                    switch (q.custom_input_type) {
+                        switch (q.custom_input_type) {
                             case "Checkbox":
                                 field.fieldtype = "MultiCheck";
                                 field.label = (stripHtml(q.question_detail) || q.question) + " <span style='color:#f1afb0'>*</span>";  // ✅ add red star
@@ -570,40 +575,40 @@ function createEmployeeResignationButton(frm) {
 
 
 
-                        case "Dropdown":
-                            field.fieldtype = "Select";
-                            field.label = (stripHtml(q.question_detail) || q.question);
-                            field.options = (q.custom_multi_checkselect_options || "")
-                                .split("\n")
-                                .map(opt => opt.trim())
-                                .filter(opt => opt)
-                                .join("\n");
-                            break;
+                            case "Dropdown":
+                                field.fieldtype = "Select";
+                                field.label = (stripHtml(q.question_detail) || q.question);
+                                field.options = (q.custom_multi_checkselect_options || "")
+                                    .split("\n")
+                                    .map(opt => opt.trim())
+                                    .filter(opt => opt)
+                                    .join("\n");
+                                break;
 
-                        case "Yes/No/NA":
-                            field.fieldtype = "Select";
-                            field.label = (stripHtml(q.question_detail) || q.question);
-                            field.options = "Yes\nNo\nNA";
-                            break;
+                            case "Yes/No/NA":
+                                field.fieldtype = "Select";
+                                field.label = (stripHtml(q.question_detail) || q.question);
+                                field.options = "Yes\nNo\nNA";
+                                break;
 
-                        case "Date":
-                            field.fieldtype = "Date";
-                            field.label = (stripHtml(q.question_detail) || q.question);
-                            break;
+                            case "Date":
+                                field.fieldtype = "Date";
+                                field.label = (stripHtml(q.question_detail) || q.question);
+                                break;
 
-                        case "Single Line Input":
-                            field.fieldtype = "Data";
-                            field.label = (stripHtml(q.question_detail) || q.question);
-                            break;
+                            case "Single Line Input":
+                                field.fieldtype = "Data";
+                                field.label = (stripHtml(q.question_detail) || q.question);
+                                break;
 
-                        default:
-                            field.fieldtype = "Data";
-                            field.label = (stripHtml(q.question_detail) || q.question);
-                            break;
-                    }
+                            default:
+                                field.fieldtype = "Data";
+                                field.label = (stripHtml(q.question_detail) || q.question);
+                                break;
+                        }
 
-                    return field;
-                });
+                        return field;
+                    });
 
 
                     // ? CREATE RESIGNATION DIALOG
@@ -650,7 +655,7 @@ function createEmployeeResignationButton(frm) {
                                 }
                             });
                         }
-                        
+
                     });
 
                     // ? DISPLAY THE DIALOG
@@ -660,21 +665,21 @@ function createEmployeeResignationButton(frm) {
                         marginRight: "10px",
                         minWidth: "120px"
                     });
-                    
+
 
                 } else {
                     frappe.msgprint(__('No resignation questions found.'));
                 }
             }
         });
-    },  __("Actions"));
+    }, __("Actions"));
 }
 // ? FUNCTION TO ADD A CUSTOM BUTTON ON THE EMPLOYEE FORM
 function addEmployeeDetailsChangesButton(frm) {
     // ? ADD BUTTON TO FORM HEADER
     frm.add_custom_button("Apply for Changes", () => {
         loadDialogBox(frm);
-    },  __("Actions"));
+    }, __("Actions"));
 }
 
 // ? FUNCTION TO FETCH LIST OF CHANGEABLE EMPLOYEE FIELDS FROM BACKEND
@@ -713,7 +718,7 @@ async function loadDialogBox(frm) {
         // ? PREPARE AUTOCOMPLETE OPTIONS FROM LABELS
         employee_fields = field_meta.map(f => ({
             label: f.label,
-            value: f.label 
+            value: f.label
         }));
 
     } catch (error) {
@@ -1055,4 +1060,21 @@ function stripHtml(html) {
     let temp = document.createElement("div");
     temp.innerHTML = html;
     return temp.textContent || temp.innerText || "";
+}
+
+// ? FUNCTION TO AUTO-CLICK "Raise Resignation" BUTTON IF URL PARAMETER IS PRESENT
+function raise_resignation_button_auto_click_from_url(frm) {
+
+    // ? ONLY TRIGGER WHEN URL PARAM IS PRESENT
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("raise_resignation") === "1") {
+
+        // ? TRIGGER "Raise Resignation" BUTTON FROM cur_frm.custom_buttons
+        if (cur_frm.custom_buttons["Raise Resignation"]) {
+            cur_frm.custom_buttons["Raise Resignation"].click();
+        }
+
+        // ? REMOVE PARAM TO PREVENT RE-TRIGGER ON NEXT REFRESH
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
 }

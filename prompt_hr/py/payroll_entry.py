@@ -4,11 +4,14 @@ from dateutil.relativedelta import relativedelta
 from datetime import datetime
 from frappe.utils import getdate
 import frappe.utils
+from prompt_hr.overrides.payroll_entry_override import CustomPayrollEntry
 from frappe.utils.xlsxutils import make_xlsx, read_xlsx_file_from_attached_file
 from frappe.utils.response import build_response
 from frappe import _
 import traceback
 import calendar
+import io
+from openpyxl import Workbook
 
 
 # ? ON UPDATE CONTROLLER METHOD
@@ -566,6 +569,10 @@ def download_lop_reversal_template(payroll_entry_id):
     return build_response("download")
 
 
+import io, zipfile
+from frappe.utils.xlsxutils import make_xlsx
+import frappe
+
 @frappe.whitelist()
 def download_adhoc_salary_template(payroll_entry_id):
     # * Fetch the Payroll Entry document
@@ -573,31 +580,52 @@ def download_adhoc_salary_template(payroll_entry_id):
 
     # * Get the list of employees in this Payroll Entry
     employee_list = [(emp.employee, emp.employee_name) for emp in payroll_entry.employees]
+    adhoc_data = [["Employee", "Employee Name", "Salary Component", "Amount"]]
 
-    # * Prepare Excel header
-    excel_data = [["Employee", "Employee Name", "Salary Component", "Amount"]]
-
-    # * Add existing adhoc salary details if they exist
     if payroll_entry.custom_adhoc_salary_details:
         for detail in payroll_entry.custom_adhoc_salary_details:
-            excel_data.append([
+            adhoc_data.append([
                 detail.employee,
                 detail.employee_name,
                 detail.salary_component,
                 detail.amount
             ])
     else:
-        # * Otherwise, generate empty rows for manual entry
         for emp_id, emp_name in employee_list:
-            excel_data.append([emp_id, emp_name, "", ""])
+            adhoc_data.append([emp_id, emp_name, "", ""])
 
-    # * Generate the XLSX file from the data
-    xlsx_file = make_xlsx(excel_data, "Adhoc Salary Details Template")
-    xlsx_file.seek(0)
+    # Prepare data for the Salary Components sheet
+    salary_components = frappe.get_all(
+        "Salary Component",
+        filters={"disabled": 0},
+        fields=["name", "salary_component_abbr", "type"]
+    )
+    sc_data = [["Name", "Abbr", "Type"]]
+    for sc in salary_components:
+        sc_data.append([sc.name, sc.salary_component_abbr, sc.type])
 
-    # * Set response for file download
-    frappe.local.response.filename = "Adhoc Salary Details Template.xlsx"
-    frappe.local.response.filecontent = xlsx_file.read()
+    # Create Excel workbook and add sheets
+    wb = Workbook()
+    ws1 = wb.active
+    ws1.title = "Adhoc Salary Details"
+
+    # Write adhoc_data to first sheet
+    for row in adhoc_data:
+        ws1.append(row)
+
+    # Add second sheet for Salary Components
+    ws2 = wb.create_sheet(title="Salary Components List")
+    for row in sc_data:
+        ws2.append(row)
+
+    # Save workbook to bytes
+    excel_buffer = io.BytesIO()
+    wb.save(excel_buffer)
+    excel_buffer.seek(0)
+
+    # Set response to download the Excel file
+    frappe.local.response.filename = "Payroll_Adhoc_and_Salary_Components.xlsx"
+    frappe.local.response.filecontent = excel_buffer.read()
     frappe.local.response.type = "download"
 
     return build_response("download")
@@ -1071,7 +1099,7 @@ def send_payroll_entry(payroll_entry_id, from_date, to_date, company):
             month_label = frappe.utils.formatdate(from_date, "MMM")  # Extract Month from from_date
             year = frappe.utils.formatdate(from_date, "YYYY")  # Extract Year from from_date
             salary_report_link = frappe.utils.get_url(
-                f"/app/query-report/Wages%20Register?month={month_label}&year={year}&currency=INR&company={company.replace(' ', '+')}&docstatus=Submitted"
+                f"/app/query-report/Monthly%20Salary%20Register?month={month_label}&year={year}&currency=INR&company={company.replace(' ', '+')}&status=Draft"
             )            
 
             # LOOP OVER EACH USER
@@ -1088,7 +1116,7 @@ def send_payroll_entry(payroll_entry_id, from_date, to_date, company):
                     
                     <p><b>Reference Reports:</b></p>
                     <ol>
-                        <li><a href="{salary_report_link}">Wages Register</a></li>
+                        <li><a href="{salary_report_link}">Monthly Salary Register</a></li>
                     </ol>
                 """
 
@@ -1203,3 +1231,88 @@ def get_month_options_up_to_current():
         options.append(f"{month_name}-{current_year}")
 
     return options
+
+@frappe.whitelist()
+def refresh_new_joinee_and_exit_tab(docname):
+    #! FETCH PAYROLL ENTRY DOCUMENT
+    doc = frappe.get_doc("Payroll Entry", docname)
+
+    #! UPDATE NEW JOINEE COUNT
+    set_new_joinee_count(doc)
+
+    #! GET EMPLOYEES FROM CURRENT PAYROLL ENTRY
+    employees = doc.employees
+
+    #! APPEND EXIT EMPLOYEES TO PAYROLL ENTRY
+    CustomPayrollEntry.append_exit_employees(doc, employees)
+
+    #! UPDATE EXIT EMPLOYEES COUNT FIELD IN DATABASE
+    doc.db_set("custom_exit_employees_count", doc.custom_exit_employees_count)
+
+    #! CONVERT EXISTING PENDING FNF DETAILS CHILD TABLE TO DICT LIST
+    fnf_rows = [row.as_dict() for row in doc.custom_pending_fnf_details]
+
+    #! DELETE EXISTING CHILD ROWS FROM DATABASE DIRECTLY
+    frappe.db.sql("""
+        DELETE FROM `tabPending FnF Details`
+        WHERE parent=%s AND parentfield=%s AND parenttype=%s
+    """, (docname, "custom_pending_fnf_details", "Payroll Entry"))
+    frappe.db.commit()  # ! COMMIT DELETE CHANGES IMMEDIATELY
+
+    #! RE-INSERT CHILD ROWS DIRECTLY FROM SAVED DATA
+    for fnf in fnf_rows:
+        child_doc = frappe.get_doc({
+            "doctype": "Pending FnF Details",               #? CHILD DOCTYPE NAME
+            "parent": docname,                              #? LINK TO PARENT
+            "parentfield": "custom_pending_fnf_details",    #? CHILD TABLE FIELDNAME
+            "parenttype": "Payroll Entry",                 #? PARENT DOCTYPE
+            "employee": fnf.get("employee"),
+            "is_fnf_processed": fnf.get("is_fnf_processed"),
+            "fnf_record": fnf.get("fnf_record"),
+            "hold_fnf": fnf.get("hold_fnf"),
+        })
+        #! INSERT CHILD RECORD WITHOUT SAVING PARENT, IGNORE PERMISSIONS
+        child_doc.insert(ignore_permissions=True)
+
+    #! FINAL COMMIT TO SAVE ALL INSERTED CHILD RECORDS
+    frappe.db.commit()
+
+@frappe.whitelist()
+def refresh_leave_and_attendance_tab(docname):
+    doc = frappe.get_doc("Payroll Entry", docname)
+
+    # ! PRESERVE existing lop_adjustment and remarks
+    existing_lop_data = {}
+    for row in doc.get("custom_lop_summary") or []:
+        existing_lop_data[row.employee] = {
+            "lop_adjustment": row.lop_adjustment,
+            "remarks": row.remarks
+        }
+
+    # ! Call original append functions
+    append_pending_leave_approvals(doc)
+    append_lop_summary(doc)
+
+    # ? Get actual child table rows from DB
+    lop_rows = frappe.get_all(
+        "LOP Summary",
+        filters={"parent": doc.name, "parentfield": "custom_lop_summary", "parenttype": doc.doctype},
+        fields=["name", "employee"]
+    )
+
+    # ? Restore preserved fields
+    for row in lop_rows:
+        employee = row.employee
+        if employee in existing_lop_data:
+            preserved = existing_lop_data[employee]
+            frappe.db.set_value("LOP Summary", row.name, "lop_adjustment", preserved.get("lop_adjustment") or 0)
+            frappe.db.set_value("LOP Summary", row.name, "remarks", preserved.get("remarks") or "")
+
+@frappe.whitelist()
+def refresh_restricted_salary_tab(docname):
+    doc = frappe.get_doc("Payroll Entry", docname)
+    # ? APPEND EMPLOYEES MISSING PF/ESI DETAILS
+    append_employees_with_incomplete_payroll_details(doc)
+
+    # ? APPEND EMPLOYEES MISSING BANK DETAILS
+    append_employees_with_incomplete_bank_details(doc)

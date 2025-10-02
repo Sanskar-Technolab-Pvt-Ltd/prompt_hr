@@ -182,10 +182,17 @@ def validate_number_of_days(doc):
     try:
         meal_configs = fetch_meal_allowance_settings()
         meal_configs = sorted(meal_configs, key=lambda x: x["from_hours"])
+        employee_grade = frappe.db.get_value("Employee", doc.employee, "grade")
         #? ENSURE THAT EACH EXPENSE ENTRY HAS custom_days <= 1
         for expense in doc.expenses:
             expense_days = expense.custom_days or 0
             expense_type = expense.expense_type
+
+            if get_allowance_budgets(employee_grade,doc.company,expense_type, expense.custom_for_metro_city) == -1:
+                raise frappe.ValidationError(
+                    _("Row #{0}: Expense Type {1} is not allowed for Employee Grade {2}.")
+                    .format(expense.idx, expense_type, employee_grade)
+                )
             #! THROW AN ERROR IF MORE THAN 1 DAY IS SELECTED FOR A SINGLE EXPENSE ROW
             if expense_days > 1:
                 if expense_type not in ["Lodging", "Local Commute", "Food"]:
@@ -1967,7 +1974,7 @@ def get_latest_travel_budget_and_rates(employee, company):
     #! RETURN THE DA AMOUNT AND SERVICE RATES
     return da_amount, private_service_rate
 
-def calculate_date_wise_hours(visits, from_date, to_date, start_key="visit_started", end_key="visit_ended"):
+def calculate_date_wise_hours(visits, from_date, to_date, start_key="visit_started", end_key="visit_ended", start_time_key = None, end_time_key=None):
     """
     CALCULATE DATE-WISE HOURS FROM VISITS (DISTRIBUTED ACROSS MULTIPLE DAYS).
     """
@@ -1980,8 +1987,43 @@ def calculate_date_wise_hours(visits, from_date, to_date, start_key="visit_start
     })
 
     for visit in visits:
-        start_dt = get_datetime(max(visit[start_key], get_datetime(from_date)))
-        end_dt = get_datetime(min(visit[end_key], datetime.combine(getdate(to_date), time(23, 59, 59))))
+        # ! FOR TOUR VISIT FIELD IS NOT DATETIME BUT DATE AND TIME FIELDS ARE DIFFERENT HENCE COMBINE THE<
+        if start_key == "tour_start_date" and end_key == "tour_end_date":
+            # ? GET START TIME KEY AND END TIME KEY
+            if start_time_key is None:
+                start_time_key = "tour_start_date_time"
+            if end_time_key is None:
+                end_time_key = "tour_end_date_time"
+
+            start_time = visit[start_time_key]
+            end_time = visit[end_time_key]
+
+            # ? IF START TIME OR END TIME IS NONE FALL TO DEFAULT VALUES
+            if start_time is None:
+                start_time = time(0, 0, 0)
+            if end_time is None:
+                end_time = time(23, 59, 59)
+
+            # ? CONVERT START TIME AND END TIME TO TIME FORMAT
+            if isinstance(start_time, str):
+                start_time = datetime.strptime(start_time, '%H:%M:%S').time()
+            if isinstance(end_time, str):
+                end_time = datetime.strptime(end_time, '%H:%M:%S').time()
+
+            
+            if isinstance(start_time, timedelta):
+                start_time = (datetime.min + start_time).time()
+            if isinstance(end_time, timedelta):
+                end_time = (datetime.min + end_time).time()
+
+            # ? COMBINE START DATE AND START TIME, END DATE AND END TIME
+            tour_visit_start_time = datetime.combine(getdate(visit[start_key]), start_time)
+            tour_visit_end_time = datetime.combine(getdate(visit[end_key]), end_time)
+            start_dt = get_datetime(max(tour_visit_start_time, get_datetime(from_date)))
+            end_dt = get_datetime(min(tour_visit_end_time, datetime.combine(getdate(to_date), time(23, 59, 59))))
+        else:
+            start_dt = get_datetime(max(visit[start_key], get_datetime(from_date)))
+            end_dt = get_datetime(min(visit[end_key], datetime.combine(getdate(to_date), time(23, 59, 59))))
 
         current = start_dt
         while current < end_dt:
@@ -2717,16 +2759,17 @@ def process_tour_visit_da(employee, company, from_date, to_date, expense_claim_n
                 ["tour_start_date", "between", [from_date, to_date]],
                 ["tour_end_date", "between", [from_date, to_date]],
             ],
-            fields=["name", "tour_start_date", "tour_end_date", "customer"]
+            fields=["name", "tour_start_date", "tour_end_date", "customer", "tour_start_date_time", "tour_end_date_time"]
         )
-
         #? CALCULATE ELIGIBLE HOURS PER DAY AFTER APPLYING EXCLUDE TIME RANGE
         date_wise_da_hours = calculate_date_wise_hours(
             visits=tour_visits,
             from_date=getdate(from_date),
             to_date=getdate(to_date),
             start_key="tour_start_date",
-            end_key="tour_end_date"
+            end_key="tour_end_date",
+            start_time_key = "tour_start_date_time",
+            end_time_key = "tour_end_date_time"
         )
 
         #? BUILD EXPENSE CLAIM ROWS BASED ON ELIGIBLE HOURS AND THRESHOLDS
@@ -2754,3 +2797,54 @@ def process_tour_visit_da(employee, company, from_date, to_date, expense_claim_n
 
     except Exception as e:
         frappe.throw(str(e))
+
+
+def get_allowance_budgets(employee_grade, company, expense_type, metro):
+    """
+    FETCHES THE LATEST ALLOWANCE BUDGET FOR THE GIVEN EMPLOYEE GRADE, COMPANY, AND EXPENSE TYPE.
+    """
+    #! FETCH LATEST SUBMITTED TRAVEL BUDGET DOCUMENT FOR THE GIVEN COMPANY
+    travel_budget_docs = frappe.get_all(
+        "Travel Budget",
+        filters={"docstatus": 1, "company": company},
+        fields=["name"],
+        order_by="creation desc",
+        limit=1
+    )
+
+    if not travel_budget_docs:
+        return 0  # ! NO TRAVEL BUDGET FOUND
+
+    travel_budget_name = travel_budget_docs[0].name
+
+    #! FETCH BUDGET ALLOCATION FOR GIVEN GRADE
+    budget_allocations = frappe.get_all(
+        "Budget Allocation",
+        filters={
+            "parent": travel_budget_name,  # ! CORRECT FIELD
+            "parenttype": "Travel Budget",
+            "grade": employee_grade
+        },
+        fields=["*"],
+        order_by="creation desc",
+        limit=1
+    )
+
+    if not budget_allocations:
+        return 0  # ! NO ALLOCATION FOUND
+
+    budget = budget_allocations[0]
+
+    #! DETERMINE FIELD KEY BASED ON EXPENSE TYPE
+    if expense_type == "DA":
+        key = "da_allowance"
+    elif expense_type == "Local Commute":
+        key = "local_commute_limit_monthly"
+    elif expense_type == "Food":
+        key = "meal_allowance_metro" if metro else "meal_allowance_non_metro"
+    elif expense_type == "Lodging":
+        key = "lodging_allowance_metro" if metro else "lodging_allowance_non_metro"
+    else:
+        return 0  # ! EXPENSE TYPE NOT RECOGNIZED
+
+    return budget.get(key, 0)
