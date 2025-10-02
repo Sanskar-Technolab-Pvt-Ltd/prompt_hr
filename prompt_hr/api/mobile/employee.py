@@ -391,7 +391,6 @@ def create_field_changes(employee=None, field_name=None, field_label=None, new_v
         
         
 from frappe.utils import get_url
-from frappe.auth import LoginManager
 
 @frappe.whitelist()
 def profile_form_url():
@@ -401,11 +400,6 @@ def profile_form_url():
 
         # Ensure we have the current user
         user = frappe.session.user
-       
-        # Generate a new session for the user
-        login_manager = LoginManager()
-        login_manager.user = user
-        login_manager.post_login()
         sid = frappe.session.sid
 
         if hr_setting.custom_web_form_link:
@@ -432,30 +426,22 @@ def profile_form_url():
             "data": final_url,
         }        
         
-
 @frappe.whitelist()
 def resignation_form_url():
     try:
         url = get_url()
-        hr_setting = frappe.get_doc("HR Settings","HR Settings")
+        hr_setting = frappe.get_doc("HR Settings", "HR Settings")
 
-        # Ensure we have the current user
+        # Get current user + session ID (no need to re-login)
         user = frappe.session.user
-       
-        # Generate a new session for the user
-        login_manager = LoginManager()
-        login_manager.user = user
-        login_manager.post_login()
         sid = frappe.session.sid
 
         if hr_setting.custom_resignation_url:
             final_url = f"{url}{hr_setting.custom_resignation_url}?sid={sid}"
         else:
             final_url = f"{url}/app?sid={sid}"
-        
-       
+
     except Exception as e:
-        # ? HANDLE ERRORS
         frappe.log_error("Error While Getting Resignation URL", str(e))
         frappe.clear_messages()
         frappe.local.response["message"] = {
@@ -465,12 +451,12 @@ def resignation_form_url():
         }
 
     else:
-        # ? HANDLE SUCCESS
         frappe.local.response["message"] = {
             "success": True,
             "message": "Resignation URL Loaded Successfully!",
             "data": final_url,
-        }                
+        }
+  
         
 
 @frappe.whitelist()
@@ -481,11 +467,6 @@ def employee_details_url():
 
         # Ensure we have the current user
         user = frappe.session.user
-       
-        # Generate a new session for the user
-        login_manager = LoginManager()
-        login_manager.user = user
-        login_manager.post_login()
         sid = frappe.session.sid
 
         if hr_setting.custom_employee_details_url:
@@ -511,3 +492,6 @@ def employee_details_url():
             "message": "Employee Details URL Loaded Successfully!",
             "data": final_url,
         }                        
+        
+        
+        
