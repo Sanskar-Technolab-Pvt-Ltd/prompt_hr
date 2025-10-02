@@ -53,6 +53,7 @@ def on_cancel(doc, method):
         )
 
 def before_save(doc, method):
+
     if hasattr(doc, '_original_date'):  
         doc.set("from_date", doc._original_date)
         if hasattr(doc, '_half_day'):
@@ -122,6 +123,7 @@ def before_save(doc, method):
         if not doc.custom_attachment:
             frappe.throw(_("Please attach a file for {0}").format(leave_type_doc.name))
 
+
 def before_insert(doc, method):
     leave_type_doc = frappe.get_doc("Leave Type", doc.leave_type)
     if leave_type_doc.custom_prior_days_required_for_applying_leave:
@@ -142,14 +144,20 @@ def before_validate(doc, method=None):
                 doc._half_day_date = doc.half_day_date
         doc.set("from_date", frappe.utils.add_days(doc.custom_original_to_date,1))
         doc.set("half_day", 0)
+        
+    
 
 def validate(doc, method=None):
+    # share_leave_with_manager(doc)
+    
     if doc.is_new() or (doc.workflow_state == "Pending" and doc.has_value_changed("from_date")):
         # ? ALLOWED DAYS INCLUDE TODAY ALSO (EXAMPLE :- IF TODAY'S IS 18 DATE THEN EMPLOYEE'S APPLY ONLY UPTO 9 DATE (9,10,11,12,13,14,15,16,17,18))
         allowed_days = frappe.db.get_single_value("HR Settings", "custom_maximum_backdated_leave_days_including_today")
         if allowed_days:
             if doc.from_date < add_days(today(), -(allowed_days-1)):
                 frappe.throw(_("You cannot apply leave for more than {0} days in the past.").format(allowed_days))
+                
+    
 
 import frappe
 from frappe.utils import getdate, add_days
@@ -491,6 +499,8 @@ def on_submit(doc,method=None):
 
 
 def on_update(doc, method):
+    share_leave_with_manager(doc)
+    
     employee = frappe.get_doc("Employee", doc.employee)
     employee_id = employee.get("user_id")
     reporting_manager = None
@@ -2396,3 +2406,45 @@ def update_leave_application_acc_to_sandwich_rule(leave_app, date):
 
         if leave_ledger:
             frappe.db.set_value("Leave Ledger Entry", leave_ledger[0].name, "leaves", -1*total_days)
+
+
+def share_leave_with_manager(leave_doc):
+    
+    # Get employee linked to this leave
+    employee_id = leave_doc.employee
+    
+    if not employee_id:
+        return
+
+    # Get the manager linked in Employee's custom_dotted_line_manager field
+    manager_id = frappe.db.get_value("Employee", employee_id, "custom_dotted_line_manager")
+    
+    if not manager_id:
+        return
+
+    # Get the manager's user ID (needed for sharing the document)
+    manager_user_id = frappe.db.get_value("Employee", manager_id, "user_id")
+    
+    if not manager_user_id:
+        return
+
+    # Check if the leave application is already shared with the manager
+    existing_share = frappe.db.exists("DocShare", {
+        "share_doctype": "Leave Application",
+        "share_name": leave_doc.name,
+        "user": manager_user_id
+    })
+
+    if existing_share:
+        return
+
+    # Share the Leave Application with manager (read-only)
+    frappe.share.add_docshare(
+        doctype="Leave Application",
+        name=leave_doc.name,
+        user=manager_user_id,
+        read=1,      # Read permission
+        write=0,
+        share=0
+    )
+
