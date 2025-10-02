@@ -27,6 +27,8 @@ class WeekOffChangeRequest(Document):
         check_if_leave_application_exists(self)
 
     def on_update(self):
+        share_leave_with_manager(self)
+        
         if self.workflow_state == "Pending":
             manager_info = get_reporting_manager_info(self.employee)
             if manager_info:
@@ -587,3 +589,45 @@ def sandwich_rule_applicable_to_employee(employee, leave_type):
         return False
     
     return True
+
+
+def share_leave_with_manager(leave_doc):
+   
+    # Get employee linked to this leave
+    employee_id = leave_doc.employee
+    
+    if not employee_id:
+        return
+
+    # Get the manager linked in Employee's custom_dotted_line_manager field
+    manager_id = frappe.db.get_value("Employee", employee_id, "custom_dotted_line_manager")
+    
+    if not manager_id:
+        return
+
+    # Get the manager's user ID (needed for sharing the document)
+    manager_user_id = frappe.db.get_value("Employee", manager_id, "user_id")
+    
+    if not manager_user_id:
+        return
+
+    # Check if the WeekOff Change Request is already shared with the manager
+    existing_share = frappe.db.exists("DocShare", {
+        "share_doctype": "WeekOff Change Request",
+        "share_name": leave_doc.name,
+        "user": manager_user_id
+    })
+
+    if existing_share:
+        return
+
+    # Share the WeekOff Change Request with manager (read-only)
+    frappe.share.add_docshare(
+        doctype="WeekOff Change Request",
+        name=leave_doc.name,
+        user=manager_user_id,
+        read=1,      # Read permission
+        write=0,
+        share=0
+    )
+
