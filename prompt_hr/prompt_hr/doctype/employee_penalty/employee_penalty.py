@@ -173,6 +173,7 @@ def handle_cancel_penalties(penalties, reason, attendance_modified):
                                     subject,
                                     message,
                                     "Employee Penalty",
+                                    penalty_name
                                 )
                 
             except Exception as e:
