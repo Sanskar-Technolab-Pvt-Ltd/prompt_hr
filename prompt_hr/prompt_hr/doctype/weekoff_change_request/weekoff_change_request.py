@@ -628,6 +628,7 @@ def share_leave_with_manager(leave_doc):
         user=manager_user_id,
         read=1,      # Read permission
         write=0,
-        share=0
+        share=0,
+        flags={"ignore_share_permission": True}
     )
 
