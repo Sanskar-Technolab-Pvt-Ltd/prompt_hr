@@ -1127,16 +1127,21 @@ def create_notification_log(user, subject, message, document_type=None, document
         )
         mobile_notification_enable = 0
 
-    if mobile_notification_enable:
-        notification = frappe.new_doc("Notification Log")
-        notification.subject = subject
-        notification.email_content = subject
-        notification.for_user = user
-        notification.type = "Alert"
+    try:
+        if mobile_notification_enable:
+            notification = frappe.new_doc("Notification Log")
+            notification.subject = subject
+            notification.email_content = subject
+            notification.for_user = user
+            notification.type = "Alert"
 
-        if document_type:
-            notification.document_type = document_type
+            if document_type:
+                notification.document_type = document_type
 
-        if document_name:
-            notification.document_name = document_name
-        notification.insert(ignore_permissions=True)
+            if document_name:
+                notification.document_name = document_name
+            notification.insert(ignore_permissions=True)
+    except Exception as e:
+        frappe.log_error(
+            "Error in Sending Email Notifications", str(e)
+        )
