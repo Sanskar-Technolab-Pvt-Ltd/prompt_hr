@@ -34,7 +34,7 @@ from hrms.hr.doctype.leave_application.leave_application import (
     get_allocation_expiry_for_cf_leaves
 )
 from hrms.hr.utils import get_leave_period
-from prompt_hr.py.utils import get_reporting_manager_info
+from prompt_hr.py.utils import get_reporting_manager_info, redirect_to_link
 from hrms.hr.doctype.leave_allocation.leave_allocation import get_previous_allocation
 Filters = frappe._dict
 
@@ -136,6 +136,22 @@ def before_insert(doc, method):
     doc.custom_auto_approve = 0
 
 def before_validate(doc, method=None):
+
+    if not doc.is_new() and doc.workflow_state == "Cancelled by Employee":
+        doc.delete()
+        frappe.db.commit()
+        frappe.msgprint(
+            _("The Leave Application has been deleted successfully. You can go back to the Leave Application List to continue."),
+            title=_("Success"),
+            indicator="green",
+            raise_exception=True,
+            primary_action={
+                "label": _("Go to Leave Application List"),
+                "client_action": "frappe.set_route",
+                "args": ["List", "Leave Application"],
+            }
+        )
+
     if doc.custom_leave_status == "Approved":
         doc._original_date = doc.get("from_date")
         if doc.half_day:

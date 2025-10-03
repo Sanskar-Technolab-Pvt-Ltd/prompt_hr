@@ -89,5 +89,12 @@
   "modified": "2025-03-26 16:07:29.429375",
   "name": "Pending Approval",
   "workflow_action_name": "Pending Approval"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow Action Master",
+  "modified": "2025-10-03 12:08:35.640300",
+  "name": "Withdraw",
+  "workflow_action_name": "Withdraw"
  }
 ]
