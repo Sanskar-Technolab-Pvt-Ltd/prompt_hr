@@ -138,7 +138,40 @@ def before_insert(doc, method):
 def before_validate(doc, method=None):
 
     if not doc.is_new() and doc.workflow_state == "Cancelled by Employee":
+        leave_doc = doc.as_dict()
         doc.delete(ignore_permissions=True)
+        employee = leave_doc.employee
+        reporting_manager = leave_doc.custom_reporting_manager
+
+        # ? Get user IDs and names if present
+        employee_user_id = frappe.db.get_value('Employee', employee, "user_id") if employee else None
+        reporting_manager_id = frappe.db.get_value("Employee", reporting_manager, "user_id") if reporting_manager else None
+        reporting_manager_name = None
+        if reporting_manager:
+            reporting_manager_name = frappe.db.get_value("Employee", reporting_manager, "employee_name")
+
+        if employee_user_id or reporting_manager_id:
+            notification_doc = frappe.get_doc("Notification", "Leave Application Deleted Notification")
+            if notification_doc:
+                subject = frappe.render_template(notification_doc.subject, {"docname": leave_doc.name})
+
+                if employee_user_id:
+                    message = frappe.render_template(notification_doc.message, {"doc": leave_doc, "user": leave_doc.employee_name})
+                    frappe.sendmail(
+                        recipients=[employee_user_id],
+                        subject=subject,
+                        message=message,
+                    )
+
+                if reporting_manager_id:
+                    user_display_name = reporting_manager_name or reporting_manager_id
+                    message = frappe.render_template(notification_doc.message, {"doc": leave_doc, "user": user_display_name})
+                    frappe.sendmail(
+                        recipients=[reporting_manager_id],
+                        subject=subject,
+                        message=message,
+                    )
+
         frappe.db.commit()
         frappe.msgprint(
             _("The Leave Application has been deleted successfully. You can go back to the Leave Application List to continue."),
