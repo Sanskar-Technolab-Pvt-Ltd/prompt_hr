@@ -583,6 +583,7 @@ def process_late_entry_penalties_for_prompt(
                     frappe.log_error(
                         f"Error in Getting No Attendance and Penalty Value From Employee Master",str(e)
                     )
+                    continue
                 penalty_entries.update(
                     calculate_leave_deductions_based_on_priority(
                         employee=employee,
@@ -966,6 +967,7 @@ def process_daily_hours_penalties_for_prompt(
             frappe.log_error(
                 f"Error in Getting No Attendance and Penalty Value From Employee Master",str(e)
             )
+            continue
 
         try:
             penalty_entries.update(
@@ -1382,6 +1384,7 @@ def process_no_attendance_penalties_for_prompt(
                 frappe.log_error(
                     f"Error in Getting No Attendance and Penalty Value From Employee Master",str(e)
                 )
+                continue
 
             # ? CHECK IF EMPLOYEE HAS LEAVE APPLICATION APPROVED
             # ? FOR THE TARGET DATE
@@ -1533,6 +1536,7 @@ def process_mispunch_penalties_for_prompt(
             frappe.log_error(
                 f"Error in Getting No Attendance and Penalty Value From Employee Master",str(e)
             )
+            continue
 
         try:
             penalty_entries.update(
