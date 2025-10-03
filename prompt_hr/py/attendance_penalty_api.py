@@ -2083,7 +2083,11 @@ def send_penalty_notification_emails():
                 if notification_doc:
                     try:
                         emp_user_id = frappe.db.get_value("Employee", penalty.employee, "user_id")
-                        no_penalty_for_employee = frappe.db.get_value("Employee", penalty.employee, "custom_no_attendance_and_penalty") or 0
+                        try:
+                            no_penalty_for_employee = frappe.db.get_value("Employee", penalty.employee, "custom_no_attendance_and_penalty") or 0
+                        except:
+                            frappe.log_error("Error in getting no attendance and penalty settings from Employee", str(e))
+                            no_penalty_for_employee = 0
                         if no_penalty_for_employee:
                             continue
                         if emp_user_id:
