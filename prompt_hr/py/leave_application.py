@@ -138,7 +138,7 @@ def before_insert(doc, method):
 def before_validate(doc, method=None):
 
     if not doc.is_new() and doc.workflow_state == "Cancelled by Employee":
-        doc.delete()
+        doc.delete(ignore_permissions=True)
         frappe.db.commit()
         frappe.msgprint(
             _("The Leave Application has been deleted successfully. You can go back to the Leave Application List to continue."),
