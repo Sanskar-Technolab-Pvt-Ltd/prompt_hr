@@ -168,7 +168,6 @@ def handle_cancel_penalties(penalties, reason, attendance_modified):
                                 reference_name=penalty_name,
                             )
                             for recipient in email_recipients:
-                                print(recipient)
                                 create_notification_log(
                                     recipient,
                                     subject,
