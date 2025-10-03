@@ -2,7 +2,7 @@ import frappe
 from hrms.hr.doctype.shift_request.shift_request import ShiftRequest
 from hrms.hr.utils import validate_active_employee, share_doc_with_approver
 from frappe.utils import add_days
-from prompt_hr.py.utils import get_reporting_manager_info
+from prompt_hr.py.utils import get_reporting_manager_info, create_notification_log
 
 
 class CustomShiftRequest(ShiftRequest):
@@ -48,7 +48,7 @@ class CustomShiftRequest(ShiftRequest):
         if self.approver:
             share_doc_with_approver(self, self.approver)
 
-        if self.workflow_state == "Pending":
+        if self.workflow_state == "Pending" and (self.is_new() or self.has_value_changed("workflow_state")):
             manager_info = get_reporting_manager_info(self.employee)
             if manager_info:
                 self.db_set("custom_pending_approval_at", f"{manager_info['name']} - {manager_info['employee_name']}")
@@ -70,6 +70,7 @@ class CustomShiftRequest(ShiftRequest):
                             reference_doctype=self.doctype,
                             reference_name=self.name,
                         )
+                        create_notification_log(manager_info.get("user_id"), subject, message, "Shift Request", self.name)
                         
         else:
             self.db_set("custom_pending_approval_at", "")
@@ -79,7 +80,7 @@ class CustomShiftRequest(ShiftRequest):
                     is_email_sent_allowed = frappe.db.get_single_value("HR Settings", "custom_send_auto_approve_doc_emails") or 0
                     if not is_email_sent_allowed:
                         return
-            if self.workflow_state == "Approved" or self.workflow_state == "Rejected":
+            if (self.workflow_state == "Approved" or self.workflow_state == "Rejected") and self.has_value_changed("workflow_state"):
                 manager_info = get_reporting_manager_info(self.employee)
                 employee_user_id = frappe.db.get_value("Employee", self.employee, "user_id")
                 if manager_info and employee_user_id:
@@ -100,6 +101,7 @@ class CustomShiftRequest(ShiftRequest):
                             reference_doctype=self.doctype,
                             reference_name=self.name,
                         )
+                        create_notification_log(employee_user_id, subject, message, "Shift Request", self.name)
 
 
 import frappe
