@@ -271,9 +271,9 @@ doc_events = {
         "before_submit": "prompt_hr.py.attendance_request.before_submit",
         "on_update": "prompt_hr.py.attendance_request.on_update",
     },
-    # "Attendance":{
-    #     "on_submit":""
-    # },
+    "Attendance":{
+        "on_submit":"prompt_hr.py.attendance.on_submit"
+    },
     "Payroll Entry": {
         "on_update": "prompt_hr.py.payroll_entry.on_update",
         "on_submit": "prompt_hr.py.payroll_entry.on_submit",
