@@ -544,10 +544,10 @@ fixtures = [
     #     "dt":"Workflow", "filters": [["name", "in", ["Job Requisition","Loan Application", "Compensatory Leave Request", "Leave Application", "Expense Claim", "Travel Request", "Shift Request", "WeekOff Change Request", "Attendance Regularization", "Attendance Request"]]]
     # },
     # {
-    #     "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled", "Confirmed", "Approved by HR", "Rejected by HR", "Approved by BU Head", "Rejected by BU Head", "Extension Approved", "Extension Confirmed", "Extension Rejected", "Extension Requested", "Send For Approval", "Pending For Approval"]]]
+    #     "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Cancelled by Employee", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled", "Confirmed", "Approved by HR", "Rejected by HR", "Approved by BU Head", "Rejected by BU Head", "Extension Approved", "Extension Confirmed", "Extension Rejected", "Extension Requested", "Send For Approval", "Pending For Approval"]]]
     # },
     # {
-    #     "dt":"Workflow Action Master", "filters": [["name", "in", ["Confirm", "Send For Approval"]]]
+    #     "dt":"Workflow Action Master", "filters": [["name", "in", ["Confirm", "Send For Approval", "Withdraw"]]]
     # },
     # {
     #     "doctype": "Type of Document",
