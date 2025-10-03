@@ -12,11 +12,11 @@ class ConfirmationEvaluationForm(Document):
 		
 		try:
 			# * IF COMPANY IS PROMPT
-			company_abbr = frappe.db.get_single_value("HR Settings", "custom_prompt_abbr")
-			if company_abbr:
-				company_id = frappe.db.get_value("Company", {"abbr": company_abbr}, "name")
-				if company_id:
-					if self.company == company_id:
+			# company_abbr = frappe.db.get_single_value("HR Settings", "custom_prompt_abbr")
+			# if company_abbr:
+				# company_id = frappe.db.get_value("Company", {"abbr": company_abbr}, "name")
+				# if company_id:
+					# if self.company == company_id:
 						
 						
 					#* CHECKING IF THE REPORTING HEAD OR DEPARTMENT OF HEAD HAS ENTERED THE RATING 
@@ -39,10 +39,10 @@ class ConfirmationEvaluationForm(Document):
 									self.dh_rating_added = 1
 			
 								#* IF THE HEAD OF DEPARTMENT HAS ENTERED THE RATING THEN SEND EMAIL TO HR MANAGER
-									users = frappe.db.get_all("Has Role", filters={"role": "S - HR Director (Global Admin)", "parenttype": "User"}, fields=["parent"])
+									users = frappe.db.get_all("Has Role", filters={"role": ["in", ["S - HR Director (Global Admin)"]], "parenttype": "User"}, fields=["parent"])
 									if users:
 										for user in users:
-											hr_employee = frappe.db.exists("Employee", {"user_id": user.parent, "company": company_id, "status": "Active"})
+											hr_employee = frappe.db.exists("Employee", {"user_id": user.parent, "status": "Active"})
 											if hr_employee:
 												user_email = frappe.db.get_value("User", {"name": user.parent}, "email")
 												if user_email:
@@ -59,11 +59,11 @@ class ConfirmationEvaluationForm(Document):
 								else:
 									self.dh_rating_added = 0
 				
-				else:
-					frappe.throw(f"No Company found for abbreviation {company_abbr}")
-			else:
+				# else:
+					# frappe.throw(f"No Company found for abbreviation {company_abbr}")
+			# else:
 				# frappe.log_error(frappe.get_traceback(), "Error in Confirmation Evaluation Form")
-				frappe.throw("No Company Abbreviation found for Prompt Company, Please set Company Abbreviation in HR Settings")
+				# frappe.throw("No Company Abbreviation found for Prompt Company, Please set Company Abbreviation in HR Settings")
 		except Exception as e:
 			frappe.log_error(frappe.get_traceback(), "Error in Confirmation Evaluation Form")
 			frappe.throw(f"{str(e)}")
@@ -72,12 +72,13 @@ class ConfirmationEvaluationForm(Document):
 		"""Method to add Confirmation Evaluation Data to Employee if company  equals to Prompt Equipments PVT LTD when Confirmation Evaluation Form is submitted.
     """
 		try:
-			company_abbr = frappe.db.get_single_value("HR Settings", "custom_prompt_abbr")
+			# company_abbr = frappe.db.get_single_value("HR Settings", "custom_prompt_abbr")
 
-			if company_abbr:
-				company_id = frappe.db.get_value("Company", {"abbr": company_abbr}, "name")
-				if company_id:
-					if self.employee and self.company == company_id:
+			# if company_abbr:
+				# company_id = frappe.db.get_value("Company", {"abbr": company_abbr}, "name")
+				# if company_id:
+					# if self.employee and self.company == company_id:
+					if self.employee:	
 						if self.probation_status == "Confirm":
 							if self.confirmation_date:
 								doc = frappe.get_doc("Employee", self.employee)
@@ -97,8 +98,7 @@ class ConfirmationEvaluationForm(Document):
 									
 									extended_probation_end_date = next_date_response.get("message")
 									
-								else:
-									
+								else:									
 									frappe.throw(f"Error getting next date: {next_date_response.get('message')}")
 							else:
 								frappe.throw("No probation end date found for employee.")
@@ -132,12 +132,15 @@ class ConfirmationEvaluationForm(Document):
 								frappe.db.set_value("Employee", self.employee, "relieving_date", self.last_work_date)
 								frappe.db.set_value("Employee", self.employee, "reason_for_leaving", self.reason_for_termination)
 
-				else:
-					frappe.throw(f"No Company found for Abbreviation {company_abbr}")
-			else:
-				frappe.throw(f"Company Abbreviation for Prompt Not found, Please set Company Abbreviation for Prompt")
+				# else:
+					# frappe.throw(f"No Company found for Abbreviation {company_abbr}")
+			# else:
+				# frappe.throw(f"Company Abbreviation for Prompt Not found, Please set Company Abbreviation for Prompt")
     
 		except Exception as e:
 			frappe.log_error(f"Error updating job applicant status", frappe.get_traceback())
 			frappe.throw(f"Error updating job applicant status: {str(e)}")
 	
+
+	def after_insert(self):
+		pass
