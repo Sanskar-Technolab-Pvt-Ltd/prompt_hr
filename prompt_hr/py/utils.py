@@ -1112,3 +1112,7 @@ def get_reporting_manager_info(employee: str) -> dict | None:
             frappe.get_traceback()
         )
         return None
+
+def redirect_to_link(link):
+    frappe.local.response["type"] = "redirect"
+    frappe.local.response["location"] = link
