@@ -17,11 +17,11 @@
   </tr>
   <tr>
     <td style="font-weight:bold; border:1px solid #444; background-color:#f7f7f7;">From Date</td>
-    <td style="border:1px solid #444;">{{ doc.from_date }}</td>
+    <td style="border:1px solid #444;">{{ frappe.utils.format_date(doc.from_date, "dd-MM-yyyy") }}</td>
   </tr>
   <tr>
     <td style="font-weight:bold; border:1px solid #444; background-color:#f7f7f7;">To Date</td>
-    <td style="border:1px solid #444;">{{ doc.to_date }}</td>
+    <td style="border:1px solid #444;">{{ frappe.utils.format_date(doc.to_date, "dd-MM-yyyy") }}</td>
   </tr>
 </table>
 
