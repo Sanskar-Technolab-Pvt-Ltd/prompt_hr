@@ -110,9 +110,9 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
             else:
                 # ? GET EMPLOYEE
                 if emp_id:
-                    employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": company_id, "name":emp_id}, ["name", "holiday_list", "custom_is_overtime_applicable"])
+                    employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": company_id, "name":emp_id, "custom_no_attendance_and_penalty":0}, ["name", "holiday_list", "custom_is_overtime_applicable"])
                 else:
-                    employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": company_id}, ["name", "holiday_list", "custom_is_overtime_applicable"])
+                    employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": company_id, "custom_no_attendance_and_penalty":0}, ["name", "holiday_list", "custom_is_overtime_applicable"])
 
                 #? GET ALL EMPLOYEE IDS
                 employee_ids = [emp.name for emp in employee_list]
@@ -187,9 +187,9 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
             prompt_company_id = prompt_company_name.get("company_id")
             indifoss_company_id = indifoss_company_name.get("company_id")
             if emp_id:
-                employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": company_id, "name":emp_id}, ["name", "holiday_list", "custom_is_overtime_applicable"])
+                employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": company_id, "name":emp_id, "custom_no_attendance_and_penalty":0}, ["name", "holiday_list", "custom_is_overtime_applicable"])
             else:
-                employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": ["in", [prompt_company_id, indifoss_company_id]]}, ["name", "holiday_list", "custom_is_overtime_applicable", "company"])
+                employee_list = frappe.db.get_all("Employee", {"status": "Active", "company": ["in", [prompt_company_id, indifoss_company_id]], "custom_no_attendance_and_penalty":0}, ["name", "holiday_list", "custom_is_overtime_applicable", "company"])
             frappe.log_error("mark_attendance_employee_list", f"\n\n employee list {employee_list} \n\n")
             #? GET ALL EMPLOYEE IDS
             employee_ids = [emp.name for emp in employee_list]
