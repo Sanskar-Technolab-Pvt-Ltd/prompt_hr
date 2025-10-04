@@ -813,10 +813,11 @@ def send_reminder_mail_to_reporting_manager(
 
 
 # * CREATING CONFIRMATION EVALUATION FORM AND IF ALREADY CREATED THEN, SENDING MAIL TO REPORTING MANAGER OR HEAD OF DEPARTMENT BASED ON THE RATING ADDED OR NOT
-@frappe.whitelist()
+# @frappe.whitelist()
 def create_confirmation_evaluation_form_for_prompt():
     try:
 
+        frappe.log_error("create_confirmation_evaluation_form_for_prompt_start", "Scheduler Started")
         # company_abbr = frappe.db.get_single_value("HR Settings", "custom_prompt_abbr")
         create_cff_before_days = (
             frappe.db.get_single_value(
@@ -833,7 +834,7 @@ def create_confirmation_evaluation_form_for_prompt():
             {
                 "status": "Active",
                 "custom_in_probation": 1,
-                "custom_probation_status": ["in", ["Pending", "Extended"]],
+                "custom_probation_status": "Pending",
             },
             "name",
         )
@@ -845,16 +846,29 @@ def create_confirmation_evaluation_form_for_prompt():
                     employee_id.get("name"),
                     "custom_probation_period",
                 )
-
+                extended_period = frappe.db.get_value(
+                    "Employee",
+                    employee_id.get("name"),
+                    "custom_extended_period",
+                )
                 if probation_days:
 
+                    probation_end_date = frappe.db.get_value(
+                        "Employee", employee_id.get("name"), "custom_probation_end_date"
+                    )
                     joining_date = frappe.db.get_value(
                         "Employee", employee_id.get("name"), "date_of_joining"
                     )
-
-                    probation_end_date = getdate(
-                        add_to_date(joining_date, days=probation_days)
-                    )
+                    
+                    if not probation_end_date:
+                        if extended_period:
+                            probation_end_date = getdate(
+                                add_to_date(joining_date, days=probation_days + extended_period)
+                            )
+                        else:
+                            probation_end_date = getdate(
+                                add_to_date(joining_date, days=probation_days)
+                            )
 
                     today_date = getdate()
                     days_remaining = (probation_end_date - today_date).days
@@ -910,66 +924,152 @@ def create_confirmation_evaluation_form_for_prompt():
                                 )
                                 employee_doc.save(ignore_permissions=True)
                                 frappe.db.commit()
-
                                 # frappe.db.set_value("Employee", employee_id.get("name"), "custom_confirmation_evaluation_form", confirmation_eval_doc.name)
                             elif confirmation_eval_form:
-
+                                
                                 confirmation_eval_form_doc = frappe.get_doc(
                                     "Confirmation Evaluation Form",
                                     confirmation_eval_form,
                                 )
 
-                                rh_rating_added = (
-                                    confirmation_eval_form_doc.rh_rating_added
-                                )
-                                dh_rating_added = (
-                                    confirmation_eval_form_doc.dh_rating_added
-                                )
-                                context = {
-                                    "doc": confirmation_eval_form_doc,
-                                    "doctype": "Confirmation Evaluation Form",
-                                    "docname": confirmation_eval_form_doc.name,
-                                }
-                                notification_template = frappe.get_doc(
-                                    "Notification",
-                                    "Confirmation Evaluation Form Remarks Reminder",
-                                )
-                                subject = frappe.render_template(
-                                    notification_template.subject, context
-                                )
-                                message = frappe.render_template(
-                                    notification_template.message, context
-                                )
-
-                                if not rh_rating_added:
-                                    reporting_head = (
-                                        confirmation_eval_form_doc.reporting_manager
+                                if confirmation_eval_form_doc.probation_status == "Extend":
+                                    employee_doc = frappe.get_doc(
+                                    "Employee", employee_id.get("name")
                                     )
-                                    reporting_head_user_id = (
-                                        frappe.db.get_value(
-                                            "Employee",
-                                            reporting_head,
-                                            "user_id",
+                                    confirmation_eval_doc = frappe.get_doc(
+                                        {
+                                            "doctype": "Confirmation Evaluation Form",
+                                            "employee": employee_id.get("name"),
+                                            "evaluation_date": today(),
+                                            "probation_status": "Pending",
+                                        }
+                                    )
+
+                                    category_list = [
+                                        "Functional/ Technical Skills",
+                                        "Behavioural Skills",
+                                    ]
+
+                                    parameters_list = frappe.db.get_all(
+                                        "Confirmation Evaluation Parameter",
+                                        {"category": ["in", category_list]},
+                                        ["name", "category"],
+                                    )
+
+                                    for parameter in parameters_list:
+
+                                        confirmation_eval_doc.append(
+                                            "table_txep",
+                                            {
+                                                "category": parameter.get(
+                                                    "category"
+                                                ),
+                                                "parameters": parameter.get("name"),
+                                            },
                                         )
-                                        if reporting_head
-                                        else None
+
+                                    confirmation_eval_doc.insert(
+                                        ignore_permissions=True
                                     )
-                                    reporting_head_email = (
-                                        frappe.db.get_value(
-                                            "User",
-                                            reporting_head_user_id,
-                                            "email",
+                                    employee_doc.custom_confirmation_evaluation_form = (
+                                        confirmation_eval_doc.name
+                                    )
+                                    employee_doc.save(ignore_permissions=True)
+                                    frappe.db.commit()
+                                else:
+                                    rh_rating_added = (
+                                        confirmation_eval_form_doc.rh_rating_added
+                                    )
+                                    dh_rating_added = (
+                                        confirmation_eval_form_doc.dh_rating_added
+                                    )
+                                    context = {
+                                        "doc": confirmation_eval_form_doc,
+                                        "doctype": "Confirmation Evaluation Form",
+                                        "docname": confirmation_eval_form_doc.name,
+                                    }
+                                    notification_template = frappe.get_doc(
+                                        "Notification",
+                                        "Confirmation Evaluation Form Remarks Reminder",
+                                    )
+                                    subject = frappe.render_template(
+                                        notification_template.subject, context
+                                    )
+                                    message = frappe.render_template(
+                                        notification_template.message, context
+                                    )
+
+                                    if not rh_rating_added:
+                                        reporting_head = (
+                                            confirmation_eval_form_doc.reporting_manager
                                         )
-                                        if reporting_head_user_id
-                                        else None
-                                    )
+                                        reporting_head_user_id = (
+                                            frappe.db.get_value(
+                                                "Employee",
+                                                reporting_head,
+                                                "user_id",
+                                            )
+                                            if reporting_head
+                                            else None
+                                        )
+                                        reporting_head_email = (
+                                            frappe.db.get_value(
+                                                "User",
+                                                reporting_head_user_id,
+                                                "email",
+                                            )
+                                            if reporting_head_user_id
+                                            else None
+                                        )
 
-                                    if reporting_head_email:
+                                        if reporting_head_email:
 
-                                        try:
+                                            try:
+                                                frappe.sendmail(
+                                                    recipients=[
+                                                        reporting_head_email
+                                                    ],
+                                                    subject=subject,
+                                                    message=message,
+                                                    reference_doctype="Confirmation Evaluation Form",
+                                                    reference_name=confirmation_eval_form_doc.name,
+                                                    now=True,
+                                                )
+                                            except Exception as e:
+                                                frappe.log_error(
+                                                    "Error while sending confirmation evaluation form reminder mail",
+                                                    frappe.get_traceback(),
+                                                )
+                                                continue
+
+                                    elif rh_rating_added and not dh_rating_added:
+
+                                        head_of_department = (
+                                            confirmation_eval_form_doc.hod
+                                        )
+                                        head_of_department_employee = (
+                                            frappe.db.get_value(
+                                                "Employee",
+                                                head_of_department,
+                                                "user_id",
+                                            )
+                                            if head_of_department
+                                            else None
+                                        )
+                                        head_of_department_email = (
+                                            frappe.db.get_value(
+                                                "User",
+                                                head_of_department_employee,
+                                                "email",
+                                            )
+                                            if head_of_department_employee
+                                            else None
+                                        )
+
+                                        if head_of_department_email:
                                             frappe.sendmail(
                                                 recipients=[
-                                                    reporting_head_email
+                                                    head_of_department_email
                                                 ],
                                                 subject=subject,
                                                 message=message,
@@ -977,53 +1077,15 @@ def create_confirmation_evaluation_form_for_prompt():
                                                 reference_name=confirmation_eval_form_doc.name,
                                                 now=True,
                                             )
-                                        except Exception as e:
-                                            frappe.log_error(
-                                                "Error while sending confirmation evaluation form reminder mail",
-                                                frappe.get_traceback(),
-                                            )
-
-                                elif rh_rating_added and not dh_rating_added:
-
-                                    head_of_department = (
-                                        confirmation_eval_form_doc.hod
-                                    )
-                                    head_of_department_employee = (
-                                        frappe.db.get_value(
-                                            "Employee",
-                                            head_of_department,
-                                            "user_id",
-                                        )
-                                        if head_of_department
-                                        else None
-                                    )
-                                    head_of_department_email = (
-                                        frappe.db.get_value(
-                                            "User",
-                                            head_of_department_employee,
-                                            "email",
-                                        )
-                                        if head_of_department_employee
-                                        else None
-                                    )
-
-                                    if head_of_department_email:
-                                        frappe.sendmail(
-                                            recipients=[
-                                                head_of_department_email
-                                            ],
-                                            subject=subject,
-                                            message=message,
-                                            reference_doctype="Confirmation Evaluation Form",
-                                            reference_name=confirmation_eval_form_doc.name,
-                                            now=True,
-                                        )
+                                        
                         except Exception as e:
                             frappe.log_error(
                                 "Error while creating confirmation evaluation form",
                                 frappe.get_traceback(),
                             )
-
+                            continue
+                    else:
+                        frappe.log_error("error_confirmation_evaluation_form_for_prompt_end", "Not")
             # else:
             #     frappe.log_error(
             #         "Issue while creating confirmation form for prompt",
@@ -1034,6 +1096,7 @@ def create_confirmation_evaluation_form_for_prompt():
         #         "Issue while creating confirmation form for prompt",
         #         "Company abbreviation Not Found Please Set Company abbreviation for Prompt in HR Settings",
         #     )
+        frappe.log_error("create_confirmation_evaluation_form_for_prompt_end", "Scheduler End")
     except Exception as e:
         frappe.log_error(
             "Error while creating confirmation evaluation form", frappe.get_traceback()

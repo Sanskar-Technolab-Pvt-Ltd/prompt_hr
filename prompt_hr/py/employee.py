@@ -521,9 +521,9 @@ def validate(doc, method):
                 if doc.custom_extended_period == 0:
                     doc.custom_probation_end_date = getdate(add_to_date(joining_date, days=doc.custom_probation_period))
                 
-                elif doc.custom_extended_period:
-                    total_extended_days = doc.custom_probation_period + doc.custom_extended_period
-                    doc.custom_probation_end_date = getdate(add_to_date(joining_date, days=total_extended_days))
+                # elif doc.custom_extended_period:
+                #     total_extended_days = doc.custom_probation_period + doc.custom_extended_period
+                #     doc.custom_probation_end_date = getdate(add_to_date(joining_date, days=total_extended_days))
                 
 
 def update_probation(doc):
