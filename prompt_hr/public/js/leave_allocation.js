@@ -188,11 +188,9 @@ function deduct_leaves_button(frm) {
                                 ],
                                 primary_action_label: __("Deduct"),
                                 primary_action(values) {
-                                    console.log("Hello")
                                     // Perform actual leave deduction (example backend call)
 
                                     if (values.leaves_to_deduct > current_balance) {
-                                        console.log("Hello2")
                                         frappe.msgprint(__("Leaves to be deducted cannot exceed current balance."));
                                         return;
                                     }

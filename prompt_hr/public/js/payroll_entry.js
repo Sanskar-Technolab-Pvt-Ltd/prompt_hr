@@ -614,16 +614,28 @@ function send_salary_slip(frm) {
                 console.log(res.message.is_all_submitted)
                 if (res.message.is_all_submitted == 1) {
                     console.log("True")
-                    frm.add_custom_button(__('Generate Salary Slip PDF'), function () {
-
+                    frm.add_custom_button(__('Release Salary Slip'), function () {
+                        hide_field = isEmpty(frm.doc.custom_pending_withholding_salary) ? 0:1;
+                        let remaining_employee = []
+                        if (hide_field) {
+                            (frm.doc.custom_pending_withholding_salary || []).forEach(row => {
+                                if (row.employee && !row.release_salary) {
+                                    remaining_employee.push(row.employee);
+                                }
+                            });
+                        }
+                        if(isEmpty(remaining_employee)){
+                            hide_field = 0
+                        }
                         let d = new frappe.ui.Dialog({
                             title: 'Select Employees',
                             fields: [
                                 {
-                                    label: 'Employee',
+                                    label: 'Hold Salary Release for Employee',
                                     fieldname: 'employee',
                                     fieldtype: 'Link',
                                     options: 'Employee',
+                                    hidden:hide_field,
                                     onchange: function() {
                                         let employee = d.get_value('employee');
                                         if (employee) {
@@ -657,10 +669,11 @@ function send_salary_slip(frm) {
                                     fieldtype: 'Check',                    
                                 },
                                 {
-                                    label: 'Selected Employees',
+                                    label: 'Salary Release Withheld – Selected Employees',
                                     fieldname: 'employee_table',
                                     fieldtype: 'Table',
                                     cannot_add_rows: true,
+                                    hidden:hide_field,
                                     // cannot_delete_rows: true,
                                     fields: [
                                         {
@@ -672,6 +685,24 @@ function send_salary_slip(frm) {
                                             // read_only: 1
                                         },
                                     ]
+                                },
+                                {  
+                                    label: 'Salary Release Withheld – Employees',  
+                                    fieldname: 'withheld_employee_table',  
+                                    fieldtype: 'Table',  
+                                    cannot_add_rows: true,  
+                                    cannot_delete_rows: true,
+                                    hidden: !hide_field,
+                                    fields: [  
+                                        {  
+                                            fieldname: 'employee',  
+                                            fieldtype: 'Link',  
+                                            options: 'Employee',  
+                                            label: 'Employee',  
+                                            in_list_view: 1,  
+                                            read_only: 1
+                                        },  
+                                    ]  
                                 }
                             ],
                             primary_action_label: 'Send',
@@ -681,8 +712,16 @@ function send_salary_slip(frm) {
                                     employees: values.employee_table || []
                                 };
                                 employee_ids = [];
+                                changes_in_employee_ids = []
                                 if (values.employee_table && values.employee_table.length > 0) { 
                                     employee_ids = values.employee_table.map(row => row.employee).filter(Boolean);
+                                }
+
+                                if (values.withheld_employee_table && values.withheld_employee_table.length > 0) { 
+                                    // Get all checked employee IDs
+                                    changes_in_employee_ids = values.withheld_employee_table
+                                        .filter(row => row.__checked)          // Filter rows where checked is true
+                                        .map(row => row.employee);           // Map to employee IDs
                                 }
                 
                                 frappe.call({
@@ -692,7 +731,8 @@ function send_salary_slip(frm) {
                                             email_details: {
                                                 company_email: values.company_email,
                                                 personal_email: values.personal_email,
-                                                employee_ids: employee_ids
+                                                employee_ids: employee_ids,
+                                                changes_in_employee_ids: changes_in_employee_ids
                                             }                            
                                         },
                                         callback: function(r) {
@@ -704,6 +744,24 @@ function send_salary_slip(frm) {
                         });
                 
                         d.show();
+                        // Add default rows dynamically after dialog is shown
+                        let employee_table = d.fields_dict.withheld_employee_table.grid;  
+                        
+                        remaining_employee.forEach(emp => {  
+                            // Add to the grid's data array directly  
+                            if (!employee_table.df.data) {  
+                                employee_table.df.data = [];  
+                            }  
+                            
+                            employee_table.df.data.push({  
+                                idx: employee_table.df.data.length + 1,  
+                                employee: emp,  
+                                __islocal: true  
+                            });  
+                        });  
+                        
+                        // Refresh the grid to show the new rows  
+                        employee_table.refresh();
                         // frappe.call({
                         //     method: 'prompt_hr.py.payroll_entry.send_salary_sleep_to_employee',
                         //     args: {
@@ -741,6 +799,22 @@ function inform_account_users(frm) {
             })
         });
     }
+}
+
+// ? FUNCTION TO CHECK EMPTY ARRAY OR OBJECT
+function isEmpty(value) {
+    // Check for null/undefined
+    if (value == null) return true;
+
+    // Check for empty array
+    if (Array.isArray(value)) return value.length === 0;
+
+    // Check for empty object
+    if (typeof value === 'object')
+        return Object.keys(value).length === 0;
+
+    // For other types (string, number, etc) just check falsy
+    return !value;
 }
 
 // const custom_submit_salary_slip = function (frm) {
