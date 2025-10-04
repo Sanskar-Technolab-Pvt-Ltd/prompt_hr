@@ -1021,9 +1021,9 @@ def send_salary_sleep_to_employee(payroll_entry_id, email_details):
             changed_employees = []
 
         if changed_employees:
-            salary_slip_info_list = frappe.db.get_all("Salary Slip", {"docstatus": 1, "payroll_entry": payroll_entry_id,"custom_is_salary_slip_released":0, "employee": ["in", changed_employees]}, ['name', 'employee'])
+            salary_slip_info_list = frappe.db.get_all("Salary Slip", {"docstatus": 1, "payroll_entry": payroll_entry_id,"custom_is_salary_slip_released":0, "employee": ["in", changed_employees]}, ['name', 'employee', "start_date"])
         else:
-            salary_slip_info_list = frappe.db.get_all("Salary Slip", {"docstatus": 1, "payroll_entry": payroll_entry_id, "custom_is_salary_slip_released":0,"employee": ["not in", avoid_employees]}, ['name', 'employee'])
+            salary_slip_info_list = frappe.db.get_all("Salary Slip", {"docstatus": 1, "payroll_entry": payroll_entry_id, "custom_is_salary_slip_released":0,"employee": ["not in", avoid_employees]}, ['name', 'employee', "start_date"])
 
         print_format_info = frappe.db.get_all("Print Format Selection", {"parenttype":"HR Settings", "parentfield": "custom_print_format_table_prompt", "document": "Salary Slip"}, ["print_format_document", "letter_head"], limit=1)
         print_format_id = print_format_info[0].get("print_format_document") if print_format_info else None
