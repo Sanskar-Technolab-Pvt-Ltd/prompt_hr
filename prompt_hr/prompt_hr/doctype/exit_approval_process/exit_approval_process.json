@@ -47,10 +47,12 @@
    "fieldtype": "Column Break"
   },
   {
+   "default": "Pending",
    "fieldname": "resignation_approval",
-   "fieldtype": "Select",
+   "fieldtype": "Link",
+   "hidden": 1,
    "label": "Resignation Approval",
-   "options": "\nApproved\nRejected"
+   "options": "Workflow State"
   },
   {
    "fieldname": "company",
@@ -105,7 +107,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-22 15:36:08.933610",
+ "modified": "2025-10-04 16:28:50.853336",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Exit Approval Process",
