@@ -60,7 +60,23 @@ frappe.ui.form.on("Confirmation Evaluation Form", {
         };
         frm.fields_dict['table_txep'].grid.refresh();
     },
+    after_save(frm) {
+        
+        if (frm.doc.docstatus == 1) {
+            console.log("this is getting caed")
+            if (frm.doc.probation_status === "Confirm" && frm.doc.employee) {
+                console.log("This Ran")
+                frappe.route_options = {
+                    show_update_message: 1
+                }
 
+                frappe.set_route('Form', 'Employee', frm.doc.employee);
+            }
+        }
+        else {
+            console.log("This rsdfssddfs")
+        }
+    },
     probation_status: function (frm) { 
         // *CALCULATING THE LAST DATE OF WORK FROM THE DATE WHEN PROBATION STATUS IS SET TO TERMINATE TO BASED ON THE NOTICE PERIOD DAYS
 

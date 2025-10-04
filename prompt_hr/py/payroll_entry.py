@@ -1035,6 +1035,7 @@ def send_salary_sleep_to_employee(payroll_entry_id, email_details):
                 
                 recipient_email = []
 
+                employee_name = frappe.db.get_value("Employee", salary_slip_info.employee, "employee_name") or salary_slip_info.employee
 
                 if get_company_email:
                     company_email = frappe.db.get_value("Employee", salary_slip_info.employee, "company_email")
@@ -1072,12 +1073,19 @@ def send_salary_sleep_to_employee(payroll_entry_id, email_details):
                         title="PDF Generation Error",
                         message=f"Failed to generate PDF attachment: {str(pdf_error)}\n{traceback.format_exc()}",
                     )
+                
                 frappe.sendmail(
                     recipients=recipient_email,
-                    subject="Salary Slip",
-                    message="Please find attached your salary slip.",
+                    subject=f"Your Salary Slip for {getdate(salary_slip_info.start_date).strftime('%B')}, {getdate(salary_slip_info.start_date).year}",
+                    message=f"Dear {employee_name},<br><br>Please find attached your salary slip for {getdate(salary_slip_info.start_date).strftime('%B')}, {getdate(salary_slip_info.start_date).year}. If you have any queries regarding the same, feel free to reach out to the HR team.<br>Best Regards,<br>HR Team",
                     attachments=attachments if attachments else None,
-                )                                
+                )
+                # frappe.sendmail(
+                #     recipients=recipient_email,
+                #     subject=f"Your Salary Slip for {getdate(salary_slip_info.start_date).month},  {getdate(salary_slip_info.start_date).year}",
+                #     message=f"Dear {employee_name},<br>Please find attached your salary slip for {getdate(salary_slip_info.start_date).month}, {getdate(salary_slip_info.start_date).year}.If you have any queries regarding the same, feel free to reach out to the HR team.<br>Best Regards,<br>HR Team",
+                #     attachments=attachments if attachments else None,
+                # )                                
                 frappe.db.set_value("Salary Slip", salary_slip_info.get("name"), "custom_is_salary_slip_released", 1)
 
         if avoid_employees:

@@ -20,6 +20,20 @@ function set_text_field_height() {
 
 }
 frappe.ui.form.on("Employee", {
+
+    onload(frm) {
+            
+        if ( frappe.route_options && frappe.route_options.show_update_message) {            
+            setTimeout(() => {
+                frappe.msgprint("Please update Notice Period, Leave Policy, and Leave Policy Change Date.");
+            }, 1000);
+
+            frappe.route_options = {};
+        }
+    },
+
+
+
     refresh: function (frm) {
         // ? SET AUTOCOMPLETE OPTIONS FOR CURRENT AND PERMANENT STATE
         set_state_options(frm, "custom_current_state", "custom_current_country");

@@ -135,8 +135,8 @@
   {
    "depends_on": "eval:doc.probation_status==\"Extend\";",
    "fieldname": "extension_period",
-   "fieldtype": "Float",
-   "label": "Extension Period",
+   "fieldtype": "Int",
+   "label": "Extension Period(in Days)",
    "mandatory_depends_on": "eval:doc.probation_status==\"Extend\";",
    "precision": "1"
   },
@@ -199,7 +199,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-07-22 15:36:15.391227",
+ "modified": "2025-10-18 10:52:57.088356",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Confirmation Evaluation Form",
