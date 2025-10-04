@@ -960,7 +960,7 @@ def create_exit_approval_process(user_response, employee, notice_number_of_days=
 
         exit_approval_process = frappe.new_doc("Exit Approval Process")
         exit_approval_process.employee = employee
-        exit_approval_process.resignation_approval = ""
+        exit_approval_process.resignation_approval = "Pending"
         exit_approval_process.posting_date = getdate()
         exit_approval_process.notice_period_days = notice_number_of_days
         exit_approval_process.last_date_of_working = getdate() + timedelta(
