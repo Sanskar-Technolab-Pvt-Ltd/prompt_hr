@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-10-04 19:12:15.384039",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "WeekOff Change Request",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "<p>Dear {{ user }},</p>\n\n<p>\n  We would like to inform you that the following Weekoff Change Request has been \n  <strong style=\"color:#d9534f;\">Deleted successfully</strong> from the system:\n</p>\n\n<table width=\"100%\" cellspacing=\"0\" cellpadding=\"8\" \n       style=\"border-collapse: collapse; margin: 15px 0; font-size: 14px; border:1px solid #444;\">\n  <tr>\n    <td style=\"width:30%; font-weight:bold; border:1px solid #444; background-color:#f7f7f7;\">Employee</td>\n    <td style=\"border:1px solid #444;\">{{ doc.employee_name }}</td>\n  </tr>\n  <tr>\n    <td colspan=\"2\" style=\"font-weight:bold; border:1px solid #444; background-color:#f7f7f7; text-align:center;\">\n      Weekoff Date Changes\n    </td>\n  </tr>\n  <tr>\n    <td style=\"font-weight:bold; border:1px solid #444; background-color:#f7f7f7;\">Existing Weekoff Date</td>\n    <td style=\"font-weight:bold; border:1px solid #444; background-color:#f7f7f7;\">New Weekoff Date</td>\n  </tr>\n  {% for row in doc.weekoff_details %}\n  <tr>\n    <td style=\"border:1px solid #444;\">\n      {{ frappe.utils.format_date(row.existing_weekoff_date, \"dd-MM-yyyy\") if row.existing_weekoff_date else \"\" }}\n    </td>\n    <td style=\"border:1px solid #444;\">\n      {{ frappe.utils.format_date(row.new_weekoff_date, \"dd-MM-yyyy\") if row.new_weekoff_date else \"\" }}\n    </td>\n  </tr>\n  {% endfor %}\n</table>\n\n\n<p>\n  If you have any questions or need further assistance, please contact the HR Manager.\n</p>\n\n<p style=\"margin-top:20px;\">\n  Regards,<br>\n  <strong>HR Management System</strong>\n</p>",
+ "message_type": "HTML",
+ "modified": "2025-10-04 19:22:50.511533",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "WeekOff Change Request Deleted Notification",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "WeekOff Change Request Deleted : {{docname}}"
+}
