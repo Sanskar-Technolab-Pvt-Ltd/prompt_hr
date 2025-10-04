@@ -1116,3 +1116,32 @@ def get_reporting_manager_info(employee: str) -> dict | None:
 def redirect_to_link(link):
     frappe.local.response["type"] = "redirect"
     frappe.local.response["location"] = link
+
+
+def create_notification_log(user, subject, message, document_type=None, document_name=None):
+    try:
+        mobile_notification_enable = frappe.db.get_single_value("HR Settings", "custom_enable_mobile_notifications") or 0
+    except Exception as e:
+        frappe.log_error(
+            "In Enabling Mobile Notifications", str(e)
+        )
+        mobile_notification_enable = 0
+
+    try:
+        if mobile_notification_enable:
+            notification = frappe.new_doc("Notification Log")
+            notification.subject = subject
+            notification.email_content = subject
+            notification.for_user = user
+            notification.type = "Alert"
+
+            if document_type:
+                notification.document_type = document_type
+
+            if document_name:
+                notification.document_name = document_name
+            notification.insert(ignore_permissions=True)
+    except Exception as e:
+        frappe.log_error(
+            "Error in Sending Email Notifications", str(e)
+        )

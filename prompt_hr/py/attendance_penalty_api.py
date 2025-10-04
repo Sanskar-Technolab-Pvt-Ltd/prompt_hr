@@ -1,5 +1,6 @@
 import frappe
 from frappe.utils import getdate, today, add_to_date, add_days, get_datetime_str, format_date
+from prompt_hr.py.utils import create_notification_log
 from prompt_hr.scheduler_methods import add_leave_ledger_entry
 from hrms.hr.utils import get_holiday_dates_for_employee
 from datetime import datetime, timedelta, time, date
@@ -368,6 +369,7 @@ def prompt_employee_attendance_penalties():
                             subject=email_details.get("subject"),
                             message=email_details.get("message"),
                         )
+                        create_notification_log(email_details.get("email"), email_details.get("subject"), email_details.get("message"))
                 else:
                     if email_details and email_details.get("email"):
                         clean_penalties = clean_dates(penalties)
@@ -2145,6 +2147,7 @@ def send_penalty_notification_emails():
                                     reference_doctype="Employee Penalty",
                                     reference_name=penalty.name,
                                 )
+                                create_notification_log(emp_user_id, subject, message, "Employee Penalty", penalty.name)
                     except Exception as e:
                         frappe.log_error("Error in sending penalty notification email", str(e))
                         continue
