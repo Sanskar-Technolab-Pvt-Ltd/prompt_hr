@@ -1013,13 +1013,18 @@ def send_salary_sleep_to_employee(payroll_entry_id, email_details):
             get_personal_email = email_details.get("personal_email", False)
 
             avoid_employees = email_details.get("employee_ids", [])
+            changed_employees = email_details.get("changes_in_employee_ids", [])
         else:
             get_company_email = False
             get_personal_email = False
             avoid_employees = []
+            changed_employees = []
 
+        if changed_employees:
+            salary_slip_info_list = frappe.db.get_all("Salary Slip", {"docstatus": 1, "payroll_entry": payroll_entry_id,"custom_is_salary_slip_released":0, "employee": ["in", changed_employees]}, ['name', 'employee'])
+        else:
+            salary_slip_info_list = frappe.db.get_all("Salary Slip", {"docstatus": 1, "payroll_entry": payroll_entry_id, "custom_is_salary_slip_released":0,"employee": ["not in", avoid_employees]}, ['name', 'employee'])
 
-        salary_slip_info_list = frappe.db.get_all("Salary Slip", {"docstatus": 1, "payroll_entry": payroll_entry_id, "employee": ["not in", avoid_employees]}, ['name', 'employee'])
         print_format_info = frappe.db.get_all("Print Format Selection", {"parenttype":"HR Settings", "parentfield": "custom_print_format_table_prompt", "document": "Salary Slip"}, ["print_format_document", "letter_head"], limit=1)
         print_format_id = print_format_info[0].get("print_format_document") if print_format_info else None
         letter_head = print_format_info[0].get("letter_head") if print_format_info else None
@@ -1074,6 +1079,79 @@ def send_salary_sleep_to_employee(payroll_entry_id, email_details):
                     attachments=attachments if attachments else None,
                 )                                
                 frappe.db.set_value("Salary Slip", salary_slip_info.get("name"), "custom_is_salary_slip_released", 1)
+
+        if avoid_employees:
+            try:
+                # ? FETCH START AND END DATE FROM PAYROLL ENTRY
+                from_date, to_date  = frappe.db.get_value('Payroll Entry', payroll_entry_id, ["start_date", "end_date"])
+                for employee in avoid_employees:
+                    try:
+                        # ? CHECK IF RECORD ALREADY EXISTS
+                        exists = frappe.db.exists(
+                            "Pending Withholding Salary",
+                            {
+                                "parent": payroll_entry_id,
+                                "parenttype": "Payroll Entry",
+                                "parentfield": "custom_pending_withholding_salary",
+                                "employee": employee,
+                                "from_date": from_date,
+                                "to_date": to_date,
+                                "process_salary": 1,
+                            },
+                        )
+
+                        if not exists:
+                            # ? CREATE NEW CHILD ROW
+                            child_doc = frappe.get_doc({
+                                "doctype": "Pending Withholding Salary",
+                                "parent": payroll_entry_id,
+                                "parenttype": "Payroll Entry",
+                                "parentfield": "custom_pending_withholding_salary",
+                                "employee": employee,
+                                "from_date": from_date,
+                                "to_date": to_date,
+                                "process_salary": 1,
+                                "release_salary": 0,
+                            })
+                            child_doc.insert(ignore_permissions=True)
+                    except Exception as e:
+                        frappe.log_error("Error in Inserting Record in Pending Withholding Salary", str(e))
+
+                frappe.db.commit()
+            except Exception as e:
+                frappe.log_error("Error in Inserting Record in Pending Withholding Salary", str(e))
+
+        if changed_employees:
+            try:
+                # ? FETCH START AND END DATE FROM PAYROLL ENTRY
+                from_date, to_date  = frappe.db.get_value('Payroll Entry', payroll_entry_id, ["start_date", "end_date"])
+                # ? FETCH RECORDS FROM PAYROLL PENDING WITHHOLDING SALARY
+                records = frappe.get_all(
+                    "Pending Withholding Salary",
+                    {
+                        "parent": payroll_entry_id,
+                        "parenttype": "Payroll Entry",
+                        "parentfield": "custom_pending_withholding_salary",
+                        "employee": ["in", changed_employees],
+                        "from_date": from_date,
+                        "to_date": to_date,
+                        "process_salary": 1,
+                        "release_salary": 0,
+                    },
+                    ["name", "employee", "parent"]
+                )
+                if records:
+                    for record in records:
+                        try:
+                            # ? CHECK RELEASE SALART TRUE IN ALL RECORDS
+                            frappe.db.set_value("Pending Withholding Salary", record.name, "release_salary", 1)
+                        except Exception as e:
+                            frappe.log_error('Error in Setting Relase Salary True', str(e))
+                frappe.db.commit()
+            except Exception as e:
+                frappe.log_error('Error in Setting Relase Salary True', str(e))
+
+
     except Exception as e:
         frappe.log_error("Error while sending salary slips", frappe.get_traceback())
         frappe.throw(_("Error while sending salary slips: {0}").format(str(e)))
