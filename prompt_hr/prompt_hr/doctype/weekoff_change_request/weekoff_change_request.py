@@ -9,6 +9,7 @@ from prompt_hr.py.utils import (
     send_notification_email,
     is_user_reporting_manager_or_hr,
     get_reporting_manager_info,
+    create_notification_log
 )
 from erpnext.setup.doctype.employee.employee import is_holiday
 from hrms.hr.utils import get_leave_period
@@ -236,6 +237,56 @@ class WeekOffChangeRequest(Document):
                 self.status = "Rejected"
             elif self.workflow_state == "Approved":
                 self.status = "Approved"
+
+        if not self.is_new() and self.workflow_state == "Cancelled by Employee":
+            weekoff_change_doc = self.as_dict()
+            self.delete(ignore_permissions=True)
+            employee = weekoff_change_doc.employee
+            reporting_manager = weekoff_change_doc.attendance_request
+
+            # ? Get user IDs and names if present
+            employee_user_id = frappe.db.get_value('Employee', employee, "user_id") if employee else None
+            reporting_manager_id = frappe.db.get_value("Employee", reporting_manager, "user_id") if reporting_manager else None
+            reporting_manager_name = None
+            if reporting_manager:
+                reporting_manager_name = frappe.db.get_value("Employee", reporting_manager, "employee_name")
+
+            if employee_user_id or reporting_manager_id:
+                notification_doc = frappe.get_doc("Notification", "WeekOff Change Request Deleted Notification")
+                if notification_doc:
+                    subject = frappe.render_template(notification_doc.subject, {"docname": weekoff_change_doc.name})
+
+                    if employee_user_id:
+                        message = frappe.render_template(notification_doc.message, {"doc": weekoff_change_doc, "user": weekoff_change_doc.employee_name})
+                        frappe.sendmail(
+                            recipients=[employee_user_id],
+                            subject=subject,
+                            message=message,
+                        )
+                        create_notification_log(employee_user_id, subject, message, "WeekOff Change Request")
+
+                    if reporting_manager_id:
+                        user_display_name = reporting_manager_name or reporting_manager_id
+                        message = frappe.render_template(notification_doc.message, {"doc": weekoff_change_doc, "user": user_display_name})
+                        frappe.sendmail(
+                            recipients=[reporting_manager_id],
+                            subject=subject,
+                            message=message,
+                        )
+                        create_notification_log(reporting_manager_id, subject, message, "WeekOff Change Request")
+
+            frappe.db.commit()
+            frappe.msgprint(
+                _("WeekOff Change Request has been deleted successfully. You can go back to the WeekOff Change Request List to continue."),
+                title=_("Success"),
+                indicator="green",
+                raise_exception=True,
+                primary_action={
+                    "label": _("Go to WeekOff Change Request"),
+                    "client_action": "frappe.set_route",
+                    "args": ["List", "WeekOff Change Request"],
+                }
+            )
 
 
 def notify_reporting_manager(employee_id, docname, emp_user, current_user):
