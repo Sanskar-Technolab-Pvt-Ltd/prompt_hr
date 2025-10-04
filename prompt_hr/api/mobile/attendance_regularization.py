@@ -34,7 +34,7 @@ def list(
 
         # Always enforce employee filter (session + request)
         filters.append(["employee", "in", employee_list])
-        
+
         # ? GET Attendance Regularization List
         attendance_regularization_list = frappe.get_list(
             "Attendance Regularization",
@@ -45,11 +45,10 @@ def list(
             limit_page_length=limit_page_length,
             limit_start=limit_start,
         )
-        
-        for attendance in attendance_regularization_list:            
-            attendance['status'] = attendance['workflow_state']
-        
-        
+
+        for attendance in attendance_regularization_list:
+            attendance["status"] = attendance["workflow_state"]
+
         total_count = len(attendance_regularization_list)
 
     except Exception as e:
@@ -68,17 +67,20 @@ def list(
             "success": True,
             "message": "Attendance Regularization List Loaded Successfully!",
             "data": attendance_regularization_list,
-            "count": total_count        
+            "count": total_count,
         }
+
 
 # ! prompt_hr.api.mobile.attendance_regularization.get
 # ? GET ATTENDANCE REGULARIZATION DETAIL
 @frappe.whitelist()
 def get(name):
-    try: 
+    try:
         # ? CHECK IF ATTENDANCE REGULARIZATION DOC EXISTS OR NOT
-        attendance_regularization_exists = frappe.db.exists("Attendance Regularization", name)
-        
+        attendance_regularization_exists = frappe.db.exists(
+            "Attendance Regularization", name
+        )
+
         # ? IF ATTENDANCE REGULARIZATION DOC NOT
         if not attendance_regularization_exists:
             frappe.throw(
@@ -107,10 +109,9 @@ def get(name):
             "message": "Attendance Regularization Loaded Successfully!",
             "data": attendance_regularization,
         }
-        
-        
 
-# ! prompt_hr.api.mobile.attendance_regularization.create  
+
+# ! prompt_hr.api.mobile.attendance_regularization.create
 # ? CREATE ATTENDANCE REGULARIZATION
 @frappe.whitelist()
 def create(**args):
@@ -124,7 +125,7 @@ def create(**args):
 
         # ? CHECK IF THE MANDATORY FIELD IS FILLED OR NOT IF NOT THROW ERROR
         for field, field_name in mandatory_fields.items():
-            if (    
+            if (
                 not args.get(field)
                 or args.get(field) == "[]"
                 or args.get(field) == "[{}]"
@@ -136,18 +137,17 @@ def create(**args):
 
         # ? PARSE CHILD TABLE JSON FIELDS
         if args.get("checkinpunch_details"):
-            args["checkinpunch_details"] = frappe.parse_json(args.get("checkinpunch_details"))
-            
-      
-            
+            args["checkinpunch_details"] = frappe.parse_json(
+                args.get("checkinpunch_details")
+            )
+
         # ? CREATE ATTENDANCE REGULARIZATION DOC
-        attendance_regularization_doc = frappe.get_doc({
-            "doctype": "Attendance Regularization",
-            **args
-        })
+        attendance_regularization_doc = frappe.get_doc(
+            {"doctype": "Attendance Regularization", **args}
+        )
         attendance_regularization_doc.insert()
         frappe.db.commit()
-        
+
     except Exception as e:
         # ? HANDLE ERRORS
         frappe.log_error("Error While Creating Attendance Regularization", str(e))
@@ -165,7 +165,7 @@ def create(**args):
             "message": "Attendance Regularization Created Successfully!",
             "data": attendance_regularization_doc,
         }
-    
+
 
 # ! prompt_hr.api.mobile.attendance_regularization.update
 # ? UPDATE ATTENDANCE REGULARIZATION
@@ -174,14 +174,21 @@ def update(**args):
     try:
         # ? MANDATORY FIELD FOR IDENTIFICATION
         if not args.get("name"):
-            frappe.throw("Attendance Regularization 'name' is required to update the document", frappe.MandatoryError)
+            frappe.throw(
+                "Attendance Regularization 'name' is required to update the document",
+                frappe.MandatoryError,
+            )
 
         # ? FETCH EXISTING DOC
-        attendance_regularization_doc = frappe.get_doc("Attendance Regularization", args.get("name"))
-        
+        attendance_regularization_doc = frappe.get_doc(
+            "Attendance Regularization", args.get("name")
+        )
+
         # ? PARSE CHILD TABLE JSON FIELDS
         if args.get("checkinpunch_details"):
-            args["checkinpunch_details"] = frappe.parse_json(args.get("checkinpunch_details"))
+            args["checkinpunch_details"] = frappe.parse_json(
+                args.get("checkinpunch_details")
+            )
 
         # ? UPDATE FIELDS
         for key, value in args.items():
@@ -190,7 +197,6 @@ def update(**args):
 
         attendance_regularization_doc.save()
         frappe.db.commit()
-        
 
     except Exception as e:
         # ? HANDLE ERRORS
@@ -210,6 +216,7 @@ def update(**args):
             "data": attendance_regularization_doc,
         }
 
+
 # ! prompt_hr.api.mobile.attendance_regularization.delete
 # ? DELETE ATTENDANCE REGULARIZATION
 @frappe.whitelist()
@@ -217,11 +224,16 @@ def delete(name=None):
     try:
         # ? CHECK MANDATORY FIELD
         if not name:
-            frappe.throw("Attendance Regularization 'name' is required to delete the document", frappe.MandatoryError)
-            
+            frappe.throw(
+                "Attendance Regularization 'name' is required to delete the document",
+                frappe.MandatoryError,
+            )
+
         # ? VERIFY DOCUMENT EXISTS
         if not frappe.db.exists("Attendance Regularization", name):
-            frappe.throw(f"Request with name '{name}' does not exist", frappe.DoesNotExistError)       
+            frappe.throw(
+                f"Request with name '{name}' does not exist", frappe.DoesNotExistError
+            )
 
         # ? DELETE THE DOCUMENT
         frappe.delete_doc("Attendance Regularization", name, ignore_permissions=True)
@@ -245,19 +257,22 @@ def delete(name=None):
             "data": {"name": name},
         }
 
+
 from prompt_hr.py.workflow import get_workflow_transitions
+
+
 # ! prompt_hr.api.mobile.attendance_regularization.workflow_actions
 # ? GET UNIQUE WORKFLOW ACTIONS BASED ON STATE
 @frappe.whitelist()
-def get_action_fields(doc,logged_employee_id=None, requesting_employee_id=None):
+def get_action_fields(doc, logged_employee_id=None, requesting_employee_id=None):
     try:
-                                
+
         transitions = get_workflow_transitions("Attendance Regularization", doc)
 
         # Format actions into dicts
         actions = []
         for transition in transitions:
-            actions.append({"action": transition})        
+            actions.append({"action": transition})
     except Exception as e:
         # ? HANDLE ERRORS
         frappe.log_error("Error While Getting Workflow Actions", str(e))
@@ -275,15 +290,16 @@ def get_action_fields(doc,logged_employee_id=None, requesting_employee_id=None):
             "message": "Workflow Actions Loaded Successfully!",
             "data": actions,
         }
-        
-    
+
+
 from frappe.model.workflow import apply_workflow as attendance_regularization_workflow
+
 
 @frappe.whitelist()
 def apply_workflow(attendance_regularization, action, reason_for_rejection=None):
     try:
         # ? FETCH THE DOCUMENT
-        
+
         if not frappe.db.exists("Attendance Regularization", attendance_regularization):
             frappe.throw(
                 f"Attendance Regularization: {attendance_regularization} Does Not Exist!",
@@ -291,16 +307,15 @@ def apply_workflow(attendance_regularization, action, reason_for_rejection=None)
             )
 
         doc = frappe.get_doc("Attendance Regularization", attendance_regularization)
-        
+
         # ? HANDLE REJECTION WITH REASON
         if action == "Reject":
             if not reason_for_rejection:
-                frappe.throw("Reason for Rejection is mandatory when rejecting.")  
+                frappe.throw("Reason for Rejection is mandatory when rejecting.")
 
         # ? APPLY WORKFLOW ACTION
         updated_doc = attendance_regularization_workflow(doc, action)
-        updated_doc.db_set("reason_for_rejection",reason_for_rejection)
-        
+        updated_doc.db_set("reason_for_rejection", reason_for_rejection)
 
         # ? SAVE CHANGES
         doc.save(ignore_permissions=True)
@@ -321,8 +336,8 @@ def apply_workflow(attendance_regularization, action, reason_for_rejection=None)
             "message": f"Workflow Action '{action}' Applied Successfully!",
             "data": updated_doc.as_dict(),
         }
-        
-        
+
+
 @frappe.whitelist()
 def get_employees_with_session_user():
     try:
@@ -335,20 +350,24 @@ def get_employees_with_session_user():
             return {
                 "success": False,
                 "message": "No employee linked with current user",
-                "employees": []
+                "employees": [],
             }
 
         # Always include session employee
-        employees = [{
-            "name": session_employee,
-            "employee_name": frappe.get_value("Employee", session_employee, "employee_name")
-        }]
+        employees = [
+            {
+                "name": session_employee,
+                "employee_name": frappe.get_value(
+                    "Employee", session_employee, "employee_name"
+                ),
+            }
+        ]
 
         # Get employees reporting to session employee
         subordinates = frappe.get_all(
             "Employee",
             fields=["name", "employee_name"],
-            filters={"reports_to": session_employee}
+            filters={"reports_to": session_employee},
         )
 
         employees.extend(subordinates)
@@ -370,19 +389,22 @@ def get_employees_with_session_user():
 
 
 @frappe.whitelist()
-def get_checkin_punch_details(regularization_date):
+def get_checkin_punch_details(regularization_date, employee=None):
     try:
         user = frappe.session.user
-        employee = frappe.get_value("Employee", {"user_id": user}, "name")
-        # Fetch employee check-ins for the given date
+
+        if not employee:
+            employee = frappe.get_value("Employee", {"user_id": user}, "name")
+
+        # ? FETCH EMPLOYEE CHECK-INS FOR THE GIVEN DATE
         checkins = frappe.get_list(
             "Employee Checkin",
             filters={
                 "employee": employee,
-                "time": ["between", [regularization_date, regularization_date]]
+                "time": ["between", [regularization_date, regularization_date]],
             },
             fields=["name", "time", "log_type"],
-            order_by="time asc"
+            order_by="time asc",
         )
 
         paired_rows = []
@@ -394,20 +416,16 @@ def get_checkin_punch_details(regularization_date):
 
         for entry in checkins:
             if entry.log_type == "IN":
-                current_in = {
-                    "in_time": extract_time(str(entry.time)),
-                    "out_time": ""
-                }
+                current_in = {"in_time": extract_time(str(entry.time)), "out_time": ""}
             elif entry.log_type == "OUT":
                 if current_in:
                     current_in["out_time"] = extract_time(str(entry.time))
                     paired_rows.append(current_in)
                     current_in = None
                 else:
-                    paired_rows.append({
-                        "in_time": "",
-                        "out_time": extract_time(str(entry.time))
-                    })
+                    paired_rows.append(
+                        {"in_time": "", "out_time": extract_time(str(entry.time))}
+                    )
 
         # if last IN has no OUT
         if current_in:
@@ -418,11 +436,11 @@ def get_checkin_punch_details(regularization_date):
         frappe.local.response["message"] = {
             "success": False,
             "message": str(e),
-            "data": None
+            "data": None,
         }
     else:
         frappe.local.response["message"] = {
             "success": True,
             "message": "Check-in Punch Details Loaded Successfully!",
-            "data": paired_rows
+            "data": paired_rows,
         }

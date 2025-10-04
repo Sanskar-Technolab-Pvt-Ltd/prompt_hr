@@ -15,6 +15,12 @@ from prompt_hr.py.utils import (
 
 # ? MAIN EXIT APPROVAL CLASS
 class ExitApprovalProcess(Document):
+
+    def before_save(self):
+
+        # ? VALIDATE APPROVAL STATUS
+        validate_approval_status(self)
+
     def on_update(self):
         if self.resignation_approval == "Approved":
             # ? UPDATE RELIEVING DATE IF CHANGED
@@ -237,3 +243,10 @@ def send_exit_interview_notification(employee, exit_interview_name=None):
         + "/login?redirect-to=/exit-questionnaire/new#login",
     )
     return {"status": "success", "message": _("Exit Interview email sent.")}
+
+# ? FUNCTION TO VALIDATE APPROVAL STATUS
+def validate_approval_status(doc):
+
+    # ? VALIDATE APPROVAL STATUS
+    if doc.resignation_approval not in ["Approved","Rejected", "Approved by Reporting Manager", "Pending"]:
+            frappe.throw(_("Resignation Approval must be either 'Pending','Approved', 'Rejected' or 'Approved by Reporting Manager'"))

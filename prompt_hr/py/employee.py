@@ -503,7 +503,7 @@ def validate(doc, method):
             },
             "name",
         )
-
+                                
         if holiday_list:
             if doc.holiday_list != holiday_list:
                 doc.holiday_list = holiday_list
@@ -512,7 +512,19 @@ def validate(doc, method):
 
             if holiday_list:
                 doc.holiday_list = holiday_list
-
+        
+        
+        if doc.custom_in_probation:
+            joining_date = getdate(doc.date_of_joining)
+            
+            if doc.custom_probation_status == "Pending" and doc.custom_probation_period:
+                if doc.custom_extended_period == 0:
+                    doc.custom_probation_end_date = getdate(add_to_date(joining_date, days=doc.custom_probation_period))
+                
+                # elif doc.custom_extended_period:
+                #     total_extended_days = doc.custom_probation_period + doc.custom_extended_period
+                #     doc.custom_probation_end_date = getdate(add_to_date(joining_date, days=total_extended_days))
+                
 
 def update_probation(doc):
     pass
@@ -960,7 +972,7 @@ def create_exit_approval_process(user_response, employee, notice_number_of_days=
 
         exit_approval_process = frappe.new_doc("Exit Approval Process")
         exit_approval_process.employee = employee
-        exit_approval_process.resignation_approval = ""
+        exit_approval_process.resignation_approval = "Pending"
         exit_approval_process.posting_date = getdate()
         exit_approval_process.notice_period_days = notice_number_of_days
         exit_approval_process.last_date_of_working = getdate() + timedelta(
