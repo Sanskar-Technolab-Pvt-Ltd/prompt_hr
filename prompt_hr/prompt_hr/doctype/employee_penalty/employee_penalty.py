@@ -4,6 +4,7 @@
 import frappe
 import json
 from frappe.model.document import Document
+from prompt_hr.py.utils import create_notification_log
 from frappe import _
 
 from prompt_hr.py.leave_application import handle_penalties_for_sandwich_rule
@@ -166,6 +167,14 @@ def handle_cancel_penalties(penalties, reason, attendance_modified):
                                 reference_doctype="Employee Penalty",
                                 reference_name=penalty_name,
                             )
+                            for recipient in email_recipients:
+                                create_notification_log(
+                                    recipient,
+                                    subject,
+                                    message,
+                                    "Employee Penalty",
+                                    penalty_name
+                                )
                 
             except Exception as e:
                 frappe.log_error(f"Error sending cancellation notification", str(e))

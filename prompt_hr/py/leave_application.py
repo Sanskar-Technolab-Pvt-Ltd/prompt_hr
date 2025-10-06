@@ -31,10 +31,14 @@ from hrms.hr.doctype.leave_application.leave_application import (
     get_leaves_for_period,
     get_leaves_pending_approval_for_period,
     get_remaining_leaves,
-    get_allocation_expiry_for_cf_leaves
+    get_allocation_expiry_for_cf_leaves,
+    add_block_dates, 
+    add_department_leaves, 
+    add_holidays, 
+    add_leaves
 )
 from hrms.hr.utils import get_leave_period
-from prompt_hr.py.utils import get_reporting_manager_info
+from prompt_hr.py.utils import get_reporting_manager_info, redirect_to_link, create_notification_log
 from hrms.hr.doctype.leave_allocation.leave_allocation import get_previous_allocation
 Filters = frappe._dict
 
@@ -53,6 +57,7 @@ def on_cancel(doc, method):
         )
 
 def before_save(doc, method):
+
     if hasattr(doc, '_original_date'):  
         doc.set("from_date", doc._original_date)
         if hasattr(doc, '_half_day'):
@@ -122,6 +127,7 @@ def before_save(doc, method):
         if not doc.custom_attachment:
             frappe.throw(_("Please attach a file for {0}").format(leave_type_doc.name))
 
+
 def before_insert(doc, method):
     leave_type_doc = frappe.get_doc("Leave Type", doc.leave_type)
     if leave_type_doc.custom_prior_days_required_for_applying_leave:
@@ -134,6 +140,57 @@ def before_insert(doc, method):
     doc.custom_auto_approve = 0
 
 def before_validate(doc, method=None):
+
+    if not doc.is_new() and doc.workflow_state == "Cancelled by Employee":
+        leave_doc = doc.as_dict()
+        doc.delete(ignore_permissions=True)
+        employee = leave_doc.employee
+        reporting_manager = leave_doc.custom_reporting_manager
+
+        # ? Get user IDs and names if present
+        employee_user_id = frappe.db.get_value('Employee', employee, "user_id") if employee else None
+        reporting_manager_id = frappe.db.get_value("Employee", reporting_manager, "user_id") if reporting_manager else None
+        reporting_manager_name = None
+        if reporting_manager:
+            reporting_manager_name = frappe.db.get_value("Employee", reporting_manager, "employee_name")
+
+        if employee_user_id or reporting_manager_id:
+            notification_doc = frappe.get_doc("Notification", "Leave Application Deleted Notification")
+            if notification_doc:
+                subject = frappe.render_template(notification_doc.subject, {"docname": leave_doc.name})
+
+                if employee_user_id:
+                    message = frappe.render_template(notification_doc.message, {"doc": leave_doc, "user": leave_doc.employee_name})
+                    frappe.sendmail(
+                        recipients=[employee_user_id],
+                        subject=subject,
+                        message=message,
+                    )
+                    create_notification_log(employee_user_id, subject, message, "Leave Application")
+
+                if reporting_manager_id:
+                    user_display_name = reporting_manager_name or reporting_manager_id
+                    message = frappe.render_template(notification_doc.message, {"doc": leave_doc, "user": user_display_name})
+                    frappe.sendmail(
+                        recipients=[reporting_manager_id],
+                        subject=subject,
+                        message=message,
+                    )
+                    create_notification_log(reporting_manager_id, subject, message, "Leave Application")
+
+        frappe.db.commit()
+        frappe.msgprint(
+            _("The Leave Application has been deleted successfully. You can go back to the Leave Application List to continue."),
+            title=_("Success"),
+            indicator="green",
+            raise_exception=True,
+            primary_action={
+                "label": _("Go to Leave Application List"),
+                "client_action": "frappe.set_route",
+                "args": ["List", "Leave Application"],
+            }
+        )
+
     if doc.custom_leave_status == "Approved":
         doc._original_date = doc.get("from_date")
         if doc.half_day:
@@ -142,14 +199,20 @@ def before_validate(doc, method=None):
                 doc._half_day_date = doc.half_day_date
         doc.set("from_date", frappe.utils.add_days(doc.custom_original_to_date,1))
         doc.set("half_day", 0)
+        
+    
 
 def validate(doc, method=None):
+    # share_leave_with_manager(doc)
+    
     if doc.is_new() or (doc.workflow_state == "Pending" and doc.has_value_changed("from_date")):
         # ? ALLOWED DAYS INCLUDE TODAY ALSO (EXAMPLE :- IF TODAY'S IS 18 DATE THEN EMPLOYEE'S APPLY ONLY UPTO 9 DATE (9,10,11,12,13,14,15,16,17,18))
         allowed_days = frappe.db.get_single_value("HR Settings", "custom_maximum_backdated_leave_days_including_today")
         if allowed_days:
             if doc.from_date < add_days(today(), -(allowed_days-1)):
                 frappe.throw(_("You cannot apply leave for more than {0} days in the past.").format(allowed_days))
+                
+    
 
 import frappe
 from frappe.utils import getdate, add_days
@@ -491,6 +554,8 @@ def on_submit(doc,method=None):
 
 
 def on_update(doc, method):
+    share_leave_with_manager(doc)
+    
     employee = frappe.get_doc("Employee", doc.employee)
     employee_id = employee.get("user_id")
     reporting_manager = None
@@ -532,7 +597,7 @@ def on_update(doc, method):
     if not reporting_manager_name:
         reporting_manager_name = hr_manager_name
 
-    if doc.workflow_state == "Pending":
+    if doc.workflow_state == "Pending" and (doc.is_new() or doc.has_value_changed("workflow_state")):
         manager_info = get_reporting_manager_info(doc.employee)
         if manager_info:
             doc.db_set("custom_pending_approval_at", f"{manager_info['name']} - {manager_info['employee_name']}")
@@ -541,15 +606,20 @@ def on_update(doc, method):
             # Notify the Reporting Manager about the leave request.
             subject = frappe.render_template(notification.subject, {"doc":doc,"request_type":"Leave Application"})
             if reporting_manager_id:
+                message = frappe.render_template(notification.message, {"doc": doc,"manager":reporting_manager_name})
                 frappe.sendmail(
                 recipients=reporting_manager_id,
                 cc = other_recipents,
-                message = frappe.render_template(notification.message, {"doc": doc,"manager":reporting_manager_name}),
+                message = message,
                 subject = subject,
                 reference_doctype=doc.doctype,
                 reference_name=doc.name,
                 expose_recipients="header"
             )
+                create_notification_log(reporting_manager_id, subject, message, "Leave Application", doc.name)
+                if other_recipents:
+                    for other_recipent in other_recipents:
+                        create_notification_log(other_recipent, subject, message, "Leave Application", doc.name)
 
     elif doc.workflow_state == "Approved" and doc.has_value_changed("workflow_state"):
         doc.db_set("status", "Approved")
@@ -571,15 +641,20 @@ def on_update(doc, method):
             # Notify the employee regarding the approval of their leave by Reporting Manager.
             subject = frappe.render_template(employee_notification.subject, {"doc":doc,"manager":manager_name,"request_type":"Leave Application"})
             if employee_id:
+                message = frappe.render_template(employee_notification.message, {"doc": doc, "manager": manager_name}),
                 frappe.sendmail(
                 recipients=employee_id,
                 cc = other_recipents,
-                message = frappe.render_template(employee_notification.message, {"doc": doc, "manager": manager_name}),
+                message = message,
                 subject = subject,
                 reference_doctype=doc.doctype,
                 reference_name=doc.name,
                 expose_recipients="header"
             )
+                create_notification_log(employee_id, subject, message, "Leave Application", doc.name)
+                if other_recipents:
+                    for other_recipent in other_recipents:
+                        create_notification_log(other_recipent, subject, message, "Leave Application", doc.name)
 
 
     elif doc.workflow_state == "Approved by Reporting Manager" and doc.has_value_changed("workflow_state"):
@@ -597,13 +672,15 @@ def on_update(doc, method):
                 # Notify the employee regarding the approval of their leave by Reporting Manager.
                 subject = frappe.render_template(hr_notification.subject, {"doc":doc,"manager":manager_name,"request_type":"Leave Application", "workflow_state": "Approved"})
                 if employee_id:
+                    message = frappe.render_template(hr_notification.message, {"doc": doc, "manager": manager_name, "hr_manager": hr_manager_name, "workflow_state": "Approved"}),
                     frappe.sendmail(
                     recipients=hr_manager_email,
-                    message = frappe.render_template(hr_notification.message, {"doc": doc, "manager": manager_name, "hr_manager": hr_manager_name, "workflow_state": "Approved"}),
+                    message = message,
                     subject = subject,
                     reference_doctype=doc.doctype,
                     reference_name=doc.name,
                 )
+                    create_notification_log(hr_manager_email, subject, message, "Leave Application", doc.name)
 
     # elif doc.workflow_state == "Rejected by Reporting Manager":
     #     doc.db_set("custom_pending_approval_at", "HR Team")
@@ -649,15 +726,20 @@ def on_update(doc, method):
             # Notify the employee regarding the rejection of their leave.
             subject = frappe.render_template(employee_notification.subject, {"doc":doc, "manager":manager_name,"request_type":"Leave Application"})
             if employee_id:
+                message = frappe.render_template(employee_notification.message, {"doc": doc, "manager": manager_name}),
                 frappe.sendmail(
                 recipients=employee_id,
                 cc = other_recipents,
-                message = frappe.render_template(employee_notification.message, {"doc": doc, "manager": manager_name}),
+                message = message,
                 subject = subject,
                 reference_doctype=doc.doctype,
                 reference_name=doc.name,
                 expose_recipients="header"
             )
+                create_notification_log(employee_id, subject, message, "Leave Application", doc.name)
+                if other_recipents:
+                    for other_recipent in other_recipents:
+                        create_notification_log(other_recipent, subject, message, "Leave Application", doc.name)
                 
     elif doc.workflow_state == "Extension Requested":
         notification = frappe.get_doc("Notification", "Leave Extension Request Notification")
@@ -665,15 +747,20 @@ def on_update(doc, method):
             # Notify the Reporting Manager about the leave extension request.
             subject = frappe.render_template(notification.subject, {"doc":doc,})
             if reporting_manager_id:
+                message = frappe.render_template(notification.message, {"doc": doc, "manager":reporting_manager_name}),
                 frappe.sendmail(
                 recipients=reporting_manager_id,
                 cc = other_recipents,
-                message = frappe.render_template(notification.message, {"doc": doc, "manager":reporting_manager_name}),
+                message = message,
                 subject = subject,
                 reference_doctype=doc.doctype,
                 reference_name=doc.name,
                 expose_recipients="header"
             )
+                create_notification_log(reporting_manager_id, subject, message, "Leave Application", doc.name)
+                if other_recipents:
+                    for other_recipent in other_recipents:
+                        create_notification_log(other_recipent, subject, message, "Leave Application", doc.name)
                 
     elif doc.workflow_state == "Extension Approved" or doc.workflow_state == "Extension Rejected":
         employee_notification = frappe.get_doc("Notification", "Leave Extension Request Response By Reporting Manager")
@@ -689,15 +776,20 @@ def on_update(doc, method):
             # Notify the employee regarding the approval/rejection of their leave extension.
             subject = frappe.render_template(employee_notification.subject, {"doc":doc, "manager":reporting_manager_name})
             if employee_id:
+                message = frappe.render_template(employee_notification.message, {"doc": doc, "manager":reporting_manager_name}),
                 frappe.sendmail(
                 recipients=employee_id,
                 cc = other_recipents,
-                message = frappe.render_template(employee_notification.message, {"doc": doc, "manager":reporting_manager_name}),
+                message = message,
                 subject = subject,
                 reference_doctype=doc.doctype,
                 reference_name=doc.name,
                 expose_recipients="header"
             )
+                create_notification_log(employee_id, subject, message, "Leave Application", doc.name)
+                if other_recipents:
+                    for other_recipent in other_recipents:
+                        create_notification_log(other_recipent, subject, message, "Leave Application", doc.name)
                 
 
 @frappe.whitelist()
@@ -2396,3 +2488,119 @@ def update_leave_application_acc_to_sandwich_rule(leave_app, date):
 
         if leave_ledger:
             frappe.db.set_value("Leave Ledger Entry", leave_ledger[0].name, "leaves", -1*total_days)
+
+
+def share_leave_with_manager(leave_doc):
+    
+    # Get employee linked to this leave
+    employee_id = leave_doc.employee
+    
+    if not employee_id:
+        return
+
+    # Get the manager linked in Employee's custom_dotted_line_manager field
+    manager_id = frappe.db.get_value("Employee", employee_id, "custom_dotted_line_manager")
+    
+    if not manager_id:
+        return
+
+    # Get the manager's user ID (needed for sharing the document)
+    manager_user_id = frappe.db.get_value("Employee", manager_id, "user_id")
+    
+    if not manager_user_id:
+        return
+
+    # Check if the leave application is already shared with the manager
+    existing_share = frappe.db.exists("DocShare", {
+        "share_doctype": "Leave Application",
+        "share_name": leave_doc.name,
+        "user": manager_user_id
+    })
+
+    if existing_share:
+        return
+
+    # Share the Leave Application with manager (read-only)
+    frappe.share.add_docshare(
+        doctype="Leave Application",
+        name=leave_doc.name,
+        user=manager_user_id,
+        read=1,      # Read permission
+        write=0,
+        share=0,
+        flags={"ignore_share_permission": True}
+    )
+
+@frappe.whitelist()
+def get_leave_application_event(start, end, filters=None):
+    """
+    #! FETCH LEAVE APPLICATION EVENTS BASED ON FILTERED EMPLOYEE (IF PROVIDED)
+    #! ELSE FALLBACK TO LOGGED-IN USER'S EMPLOYEE OR DEFAULT COMPANY
+    """
+
+    #? PARSE INCOMING FILTERS JSON
+    filters = json.loads(filters or "[]")
+
+    #? EXTRACT ONLY THE RELEVANT FIELDS: [fieldname, condition, value]
+    for idx, f in enumerate(filters):
+        # ORIGINAL FORMAT: [doctype, fieldname, condition, value, hidden]
+        filters[idx] = f[1:-1]
+
+    frappe.logger().debug({"parsed_filters": filters})  # OPTIONAL DEBUG LOG
+
+    events = []
+
+    #! DEFAULT: EMPLOYEE OF THE CURRENT LOGGED-IN USER
+    employee_doc = frappe.db.get_value(
+        "Employee",
+        filters={"user_id": frappe.session.user},
+        fieldname=["name", "company"],
+        as_dict=True
+    )
+
+    if employee_doc:
+        employee = employee_doc.name
+        company = employee_doc.company
+    else:
+        employee = ""
+        company = frappe.db.get_value("Global Defaults", None, "default_company")
+
+    #? TRY TO OVERRIDE EMPLOYEE FROM THE FILTERS (IF PASSED)
+    try:
+        # FILTER FORMAT AFTER SLICE: ['employee', '=', 'EMP-0001']
+        employee_filter = next(
+            (f for f in filters if len(f) >= 3 and f[0] == "employee"),
+            None
+        )
+        if employee_filter:
+            employee_value = employee_filter[2]
+            if employee_value:
+                employee = employee_value
+    except Exception:
+        frappe.log_error("Error getting employee filter from filters list")
+
+    #! HANDLE CASE WHEN EMPLOYEE FILTER VALUE IS A LIST (MULTIPLE EMPLOYEES)
+    if isinstance(employee, list):
+        employee_list = employee
+        try:
+            for emp in employee_list:
+                add_block_dates(events, start, end, emp, company)
+                add_holidays(events, start, end, emp, company)
+                user = frappe.db.get_value("Employee", {"name":emp}, "user_id")
+                if "S - Employee" in frappe.get_roles(user):
+                    add_department_leaves(events, start, end, employee, company)
+        except Exception:
+            frappe.log_error("Error while adding block dates/holidays for multiple employees")
+    else:
+        #? SINGLE EMPLOYEE OR DEFAULT
+        add_block_dates(events, start, end, employee, company)
+        add_holidays(events, start, end, employee, company)
+
+        #! ADD DEPARTMENT LEAVES IF USER HAS 'Employee' ROLE
+        if "S - Employee" in frappe.get_roles():
+            add_department_leaves(events, start, end, employee, company)
+
+    #! ADD LEAVES BASED ON THE FILTERS
+    add_leaves(events, start, end, filters)
+
+    return events

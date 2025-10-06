@@ -6,124 +6,174 @@ from frappe.model.document import Document
 from prompt_hr.utils import get_next_date, convert_month_to_days
 from prompt_hr.py.utils import send_notification_email
 class ProbationFeedbackForm(Document):
-	def on_submit(self):
-		"""Method to add Probation Details to Employee if company is equal to IndiFOSS Analytical Pvt Ltd when Probation Feedback Form is submitted.
-	"""
-		try:
-			company_abbr = frappe.db.get_single_value("HR Settings", "custom_indifoss_abbr")
-			if company_abbr:
-				company_id = frappe.db.get_value("Company", {"abbr": company_abbr}, "name")
-				# if self.employee and self.company == "IndiFOSS Analytical Pvt Ltd":
-				if company_id and (self.employee and self.company == company_id):
-					if self.probation_status == "Confirm":
-						if self.confirmation_date:
-							frappe.db.set_value("Employee", self.employee, "final_confirmation_date", self.confirmation_date)
-							frappe.db.set_value("Employee", self.employee, "custom_probation_status", "Confirmed")
+    
+    
+	# def on_submit(self):
+	# 	"""Method to add Probation Details to Employee if company is equal to IndiFOSS Analytical Pvt Ltd when Probation Feedback Form is submitted.
+	# """
+	# 	try:
+	# 		company_abbr = frappe.db.get_single_value("HR Settings", "custom_indifoss_abbr")
+	# 		if company_abbr:
+	# 			company_id = frappe.db.get_value("Company", {"abbr": company_abbr}, "name")
+	# 			# if self.employee and self.company == "IndiFOSS Analytical Pvt Ltd":
+	# 			if company_id and (self.employee and self.company == company_id):
+	# 				if self.probation_status == "Confirm":
+	# 					if self.confirmation_date:
+	# 						frappe.db.set_value("Employee", self.employee, "final_confirmation_date", self.confirmation_date)
+	# 						frappe.db.set_value("Employee", self.employee, "custom_probation_status", "Confirmed")
 							
 					
-					elif self.probation_status == "Extend":
-						probation_end_date = str(frappe.db.get_value("Employee", self.employee, "custom_probation_end_date")) or None
+	# 				elif self.probation_status == "Extend":
+	# 					probation_end_date = str(frappe.db.get_value("Employee", self.employee, "custom_probation_end_date")) or None
 						
-						if probation_end_date:
-							# extended_probation_end_date = add_to_date(probation_end_date, months=self.extension_period)
-							next_date_response = get_next_date(probation_end_date, self.extension_period)
+	# 					if probation_end_date:
+	# 						# extended_probation_end_date = add_to_date(probation_end_date, months=self.extension_period)
+	# 						next_date_response = get_next_date(probation_end_date, self.extension_period)
 							
-							if not next_date_response.get("error"):
+	# 						if not next_date_response.get("error"):
 								
-								extended_probation_end_date = next_date_response.get("message")
+	# 							extended_probation_end_date = next_date_response.get("message")
 								
-							else:
+	# 						else:
 								
-								frappe.throw(f"Error getting next date: {next_date_response.get('message')}")
-						else:
-							frappe.throw("No probation end date found for employee.")
-							extended_probation_end_date = None
+	# 							frappe.throw(f"Error getting next date: {next_date_response.get('message')}")
+	# 					else:
+	# 						frappe.throw("No probation end date found for employee.")
+	# 						extended_probation_end_date = None
 
 						
-						employee_doc = frappe.get_doc("Employee", self.employee)
+	# 					employee_doc = frappe.get_doc("Employee", self.employee)
 						
-						current_user = frappe.session.user
+	# 					current_user = frappe.session.user
 						
-						if current_user:
-							employee = frappe.db.get_value("Employee", {"user_id": current_user}, ["name", "employee_name"], as_dict=True)
-						else:
-							employee = None
-						if employee_doc:
-							employee_doc.append("custom_probation_extension_details", {
-								"probation_end_date": employee_doc.custom_probation_end_date,
-								"extended_date": extended_probation_end_date,
-								"reason": self.reason,
-								"extended_by": employee.get("name") if employee else '',
-								"extended_by_emp_name": employee.get("employee_name") if employee else ''
-							})
-							employee_doc.custom_probation_status = "Pending"
-							employee_doc.custom_extended_period = convert_month_to_days(self.extension_period) or 0
-							employee_doc.save(ignore_permissions=True)
-							frappe.db.commit()
+	# 					if current_user:
+	# 						employee = frappe.db.get_value("Employee", {"user_id": current_user}, ["name", "employee_name"], as_dict=True)
+	# 					else:
+	# 						employee = None
+	# 					if employee_doc:
+	# 						employee_doc.append("custom_probation_extension_details", {
+	# 							"probation_end_date": employee_doc.custom_probation_end_date,
+	# 							"extended_date": extended_probation_end_date,
+	# 							"reason": self.reason,
+	# 							"extended_by": employee.get("name") if employee else '',
+	# 							"extended_by_emp_name": employee.get("employee_name") if employee else ''
+	# 						})
+	# 						employee_doc.custom_probation_status = "Pending"
+	# 						employee_doc.custom_extended_period = convert_month_to_days(self.extension_period) or 0
+	# 						employee_doc.save(ignore_permissions=True)
+	# 						frappe.db.commit()
 					
-					elif self.probation_status == "Terminate":        
-							frappe.db.set_value("Employee", self.employee, "custom_probation_status", "Terminated")
-							frappe.db.set_value("Employee", self.employee, "relieving_date", self.last_work_date)
-							frappe.db.set_value("Employee", self.employee, "reason_for_leaving", self.reason_for_termination)
+	# 				elif self.probation_status == "Terminate":        
+	# 						frappe.db.set_value("Employee", self.employee, "custom_probation_status", "Terminated")
+	# 						frappe.db.set_value("Employee", self.employee, "relieving_date", self.last_work_date)
+	# 						frappe.db.set_value("Employee", self.employee, "reason_for_leaving", self.reason_for_termination)
 			
-				else:
-					if not company_id:
-						frappe.throw(f"No Company found for abbreviation {company_abbr}")
-			else:
-				frappe.throw("No Company Abbr found from HR Settings For Indifoss Company")
-		except Exception as e:
-			frappe.log_error(f"Error updating job applicant status", frappe.get_traceback())
-			frappe.throw(f"Error updating job applicant status: {str(e)}")
+	# 			else:
+	# 				if not company_id:
+	# 					frappe.throw(f"No Company found for abbreviation {company_abbr}")
+	# 		else:
+	# 			frappe.throw("No Company Abbr found from HR Settings For Indifoss Company")
+	# 	except Exception as e:
+	# 		frappe.log_error(f"Error updating job applicant status", frappe.get_traceback())
+	# 		frappe.throw(f"Error updating job applicant status: {str(e)}")
 				# frappe.db.set_value("Employee", self.employee, "relieving_date", self.last_work_date)
 				# frappe.db.set_value("Employee", self.employee, "reason_for_leaving", self.reason_for_termination)
 	
-	def validate(self):
-		
-		try:
-			#* CHECKING IF THE COMPANY IS IndiFOSS AND THE CURRENT USER IS A REPORTING MANAGER
-			company_abbr = frappe.db.get_single_value("HR Settings", "custom_indifoss_abbr")
-			if company_abbr:		
-				company_id = frappe.db.get_value("Company", {"abbr": company_abbr}, "name")
-				if company_id:
-					user = frappe.session.user
-					if self.reporting_manager and self.company: 
-						reporting_manager_user_id = frappe.db.get_value("Employee", self.reporting_manager, "user_id")
-						if reporting_manager_user_id:
-							if reporting_manager_user_id == user:
-								if any(row.get("180_days") not in["", None, 0.0, 0] for row in self.probation_feedback_indifoss):
-									dotted_manager_emp = frappe.db.get_value("Employee", self.employee, "custom_dotted_line_manager")
-									if dotted_manager_emp:
-										dotted_manager_user_id = frappe.db.get_value("Employee", dotted_manager_emp, "user_id")
-										if dotted_manager_user_id:
-											dotted_manager_user_email = frappe.db.get_value("User", dotted_manager_user_id, "email")
-											if dotted_manager_user_email:
-												notification_template = frappe.get_doc("Notification", "Inform Dotted Manager about Probation Feedback")
-												if notification_template:
-													subject = frappe.render_template(notification_template.subject, {"doc": self})
-													message = frappe.render_template(notification_template.message, {"doc": self})
-													frappe.sendmail(
-														recipients=[dotted_manager_user_email],
-														subject= subject if subject else "Probation Feedback Form Submitted",
-														message=message if message else f"Probation Feedback Form has been submitted by {self.employee_name} ({self.employee})",
-													)
-												else:
-													frappe.sendmail(
-														recipients=[dotted_manager_user_email],
-														subject="Probation Feedback Form Submitted",
-														message=f"Probation Feedback Form has been submitted by {self.employee_name} ({self.employee})",
-													)
-							else:
-								print(f"\n\n not same user \n\n")
-				else:
-					frappe.throw(f"Company Not found for abbreviation {company_abbr}")
+	def after_insert(self):
+		probation_for = None
+		if self.probation_feedback_for == "30 Days":
+			probation_for = "First"
+		elif self.probation_feedback_for == "60 Days":
+			probation_for = "Second"
 			
-			else:
-				frappe.throw("No Company Abbr found from HR Settings For Indifoss Company")
+		# *GETTING REPORTING HEAD USER OF THE EMPLOYEE
+		if self.reporting_manager:
+			rh_user = frappe.db.get_value("Employee", self.reporting_manager, "user_id") or  None
+		else:
+			rh_user = None
+			frappe.log_error("error_while_sending_feedback_creation_mail_to_hr", "No rh emp")
+
+
+		# *GETTING USER WITH HR ROLES AND THEN SENDING MAIL TO EMPLOYEES LINKED TO THESE USERS
+		hr_roles = ["S - HR Director (Global Admin)", "S - HR L1"]
+		if rh_user:
+			users_with_hr_roles = frappe.db.get_all("Has Role", {"parenttype": "User", "parent": ["!=", rh_user],"role": ["in", hr_roles]}, "parent", pluck="parent")
+		else:
+			users_with_hr_roles = frappe.db.get_all("Has Role", {"parenttype": "User","role": ["in", hr_roles]}, "parent", pluck="parent")
+	
+		try:
 			
 
+			form_url = frappe.utils.get_url_to_form(self.doctype, self.name)
+			subject = f"{probation_for}" if probation_for else ""
+			subject += f" Probation Feedback Form - {self.employee}: {self.employee_name}"
+
+			if users_with_hr_roles:				
+				message = f"<p>{probation_for}" if probation_for else "<p>"
+				message += f""" Probation Feedback Form has been generated for employee {self.employee}:{self.employee_name}.You can access the form using the following link: </p> <br><p>{probation_for if probation_for else ""} Probation Feedback Form Link: {form_url}</p>
+				"""
+				send_notification_email(recipients=users_with_hr_roles,doctype=self.doctype, docname=self.name, notification_name=0,fallback_message=message, fallback_subject=subject, send_header_greeting=True, send_link=False)
+			else:
+				frappe.log_error("error_while_sending_feedback_creation_mail_to_hr", "NO user with hr roles")
+
+			if rh_user:
+				message = f"<p>{probation_for}" if probation_for else "<p>"
+				message += f""" Probation Feedback Form has been generated for employee {self.employee}:{self.employee_name}. Kindly review the form and provide your ratings,</p><br><p>You can access the form using the following link: {form_url}"""
+
+				send_notification_email(recipients=[rh_user],doctype=self.doctype, docname=self.name, notification_name=0,fallback_message=message, fallback_subject=subject, send_header_greeting=True, send_link=False)
+				
 		except Exception as e:
-			frappe.log_error(f"Error updating job applicant status", frappe.get_traceback())
-			frappe.throw(f"Error updating job applicant status: {str(e)}")
+			frappe.log_error("error_while_sending_feedback_creation_mail_to_hr", frappe.get_traceback())
+				
+	
+
+	def validate(self):
+		pass
+		# try:
+		# 	#* CHECKING IF THE COMPANY IS IndiFOSS AND THE CURRENT USER IS A REPORTING MANAGER
+		# 	company_abbr = frappe.db.get_single_value("HR Settings", "custom_indifoss_abbr")
+		# 	if company_abbr:		
+		# 		company_id = frappe.db.get_value("Company", {"abbr": company_abbr}, "name")
+		# 		if company_id:
+		# 			user = frappe.session.user
+		# 			if self.reporting_manager and self.company: 
+		# 				reporting_manager_user_id = frappe.db.get_value("Employee", self.reporting_manager, "user_id")
+		# 				if reporting_manager_user_id:
+		# 					if reporting_manager_user_id == user:
+		# 						if any(row.get("180_days") not in["", None, 0.0, 0] for row in self.probation_feedback_indifoss):
+		# 							dotted_manager_emp = frappe.db.get_value("Employee", self.employee, "custom_dotted_line_manager")
+		# 							if dotted_manager_emp:
+		# 								dotted_manager_user_id = frappe.db.get_value("Employee", dotted_manager_emp, "user_id")
+		# 								if dotted_manager_user_id:
+		# 									dotted_manager_user_email = frappe.db.get_value("User", dotted_manager_user_id, "email")
+		# 									if dotted_manager_user_email:
+		# 										notification_template = frappe.get_doc("Notification", "Inform Dotted Manager about Probation Feedback")
+		# 										if notification_template:
+		# 											subject = frappe.render_template(notification_template.subject, {"doc": self})
+		# 											message = frappe.render_template(notification_template.message, {"doc": self})
+		# 											frappe.sendmail(
+		# 												recipients=[dotted_manager_user_email],
+		# 												subject= subject if subject else "Probation Feedback Form Submitted",
+		# 												message=message if message else f"Probation Feedback Form has been submitted by {self.employee_name} ({self.employee})",
+		# 											)
+		# 										else:
+		# 											frappe.sendmail(
+		# 												recipients=[dotted_manager_user_email],
+		# 												subject="Probation Feedback Form Submitted",
+		# 												message=f"Probation Feedback Form has been submitted by {self.employee_name} ({self.employee})",
+		# 											)
+		# 					else:
+		# 						print(f"\n\n not same user \n\n")
+		# 		else:
+		# 			frappe.throw(f"Company Not found for abbreviation {company_abbr}")
+			
+		# 	else:
+		# 		frappe.throw("No Company Abbr found from HR Settings For Indifoss Company")
+			
+
+		# except Exception as e:
+		# 	frappe.log_error(f"Error updating job applicant status", frappe.get_traceback())
+		# 	frappe.throw(f"Error updating job applicant status: {str(e)}")
 	
 	# def dotted_manager_ratings(self):
 	# 	try:

@@ -1,0 +1,41 @@
+<p>Dear {{ user }},</p>
+
+<p>
+  We would like to inform you that the following shift request has been 
+  <strong style="color:#d9534f;">Deleted successfully</strong> from the system:
+</p>
+
+<table width="100%" cellspacing="0" cellpadding="8" 
+       style="border-collapse: collapse; margin: 15px 0; font-size: 14px; border:1px solid #444;">
+  <tr>
+    <td style="width:30%; font-weight:bold; border:1px solid #444; background-color:#f7f7f7;">Employee</td>
+    <td style="border:1px solid #444;">{{ doc.employee_name }}</td>
+  </tr>
+  <tr>
+    <td style="font-weight:bold; border:1px solid #444; background-color:#f7f7f7;">Leave Type</td>
+    <td style="border:1px solid #444;">{{ doc.shift_type }}</td>
+  </tr>
+  <tr>
+    <td style="font-weight:bold; border:1px solid #444; background-color:#f7f7f7;">From Date</td>
+    <td style="border:1px solid #444;">{{ frappe.utils.format_date(doc.from_date, "dd-MM-yyyy") }}</td>
+  </tr>
+  <tr>
+    <td style="font-weight:bold; border:1px solid #444; background-color:#f7f7f7;">To Date</td>
+    <td style="border:1px solid #444;">
+        {% if doc.to_date %}
+            {{ frappe.utils.format_date(doc.to_date, "dd-MM-yyyy") }}
+        {% else %}
+            <!-- Empty string or alternative content -->
+        {% endif %}
+    </td>
+  </tr>
+</table>
+
+<p>
+  If you have any questions or need further assistance, please contact the HR Manager.
+</p>
+
+<p style="margin-top:20px;">
+  Regards,<br>
+  <strong>HR Management System</strong>
+</p>

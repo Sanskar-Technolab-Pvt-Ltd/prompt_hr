@@ -235,16 +235,22 @@ def on_update(doc, method):
                         assignment_doc.submit()
                         frappe.msgprint("Paternity Leave Policy Assigned")
 
-    print(f"\n\n is new {doc.flags.in_insert}\n\n")
+
     # ? ASSIGN LEAVE POLICY TO EMPLOYEE ON CHANGE OF LEAVE POLICY ON EMPLOYEE
     if doc.custom_leave_policy and doc.has_value_changed("custom_leave_policy"):
 
         # ? IF POLICY ASSIGNMENT IS BASED ON JOINING DATE
-        if doc.custom_leave_policy_assignment_based_on_joining:
+        if doc.custom_leave_policy_assignment_based_on_joining and doc.flags.in_insert:
             # ? CREATE ASSIGNMENT BASED ON JOINING DATE (NO LEAVE PERIOD REQUIRED)
             if is_leave_policy_assigned_from_employee_master:
+                
                 create_leave_policy_assignment(doc, 1)
 
+        elif doc.custom_leave_policy_assignment_based_on_custom_dates and doc.flags.in_insert:
+            # ? CREATE ASSIGNMENT BASED ON CUSTOM DATES (NO LEAVE PERIOD REQUIRED)
+            if is_leave_policy_assigned_from_employee_master:
+                
+                create_leave_policy_assignment(doc, 0)
         else:
             # ? FIND CURRENT ACTIVE LEAVE PERIOD (CONTAINING TODAY)
             active_leave_period = frappe.get_all(
@@ -268,8 +274,9 @@ def on_update(doc, method):
                     
                     old_doc = doc.get_doc_before_save()
                     
-                    if not doc.custom_leave_policy_assignment_based_on_custom_dates:
+                    if not doc.custom_leave_policy_assignment_based_on_custom_dates or not doc.flags.in_insert:
                         if not old_doc:
+                            
                             create_leave_policy_assignment(doc, 0, active_leave_period[0].get("name"))
                             return
                                                     
@@ -313,8 +320,6 @@ def on_update(doc, method):
                             old_earned_leave_types = old_leave_policy_leave_types.get("earned_leave_types") or []
                             old_other_leave_types = old_leave_policy_leave_types.get("other_leave_types") or []
                             
-                            print(f"\n\n {old_earned_leave_types} {old_other_leave_types} \n\n")
-                            
                             new_earned_leave_types = new_leave_policy_leave_types.get("earned_leave_types")
                                                         
                             leave_allocation_to_date = active_leave_period[0].get("to_date")
@@ -324,7 +329,6 @@ def on_update(doc, method):
                                 
                                 leave_allocation_exists = frappe.db.get_all("Leave Allocation", {"employee": doc.name,"leave_policy": old_leave_policy, "leave_type": old_earned_leave_type.get("leave_type"),"from_date":["<=", getdate()], "to_date": [">=", getdate()]}, ["name", "leave_type", "to_date"], limit=1)
                                 
-                                print(f"\n\n leava allocation exisst old one {leave_allocation_exists} \n\n")
                                 
                                 if leave_allocation_exists:
 
@@ -340,7 +344,6 @@ def on_update(doc, method):
                                             frappe.db.set_value("Leave Ledger Entry", leave_ledger_entry_id[0].get("name"), "to_date", add_to_date(confirmation_date, days=-1))
                                 
                                 else:
-                                    print(f"\n\n no earned leave found \n\n")
                                     run_create_policy_assignment_method = True if not old_other_leave_types else False
                                     both_leave_types_not_found = True
                                                                                                                                             
@@ -355,7 +358,6 @@ def on_update(doc, method):
                                         frappe.db.set_value("Leave Allocation", leave_allocation_id, "leave_policy_assignment", "")
                                     
                                 else:
-                                    print(f"\n\n no earned leave found \n\n")
                                     if both_leave_types_not_found:
                                         run_create_policy_assignment_method = True
                                     else:                                                                               
@@ -367,7 +369,6 @@ def on_update(doc, method):
                                 final_leaves_to_allocate = 0.0
                                 
                                 if is_calculate_leave_allocation:
-                                    print(f"\n\n inside calculation of leave allocation \n\n")
                                     new_allocated_leaves = new_earned_leave_type.get("annual_allocation")
                                     frappe.log_error("new_allocated_leaves", new_allocated_leaves)
                                     
@@ -376,7 +377,6 @@ def on_update(doc, method):
                                     if new_allocated_leaves:
                                         new_monthly_allocated_leaves = float(new_allocated_leaves) / 12
                                     
-                                    frappe.log_error("new_monthly_allocated_leaves", new_monthly_allocated_leaves)
                                     for old_earned_leave_type in old_earned_leave_types:
                                         old_monthly_allocated_leaves = 0.0
                                         
@@ -398,7 +398,7 @@ def on_update(doc, method):
                                 if not run_create_policy_assignment_method:
                                     create_leave_allocation(doc.name, doc.custom_leave_policy, confirmation_date, new_earned_leave_type.get("leave_type"), leave_allocation_to_date, final_leaves_to_allocate)
                                                         
-                                                            
+                                                        
                     if run_create_policy_assignment_method:
                         create_leave_policy_assignment(doc, 0, active_leave_period[0].get("name"))
                         
@@ -503,7 +503,7 @@ def validate(doc, method):
             },
             "name",
         )
-
+                                
         if holiday_list:
             if doc.holiday_list != holiday_list:
                 doc.holiday_list = holiday_list
@@ -512,7 +512,22 @@ def validate(doc, method):
 
             if holiday_list:
                 doc.holiday_list = holiday_list
+        
+        
+        if doc.custom_in_probation:
+            joining_date = getdate(doc.date_of_joining)
+            
+            if doc.custom_probation_status == "Pending" and doc.custom_probation_period:
+                if doc.custom_extended_period == 0:
+                    doc.custom_probation_end_date = getdate(add_to_date(joining_date, days=doc.custom_probation_period))
+                
+                # elif doc.custom_extended_period:
+                #     total_extended_days = doc.custom_probation_period + doc.custom_extended_period
+                #     doc.custom_probation_end_date = getdate(add_to_date(joining_date, days=total_extended_days))
+                
 
+def update_probation(doc):
+    pass
 
 # def create_holiday_list(doc):
 #     """Creating Holiday list by Fetching Dates from the festival holiday list and calculating date based on days mentioned in weeklyoff type between from date to date in festival holiday list"""
@@ -832,12 +847,10 @@ def send_probation_extension_letter(name):
     subject = frappe.render_template(notification.subject, {"doc": doc})
     message = frappe.render_template(notification.message, {"doc": doc})
     email = None
-    company_abbr = frappe.db.get_value("Company", doc.company, "abbr")
-    if company_abbr == frappe.db.get_single_value("HR Settings", "custom_prompt_abbr"):
-        letter_name = "Probation Extension Letter - Prompt"
-    else:
-        letter_name = "Probation Extension Letter - Indifoss"
-    if doc.prefered_contact_email:
+    
+    letter_name = "Probation Extension Letter - Prompt"
+    
+    if doc.prefered_contact_email:  
         if doc.prefered_contact_email == "Company Email":
             email = doc.company_email
         elif doc.prefered_contact_email == "Personal Email":
@@ -959,7 +972,7 @@ def create_exit_approval_process(user_response, employee, notice_number_of_days=
 
         exit_approval_process = frappe.new_doc("Exit Approval Process")
         exit_approval_process.employee = employee
-        exit_approval_process.resignation_approval = ""
+        exit_approval_process.resignation_approval = "Pending"
         exit_approval_process.posting_date = getdate()
         exit_approval_process.notice_period_days = notice_number_of_days
         exit_approval_process.last_date_of_working = getdate() + timedelta(
@@ -1735,59 +1748,66 @@ def create_shift_assignment(doc):
 
 # ? METHOD TO CREATE LEAVE POLICY ASSIGNMENT
 def create_leave_policy_assignment(employee_doc, based_on_joining_date, leave_period=None):
-	assignment_based_on = "Joining Date" if based_on_joining_date else "Leave Period"
+    assignment_based_on = "Joining Date" if based_on_joining_date else "Leave Period"
 
-	if employee_doc.custom_leave_policy_assignment_based_on_custom_dates:
-		assignment_based_on = "Custom Dates"
+    if employee_doc.custom_leave_policy_assignment_based_on_custom_dates:
+        print(f"\n\n CUSTOM DATES IS SELECTED \n\n")
+        assignment_based_on = "Custom Dates"
 
 
-	# ? CREATE DOCUMENT
-	doc = frappe.new_doc("Leave Policy Assignment")
-	doc.employee = employee_doc.name
-	doc.assignment_based_on = assignment_based_on
-	doc.leave_policy = employee_doc.custom_leave_policy
+    # ? CREATE DOCUMENT
+    doc = frappe.new_doc("Leave Policy Assignment")
+    doc.employee = employee_doc.name
+    print(f"\n\n ASSIGNMENT BASED ON {assignment_based_on} \n\n")
+    
+    doc.assignment_based_on = assignment_based_on
+    doc.leave_policy = employee_doc.custom_leave_policy
 
-	# ? SET EFFECTIVE DATES BASED ON JOINING DATE
-	if doc.assignment_based_on == "Joining Date" and doc.employee:
-		employee_joining_date = frappe.db.get_value("Employee", doc.employee, "date_of_joining")
-		if employee_joining_date:
-			doc.effective_from = employee_joining_date
-
-			# ? TRY TO FIND A MATCHING ACTIVE LEAVE PERIOD
-			leave_period = frappe.db.get_value(
-				"Leave Period",
-				{
-					"from_date": ("<=", employee_joining_date),
-					"to_date": (">=", employee_joining_date),
-					"is_active": 1
-				},
-				"to_date"
-			)
-
-			if leave_period:
-				doc.effective_to = leave_period
-			else:
-				# ? SET TO 31ST DECEMBER OF THE JOINING YEAR
-				joining_dt = getdate(employee_joining_date)
-				dec_31 = datetime(joining_dt.year, 12, 31)
-				doc.effective_to = dec_31.date()
-	
-    # ? SET LEAVE PERIOD IF AVAILABLE
-	if assignment_based_on == "Custom Dates":
-		if employee_doc.custom_leave_policy_assignment_from_date and employee_doc.custom_leave_policy_assignment_to_date:
-			doc.assignment_based_on = ""
-			doc.effective_from = employee_doc.custom_leave_policy_assignment_from_date
-			doc.effective_to = employee_doc.custom_leave_policy_assignment_to_date
+    # ? SET EFFECTIVE DATES BASED ON JOINING DATE
+    print(f"\n\n Leave Period Exists {leave_period} \n\n")
+    if doc.assignment_based_on == "Joining Date" and doc.employee:
+        print(f"\n\n RUNNING THIS JOIN BASED ON JOINING DATE \n\n")
+        employee_joining_date = frappe.db.get_value("Employee", doc.employee, "date_of_joining")
+        if employee_joining_date:
             
-	# ? SET LEAVE PERIOD IF AVAILABLE
-	elif leave_period:
-		doc.assignment_based_on = "Leave Period"
-		doc.leave_period = leave_period
+            doc.effective_from = employee_joining_date
 
-	doc.save()
-	doc.submit()
+            # ? TRY TO FIND A MATCHING ACTIVE LEAVE PERIOD
+            leave_period = frappe.db.get_value(
+                "Leave Period",
+                {
+                    "from_date": ("<=", employee_joining_date),
+                    "to_date": (">=", employee_joining_date),
+                    "is_active": 1
+                },
+                "to_date"
+            )
 
-	return doc.name
+            if leave_period:
+                doc.effective_to = leave_period
+            else:
+                # ? SET TO 31ST DECEMBER OF THE JOINING YEAR
+                joining_dt = getdate(employee_joining_date)
+                dec_31 = datetime(joining_dt.year, 12, 31)
+                doc.effective_to = dec_31.date()
+
+    # ? SET LEAVE PERIOD IF AVAILABLE
+    elif assignment_based_on == "Custom Dates":
+        if employee_doc.custom_leave_policy_assignment_from_date and employee_doc.custom_leave_policy_assignment_to_date:
+            doc.assignment_based_on = ""
+            doc.effective_from = employee_doc.custom_leave_policy_assignment_from_date
+            doc.effective_to = employee_doc.custom_leave_policy_assignment_to_date
+            
+    # ? SET LEAVE PERIOD IF AVAILABLE
+    elif leave_period:
+        print(f"\n\n LEAVE PERIOD EXISTS  \n\n")
+        doc.assignment_based_on = "Leave Period"
+        doc.leave_period = leave_period
+
+    doc.save()
+    doc.submit()
+
+    return doc.name
 
 
 def before_save(doc, method=None):

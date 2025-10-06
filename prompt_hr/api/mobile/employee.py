@@ -447,20 +447,39 @@ def profile_form_url():
         }
 
 
+from urllib.parse import urljoin, urlparse, parse_qs, urlencode, urlunparse
+import frappe
+from frappe.utils import get_url
+
+
 @frappe.whitelist()
 def resignation_form_url():
     try:
-        url = get_url()
+        base_url = get_url()
         hr_setting = frappe.get_doc("HR Settings", "HR Settings")
-
-        # Get current user + session ID (no need to re-login)
         user = frappe.session.user
         sid = frappe.session.sid
 
-        if hr_setting.custom_resignation_url:
-            final_url = f"{url}{hr_setting.custom_resignation_url}?sid={sid}"
-        else:
-            final_url = f"{url}/app?sid={sid}"
+        # ? GET LINKED EMPLOYEE
+        employee_name = frappe.db.get_value("Employee", {"user_id": user}, "name")
+        if not employee_name:
+            frappe.throw("No Employee record linked with current user.")
+
+      
+        path = f"/app/employee"
+
+        path += f"/{employee_name}"
+        # ? PARSE EXISTING URL TO MERGE QUERY PARAMS SAFELY
+        url_parts = urlparse(urljoin(base_url, path))
+        query_dict = parse_qs(url_parts.query)
+
+        # ? ADD MANDATORY QUERY PARAMS
+        query_dict["sid"] = [sid]
+        query_dict["raise_resignation"] = ["1"]
+
+        # ? REBUILD QUERY STRING SAFELY
+        new_query = urlencode(query_dict, doseq=True)
+        final_url = urlunparse(url_parts._replace(query=new_query))
 
     except Exception as e:
         frappe.log_error("Error While Getting Resignation URL", str(e))
@@ -470,7 +489,6 @@ def resignation_form_url():
             "message": str(e),
             "data": None,
         }
-
     else:
         frappe.local.response["message"] = {
             "success": True,
