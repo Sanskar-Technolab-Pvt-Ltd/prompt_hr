@@ -9,7 +9,6 @@ from hrms.hr.utils import get_salary_assignments
 from hrms.payroll.doctype.salary_structure.salary_structure import make_salary_slip
 from hrms.regional.india.utils import calculate_hra_exemption, get_component_pay, get_end_date_for_assignment, has_hra_component
 from hrms.hr.doctype.attendance.attendance import add_holidays, add_attendance
-from hrms.hr.doctype.leave_application.leave_application import add_block_dates, add_department_leaves, add_holidays, add_leaves
 from frappe.utils import get_datetime
 import re
 
@@ -977,83 +976,6 @@ def get_colored_events(doctype, start, end, field_map, filters=None, fields=None
         record["textColor"] = style["text"]
 
     return records
-
-@frappe.whitelist()
-def get_leave_application_event(start, end, filters=None):
-    """
-    #! FETCH LEAVE APPLICATION EVENTS BASED ON FILTERED EMPLOYEE (IF PROVIDED)
-    #! ELSE FALLBACK TO LOGGED-IN USER'S EMPLOYEE OR DEFAULT COMPANY
-    """
-
-    import json
-
-    #? PARSE INCOMING FILTERS JSON
-    filters = json.loads(filters or "[]")
-
-    #? EXTRACT ONLY THE RELEVANT FIELDS: [fieldname, condition, value]
-    for idx, f in enumerate(filters):
-        # ORIGINAL FORMAT: [doctype, fieldname, condition, value, hidden]
-        filters[idx] = f[1:-1]
-
-    frappe.logger().debug({"parsed_filters": filters})  # OPTIONAL DEBUG LOG
-
-    events = []
-
-    #! DEFAULT: EMPLOYEE OF THE CURRENT LOGGED-IN USER
-    employee_doc = frappe.db.get_value(
-        "Employee",
-        filters={"user_id": frappe.session.user},
-        fieldname=["name", "company"],
-        as_dict=True
-    )
-
-    if employee_doc:
-        employee = employee_doc.name
-        company = employee_doc.company
-    else:
-        employee = ""
-        company = frappe.db.get_value("Global Defaults", None, "default_company")
-
-    #? TRY TO OVERRIDE EMPLOYEE FROM THE FILTERS (IF PASSED)
-    try:
-        # FILTER FORMAT AFTER SLICE: ['employee', '=', 'EMP-0001']
-        employee_filter = next(
-            (f for f in filters if len(f) >= 3 and f[0] == "employee"),
-            None
-        )
-        if employee_filter:
-            employee_value = employee_filter[2]
-            if employee_value:
-                employee = employee_value
-    except Exception:
-        frappe.log_error("Error getting employee filter from filters list")
-
-    #! HANDLE CASE WHEN EMPLOYEE FILTER VALUE IS A LIST (MULTIPLE EMPLOYEES)
-    if isinstance(employee, list):
-        employee_list = employee
-        try:
-            for emp in employee_list:
-                add_block_dates(events, start, end, emp, company)
-                add_holidays(events, start, end, emp, company)
-                user = frappe.db.get_value("Employee", {"name":emp}, "user_id")
-                if "S - Employee" in frappe.get_roles(user):
-                    add_department_leaves(events, start, end, employee, company)
-        except Exception:
-            frappe.log_error("Error while adding block dates/holidays for multiple employees")
-    else:
-        #? SINGLE EMPLOYEE OR DEFAULT
-        add_block_dates(events, start, end, employee, company)
-        add_holidays(events, start, end, employee, company)
-
-        #! ADD DEPARTMENT LEAVES IF USER HAS 'Employee' ROLE
-        if "S - Employee" in frappe.get_roles():
-            add_department_leaves(events, start, end, employee, company)
-
-    #! ADD LEAVES BASED ON THE FILTERS
-    add_leaves(events, start, end, filters)
-
-    return events
-
 
 # ! PROMPT_HR.PY.UTILS.SHARE_DOC_WITH_EMPLOYEE
 @frappe.whitelist()

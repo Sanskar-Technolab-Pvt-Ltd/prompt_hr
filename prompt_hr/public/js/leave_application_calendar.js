@@ -17,5 +17,5 @@ frappe.views.calendar["Leave Application"] = {
 			right: "month",
 		},
 	},
-	get_events_method: "prompt_hr.py.utils.get_leave_application_event",
+	get_events_method: "prompt_hr.py.leave_application.get_leave_application_event",
 };
