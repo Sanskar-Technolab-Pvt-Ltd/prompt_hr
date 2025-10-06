@@ -15,27 +15,6 @@ from prompt_hr.py.utils import get_prompt_company_name, get_indifoss_company_nam
 
 
 
-def onload(doc, method):
-    """Remove sensitive fields for specific users"""
-    # ? List of fields to be removed
-    sensitive_fields = ["ctc", "iban", "micr_code", "ifsc_code", "bank_ac_no", "bank_name", "provident_fund_account", "pan_number", "salary_mode", "payroll_cost_center", "salary_currency", "personal_email", "person_to_be_contacted", "custom_father_name", "custom_mother_name", "custom_spouse_name", "custom_children_names", "emergency_phone_number", "custom_home_phone", "relation"]
-
-    # ? List of allowed roles
-    allowed_roles = ["S - HR Director (Global Admin)", "S - HR L1","Administrator"]
-    
-    # ? If the user is the owner of the document, do not remove sensitive fields or has roles mentioned in allowed_roles
-    if (doc.get("user_id") and frappe.session.user == doc.get("user_id")) or any(role in frappe.get_roles(frappe.session.user) for role in allowed_roles):        
-        return
-    
-    # ? If the user does not match, then remove sensitive fields
-    else:
-        for field in sensitive_fields:
-            if hasattr(doc, field):
-                delattr(doc, field)
-        
-
-
-
 
 # ? FUNCTION TO CREATE WELCOME PAGE RECORD FOR GIVEN USER
 def create_welcome_status(user_id, company):
@@ -2196,3 +2175,31 @@ def update_leave_and_notice_for_confirmed_employee(doc, state=None):
                         if new_policy:
                             # ? UPDATE LEAVE POLICY FOR EMPLOYEE
                             doc.custom_leave_policy = new_policy
+
+@frappe.whitelist()
+def get_field_visibility_settings(employee=None, user=None):
+    """
+    GET FIELD VISIBILITY SETTINGS FOR EMPLOYEE
+    """
+    if not employee and not user:
+        return {}
+
+    if not employee:
+        employee = frappe.db.get_value("Employee", {"user_id": user}, "name")
+
+    if not employee:
+        return {}
+
+    # ? GET FIELD VISIBILITY SETTINGS FOR EMPLOYEE
+    hr_settings = frappe.get_single("HR Settings")
+    employee_data  = {}
+    field_visibility_settings = []
+    if hr_settings.custom_employee_master_self_visible_fields:
+        for field in hr_settings.custom_employee_master_self_visible_fields:
+            field_visibility_settings.append(field.field_name)
+
+
+    if field_visibility_settings:
+        employee_data = frappe.get_all('Employee', {"employee": employee}, field_visibility_settings)[0]
+
+    return employee_data
