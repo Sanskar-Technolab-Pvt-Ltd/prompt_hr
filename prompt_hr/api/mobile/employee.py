@@ -496,7 +496,7 @@ def resignation_form_url():
             "data": final_url,
         }
 
-
+from frappe.auth import LoginManager
 @frappe.whitelist()
 def employee_details_url():
     try:
@@ -505,6 +505,10 @@ def employee_details_url():
 
         # Ensure we have the current user
         user = frappe.session.user
+        # Generate a new session for the user
+        login_manager = LoginManager()
+        login_manager.user = user
+        login_manager.post_login()
         sid = frappe.session.sid
 
         if hr_setting.custom_employee_details_url:
