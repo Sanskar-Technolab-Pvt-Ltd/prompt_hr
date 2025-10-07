@@ -369,7 +369,12 @@ def prompt_employee_attendance_penalties():
                             subject=email_details.get("subject"),
                             message=email_details.get("message"),
                         )
-                        create_notification_log(email_details.get("email"), email_details.get("subject"), email_details.get("message"))
+                        try:
+                            create_notification_log(email_details.get("email"), email_details.get("subject"), email_details.get("message"), "Employee", emp_id)
+                        except Exception as e:
+                            frappe.log_error(
+                                "Error in Creating Notification Log", str(e)
+                            )
                 else:
                     if email_details and email_details.get("email"):
                         clean_penalties = clean_dates(penalties)
