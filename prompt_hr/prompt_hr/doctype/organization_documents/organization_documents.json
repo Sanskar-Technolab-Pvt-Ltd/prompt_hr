@@ -1,42 +1,36 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "field:document_name",
  "creation": "2025-03-31 12:34:14.812837",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
   "document_name",
+  "publish_date",
   "type",
-  "attachment",
   "column_break_rgkt",
   "is_published",
-  "publish_date",
   "is_acknowledgement_mendatory",
   "templates",
-  "access_criteria_section",
-  "department",
-  "designation",
-  "employment_type",
-  "column_break_ufyg",
-  "employee_grade",
-  "work_location"
+  "section_break_mlkd",
+  "documents",
+  "section_break_gqtu",
+  "access_criteria"
  ],
  "fields": [
   {
    "fieldname": "document_name",
    "fieldtype": "Data",
-   "label": "Document Name"
+   "label": "Document Name",
+   "unique": 1
   },
   {
    "fieldname": "type",
    "fieldtype": "Select",
+   "hidden": 1,
    "label": "Type",
    "options": "Policy\nPost\nArticle"
-  },
-  {
-   "fieldname": "attachment",
-   "fieldtype": "Attach",
-   "label": "Attachment"
   },
   {
    "fieldname": "column_break_rgkt",
@@ -57,60 +51,44 @@
    "default": "0",
    "fieldname": "is_acknowledgement_mendatory",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "Is Acknowledgement Mendatory"
-  },
-  {
-   "fieldname": "access_criteria_section",
-   "fieldtype": "Section Break",
-   "label": "Access Criteria"
-  },
-  {
-   "fieldname": "department",
-   "fieldtype": "Link",
-   "label": "Department",
-   "options": "Department"
-  },
-  {
-   "fieldname": "designation",
-   "fieldtype": "Link",
-   "label": "Designation",
-   "options": "Designation"
-  },
-  {
-   "fieldname": "employment_type",
-   "fieldtype": "Link",
-   "label": "Employment Type",
-   "options": "Employment Type"
-  },
-  {
-   "fieldname": "column_break_ufyg",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "employee_grade",
-   "fieldtype": "Link",
-   "label": "Employee Grade",
-   "options": "Employee Grade"
-  },
-  {
-   "fieldname": "work_location",
-   "fieldtype": "Link",
-   "label": "Work Location",
-   "options": "Address"
   },
   {
    "fieldname": "templates",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "Templates"
+  },
+  {
+   "fieldname": "section_break_mlkd",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "documents",
+   "fieldtype": "Table",
+   "label": "Documents",
+   "options": "Documents Table"
+  },
+  {
+   "fieldname": "section_break_gqtu",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "access_criteria",
+   "fieldtype": "Table",
+   "label": "Access Criteria",
+   "options": "Access Criteria"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-22 15:36:12.835540",
+ "modified": "2025-10-07 12:25:36.438199",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Organization Documents",
+ "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
   {

@@ -1,0 +1,32 @@
+{
+ "add_total_row": 0,
+ "add_translate_data": 0,
+ "columns": [],
+ "creation": "2025-10-07 16:22:02.352078",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "letter_head": "Prompt - Letter Head",
+ "letterhead": null,
+ "modified": "2025-10-07 16:36:10.376461",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Organization Policies Report",
+ "owner": "Administrator",
+ "prepared_report": 0,
+ "ref_doctype": "Organization Documents",
+ "report_name": "Organization Policies Report",
+ "report_type": "Script Report",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "S - Employee"
+  }
+ ],
+ "timeout": 0
+}
