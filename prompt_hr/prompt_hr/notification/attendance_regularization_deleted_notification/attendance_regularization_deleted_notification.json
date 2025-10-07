@@ -10,9 +10,9 @@
  "event": "Custom",
  "idx": 0,
  "is_standard": 1,
- "message": "<p>Dear {{ user }},</p>\n\n<p>\n  We would like to inform you that the following Attendance Regularization has been \n  <strong style=\"color:#d9534f;\">Deleted successfully</strong> from the system:\n</p>\n\n<table width=\"100%\" cellspacing=\"0\" cellpadding=\"8\" \n       style=\"border-collapse: collapse; margin: 15px 0; font-size: 14px; border:1px solid #444;\">\n  <tr>\n    <td style=\"width:30%; font-weight:bold; border:1px solid #444; background-color:#f7f7f7;\">Employee</td>\n    <td style=\"border:1px solid #444;\">{{ doc.employee_name }}</td>\n  </tr>\n  <tr>\n    <td style=\"font-weight:bold; border:1px solid #444; background-color:#f7f7f7;\">Regularization Date</td>\n    <td style=\"border:1px solid #444;\">{{ frappe.utils.format_date(doc.regularization_date, \"dd-MM-yyyy\") }}</td>\n  </tr>\n</table>\n\n<p>\n  If you have any questions or need further assistance, please contact the HR Manager.\n</p>\n\n<p style=\"margin-top:20px;\">\n  Regards,<br>\n  <strong>HR Management System</strong>\n</p>",
+ "message": "<p>\n  A attendance regularization for employee {{doc.employee}} has been deleted by {{current_user}}. \n</p>\n\n<p><b>Request Summary:</b></p>\n\n<ul>\n    <li><b>Employee:</b> {{doc.employee}}</li>\n    <li><b>Regularization Date:</b> {{frappe.utils.format_date(doc.regularization_date, \"dd-MM-yyyy\") }}</li>\n\n</ul>",
  "message_type": "HTML",
- "modified": "2025-10-04 19:22:57.378748",
+ "modified": "2025-10-07 19:26:37.755576",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Attendance Regularization Deleted Notification",
@@ -22,5 +22,5 @@
  ],
  "send_system_notification": 1,
  "send_to_all_assignees": 0,
- "subject": "Attendance Regularization Deleted : {{docname}}"
+ "subject": "Attendance Regularization - {{doc.employee}}"
 }

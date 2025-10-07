@@ -10,9 +10,9 @@
  "event": "Custom",
  "idx": 0,
  "is_standard": 1,
- "message": "<p>Dear <b>{{ employee_name }}</b>,</p>\n\n<p>\n    Please be informed that the following leave deductions have been scheduled\n    as a penalty on <b>{{ frappe.format_date(penalty_date,\"dd-MM-yyyy\") }}</b>:\n</p>\n\n<table border=\"1\" cellpadding=\"6\" cellspacing=\"0\"\n       style=\"border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 14px;\">\n    <thead style=\"background-color: #f2f2f2;\">\n        <tr>\n            <th style=\"text-align: left;\">Leave Type</th>\n            <th style=\"text-align: left;\">Leave Amount</th>\n            <th style=\"text-align: left;\">Reason</th>\n\n        </tr>\n    </thead>\n    <tbody>\n        {%- set penalty_doc = frappe.get_doc(\"Employee Penalty\", penalty) -%}\n        {% if penalty_doc %}\n            {% for row in penalty_doc.leave_penalty_details %}\n            <tr>\n                <td>{{ row.leave_type }}</td>\n                <td>{{ row.leave_amount }}</td>\n                <td> {{row.reason}}</td>\n            </tr>\n            {% endfor %}\n        {% endif %}\n    </tbody>\n</table>\n\n<p>\n    These leave deductions will automatically be applied on the penalty date mentioned above.\n</p>\n\n<p>\n    If you have any questions or need clarification, please contact the HR department.\n</p>\n\n<p><br></p>\n\n<p>\n    Warm regards,<br>\n    HR Team<br>\n</p>\n",
- "message_type": "Markdown",
- "modified": "2025-09-14 18:34:50.273911",
+ "message": "<p>Dear <b>{{ employee_name }}</b>,</p>\n\n<p>\n    This is to inform you that a penalty has been applied for the date \n    <b>{{ frappe.format_date(penalty_date, \"dd-MM-yyyy\") }}</b>, \n    as per the company\u2019s policy guidelines.\n</p>\n\n<table border=\"1\" cellpadding=\"6\" cellspacing=\"0\" \n       style=\"border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 14px;\">\n    <thead style=\"background-color: #f2f2f2;\">\n        <tr>\n            <th style=\"text-align: left;\">Leave Type</th>\n            <th style=\"text-align: left;\">Leave Amount</th>\n            <th style=\"text-align: left;\">Reason</th>\n        </tr>\n    </thead>\n    <tbody>\n        {%- set penalty_doc = frappe.get_doc(\"Employee Penalty\", penalty) -%}\n        {% if penalty_doc %}\n            {% for row in penalty_doc.leave_penalty_details %}\n            <tr>\n                <td>{{ row.leave_type }}</td>\n                <td>{{ row.leave_amount }}</td>\n                <td>{{ row.reason }}</td>\n            </tr>\n            {% endfor %}\n        {% endif %}\n    </tbody>\n</table>\n",
+ "message_type": "HTML",
+ "modified": "2025-10-07 15:47:38.457341",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Penalty Notification",
@@ -22,5 +22,5 @@
  ],
  "send_system_notification": 1,
  "send_to_all_assignees": 0,
- "subject": "Penalty Applied to You on {{ frappe.format_date(penalty_date, \"dd-MMM-yyyy\") }}"
+ "subject": "Penalty Applied - {{employee_name}}"
 }

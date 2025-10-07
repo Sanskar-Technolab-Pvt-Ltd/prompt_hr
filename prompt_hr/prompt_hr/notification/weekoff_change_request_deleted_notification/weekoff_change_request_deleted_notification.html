@@ -1,43 +1,9 @@
-<p>Dear {{ user }},</p>
-
 <p>
-  We would like to inform you that the following Weekoff Change Request has been 
-  <strong style="color:#d9534f;">Deleted successfully</strong> from the system:
+  A weekoff change request for employee {{doc.employee}} has been deleted by {{current_user}}. 
 </p>
 
-<table width="100%" cellspacing="0" cellpadding="8" 
-       style="border-collapse: collapse; margin: 15px 0; font-size: 14px; border:1px solid #444;">
-  <tr>
-    <td style="width:30%; font-weight:bold; border:1px solid #444; background-color:#f7f7f7;">Employee</td>
-    <td style="border:1px solid #444;">{{ doc.employee_name }}</td>
-  </tr>
-  <tr>
-    <td colspan="2" style="font-weight:bold; border:1px solid #444; background-color:#f7f7f7; text-align:center;">
-      Weekoff Date Changes
-    </td>
-  </tr>
-  <tr>
-    <td style="font-weight:bold; border:1px solid #444; background-color:#f7f7f7;">Existing Weekoff Date</td>
-    <td style="font-weight:bold; border:1px solid #444; background-color:#f7f7f7;">New Weekoff Date</td>
-  </tr>
-  {% for row in doc.weekoff_details %}
-  <tr>
-    <td style="border:1px solid #444;">
-      {{ frappe.utils.format_date(row.existing_weekoff_date, "dd-MM-yyyy") if row.existing_weekoff_date else "" }}
-    </td>
-    <td style="border:1px solid #444;">
-      {{ frappe.utils.format_date(row.new_weekoff_date, "dd-MM-yyyy") if row.new_weekoff_date else "" }}
-    </td>
-  </tr>
-  {% endfor %}
-</table>
+<p><b>Request Summary:</b></p>
 
-
-<p>
-  If you have any questions or need further assistance, please contact the HR Manager.
-</p>
-
-<p style="margin-top:20px;">
-  Regards,<br>
-  <strong>HR Management System</strong>
-</p>
+<ul>
+    <li><b>Employee:</b> {{doc.employee}}</li>
+</ul>

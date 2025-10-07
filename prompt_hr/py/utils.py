@@ -75,6 +75,7 @@ def send_notification_email(
     doctype,
     docname,
     notification_name,
+    cc = [],
     send_link=True,
     button_label="View Details",
     button_link="None",
@@ -186,9 +187,11 @@ def send_notification_email(
             # ? SEND EMAIL WITH OPTIONAL ATTACHMENT
             frappe.sendmail(
                 recipients=[email],
+                cc = cc,
                 subject=subject,
                 message=final_message,
                 attachments=attachments if attachments else None,
+                expose_recipients="header"
             )
 
     except Exception as e:
@@ -1067,3 +1070,38 @@ def create_notification_log(user, subject, message, document_type=None, document
         frappe.log_error(
             "Error in Sending Email Notifications", str(e)
         )
+
+def get_employee_email(employee=None):
+    """
+    RETURN THE BEST AVAILABLE EMAIL ADDRESS FOR AN EMPLOYEE.
+    PRIORITY ORDER:
+    1. user_id (linked user email)
+    2. company_email
+    3. personal_email
+    """
+
+    #! VALIDATE INPUT
+    if not employee:
+        return None
+
+    #! FETCH RELEVANT FIELDS IN ONE DB CALL
+    employee_data = frappe.db.get_value(
+        "Employee",
+        employee,
+        ["user_id", "company_email", "personal_email"],
+        as_dict=True
+    )
+
+    if not employee_data:
+        return None
+
+    #! PRIORITY CHECK ORDER
+    if employee_data.user_id:
+        return employee_data.user_id
+    elif employee_data.company_email:
+        return employee_data.company_email
+    elif employee_data.personal_email:
+        return employee_data.personal_email
+
+    #! FALLBACK (NO EMAIL FOUND)
+    return None

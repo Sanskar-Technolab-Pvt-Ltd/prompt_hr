@@ -1,27 +1,18 @@
-<p>Dear {{ manager_name }},</p>
+<p>Dear <b>{{ manager_name }}</b>,</p>
 
-    <p>
-      A <strong>Shift Request</strong> from
-      <strong>{{ doc.employee_name }}</strong>
-      (Employee ID: <strong>{{ doc.employee }}</strong>)
-      is awaiting your approval.
-    </p>
+<p>
+    A shift request has been submitted by <b>{{ doc.employee }}</b>.  
+    Please review the details below and take the necessary action.
+</p>
 
-    <p>
-      <strong>Shift:</strong> {{ doc.shift_type }}<br>
-      <strong>From Date:</strong> {{ frappe.format_date(doc.from_date) }}<br>
-      {% if doc.to_date %}
-      <strong>To Date:</strong> {{ frappe.format_date(doc.to_date) }}
-      {% endif %}
-    </p>
-
-    <p>Please review the request and approve or reject it.</p>
-
-    <a href="{{ frappe.utils.get_url() }}/app/{{ doc.doctype | lower | replace(' ', '-') }}/{{ doc.name }}" class="btn btn-primary">
-      Review
-    </a>
-
-    <p class="footer">
-      Regards,<br>
-      HR Team
-    </p>
+<p><b>Request Summary:</b></p>
+<ul>
+    <li><b>Employee:</b> {{ doc.employee }}</li>
+    <li><b>Shift Type:</b> {{ doc.shift_type }}</li>
+    <li><b>Workflow State:</b> {{ doc.workflow_state }}</li>
+    <li>
+        <b>View Request:</b>
+        {% set shift_link = frappe.utils.get_url() ~ '/app/shift-request/' ~ doc.name %}
+        <a href="{{ shift_link }}">Click here</a>
+    </li>
+</ul>

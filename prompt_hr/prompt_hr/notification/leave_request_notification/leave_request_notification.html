@@ -6,22 +6,18 @@ Dear {{ manager }},<br><br>
 {% if doc.doctype == "Compensatory Leave Request" %}
 A compensatory leave request has been submitted and requires your attention. Please find the details below:<br><br>
 {% else %}
-A leave application has been submitted and requires your attention. Please find the details below:<br><br>
+A leave application has been submitted by {{doc.employee}}.<br>
+Please review the details below and take the necessary action.
+<br><br>
 {% endif %}
-- <b>Employee Name:</b> {{ doc.employee_name }}<br>
-- <b>Employee ID:</b> {{ employee.employee_number }}<br>
+Request Summary:<br>
+- <b>Employee:</b> {{ doc.employee }}<br>
 - <b>Leave Type:</b> {{ doc.leave_type }}<br>
+- <b>Workflow State:</b> {{doc.workflow_state}} <br>
 {% if doc.doctype == "Compensatory Leave Request" %}
 - <b>Compensatory Work Period:</b> {{ frappe.utils.format_date(doc.work_from_date,"dd-MM-yyyy") }} to {{ frappe.utils.format_date(doc.work_end_date,"dd-MM-yyyy") }}<br>
 - <b>Reason:</b> {{ doc.reason or 'Not provided' }}<br>
-{% else %}
-- <b>Leave Period:</b> {{ frappe.utils.format_date(doc.from_date,"dd-MM-yyyy") }} to {{ frappe.utils.format_date(doc.to_date,"dd-MM-yyyy") }}<br>
-- <b>Reason:</b> {{ doc.description or 'Not provided' }}<br>
 {% endif %}
-- <b>Request Link:</b> <a href="{{ frappe.utils.get_url() }}/app/{{ doc.doctype|lower|replace(' ', '-') }}/{{ doc.name }}">View Request</a><br><br>
+- <b>View Request:</b> <a href="{{ frappe.utils.get_url() }}/app/{{ doc.doctype|lower|replace(' ', '-') }}/{{ doc.name }}">Click Here</a><br><br>
 
-You are kindly requested to review this application and take the necessary action at your earliest convenience.<br><br>
 
-Thank you,<br>
-HR Manager, <br>
-{{company or ""}}

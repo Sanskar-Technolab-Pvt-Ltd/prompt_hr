@@ -10,9 +10,9 @@
  "event": "Custom",
  "idx": 0,
  "is_standard": 1,
- "message": "Dear {{hr_manager or \"HR Manager\"}},<br><br>\n\nThe Reporting Manager {{ manager }} has <b> {{ workflow_state }}</b> a {{ doc.leave_type }} request. Please find the details below:<br><br>\n{% set employee = frappe.get_doc(\"Employee\",doc.employee) %}\n<b>Employee Details:</b><br>\n- <b>Name:</b> {{ doc.employee_name }}<br>\n- <b>Employee ID:</b> {{ employee.employee_number }}<br>\n<br>\n\n<b>Leave Details:</b><br>\n- <b>Leave Type:</b> {{ doc.leave_type }}<br>\n{% if doc.doctype == \"Compensatory Leave Request\" %}\n- <b>Compensatory Work Period:</b> {{frappe.utils.format_date(doc.work_from_date,\"dd-MM-yyyy\") }} to {{ frappe.utils.format_date(doc.work_end_date,\"dd-MM-yyyy\") }}<br>\n{% else %}\n- <b>Leave Period:</b> {{ frappe.utils.format_date(doc.from_date, \"dd-MM-yyyy\") }} to {{ frappe.utils.format_date(doc.to_date, \"dd-MM-yyyy\") }}<br>\n{% endif %}\n- <b>Current Status:</b> {{ doc.workflow_state }}<br>\n<br>\n\n<b>Request Link:</b> <a href=\"{{ frappe.utils.get_url() }}/app/{{ doc.doctype|lower|replace(' ', '-') }}/{{ doc.name }}\">View Request</a><br><br>\n\n{% if doc.workflow_state == \"Approved by Reporting Manager\" %}\nAs this request has been Approved by the Reporting Manager, it is now pending your action.<br><br>\n\n\n{% endif %}\n\nThank you,<br>\nHR System\n",
+ "message": "<p>\n    A leave application for employee <b>{{ doc.employee }}</b> has been <b>Approved</b> by <b>{{ manager }}</b>.\n    {% if doc.workflow_state == \"Approved by Reporting Manager\" %}\n        <br>Please review the details below and take the necessary action.\n    {% endif %}\n</p>\n\n<p><b>Request Summary:</b></p>\n\n<ul>\n    <li><b>Employee:</b> {{doc.employee}}</li>\n    <li><b>Leave Type:</b> {{ doc.leave_type }}</li>\n    <li><b>Workflow State:</b> {{ doc.workflow_state }}</li>\n    <li>\n        <b>View Request:</b>\n        {% set leave_link = frappe.utils.get_url() ~ '/app/leave-application/' ~ doc.name %}\n        <a href=\"{{ leave_link }}\">Click here</a>\n    </li>\n</ul>\n",
  "message_type": "HTML",
- "modified": "2025-09-24 15:45:19.516004",
+ "modified": "2025-10-07 17:14:55.673483",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Leave Request Status Update to HR Manager",
@@ -22,5 +22,5 @@
  ],
  "send_system_notification": 1,
  "send_to_all_assignees": 0,
- "subject": "Manager has {{ workflow_state }} a {{request_type}}"
+ "subject": "{{request_type}} - {{doc.employee}}"
 }

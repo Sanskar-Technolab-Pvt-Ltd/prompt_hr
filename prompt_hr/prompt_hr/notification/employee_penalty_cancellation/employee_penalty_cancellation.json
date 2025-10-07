@@ -10,9 +10,9 @@
  "event": "Custom",
  "idx": 0,
  "is_standard": 1,
- "message": "<p>Dear All,</p>\n\n<p>\n  This is to inform you that the penalty applied to\n  <strong>{{ employee_name }}</strong> on\n  <strong>{{ frappe.utils.format_date(penalty_date) }}</strong>\n  (Penalty ID: <strong>{{ penalty }}</strong>)\n  has been <strong>cancelled</strong> by\n  <strong>{{ current_user }}</strong>.\n</p>\n\n{% if reason %}\n<p><strong>Reason:</strong> {{ reason }}</p>\n{% endif %}\n\n{% set penalty_link = frappe.utils.get_url() ~ '/app/employee-penalty/' ~ penalty %}\n<p>You can view the penalty record here:\n   <a href=\"{{ penalty_link }}\">{{ penalty }}</a>\n</p>\n\n<p>Regards,<br/>HR Manager</p>\n",
- "message_type": "Markdown",
- "modified": "2025-09-14 15:38:55.821303",
+ "message": "<p>The penalty applied to employee {{employee_name}} for {{ frappe.utils.format_date(penalty_date) }} has been cancelled by {{current_user}}</p>\n\n<p>{% set penalty_link = frappe.utils.get_url() ~ '/app/employee-penalty/' ~ penalty %}</p>\n\n<p>Penalty Summary:</p>\n<ul>\n    <li><b>Employee:</b> {{employee_name}}</li>\n    <li><b>Date of Penalty:</b> {{ frappe.utils.format_date(penalty_date) }}</li>\n    <li><b>View Request:</b> <a href=\"{{ penalty_link }}\">Click here</a></li>\n</ul>\n",
+ "message_type": "HTML",
+ "modified": "2025-10-07 15:14:53.508292",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Penalty Cancellation",
@@ -22,5 +22,5 @@
  ],
  "send_system_notification": 1,
  "send_to_all_assignees": 0,
- "subject": "Penalty Cancelled \u2014 {{ penalty or \"\" }}"
+ "subject": "Penalty Cancelled - {{ employee_name or \"\" }}"
 }

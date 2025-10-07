@@ -1,18 +1,20 @@
 {% set manager_name = frappe.db.get_value("Employee", doc.attendance_request, "employee_name") %}
+
 <p>Dear <b>{{ manager_name }}</b>,</p>
 
 <p>
-    A weekoff change request has been submitted by <b>{{ doc.employee }}</b>.<br>
+    A attendance request has been submitted by <b>{{ doc.employee }}</b>.<br>
     Please review the details below and take the necessary action.
 </p>
 
 <p><b>Request Summary:</b></p>
 <ul>
     <li><b>Employee:</b> {{ doc.employee }}</li>
+    <li><b>Type:</b> {{ doc.reason }}</li>
     <li><b>Workflow State:</b> {{ doc.workflow_state }}</li>
     <li>
         <b>View Request:</b>
-        {% set weekoff_change_link = frappe.utils.get_url() ~ '/app/weekoff-change-request/' ~ doc.name %}
-        <a href="{{ weekoff_change_link }}">Click here</a>
+        {% set att_req_link = frappe.utils.get_url() ~ '/app/attendance-request/' ~ doc.name %}
+        <a href="{{ att_req_link }}">Click here</a>
     </li>
 </ul>

@@ -10,9 +10,9 @@
  "event": "Custom",
  "idx": 0,
  "is_standard": 1,
- "message": "<p>{% set rh_emp = frappe.db.get_value(\"Employee\", doc.employee, \"reports_to\") %}\n{% if rh_emp %}\n    {% set reporting_head = frappe.db.get_value(\"Employee\", rh_emp, \"employee_name\")%}\n{% else %}\n    {% set reporting_head = \"Reporting Head\"%}\n{% endif %}</p>\n\n<p>Dear {{ reporting_head }},<br>\n An attendance request has been created\u2014please review it at your convenience.</p>\n",
- "message_type": "Markdown",
- "modified": "2025-05-06 16:10:50.091519",
+ "message": "{% set manager_name = frappe.db.get_value(\"Employee\", doc.attendance_request, \"employee_name\") %}\n\n<p>Dear <b>{{ manager_name }}</b>,</p>\n\n<p>\n    A attendance request has been submitted by <b>{{ doc.employee }}</b>.<br>\n    Please review the details below and take the necessary action.\n</p>\n\n<p><b>Request Summary:</b></p>\n<ul>\n    <li><b>Employee:</b> {{ doc.employee }}</li>\n    <li><b>Type:</b> {{ doc.reason }}</li>\n    <li><b>Workflow State:</b> {{ doc.workflow_state }}</li>\n    <li>\n        <b>View Request:</b>\n        {% set att_req_link = frappe.utils.get_url() ~ '/app/attendance-request/' ~ doc.name %}\n        <a href=\"{{ att_req_link }}\">Click here</a>\n    </li>\n</ul>\n",
+ "message_type": "HTML",
+ "modified": "2025-10-07 19:08:23.266096",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Attendance Request Creation",
@@ -20,5 +20,5 @@
  "recipients": [],
  "send_system_notification": 0,
  "send_to_all_assignees": 1,
- "subject": "Attendance Request Created by {{doc.employee}}"
+ "subject": "Attendance Request - {{doc.employee}}"
 }
