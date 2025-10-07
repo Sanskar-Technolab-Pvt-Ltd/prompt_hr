@@ -255,7 +255,7 @@ class AttendanceRegularization(Document):
                             subject=subject,
                             message=message,
                         )
-                        create_notification_log(employee_user_id, subject, message, "Attendance Regularization")
+                        create_notification_log(employee_user_id, subject, message, "Employee", attendance_reg_doc.employee)
 
                     if reporting_manager_id:
                         user_display_name = reporting_manager_name or reporting_manager_id
@@ -265,7 +265,7 @@ class AttendanceRegularization(Document):
                             subject=subject,
                             message=message,
                         )
-                        create_notification_log(reporting_manager_id, subject, message, "Attendance Regularization")
+                        create_notification_log(reporting_manager_id, subject, message, "Employee", reporting_manager)
 
             frappe.db.commit()
             frappe.msgprint(

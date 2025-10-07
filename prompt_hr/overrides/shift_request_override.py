@@ -32,7 +32,7 @@ class CustomShiftRequest(ShiftRequest):
                             subject=subject,
                             message=message,
                         )
-                        create_notification_log(employee_user_id, subject, message, "Shift Request")
+                        create_notification_log(employee_user_id, subject, message, "Employee", shift_request_doc.employee)
 
                     if reporting_manager_id:
                         user_display_name = reporting_manager_name or reporting_manager_id
@@ -42,7 +42,7 @@ class CustomShiftRequest(ShiftRequest):
                             subject=subject,
                             message=message,
                         )
-                        create_notification_log(reporting_manager_id, subject, message, "Shift Request")
+                        create_notification_log(reporting_manager_id, subject, message, "Employee",reporting_manager)
 
             frappe.db.commit()
             frappe.msgprint(

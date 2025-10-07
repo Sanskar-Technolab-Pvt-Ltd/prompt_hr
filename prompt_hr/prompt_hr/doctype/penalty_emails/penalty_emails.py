@@ -52,7 +52,11 @@ def send_penalty_emails(docname: str, selected_row_names: str | None = None):
                     subject=subject,
                     message=message
                 )
-                create_notification_log(recipient, subject, message)
+                try:
+                    employee = frappe.db.get_value("Employee", {"user_id": recipient}, "name")
+                    create_notification_log(recipient, subject, message, "Employee", employee)
+                except Exception as e:
+                    frappe.log_error("Failed to create notification log",str(e))
                 email_row.sent = 1
                 successfully_sent_rows.append(email_row)
             except Exception as e:

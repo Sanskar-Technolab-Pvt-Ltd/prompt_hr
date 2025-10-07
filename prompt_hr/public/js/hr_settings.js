@@ -158,14 +158,31 @@ frappe.ui.form.on("Penalization Criteria", {
 frappe.ui.form.on("Employee Self Visible Fields", {
     custom_employee_master_self_visible_fields_add: async function (frm, cdt, cdn) {
         let options = await getEmployeeFields();
-        if (options.length) {
-        
-            frm.fields_dict["custom_employee_master_self_visible_fields"].grid.update_docfield_property(
-                "field_label",
-                "options",
-                options.map(o => o.label)
-            );
-        }
+        let type_options = await getEmployeeFieldTypes();
+            if (options && options.length && type_options && type_options.length) {
+                const seen_labels = new Set();
+
+                // ? FILTER OUT TABLE FIELDS + DUPLICATE LABELS + EMPLOYEE ID
+                const filtered_options = options.filter(o => {
+                    const field_info = type_options.find(t => t.value === o.value);
+
+                    // Skip if fieldtype is "Table"
+                    if (field_info && field_info.fieldtype === "Table" || field_info.fieldtype === "Table MultiSelect") return false;
+
+                    // Skip duplicate labels
+                    if (seen_labels.has(o.label)) return false;
+                    seen_labels.add(o.label);
+
+                    return true;
+                });
+
+                // ? UPDATE DROPDOWN OPTIONS IN CHILD TABLE FIELD
+                frm.fields_dict["custom_employee_master_self_visible_fields"].grid.update_docfield_property(
+                    "field_label",
+                    "options",
+                    filtered_options.map(o => o.label)
+                );
+            }
     },
     field_label: function (frm, cdt, cdn) {
         let row = locals[cdt][cdn];
@@ -295,11 +312,29 @@ async function set_employee_fields_in_employee_basic_details(frm) {
 async function set_employee_fields_in_employee_self_visible_fields(frm) {
     
     let options = await getEmployeeFields();
-    if (options.length) {
+    let type_options = await getEmployeeFieldTypes();
+    if (options && options.length && type_options && type_options.length) {
+        const seen_labels = new Set();
+
+        // ? FILTER OUT TABLE FIELDS + DUPLICATE LABELS + EMPLOYEE ID
+        const filtered_options = options.filter(o => {
+            const field_info = type_options.find(t => t.value === o.value);
+
+            // Skip if fieldtype is "Table"
+            if (field_info && (field_info.fieldtype === "Table" || field_info.fieldtype === "Table MultiSelect")) return false;
+
+            // Skip duplicate labels
+            if (seen_labels.has(o.label)) return false;
+            seen_labels.add(o.label);
+
+            return true;
+        });
+
+        // ? UPDATE DROPDOWN OPTIONS IN CHILD TABLE FIELD
         frm.fields_dict["custom_employee_master_self_visible_fields"].grid.update_docfield_property(
             "field_label",
             "options",
-            options.map(o => o.label)
+            filtered_options.map(o => o.label)
         );
 
         frm.employee_field_map = {};
