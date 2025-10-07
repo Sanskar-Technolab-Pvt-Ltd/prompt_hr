@@ -1,0 +1,23 @@
+<p>{% set manager_name = frappe.db.get_value("Employee", {"user_id": frappe.session.user}, "name") %}</p>
+
+<p>Dear <b>{{ doc.employee }}</b>,</p>
+
+<p>
+    Your attendance regularization has been Approved by {{manager_name}}.<br>
+Please find the details below:
+
+</p>
+
+<p><b>Request Summary:</b></p>
+
+<ul>
+    <li><b>Employee:</b> {{ doc.employee }}</li>
+    <li><b>Workflow State:</b> Approved</li>
+    <li><b>Regularization Date:</b> {{frappe.utils.format_date(doc.regularization_date, "dd-MM-yyyy")}}</li>
+
+    <li>
+        <b>View Request:</b>
+        {% set att_reg_link = frappe.utils.get_url() ~ '/app/attendance-regularization/' ~ doc.name %}
+        <a href="{{ att_reg_link }}">Click here</a>
+    </li>
+</ul>

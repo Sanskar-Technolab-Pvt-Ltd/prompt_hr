@@ -1,29 +1,19 @@
-Dear {{hr_manager or "HR Manager"}},<br><br>
+<p>
+    A leave application for employee <b>{{ doc.employee }}</b> has been <b>Approved</b> by <b>{{ manager }}</b>.
+    {% if doc.workflow_state == "Approved by Reporting Manager" %}
+        <br>Please review the details below and take the necessary action.
+    {% endif %}
+</p>
 
-The Reporting Manager {{ manager }} has <b> {{ workflow_state }}</b> a {{ doc.leave_type }} request. Please find the details below:<br><br>
-{% set employee = frappe.get_doc("Employee",doc.employee) %}
-<b>Employee Details:</b><br>
-- <b>Name:</b> {{ doc.employee_name }}<br>
-- <b>Employee ID:</b> {{ employee.employee_number }}<br>
-<br>
+<p><b>Request Summary:</b></p>
 
-<b>Leave Details:</b><br>
-- <b>Leave Type:</b> {{ doc.leave_type }}<br>
-{% if doc.doctype == "Compensatory Leave Request" %}
-- <b>Compensatory Work Period:</b> {{frappe.utils.format_date(doc.work_from_date,"dd-MM-yyyy") }} to {{ frappe.utils.format_date(doc.work_end_date,"dd-MM-yyyy") }}<br>
-{% else %}
-- <b>Leave Period:</b> {{ frappe.utils.format_date(doc.from_date, "dd-MM-yyyy") }} to {{ frappe.utils.format_date(doc.to_date, "dd-MM-yyyy") }}<br>
-{% endif %}
-- <b>Current Status:</b> {{ doc.workflow_state }}<br>
-<br>
-
-<b>Request Link:</b> <a href="{{ frappe.utils.get_url() }}/app/{{ doc.doctype|lower|replace(' ', '-') }}/{{ doc.name }}">View Request</a><br><br>
-
-{% if doc.workflow_state == "Approved by Reporting Manager" %}
-As this request has been Approved by the Reporting Manager, it is now pending your action.<br><br>
-
-
-{% endif %}
-
-Thank you,<br>
-HR System
+<ul>
+    <li><b>Employee:</b> {{doc.employee}}</li>
+    <li><b>Leave Type:</b> {{ doc.leave_type }}</li>
+    <li><b>Workflow State:</b> {{ doc.workflow_state }}</li>
+    <li>
+        <b>View Request:</b>
+        {% set leave_link = frappe.utils.get_url() ~ '/app/leave-application/' ~ doc.name %}
+        <a href="{{ leave_link }}">Click here</a>
+    </li>
+</ul>

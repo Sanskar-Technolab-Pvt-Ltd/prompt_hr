@@ -1,0 +1,10 @@
+<p>The penalty applied to employee {{employee_name}} for {{ frappe.utils.format_date(penalty_date) }} has been cancelled by {{current_user}}</p>
+
+<p>{% set penalty_link = frappe.utils.get_url() ~ '/app/employee-penalty/' ~ penalty %}</p>
+
+<p>Penalty Summary:</p>
+<ul>
+    <li><b>Employee:</b> {{employee_name}}</li>
+    <li><b>Date of Penalty:</b> {{ frappe.utils.format_date(penalty_date) }}</li>
+    <li><b>View Request:</b> <a href="{{ penalty_link }}">Click here</a></li>
+</ul>

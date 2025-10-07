@@ -7,7 +7,8 @@ from prompt_hr.py.utils import (
     send_notification_email,
     is_user_reporting_manager_or_hr,
     get_reporting_manager_info,
-    create_notification_log
+    create_notification_log,
+    get_employee_email,
 )
 from datetime import datetime
 from frappe.utils import get_datetime, getdate, format_date, get_link_to_form
@@ -116,9 +117,8 @@ class AttendanceRegularization(Document):
                 # *----------------------------------------------------------------------------------
                 # * SENDING MAIL TO INFORM EMPLOYEE ABOUT ATTENDANCE REGULARIZATION IS APPROVED AND ONLY SENDING MAIL IF EMPLOYEE IS NOT NOTIFIED
                 if not self.employee_notified:
-                    emp_user_id = frappe.db.get_value(
-                        "Employee", self.employee, "user_id"
-                    )
+                    emp_user_id = get_employee_email(self.employee)
+                    reporting_manager_id = get_employee_email(self.reporting_manager)
                     if emp_user_id:
 
                         # ? EMAIL SHOULD ONLY SENT IN AUTO APPROVAL CASE IF IT IS ENABLE IN HR SETTINGS
@@ -136,12 +136,18 @@ class AttendanceRegularization(Document):
                                 )
                                 if not is_email_sent_allowed:
                                     return
+                                
+                        if reporting_manager_id:
+                            cc = [reporting_manager_id]
+                        else:
+                            cc = []
                         send_notification_email(
                             recipients=[emp_user_id],
                             notification_name="Attendance Regularization Approved",
                             doctype="Attendance Regularization",
                             docname=self.name,
-                            send_link=True,
+                            cc=cc,
+                            send_link=False,
                             fallback_subject=f"Attendance Regularization Approved for {self.regularization_date}",
                             fallback_message=f"<p>Dear {self.employee_name},</p> <br> <p>This is to inform you that your Attendance Regularization request for {self.regularization_date} has been reviewed and approved.</p>",
                         )
@@ -149,7 +155,8 @@ class AttendanceRegularization(Document):
 
             if self.status == "Rejected" and not self.employee_notified:
 
-                emp_user_id = frappe.db.get_value("Employee", self.employee, "user_id")
+                emp_user_id = get_employee_email(self.employee)
+                reporting_manager_id = get_employee_email(self.reporting_manager)
                 if emp_user_id:
 
                     # ? EMAIL SHOULD ONLY SENT IN AUTO APPROVAL CASE IF IT IS ENABLE IN HR SETTINGS
@@ -167,12 +174,17 @@ class AttendanceRegularization(Document):
                             if not is_email_sent_allowed:
                                 return
 
+                    if reporting_manager_id:
+                        cc = [reporting_manager_id]
+                    else:
+                        cc = []
                     send_notification_email(
                         recipients=[emp_user_id],
                         notification_name="Attendance Regularization Rejected",
                         doctype="Attendance Regularization",
                         docname=self.name,
-                        send_link=True,
+                        cc = cc,
+                        send_link=False,
                         fallback_subject=f"Attendance Regularization Rejected for {self.regularization_date}",
                         fallback_message=f"<p>Dear {self.employee_name},</p> <br> <p>This is to inform you that your Attendance Regularization request for {self.regularization_date} has been reviewed and has unfortunately been rejected.</p>",
                     )
@@ -237,35 +249,34 @@ class AttendanceRegularization(Document):
             reporting_manager = attendance_reg_doc.reporting_manager
 
             # ? Get user IDs and names if present
-            employee_user_id = frappe.db.get_value('Employee', employee, "user_id") if employee else None
-            reporting_manager_id = frappe.db.get_value("Employee", reporting_manager, "user_id") if reporting_manager else None
+            employee_user_id = get_employee_email(employee) if employee else None
+            reporting_manager_id = get_employee_email(reporting_manager) if reporting_manager else None
             reporting_manager_name = None
             if reporting_manager:
                 reporting_manager_name = frappe.db.get_value("Employee", reporting_manager, "employee_name")
 
             if employee_user_id or reporting_manager_id:
+                recipients = []
+                if employee_user_id:
+                    recipients.append(employee_user_id)
+                if reporting_manager_id:
+                    recipients.append(reporting_manager_id)
                 notification_doc = frappe.get_doc("Notification", "Attendance Regularization Deleted Notification")
                 if notification_doc:
-                    subject = frappe.render_template(notification_doc.subject, {"docname": attendance_reg_doc.name})
+                    user = frappe.session.user
+                    current_user = frappe.db.get_value("Employee", {"user_id":user}, "name") or user
+                    subject = frappe.render_template(notification_doc.subject, {"doc": attendance_reg_doc})
+                    message = frappe.render_template(notification_doc.message, {"doc": attendance_reg_doc, "current_user": current_user})
 
                     if employee_user_id:
-                        message = frappe.render_template(notification_doc.message, {"doc": attendance_reg_doc, "user": attendance_reg_doc.employee_name})
                         frappe.sendmail(
-                            recipients=[employee_user_id],
+                            recipients=recipients,
                             subject=subject,
                             message=message,
                         )
-                        create_notification_log(employee_user_id, subject, message, "Employee", attendance_reg_doc.employee)
-
-                    if reporting_manager_id:
-                        user_display_name = reporting_manager_name or reporting_manager_id
-                        message = frappe.render_template(notification_doc.message, {"doc": attendance_reg_doc, "user": user_display_name})
-                        frappe.sendmail(
-                            recipients=[reporting_manager_id],
-                            subject=subject,
-                            message=message,
-                        )
-                        create_notification_log(reporting_manager_id, subject, message, "Employee", reporting_manager)
+                        if recipients:
+                            for recipient in recipients:
+                                create_notification_log(recipient, subject, message, "Employee", attendance_reg_doc.employee)
 
             frappe.db.commit()
             frappe.msgprint(

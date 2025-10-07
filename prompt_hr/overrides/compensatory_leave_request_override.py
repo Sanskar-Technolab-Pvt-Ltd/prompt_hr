@@ -13,13 +13,16 @@ class CustomCompensatoryLeaveRequest(CompensatoryLeaveRequest):
 
     # ? CALLED ON CANCEL OF COMPENSATORY LEAVE REQUEST
     def on_cancel(self):
+        # ! Skip if already rejected
+        if self.get("workflow_state") in ["Rejected"]:
+            # ? Set workflow state to Cancelled after cancellation
+            if self.get("workflow_state"):
+                self.db_set("workflow_state", "Cancelled")
+            return
+
         # ? Set workflow state to Cancelled after cancellation
         if self.get("workflow_state"):
             self.db_set("workflow_state", "Cancelled")
-
-        # ! Skip if already rejected
-        if self.get("workflow_state") in ["Rejected"]:
-            return
 
         # ? PROCEED ONLY IF LEAVE ALLOCATION EXISTS
         if self.leave_allocation:

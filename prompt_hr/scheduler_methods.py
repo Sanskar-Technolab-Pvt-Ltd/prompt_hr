@@ -2762,12 +2762,12 @@ def send_penalty_warnings(emp_id, penalization_data, penalization_date=None):
                     continue
 
             subject = frappe.render_template(
-                notification.subject, {"employee_name": employee.employee_name}
+                notification.subject, {"employee_name": employee.name}
             )
             message = frappe.render_template(
                 notification.message,
                 {
-                    "employee_name": employee.employee_name,
+                    "employee_name": employee.name,
                     "penalization_date": penalization_date,
                     "penalization_data": penalization_data,
                     "company": employee.company,
