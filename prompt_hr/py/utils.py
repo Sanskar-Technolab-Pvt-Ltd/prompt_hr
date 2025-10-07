@@ -1054,6 +1054,16 @@ def create_notification_log(user, subject, message, document_type=None, document
 
     try:
         if mobile_notification_enable:
+            try:
+                for_user = frappe.db.get_value(
+                    "User", {"name": user}, ["name", "first_name"], as_dict=True
+                )
+                if not for_user:
+                    return
+            except Exception as e:
+                frappe.log_error(
+                    "Error in Getting User for Mobile Notifications", str(e)
+                )
             notification = frappe.new_doc("Notification Log")
             notification.subject = subject
             notification.email_content = subject
@@ -1068,7 +1078,7 @@ def create_notification_log(user, subject, message, document_type=None, document
             notification.insert(ignore_permissions=True)
     except Exception as e:
         frappe.log_error(
-            "Error in Sending Email Notifications", str(e)
+            "Error in Sending Mobile Notifications", str(e)
         )
 
 def get_employee_email(employee=None):
