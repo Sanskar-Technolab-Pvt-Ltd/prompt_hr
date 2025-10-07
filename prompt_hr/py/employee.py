@@ -493,13 +493,21 @@ def validate(doc, method):
                 doc.holiday_list = holiday_list
         
         
-        if doc.custom_in_probation:
+        for row in doc.custom_probation_extension_details:
+            if not row.extended_date and (row.probation_end_date and row.extended_period):
+                row.extended_date = getdate(add_to_date(row.probation_end_date, days=row.extended_period))                                    
+        
+        if doc.custom_probation_status == "In Probation":
             joining_date = getdate(doc.date_of_joining)
             
-            if doc.custom_probation_status == "Pending" and doc.custom_probation_period:
-                if doc.custom_extended_period == 0:
+            
+            if doc.custom_probation_period:
+                if not doc.custom_probation_extension_details and len(doc.custom_probation_extension_details) < 1:
                     doc.custom_probation_end_date = getdate(add_to_date(joining_date, days=doc.custom_probation_period))
-                
+                elif doc.custom_probation_extension_details and len(doc.custom_probation_extension_details) > 0:
+                    if doc.custom_probation_extension_details[-1].get("extended_date"):
+                        doc.custom_probation_end_date = doc.custom_probation_extension_details[-1].get("extended_date")
+
                 # elif doc.custom_extended_period:
                 #     total_extended_days = doc.custom_probation_period + doc.custom_extended_period
                 #     doc.custom_probation_end_date = getdate(add_to_date(joining_date, days=total_extended_days))

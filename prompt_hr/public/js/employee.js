@@ -285,6 +285,50 @@ frappe.ui.form.on("Employee", {
 
 });
 
+frappe.ui.form.on("Probation Extension", {
+    
+    custom_probation_extension_details_add: function (frm, cdt, cdn) {
+        let row = locals[cdt][cdn]
+        if (frm.doc.custom_probation_end_date) {
+            row.probation_end_date = frm.doc.custom_probation_end_date
+        }
+    },
+    form_render: function (frm, cdt, cdn) {
+        // console.log("Hellooo")
+        let row = locals[cdt][cdn]
+        if (frm.doc.custom_probation_end_date) {
+            row.probation_end_date = frm.doc.custom_probation_end_date
+            frm.refresh_field("custom_probation_extension_details")
+
+        }
+    },
+    probation_end_date: function (frm, cdt, cdn) {
+        let row = locals[cdt][cdn]
+
+        if (row.probation_end_date && row.extended_period) {
+            row.extended_date = frappe.datetime.add_days(row.probation_end_date, row.extended_period)
+            frm.refresh_field("custom_probation_extension_details")
+        }
+
+    },
+    extended_period: function (frm, cdt, cdn) {
+        let row = locals[cdt][cdn]
+
+        if (row.probation_end_date && row.extended_period) {
+            row.extended_date = frappe.datetime.add_days(row.probation_end_date, row.extended_period)
+            frm.refresh_field("custom_probation_extension_details")
+        }
+    }
+
+})
+
+
+
+
+
+
+
+
 // ? FUNCTION TO APPROVE/REJECT DETAILS UPLOADED BY EMPLOYEE
 function addApproveEmployeeDetailsButton(frm) {
     frm.add_custom_button(__("Approve Employee Responses"), function () {

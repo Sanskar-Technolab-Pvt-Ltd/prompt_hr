@@ -5,6 +5,7 @@ frappe.ui.form.on("Confirmation Evaluation Form", {
 	refresh: function(frm) {
         
         // * Making the rh_rating and dh_rating fields read-only based on the logged-in user is either the reporting manager or head of department
+
         const user = frappe.session.user;
         const reporting_manager = frm.doc.reporting_manager;
         const head_of_department = frm.doc.hod;
@@ -23,11 +24,12 @@ frappe.ui.form.on("Confirmation Evaluation Form", {
             "callback": function(response) {
                 if (response.message) {
                     const user_employee_name = response.message.name;
-            
+                    
                     if (user_employee_name === reporting_manager) {
                         console.log("User is Reporting Manager");
                         frm.fields_dict.table_txep.grid.update_docfield_property('rh_rating', 'read_only', 0);
                         frm.fields_dict.table_txep.grid.update_docfield_property('dh_rating', 'read_only', 1);
+                        // frm.set_df_property("reporting_head_status_section", "read", 0)
 
                     } else if (user_employee_name === head_of_department) {
                         console.log("User is Head of Department");

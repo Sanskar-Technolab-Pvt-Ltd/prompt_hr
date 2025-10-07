@@ -226,9 +226,8 @@
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
- "is_submittable": 1,
  "links": [],
- "modified": "2025-07-22 15:36:10.964914",
+ "modified": "2025-10-07 16:42:55.613686",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Probation Feedback Form",
@@ -245,7 +244,6 @@
    "report": 1,
    "role": "System Manager",
    "share": 1,
-   "submit": 1,
    "write": 1
   }
  ],
