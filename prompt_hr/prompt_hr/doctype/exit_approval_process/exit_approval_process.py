@@ -45,13 +45,9 @@ def raise_exit_checklist(employee, company, exit_approval_process):
 
     # ? CALCULATE NOTIFICATION DATE IF NOT SET
     if not notif_date:
-        field = (
-            "custom_days_before_exit_checklist_prompt"
-            if company == get_prompt_company_name()
-            else "custom_days_before_exit_checklist_indifoss"
-        )
+        field = "custom_days_before_exit_checklist_prompt"
         days = frappe.db.get_value("HR Settings", None, field) or 0
-        notif_date = add_days(doc.last_date_of_working, -int(days))
+        notif_date = add_days(doc.last_date_of_working, -(int(days)+1))
         frappe.db.set_value(
             "Exit Approval Process",
             exit_approval_process,
@@ -115,6 +111,14 @@ def create_employee_separation(employee, company, exit_approval_process):
         for act in activities:
             doc.append("activities", act)
 
+        # ? SET EMPLOYEE REPORTING MANAGER AS A USER IN SEPARATION ACTIVITY FIRST RECORD
+        reporting_manager = frappe.db.get_value("Employee", employee, "reports_to")
+        if reporting_manager:
+            reporting_manager_id = frappe.db.get_value("Employee", reporting_manager, "user_id")
+            if reporting_manager_id:
+                if len(doc.activities) > 0:
+                    doc.activities[0].user = reporting_manager_id
+
     doc.insert(ignore_permissions=True)
     frappe.db.commit()
     frappe.db.set_value(
@@ -146,13 +150,9 @@ def raise_exit_interview(employee, company, exit_approval_process):
     notif_date = doc.custom_exit_questionnaire_notification_date
 
     if not notif_date:
-        field = (
-            "custom_days_before_exit_questionnaire_prompt"
-            if company == "Prompt"
-            else "custom_days_before_exit_questionnaire_indifoss"
-        )
+        field = "custom_days_before_exit_questionnaire_prompt"
         days = frappe.db.get_value("HR Settings", None, field) or 0
-        notif_date = add_days(doc.last_date_of_working, -int(days))
+        notif_date = add_days(doc.last_date_of_working, -(int(days)+1))
         frappe.db.set_value(
             "Exit Approval Process",
             exit_approval_process,

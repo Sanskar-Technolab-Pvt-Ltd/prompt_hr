@@ -8,8 +8,11 @@
  "field_order": [
   "clearance_item",
   "status",
+  "remarks",
   "hold_till",
-  "employee"
+  "employee",
+  "approval_status",
+  "approval_status_history"
  ],
  "fields": [
   {
@@ -24,7 +27,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Status",
-   "options": "\nDiscontinue\nHold Till (Mention Date)\nForward/Transfer To"
+   "options": "\nDiscontinue\nHold Till (Mention Date)\nForward/Transfer To\nInput"
   },
   {
    "depends_on": "eval:doc.status == \"Hold Till (Mention Date)\"",
@@ -40,13 +43,32 @@
    "label": "Employee",
    "mandatory_depends_on": "eval:doc.status == \"Forward/Transfer To\"",
    "options": "Employee"
+  },
+  {
+   "depends_on": "eval:doc.status == \"Input\"",
+   "fieldname": "remarks",
+   "fieldtype": "Data",
+   "label": "Remarks",
+   "mandatory_depends_on": "eval:doc.status == \"Input\""
+  },
+  {
+   "fieldname": "approval_status",
+   "fieldtype": "Select",
+   "label": "Approval Status",
+   "options": "Pending\nRejected"
+  },
+  {
+   "fieldname": "approval_status_history",
+   "fieldtype": "Small Text",
+   "label": "Approval Status History",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-06-23 16:27:44.529490",
+ "modified": "2025-10-08 16:41:43.798390",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "IT Asset Clearance",
