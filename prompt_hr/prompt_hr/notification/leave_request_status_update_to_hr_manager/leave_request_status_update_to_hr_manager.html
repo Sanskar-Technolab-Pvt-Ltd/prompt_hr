@@ -1,5 +1,5 @@
 <p>
-    A leave application for employee <b>{{ doc.employee }}</b> has been <b>Approved</b> by <b>{{ manager }}</b>.
+    A leave application for employee <b>{{ doc.employee }}</b> has been <b>{{doc.workflow_state}}</b> by <b>{{ manager }}</b>.
     {% if doc.workflow_state == "Approved by Reporting Manager" %}
         <br>Please review the details below and take the necessary action.
     {% endif %}

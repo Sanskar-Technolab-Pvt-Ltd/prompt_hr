@@ -1,4 +1,5 @@
 {
+ "_liked_by": "[\"Administrator\"]",
  "attach_print": 0,
  "channel": "Email",
  "creation": "2025-05-01 16:08:15.305925",
@@ -10,9 +11,9 @@
  "event": "Custom",
  "idx": 0,
  "is_standard": 1,
- "message": "{% set manager_name = frappe.db.get_value(\"Employee\", {\"user_id\": frappe.session.user}, \"name\") %}\n<p>Dear <b>{{ doc.employee }}</b>,</p>\n\n<p>\n    Your weekoff change request has been Rejected by {{manager_name}}.<br>\nPlease find the details below:\n\n</p>\n\n<p><b>Request Summary:</b></p>\n<ul>\n    <li><b>Employee:</b> {{ doc.employee }}</li>\n    <li><b>Workflow State:</b> Rejected</li>\n    <li>\n        <b>View Request:</b>\n        {% set week_off_link = frappe.utils.get_url() ~ '/app/weekoff-change-request/' ~ doc.name %}\n        <a href=\"{{ week_off_link }}\">Click here</a>\n    </li>\n</ul>",
+ "message": "{% set manager_name = frappe.db.get_value(\"Employee\", {\"user_id\": frappe.session.user}, \"name\") %}\n<p>Dear <b>{{ doc.employee }}</b>,</p>\n\n<p>\n    Your weekoff change request has been Rejected by {{manager_name or frappe.session.user}}.<br>\nPlease find the details below:\n\n</p>\n\n<p><b>Request Summary:</b></p>\n<ul>\n    <li><b>Employee:</b> {{ doc.employee }}</li>\n    <li><b>Workflow State:</b> Rejected</li>\n    <li>\n        <b>View Request:</b>\n        {% set week_off_link = frappe.utils.get_url() ~ '/app/weekoff-change-request/' ~ doc.name %}\n        <a href=\"{{ week_off_link }}\">Click here</a>\n    </li>\n</ul>",
  "message_type": "HTML",
- "modified": "2025-10-08 10:46:55.638879",
+ "modified": "2025-10-08 18:30:59.382324",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "WeekOff Change Request Rejected",

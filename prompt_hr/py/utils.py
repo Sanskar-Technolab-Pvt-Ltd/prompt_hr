@@ -184,6 +184,26 @@ def send_notification_email(
                 )
                 system_notification.insert(ignore_permissions=True)
 
+            if cc:
+                try:
+                    for record in cc:
+                        try:
+                            system_notification = frappe.get_doc(
+                                {
+                                    "doctype": "Notification Log",
+                                    "subject": subject,
+                                    "for_user": record,
+                                    "type": "Energy Point",
+                                    "document_type": doctype,
+                                    "document_name": docname,
+                                }
+                            )
+                            system_notification.insert(ignore_permissions=True)
+                        except:
+                            frappe.log_error('Error in Sending Mobile Notification', str(e))
+                except:
+                    frappe.log_error('Error in Sending Mobile Notification', str(e))
+
             # ? SEND EMAIL WITH OPTIONAL ATTACHMENT
             frappe.sendmail(
                 recipients=[email],

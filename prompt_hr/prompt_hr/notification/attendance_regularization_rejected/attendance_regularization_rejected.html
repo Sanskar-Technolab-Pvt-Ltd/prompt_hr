@@ -3,7 +3,7 @@
 <p>Dear <b>{{ doc.employee }}</b>,</p>
 
 <p>
-    Your attendance regularization has been Rejected by {{manager_name}}.<br>
+    Your attendance regularization has been Rejected by {{manager_name or frappe.session.user}}.<br>
 Please find the details below:
 
 </p>
