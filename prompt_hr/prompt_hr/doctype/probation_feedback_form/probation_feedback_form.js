@@ -316,7 +316,6 @@ frappe.ui.form.on("Probation Feedback Form", {
 
     },
     
-    
     probation_feedback_for: function (frm) {
 
         // * APPLYING FILTER TO QUESTION LINK FIELD BASED ON PROBATION FEEDBACK FOR IN probation_feedback_prompt CHILD TABLE
@@ -336,34 +335,34 @@ frappe.ui.form.on("Probation Feedback Form", {
 
         frm.refresh_field('probation_feedback_prompt');
     },
-    probation_status: function (frm) { 
-        // *CALCULATING THE LAST DATE OF WORK FROM THE DATE WHEN PROBATION STATUS IS SET TO TERMINATE TO BASED ON THE NOTICE PERIOD DAYS
+    // probation_status: function (frm) { 
+    //     // *CALCULATING THE LAST DATE OF WORK FROM THE DATE WHEN PROBATION STATUS IS SET TO TERMINATE TO BASED ON THE NOTICE PERIOD DAYS
 
-        if (frm.doc.probation_status === "Terminate") {
-            frappe.call({
-                method: "frappe.client.get_value",
-                args: {
-                    doctype: "Employee",
-                    filters: { name: frm.doc.employee },
-                    fieldname: ["notice_number_of_days"]
-                },
-                callback: function (r) {
-                    if (r.message) {
-                        const notice_number_of_days = r.message.notice_number_of_days;
-                        let today = frappe.datetime.get_today();
-                        console.log("Today:", today);
-                        const last_work_date = frappe.datetime.add_days(today, notice_number_of_days);
-                        console.log("last work date", last_work_date, "after", notice_number_of_days, "days");
+    //     if (frm.doc.probation_status === "Terminate") {
+    //         frappe.call({
+    //             method: "frappe.client.get_value",
+    //             args: {
+    //                 doctype: "Employee",
+    //                 filters: { name: frm.doc.employee },
+    //                 fieldname: ["notice_number_of_days"]
+    //             },
+    //             callback: function (r) {
+    //                 if (r.message) {
+    //                     const notice_number_of_days = r.message.notice_number_of_days;
+    //                     let today = frappe.datetime.get_today();
+    //                     console.log("Today:", today);
+    //                     const last_work_date = frappe.datetime.add_days(today, notice_number_of_days);
+    //                     console.log("last work date", last_work_date, "after", notice_number_of_days, "days");
 
 
-                        frm.set_value("last_work_date", last_work_date);
-                    }
-                }
-            });
+    //                     frm.set_value("last_work_date", last_work_date);
+    //                 }
+    //             }
+    //         });
         
-        }
+    //     }
     
-    }
+    // }
     
 
 });

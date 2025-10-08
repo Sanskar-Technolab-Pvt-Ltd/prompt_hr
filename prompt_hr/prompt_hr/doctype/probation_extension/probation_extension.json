@@ -6,6 +6,7 @@
  "engine": "InnoDB",
  "field_order": [
   "probation_end_date",
+  "extended_period",
   "extended_date",
   "reason",
   "column_break_frsv",
@@ -48,14 +49,20 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Extended By Emp Name"
+  },
+  {
+   "fieldname": "extended_period",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Extended Period(In Days)"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-04-02 10:44:23.136773",
- "modified_by": "jignasha@sanskartechnolab.com",
+ "modified": "2025-10-07 13:17:56.650064",
+ "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Probation Extension",
  "owner": "Administrator",
