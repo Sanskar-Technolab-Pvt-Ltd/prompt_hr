@@ -26,6 +26,11 @@ frappe.ui.form.on('Expense Claim', {
                 }
             });
         }
+        frm.fields.forEach(field => {
+            if (field.df.fieldtype === "Section Break" && field.df.collapsible) {
+                field.collapse(false);  // ? OPEN BY DEFAULT
+            }
+        });
     },
 	refresh(frm) {
         if ( !frm.is_new() && frm.doc.workflow_state == "Pending For Approval") {
@@ -44,6 +49,7 @@ frappe.ui.form.on('Expense Claim', {
 		add_view_field_visit_expense_button(frm);
 		fetch_commute_data(frm);
 		set_local_commute_monthly_expense(frm);
+        set_travel_request_details(frm)
 		// ? FETCH GENDER OF THE CURRENT EMPLOYEE
         if (frm.doc.employee) {
             frappe.db.get_value('Employee', frm.doc.employee, 'gender', function(r) {
@@ -190,7 +196,9 @@ frappe.ui.form.on('Expense Claim', {
     },
 	employee: (frm) => { 
 		fetch_commute_data(frm); 
-		set_local_commute_monthly_expense(frm); 
+		set_local_commute_monthly_expense(frm);
+        // ? MAKE A TABLE OF TRAVEL REQUEST DETAILS
+        set_travel_request_details(frm)
 	},
 	company: fetch_commute_data,
 	project(frm) {
@@ -1209,4 +1217,123 @@ function check_and_remove_expense_buttons(frm) {
         frm.remove_custom_button("Get Field Visit Expenses");
         frm.remove_custom_button("Get Tour Visit Expense");
     }
+}
+
+function set_travel_request_details(frm) {
+    if (!frm.doc.employee) {
+        const html = `
+            <div style="padding: 16px;background: #fff3cd; border: 1px solid #ffeeba; border-radius: 8px; color: #856404;">
+                <strong>No Employee Selected</strong><br>
+                Please select an employee to view their Travel Request details.
+            </div>
+        `;
+        frm.set_df_property("custom_travel_request_details", "options", html);
+        frm.refresh_field("custom_travel_request_details");
+        return;
+    }
+
+    frappe.call({
+        method: "prompt_hr.py.expense_claim.get_travel_request_details",
+        args: { employee: frm.doc.employee },
+        callback: (res) => {
+            const data = res.message;
+            let html = "";
+
+            if (!data || data.length === 0) {
+                html = `
+                    <div style="padding: 16px; background: #fff3cd; border: 1px solid #ffeeba; border-radius: 8px; color: #856404;">
+                        <strong>Travel Request details are not available for this employee.</strong><br>
+                    </div>
+                `;
+            } else {
+                html = "";  // Reset to empty
+
+                data.forEach(request => {
+                    html += `
+                        <div style="border: 1px solid #ccc; border-radius: 8px; margin-bottom: 24px; padding: 12px; background: #fafafa;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-weight: 600; margin-bottom: 8px;">
+                                <div>
+                                    Travel Request - 
+                                    <a href="${frappe.urllib.get_base_url()}/app/travel-request/${request.parent}" target="_blank" 
+                                       style="text-decoration: none; color: #0275d8;">
+                                       ${request.parent}
+                                    </a>
+                                </div>
+                                <div style="color: #555;">${request.workflow_state}</div>
+                            </div>
+
+                            <!-- Travel Itinerary Label -->
+                            <div style="font-weight: 600; margin: 6px 0; color: #333;">Travel Itinerary</div>
+                            <div style="max-height: 180px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 12px;">
+                                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                                    <thead style="background: #e9ecef;">
+                                        <tr>
+                                            ${request.travel_itinerary_data.length > 0
+                            ? request.travel_itinerary_label.map(field => `
+                                                    <th style="border: 1px solid #ccc; padding: 6px; text-align: left;">
+                                                        ${field}
+                                                    </th>`).join('')
+                            : `<th style="padding: 6px;">No Itinerary Data</th>`
+                        }
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${request.travel_itinerary_data.length > 0
+                            ? request.travel_itinerary_data.map(row => `
+                                                <tr>
+                                                    ${Object.values(row).map(val => `
+                                                        <td style="border: 1px solid #ccc; padding: 6px;">
+                                                            ${val || ''}
+                                                        </td>`).join('')}
+                                                </tr>`).join('')
+                            : ''
+                        }
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Cost Label -->
+                            <div style="font-weight: 600; margin: 6px 0; color: #333;">Costing Details</div>
+                            <div style="max-height: 140px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px;">
+                                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                                    <thead style="background: #e9ecef;">
+                                        <tr>
+                                            ${request.cost_data.length > 0
+                            ? request.cost_data_label.map(field => `
+                                                    <th style="border: 1px solid #ccc; padding: 6px; text-align: left;">
+                                                        ${field.replace(/_/g, ' ').toUpperCase()}
+                                                    </th>`).join('')
+                            : `<th style="padding: 6px;">No Cost Data</th>`
+                        }
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${request.cost_data.length > 0
+                            ? request.cost_data.map(row => `
+                                                <tr>
+                                                    ${Object.values(row).map(val => `
+                                                        <td style="border: 1px solid #ccc; padding: 6px;">
+                                                            ${val || ''}
+                                                        </td>`).join('')}
+                                                </tr>`).join('')
+                            : ''
+                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            frm.fields_dict['custom_travel_request_details'].wrapper.innerHTML = html;
+
+            frm.set_df_property("custom_travel_request_details", "options", html);
+            frm.refresh_field("custom_travel_request_details");
+        },
+        error: (err) => {
+            frappe.msgprint("Error fetching commute budget details.");
+            console.error(err);
+        }
+    });
 }
