@@ -1,6 +1,6 @@
 import frappe
 from frappe.utils import getdate, today, add_to_date, add_days, get_datetime_str, format_date
-from prompt_hr.py.utils import create_notification_log
+from prompt_hr.py.utils import create_notification_log, get_employee_email
 from prompt_hr.scheduler_methods import add_leave_ledger_entry
 from hrms.hr.utils import get_holiday_dates_for_employee
 from datetime import datetime, timedelta, time, date
@@ -2089,7 +2089,7 @@ def send_penalty_notification_emails():
             for penalty in all_penalties:
                 if notification_doc:
                     try:
-                        emp_user_id = frappe.db.get_value("Employee", penalty.employee, "user_id")
+                        emp_user_id = get_employee_email(penalty.employee)
                         try:
                             no_penalty_for_employee = frappe.db.get_value("Employee", penalty.employee, "custom_no_attendance_and_penalty") or 0
                         except:

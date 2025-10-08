@@ -10,15 +10,15 @@
  "event": "Custom",
  "idx": 0,
  "is_standard": 1,
- "message": "<p>{% set rh_emp = frappe.db.get_value(\"Employee\", doc.employee, \"reports_to\") %}\n{% if rh_emp%}\n    {% set reporting_head = frappe.db.get_value(\"Employee\", rh_emp, \"employee_name\") %}\n{% else %} \n    {% set reporting_head = \"Reporting Head\" %} \n{% endif %}</p>\n\n<p>Dear {{reporting_head}},</p>\n\n<p>I would like to inform you that I have created an Attendance Regularization record for date {{doc.regularization_date.strftime('%d-%m-%Y')}}.<br>\nThe record is now available in the system for your review and necessary action.</p>\n",
+ "message": "{% set manager_name = frappe.db.get_value(\"Employee\", doc.reporting_manager, \"employee_name\") %}\n\n<p>Dear <b>{{ manager_name }}</b>,</p>\n\n<p>\n    A attendance regularization has been submitted by <b>{{ doc.employee }}</b>.  \n    Please review the details below and take the necessary action.\n</p>\n\n<p><b>Request Summary:</b></p>\n<ul>\n    <li><b>Employee:</b> {{ doc.employee }}</li>\n    <li><b>Regularization Date:</b> {{ frappe.utils.format_date(doc.regularization_date, \"dd-MM-yyyy\") }}</li>\n    <li><b>Workflow State:</b> {{ doc.workflow_state }}</li>\n    <li>\n        <b>View Request:</b>\n        {% set att_reg_link = frappe.utils.get_url() ~ '/app/attendance-regularization/' ~ doc.name %}\n        <a href=\"{{ att_reg_link }}\">Click here</a>\n    </li>\n</ul>\n",
  "message_type": "HTML",
- "modified": "2025-05-06 15:12:14.625774",
+ "modified": "2025-10-08 12:17:57.261922",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Attendance Regularization Created",
  "owner": "Administrator",
  "recipients": [],
- "send_system_notification": 0,
+ "send_system_notification": 1,
  "send_to_all_assignees": 1,
- "subject": "Attendance Regularization Created by {{ doc.employee }}"
+ "subject": "Attendance Regularization: {{doc.workflow_state}} - {{ doc.employee }}"
 }

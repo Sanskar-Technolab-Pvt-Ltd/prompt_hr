@@ -12,7 +12,7 @@
  "is_standard": 1,
  "message": "<p>\n  A attendance regularization for employee {{doc.employee}} has been deleted by {{current_user}}. \n</p>\n\n<p><b>Request Summary:</b></p>\n\n<ul>\n    <li><b>Employee:</b> {{doc.employee}}</li>\n    <li><b>Regularization Date:</b> {{frappe.utils.format_date(doc.regularization_date, \"dd-MM-yyyy\") }}</li>\n\n</ul>",
  "message_type": "HTML",
- "modified": "2025-10-07 19:26:37.755576",
+ "modified": "2025-10-08 10:45:27.018356",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Attendance Regularization Deleted Notification",
@@ -22,5 +22,5 @@
  ],
  "send_system_notification": 1,
  "send_to_all_assignees": 0,
- "subject": "Attendance Regularization - {{doc.employee}}"
+ "subject": "Attendance Regularization: Deleted - {{doc.employee}}"
 }
