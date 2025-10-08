@@ -1424,7 +1424,28 @@ def get_approved_category_monthly_expense(
         month_start = expense_date.replace(day=1)
         next_month = month_start + relativedelta(months=1)
         month_end = next_month - timedelta(days=1)
+        grade, company = frappe.db.get_value('Employee', employee, ["grade", "company"])
+        additional_filters = {}
+        if grade:
+            # ? FETCH TRAVEL BUDGET RECORD LINKED TO EMPLOYEE
+            travel_budget_name = frappe.db.get_value(
+                "Travel Budget", {"company": company}, "name"
+            )
 
+            if travel_budget_name:
+                local_commute_entries = frappe.get_all(
+                    "Local Commute Details",
+                    filters={"parent": travel_budget_name, "grade": grade, "include_expenses":1},
+                    fields=["mode_of_commute", "type_of_commute","include_expenses"],
+                )
+                if local_commute_entries:
+                    type_of_commutes = []
+                    for entry in local_commute_entries:
+                        type_of_commutes.append(entry.type_of_commute)
+                        
+                    if type_of_commutes:
+                        additional_filters["custom_type_of_vehicle"] = ["in", type_of_commutes]
+                        
         filters = {
             "employee": employee,
             "approval_status": ["in", ["Draft", "Approved"]],
@@ -1441,15 +1462,30 @@ def get_approved_category_monthly_expense(
         if not all_approved_expense_claims:
             return 0.0
 
-        expense_claim_details = frappe.get_all(
-            doctype="Expense Claim Detail",
+        if expense_type == "Local Commute" and additional_filters:
+
             filters={
-                "expense_type": expense_type,
-                "parent": ["in", all_approved_expense_claims],
-                "expense_date": ["between", [month_start, month_end]],
-            },
-            fields=["sanctioned_amount"],
-        )
+                    "expense_type": expense_type,
+                    "parent": ["in", all_approved_expense_claims],
+                    "expense_date": ["between", [month_start, month_end]],                    
+            }
+            filters.update(additional_filters)
+            expense_claim_details = frappe.get_all(
+                doctype="Expense Claim Detail",
+                filters=filters,
+                fields=["sanctioned_amount"],
+            )
+                
+        else:
+            expense_claim_details = frappe.get_all(
+                doctype="Expense Claim Detail",
+                filters={
+                    "expense_type": expense_type,
+                    "parent": ["in", all_approved_expense_claims],
+                    "expense_date": ["between", [month_start, month_end]],
+                },
+                fields=["sanctioned_amount"],
+            )
 
         total_sanctioned_amount = sum(
             flt(detail.sanctioned_amount or 0) for detail in expense_claim_details
