@@ -1246,8 +1246,6 @@ function set_travel_request_details(frm) {
                     </div>
                 `;
             } else {
-                html = "";  // Reset to empty
-
                 data.forEach(request => {
                     html += `
                         <div style="border: 1px solid #ccc; border-radius: 8px; margin-bottom: 24px; padding: 12px; background: #fafafa;">
@@ -1269,25 +1267,35 @@ function set_travel_request_details(frm) {
                                     <thead style="background: #e9ecef;">
                                         <tr>
                                             ${request.travel_itinerary_data.length > 0
-                            ? request.travel_itinerary_label.map(field => `
+                        ? request.travel_itinerary_label.map(field => `
                                                     <th style="border: 1px solid #ccc; padding: 6px; text-align: left;">
                                                         ${field}
                                                     </th>`).join('')
-                            : `<th style="padding: 6px;">No Itinerary Data</th>`
-                        }
+                        : `<th style="padding: 6px;">No Itinerary Data</th>`
+                    }
                                         </tr>
                                     </thead>
                                     <tbody>
                                         ${request.travel_itinerary_data.length > 0
-                            ? request.travel_itinerary_data.map(row => `
-                                                <tr>
-                                                    ${Object.values(row).map(val => `
-                                                        <td style="border: 1px solid #ccc; padding: 6px;">
-                                                            ${val || ''}
-                                                        </td>`).join('')}
-                                                </tr>`).join('')
-                            : ''
-                        }
+                        ? request.travel_itinerary_data.map(row => {
+                            const cols = Object.values(row).map(val => {
+                                const isAttach = val && typeof val === 'string' &&
+                                    (val.endsWith('.jpg') || val.endsWith('.png') || val.endsWith('.jpeg') || val.endsWith('.gif') ||
+                                        val.endsWith('.pdf') || val.endsWith('.docx'));
+                                if (isAttach) {
+                                    return `<td style="border: 1px solid #ccc; padding: 6px;">
+                                                <a href="${frappe.urllib.get_base_url()}${val}" target="_blank" style="color: #0275d8; font-weight: 600; cursor: pointer; text-decoration: underline;">
+                                                    View
+                                                </a>
+                                            </td>`;
+                                } else {
+                                    return `<td style="border: 1px solid #ccc; padding: 6px;">${val || ''}</td>`;
+                                }
+                            });
+                            return `<tr>${cols.join('')}</tr>`;
+                        }).join('')
+                        : ''
+                    }
                                     </tbody>
                                 </table>
                             </div>
@@ -1299,25 +1307,36 @@ function set_travel_request_details(frm) {
                                     <thead style="background: #e9ecef;">
                                         <tr>
                                             ${request.cost_data.length > 0
-                            ? request.cost_data_label.map(field => `
+                        ? request.cost_data_label.map(field => `
                                                     <th style="border: 1px solid #ccc; padding: 6px; text-align: left;">
                                                         ${field.replace(/_/g, ' ').toUpperCase()}
                                                     </th>`).join('')
-                            : `<th style="padding: 6px;">No Cost Data</th>`
-                        }
+                        : `<th style="padding: 6px;">No Cost Data</th>`
+                    }
                                         </tr>
                                     </thead>
                                     <tbody>
                                         ${request.cost_data.length > 0
-                            ? request.cost_data.map(row => `
-                                                <tr>
-                                                    ${Object.values(row).map(val => `
-                                                        <td style="border: 1px solid #ccc; padding: 6px;">
-                                                            ${val || ''}
-                                                        </td>`).join('')}
-                                                </tr>`).join('')
-                            : ''
-                        }
+                        ? request.cost_data.map(row => {
+                            const cols = Object.values(row).map(val => {
+                                const isAttach = val && typeof val === 'string' &&
+                                    (val.endsWith('.jpg') || val.endsWith('.png') || val.endsWith('.jpeg') || val.endsWith('.gif') ||
+                                        val.endsWith('.pdf') || val.endsWith('.docx'));
+                                if (isAttach) {
+                                    return `<td style="border: 1px solid #ccc; padding: 6px;">
+                                                <a href="${frappe.urllib.get_base_url()}${val}" target="_blank" style="color: #0275d8; font-weight: 600; cursor: pointer; text-decoration: underline;">
+                                                    View
+                                                </a>
+                                            </td>`;
+                                }
+                                else {
+                                    return `<td style="border: 1px solid #ccc; padding: 6px;">${val || ''}</td>`;
+                                }
+                            });
+                            return `<tr>${cols.join('')}</tr>`;
+                        }).join('')
+                        : ''
+                    }
                                     </tbody>
                                 </table>
                             </div>
@@ -1332,7 +1351,7 @@ function set_travel_request_details(frm) {
             frm.refresh_field("custom_travel_request_details");
         },
         error: (err) => {
-            frappe.msgprint("Error fetching commute budget details.");
+            frappe.msgprint("Error fetching travel request details.");
             console.error(err);
         }
     });
