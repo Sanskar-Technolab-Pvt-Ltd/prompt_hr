@@ -101,13 +101,14 @@
   {
    "fieldname": "custom_exit_checklist_notification_date",
    "fieldtype": "Data",
-   "label": "Exit Checkliist Notification Date"
+   "label": "Exit Checkliist Notification Date",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-04 16:28:50.853336",
+ "modified": "2025-10-08 18:43:25.354179",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Exit Approval Process",
