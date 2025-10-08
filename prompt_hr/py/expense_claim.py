@@ -2884,3 +2884,78 @@ def get_allowance_budgets(employee_grade, company, expense_type, metro):
         return 0  # ! EXPENSE TYPE NOT RECOGNIZED
 
     return budget.get(key, 0)
+
+@frappe.whitelist()
+def get_travel_request_details(employee):
+    """
+    Fetches travel request details for the given employee and date range.
+    Each parent record includes travel itinerary, costing, and workflow state.
+    """
+    # Get all travel requests avoiding rejected states
+    travel_requests = frappe.get_all(
+        "Travel Request",
+        filters={
+            "employee": employee,
+            "workflow_state": ["not in", ["Rejected by Reporting Manager", "Rejected by BU Head"]],
+        },
+        fields=["name", "workflow_state"]
+    )
+
+    result = []
+    # Get only fields allowed in list view for itinerary and costing
+    itinerary_meta = frappe.get_meta("Travel Itinerary")
+    itinerary_fields = [
+        df.fieldname
+        for df in itinerary_meta.fields
+        if df.fieldname and getattr(df, "in_list_view", 0) == 1
+    ]
+    # Get corresponding labels for each field
+    travel_itineraries_label = [
+        df.label
+        for df in itinerary_meta.fields
+        if df.fieldname in itinerary_fields
+    ]
+
+    costing_meta = frappe.get_meta("Travel Request Costing")
+    costing_fields = [
+        df.fieldname
+        for df in costing_meta.fields
+        if df.fieldname and getattr(df, "in_list_view", 0) == 1
+    ]
+
+
+    # Get corresponding labels for each field
+    cost_data_label = [
+        df.label
+        for df in costing_meta.fields
+        if df.fieldname in costing_fields
+    ]
+
+    for request in travel_requests:
+        # Get itineraries for current parent request in range
+        itineraries = frappe.get_all(
+            "Travel Itinerary",
+            filters={
+                "parent": request["name"],
+            },
+            fields=itinerary_fields
+        )
+        # Get costings for current parent request
+        costings = frappe.get_all(
+            "Travel Request Costing",
+            filters={"parent": request["name"]},
+            fields=costing_fields
+        )
+        # Structure parent dict
+        parent_dict = {
+            "parent": request["name"],
+            "travel_itinerary_data": itineraries,
+            "travel_itinerary_label": travel_itineraries_label,
+            "cost_data_label":cost_data_label,
+            "cost_data": costings,
+            "workflow_state": request["workflow_state"]
+        }
+        result.append(parent_dict)
+
+    # Return the list of parent dicts
+    return result
