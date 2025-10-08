@@ -12,7 +12,7 @@
  "is_standard": 1,
  "message": "Dear {{ doc.employee }},<br><br>\n{% set employee = frappe.get_doc(\"Employee\", doc.employee) %}\n{% if employee.company %}\n{% set company = employee.company %}\n{% endif %}\n\n{% if doc.doctype == \"Compensatory Leave Request\" %}\nYour compensatory leave request submitted for the period from <b>{{ frappe.utils.format_date(doc.work_from_date,\"dd-MM-yyyy\") }}</b> to <b>{{ frappe.utils.format_date(doc.work_end_date,\"dd-MM-yyyy\") }}</b>\n{% else %}\nYour leave application \n{% endif %}\nhas been <b>{{ doc.workflow_state }}</b> by {{manager}}.<br>\nPlease find the details below:<br><br>\n\n<b>Request Summary:</b><br>\n- <b>Employee:</b> {{ doc.employee }}<br>\n- <b>Leave Type:</b> {{ doc.leave_type }}<br>\n- <b>Workflow State:</b> {{ doc.workflow_state }}<br>\n- <b>View Request:</b> <a href=\"{{ frappe.utils.get_url() }}/app/{{ doc.doctype|lower|replace(' ', '-') }}/{{ doc.name }}\">Click here</a><br><br>\n",
  "message_type": "HTML",
- "modified": "2025-10-07 16:47:55.463464",
+ "modified": "2025-10-08 10:50:04.804901",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Leave Request Response By Reporting Manager",
@@ -22,5 +22,5 @@
  ],
  "send_system_notification": 1,
  "send_to_all_assignees": 0,
- "subject": "{{request_type}} - {{doc.employee}}"
+ "subject": "{{request_type}}: {{doc.workflow_state}} - {{doc.employee}}"
 }

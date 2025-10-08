@@ -126,7 +126,6 @@ class WeekOffChangeRequest(Document):
                         throw("Please Set Correct New weekoff Day as per the date")
 
     def validate(self):
-        validate_for_sandwich_policy(self)
         sent_auto_approve_emails = frappe.db.get_single_value("HR Settings", "custom_send_auto_approve_doc_emails") or 0
         # *CHECKING IF THE EXISTING DETAILS IS VALID OR NOT, IF INVALID SHOWING AN ALERT TELLING USER THAT THE EXISTING DATE ENTERED DOES NOT EXISTS IN HOLIDAY LIST
         if self.weekoff_details:
@@ -151,6 +150,11 @@ class WeekOffChangeRequest(Document):
                                 )
 
                         if row.new_weekoff_date:
+                            exists = check_existing_date(self.employee, row.new_weekoff_date)
+                            if exists.get("exists"):
+                                throw(
+                                    f"Date {formatdate(row.new_weekoff_date)} already exists in holiday list"
+                                )
                             day_name = get_day_name(row.new_weekoff_date)
                             if not row.new_weekoff:
                                 row.new_weekoff = day_name
@@ -165,6 +169,7 @@ class WeekOffChangeRequest(Document):
                     throw(
                         f"Error While Verifying Existing Date {exists.get('message')}"
                     )
+        validate_for_sandwich_policy(self)
 
         # *CHECKING IF THE CURRENT USER IS THE EMPLOYEE USER LINKED TO DOCUMENT THEN WHEN WE SAVES THIS DOCUMENT THEN SENDING AN EMAIL TO THE EMPLOYEE'S REPORTING HEAD ABOUT THE CREATION WEEKOFF CHANGE REQUEST
         current_user = frappe.session.user
@@ -176,7 +181,7 @@ class WeekOffChangeRequest(Document):
         if self.status == "Approved" and (not self.auto_approve or sent_auto_approve_emails):
             is_rh = is_user_reporting_manager_or_hr(current_user, self.employee)
             if not is_rh.get("error") and is_rh.get("is_rh"):
-                emp_user_id = frappe.db.get_value("Employee", self.employee, "user_id")
+                emp_user_id = get_employee_email(self.employee)
                 if emp_user_id:
                     # if "@" in emp_user_id:
                     # 	emp_mail = emp_user_id

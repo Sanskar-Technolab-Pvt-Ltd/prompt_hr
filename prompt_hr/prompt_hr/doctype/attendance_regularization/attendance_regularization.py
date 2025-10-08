@@ -294,6 +294,27 @@ class AttendanceRegularization(Document):
     def on_update(self):
         if self.workflow_state == "Pending":
             manager_info = get_reporting_manager_info(self.employee)
+            if self.has_value_changed("workflow_state"):
+                # * SENDING EMAIL TO EMPLOYEE'S REPORTING HEAD
+                rh_emp = frappe.db.get_value("Employee", self.employee, "reports_to")
+                if rh_emp:
+                    rh_user_id = get_employee_email(rh_emp)
+                    emp_id = get_employee_email(self.employee)
+                    if emp_id:
+                        cc = [emp_id]
+                    else:
+                        cc = []
+                    if rh_user_id:
+                        send_notification_email(
+                            recipients=[rh_user_id],
+                            notification_name="Attendance Regularization Created",
+                            doctype="Attendance Regularization",
+                            docname=self.name,
+                            cc =cc,
+                            send_link=False,
+                            fallback_subject=f"Attendance Regularization Created for {self.regularization_date}",
+                            fallback_message=f"Dear Reporting Head, <br>   I would like to inform you that I have created an Attendance Regularization record for {self.regularization_date}. <br>The record is now available in the system for your review and necessary action."
+                        )  
             if manager_info:
                 #! STORE AS: <manager_docname> - <manager_employee_name>
                 self.db_set(

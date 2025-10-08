@@ -12,7 +12,7 @@ from frappe.utils import (
     add_months,
     add_days,
 )
-from prompt_hr.py.utils import fetch_company_name, send_notification_email
+from prompt_hr.py.utils import fetch_company_name, send_notification_email, get_employee_email
 from prompt_hr.py.auto_mark_attendance import mark_attendance, is_holiday_or_weekoff
 from datetime import timedelta, datetime
 from prompt_hr.prompt_hr.doctype.exit_approval_process.exit_approval_process import (
@@ -2737,15 +2737,11 @@ def send_penalty_warnings(emp_id, penalization_data, penalization_date=None):
 
         # Fetch employee
         employee = frappe.get_doc("Employee", emp_id)
-        if not employee.user_id:
-            frappe.log_error(f"User ID not set for Employee {emp_id}")
-            return
 
         # Fetch user email
-        user = frappe.get_doc("User", employee.user_id)
-        email_id = getattr(user, "email", None) or getattr(user, "email_id", None)
+        email_id = get_employee_email(employee.name)
         if not email_id:
-            frappe.log_error(f"Email not found for User {employee.user_id}")
+            frappe.log_error(f"Email not found for Employee {employee.name}")
             return
 
         email_details = {}

@@ -12,7 +12,7 @@
  "is_standard": 1,
  "message": "<p>{% set manager_name = frappe.db.get_value(\"Employee\", {\"user_id\": frappe.session.user}, \"name\") %}</p>\n\n<p>Dear <b>{{ doc.employee }}</b>,</p>\n\n<p>\n    Your attendance regularization has been Rejected by {{manager_name}}.<br>\nPlease find the details below:\n\n</p>\n\n<p><b>Request Summary:</b></p>\n\n<ul>\n    <li><b>Employee:</b> {{ doc.employee }}</li>\n    <li><b>Workflow State:</b> Rejected</li>\n    <li><b>Regularization Date:</b> {{frappe.utils.format_date(doc.regularization_date, \"dd-MM-yyyy\")}}</li>\n\n    <li>\n        <b>View Request:</b>\n        {% set att_reg_link = frappe.utils.get_url() ~ '/app/attendance-regularization/' ~ doc.name %}\n        <a href=\"{{ att_reg_link }}\">Click here</a>\n    </li>\n</ul>\n",
  "message_type": "HTML",
- "modified": "2025-10-07 19:20:42.842341",
+ "modified": "2025-10-08 10:45:52.546355",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Attendance Regularization Rejected",
@@ -20,5 +20,5 @@
  "recipients": [],
  "send_system_notification": 0,
  "send_to_all_assignees": 1,
- "subject": "Attendance Regularization - {{doc.employee}}"
+ "subject": "Attendance Regularization: Rejected - {{doc.employee}}"
 }

@@ -2,7 +2,7 @@ import frappe
 from datetime import timedelta
 from frappe import throw, _
 from frappe.utils import get_datetime, time_diff_in_hours, today, getdate, days_diff, add_months, date_diff,format_duration
-from prompt_hr.py.utils import send_notification_email
+from prompt_hr.py.utils import send_notification_email, get_employee_email
 import json
 
 def on_submit(doc,method=None):
@@ -78,24 +78,7 @@ def create_attendance_regularization(attendance_id, update_data, reason):
             attendance_regularization_doc.append("checkinpunch_details", row)
         
         
-        attendance_regularization_doc.save(ignore_permissions=True)
-        
-        # * SENDING EMAIL TO EMPLOYEE'S REPORTING HEAD
-        if attendance_regularization_doc.name:
-            rh_emp = frappe.db.get_value("Employee", attendance_doc.employee, "reports_to")
-            if rh_emp:
-                rh_user_id = frappe.db.get_value("Employee", rh_emp, "user_id")
-                if rh_user_id:
-                    send_notification_email(
-                        recipients=[rh_user_id],
-                        notification_name="Attendance Regularization Created",
-                        doctype="Attendance Regularization",
-                        docname=attendance_regularization_doc.name,
-                        send_link=True,
-                        fallback_subject=f"Attendance Regularization Created for {attendance_doc.attendance_date}",
-                        fallback_message=f"Dear Reporting Head, <br>   I would like to inform you that I have created an Attendance Regularization record for {attendance_doc.attendance_date}. <br>The record is now available in the system for your review and necessary action."
-                        
-                    )                    
+        attendance_regularization_doc.save(ignore_permissions=True)                   
         
         return {"attendance_regularization_id": attendance_regularization_doc.name}
         

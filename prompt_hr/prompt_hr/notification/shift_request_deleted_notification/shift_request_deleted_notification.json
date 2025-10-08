@@ -12,7 +12,7 @@
  "is_standard": 1,
  "message": "<p>\n  A shift request for employee {{doc.employee}} has been deleted by {{current_user}}. \n</p>\n\n<p><b>Request Summary:</b></p>\n\n<ul>\n    <li><b>Employee:</b> {{doc.employee}}</li>\n    <li><b>Shift Type:</b> {{ doc.shift_type }}</li>\n    <li><b>From Date:</b> {{ frappe.utils.format_date(doc.from_date, \"dd-MM-yyyy\") }}</li>\n    <li><b>To Date:</b> {{ frappe.utils.format_date(doc.to_date, \"dd-MM-yyyy\") if doc.to_date else \"\" }}</li>\n\n</ul>",
  "message_type": "HTML",
- "modified": "2025-10-07 18:09:36.718614",
+ "modified": "2025-10-08 10:48:45.595740",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Shift Request Deleted Notification",
@@ -22,5 +22,5 @@
  ],
  "send_system_notification": 1,
  "send_to_all_assignees": 0,
- "subject": "Shift Request Deleted : {{doc.employee}}"
+ "subject": "Shift Request: Deleted - {{doc.employee}}"
 }
