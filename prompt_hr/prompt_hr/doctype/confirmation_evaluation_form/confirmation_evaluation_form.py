@@ -21,16 +21,40 @@ class ConfirmationEvaluationForm(Document):
 						
 					#* CHECKING IF THE REPORTING HEAD OR DEPARTMENT OF HEAD HAS ENTERED THE RATING 
 						user = frappe.session.user
+						form_url = frappe.utils.get_url_to_form(self.doctype, self.name)
+
+						reporting_manager = self.reporting_manager or frappe.db.get_value("Employee", self.employee, "reports_to") or None
+
 						user_employee = frappe.db.get_value("Employee", {"user_id": user}, "name") or None
-						is_reporting_head = True if (self.reporting_manager and user_employee) and user_employee == self.reporting_manager else False
+    
+						is_reporting_head = True if (reporting_manager and user_employee) and user_employee == reporting_manager else False
+
 						is_head_of_department = True if (self.hod and user_employee) and user_employee == self.hod else False
     
 						if (is_reporting_head or is_head_of_department) and (self.table_txep and len(self.table_txep) > 0):
 							
-							if is_reporting_head and not self.rh_rating_added:															
-								if any(row.rh_rating not in ["", None, 0.0, 0] for row in self.table_txep):
-									self.rh_rating_added = 1
-									frappe.throw("Please give proper ratings")
+							# if is_reporting_head and not self.rh_rating_added:
+							if is_reporting_head:
+								if any(row.rh_rating in ["", None, 0.0, 0] for row in self.table_txep):            
+									frappe.throw("Please provide appropriate ratings")
+								else:
+									hr_user_list = frappe.db.get_all("Has Role", filters={"role": ["in", ["S - HR Director (Global Admin)", "S - HR L1"]], "parenttype": "User", "parent": ["not in", [user, "Administrator"]]}, fields=["parent"], pluck="parent")
+									
+									hod_user = frappe.db.get_value("Employee", self.hod, "user_id")
+
+									subject = f"Confirmation Evaluation Form - {self.employee}"
+									if hod_user:
+										message = f"<p>The reporting manager, {self.reporting_manager}, has submitted ratings for the Confirmation Evaluation Form of {self.employee}. We now request you to provide your ratings</p><p>You can access the form using the link below:Confirmation Evaluation Form Link:{form_url}</p>"
+
+										send_notification_email(recipients=[hod_user], doctype=self.doctype, docname=self.name, notification_name=0,fallback_message=message, fallback_subject=subject, send_header_greeting=True, send_link=False)
+        
+									if hr_user_list:
+										message = f"<p>The reporting manager, {self.reporting_manager}, has submitted ratings for the Confirmation Evaluation Form of {self.employee}. The process is now with the HOD, {self.hod}.</p><p>You can access the form through the link below: Confirmation Evaluation Form Link: {form_url}</p>"
+
+										send_notification_email(recipients=hr_user_list, doctype=self.doctype, docname=self.name, notification_name=0,fallback_message=message, fallback_subject=subject, send_header_greeting=True, send_link=False)
+								# if any(row.rh_rating not in ["", None, 0.0, 0] for row in self.table_txep):
+									# self.rh_rating_added = 1
+
 									# hr_user_list = frappe.db.get_all("Has Role", filters={"role": ["in", ["S - HR Director (Global Admin)", "S - HR L1"]], "parenttype": "User", "parent": ["not in", [user, "Administrator"]]}, fields=["parent"], pluck="parent")
 									
 									# if hr_user_list:
@@ -40,34 +64,47 @@ class ConfirmationEvaluationForm(Document):
 									# 		send_notification_email(recipients=hr_user_list, doctype=self.doctype, docname=self.name, notification_name=0,fallback_message=message, fallback_subject=subject, send_header_greeting=True, send_link=False)
 									# 	except Exception as e:
 									# 		frappe.log_error("error_while_sending_mail", frappe.get_traceback())
-								else:
-									self.rh_rating_added = 0
-        
+								# else:
+									# self.rh_rating_added = 0
+
 							# elif is_head_of_department and not self.dh_rating_added:
-								
-							# 	if any(row.dh_rating not in ["", None, 0.0, 0] for row in self.table_txep):
-							# 		self.dh_rating_added = 1
+							elif is_head_of_department:
+								if any(row.dh_rating in ["", None, 0.0, 0] for row in self.table_txep):
+									frappe.throw("Please provide appropriate ratings")
+								else:
+									
+									hr_user_list = frappe.db.get_all("Has Role", filters={"role": ["in", ["S - HR Director (Global Admin)", "S - HR L1"]], "parenttype": "User", "parent": ["not in", [user, "Administrator"]]}, fields=["parent"], pluck="parent")
+
+									if hr_user_list:
+										subject = f"Confirmation Evaluation Form - {self.employee}"
+
+										message = f"<p>The Department Head, {self.hod}, has submitted ratings for the Confirmation Evaluation Form of {self.employee}. Please take further actions</p><p>You can access the form through the link below: Confirmation Evaluation Form Link: {form_url}</p>"
+
+										send_notification_email(recipients=hr_user_list, doctype=self.doctype, docname=self.name, notification_name=0,fallback_message=message, fallback_subject=subject, send_header_greeting=True, send_link=False)
+										
+								# if any(row.dh_rating not in ["", None, 0.0, 0] for row in self.table_txep):
+									# self.dh_rating_added = 1
 			
-							# 	#* IF THE HEAD OF DEPARTMENT HAS ENTERED THE RATING THEN SEND EMAIL TO HR MANAGER
-							# 		users = frappe.db.get_all("Has Role", filters={"role": ["in", ["S - HR Director (Global Admin)", "S - HR L1"]], "parenttype": "User"}, fields=["parent"])
-							# 		if users:
-							# 			for user in users:
-							# 				hr_employee = frappe.db.exists("Employee", {"user_id": user.parent, "status": "Active"})
-							# 				if hr_employee:
-							# 					user_email = frappe.db.get_value("User", {"name": user.parent}, "email")
-							# 					if user_email:
+								# #* IF THE HEAD OF DEPARTMENT HAS ENTERED THE RATING THEN SEND EMAIL TO HR MANAGER
+								# 	users = frappe.db.get_all("Has Role", filters={"role": ["in", ["S - HR Director (Global Admin)", "S - HR L1"]], "parenttype": "User"}, fields=["parent"])
+								# 	if users:
+								# 		for user in users:
+								# 			hr_employee = frappe.db.exists("Employee", {"user_id": user.parent, "status": "Active"})
+								# 			if hr_employee:
+								# 				user_email = frappe.db.get_value("User", {"name": user.parent}, "email")
+								# 				if user_email:
 													
-							# 						notification_template = frappe.get_doc("Notification", "Confirmation Remarks For HR")
-							# 						subject = frappe.render_template(notification_template.subject, {"doc": self})
-							# 						message = frappe.render_template(notification_template.message, {"doc": self})
+								# 					notification_template = frappe.get_doc("Notification", "Confirmation Remarks For HR")
+								# 					subject = frappe.render_template(notification_template.subject, {"doc": self})
+								# 					message = frappe.render_template(notification_template.message, {"doc": self})
 						
-							# 						frappe.sendmail(
-							# 							recipients=[user_email],
-							# 							subject=subject,
-							# 							message=message
-							# 						)
-							# 	else:
-							# 		self.dh_rating_added = 0
+								# 					frappe.sendmail(
+								# 						recipients=[user_email],
+								# 						subject=subject,
+								# 						message=message
+													# )
+								# else:
+									# self.dh_rating_added = 0
 				
 				# else:
 					# frappe.throw(f"No Company found for abbreviation {company_abbr}")
@@ -178,13 +215,15 @@ class ConfirmationEvaluationForm(Document):
 			subject = f"Confirmation Feedback Form-{self.employee}:{self.employee_name}"
 			form_url = frappe.utils.get_url_to_form(self.doctype, self.name)
 
+			frappe.log_error("confirmation_after_insert_mail_send", f"hr user list {hr_user_list}")
 			if hr_user_list:
-				message = f"<p>Confirmation Feedback Form has been generated for employee {self.employee}: {self.employee_name}.</p><br><p>You can access the form using the following link:</p><br><p>Confirmation Feedback Form Link:{form_url}</p>"
+				# message = f"<p>Confirmation Feedback Form has been generated for employee {self.employee}: {self.employee_name}.</p><br><p>You can access the form using the following link:</p><br><p>Confirmation Feedback Form Link:{form_url}</p>"
+				message = f"<p>Confirmation Feedback Form has been generated for employee {self.employee}: {self.employee_name}.</p><p>You can access the form using the following link:</p><p>Confirmation Feedback Form Link:{form_url}</p>"
 
 				send_notification_email(recipients=hr_user_list, doctype=self.doctype, docname=self.name, notification_name=0,fallback_message=message, fallback_subject=subject, send_header_greeting=True, send_link=False)
 
 			if rh_user:
-				message = f"<p>Confirmation Feedback Form has been generated for employee {self.employee}: {self.employee_name}. Kindly review the form and provide your ratings,</p><br><p>You can access the form using the following link:</p><br><p>Confirmation Feedback Form Link:{form_url}</p>"
+				message = f"<p>Confirmation Feedback Form has been generated for employee {self.employee}: {self.employee_name}. Kindly review the form and provide your ratings.</p><p>You can access the form using the following link:</p><p>Confirmation Feedback Form Link:{form_url}</p>"
 
 				send_notification_email(recipients=[rh_user], doctype=self.doctype, docname=self.name, notification_name=0,fallback_message=message, fallback_subject=subject, send_header_greeting=True, send_link=False)
     

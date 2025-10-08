@@ -65,7 +65,7 @@ def probation_feedback_for_prompt():
                 {
                     "status": "Active",
                     "custom_probation_status": "In Probation",
-                    "custom_probation_status": "Pending",
+                    # "custom_probation_status": "Pending",
                 },
                 ["name", "employee_name"],
             )
