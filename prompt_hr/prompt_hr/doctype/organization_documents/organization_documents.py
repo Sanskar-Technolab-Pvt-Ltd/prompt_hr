@@ -11,13 +11,29 @@ class OrganizationDocuments(Document):
 def get_permission_query_conditions(user):
     # Allow full access for Administrator
     if user == "Administrator":
-        return ""
+        return "1=1"
 
+    #  Check roles of the user
+    user_roles = frappe.get_roles(user)
+    hr_roles = [
+        "S - HR Director (Global Admin)",
+        "S - HR L1",
+        "S - HR L2",
+        "S - HR L3",
+        "S - HR L4",
+        "S - HR L5",
+        "S - HR L6"
+    ]
+    
+     #  If user has S - Employee and at least one HR role → Full access
+    if "S - Employee" in user_roles and any(role in user_roles for role in hr_roles):
+        return "1=1"
+    
     # Get employee linked with current user
     employee = frappe.db.get_value("Employee", {"user_id": user}, "name")
     if not employee:
         return "1=2"  # deny all if not linked
-
+    
     # Prepare employee field values once to avoid repeated DB hits
     emp_data = frappe.db.get_value(
         "Employee",
