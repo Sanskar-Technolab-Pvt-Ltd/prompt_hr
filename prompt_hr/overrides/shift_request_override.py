@@ -148,8 +148,8 @@ class CustomShiftRequest(ShiftRequest):
                     cc = [manager_id]
                 else:
                     cc = []
-                employee_user_id = frappe.db.get_value("Employee", self.employee, "user_id")
-                if manager_info and employee_user_id:
+                employee_user_id = get_employee_email(self.employee)
+                if manager_info or employee_user_id:
                     notification = frappe.get_doc("Notification", "Shift Request Response To Employee")
                     if notification:
                         message = frappe.render_template(

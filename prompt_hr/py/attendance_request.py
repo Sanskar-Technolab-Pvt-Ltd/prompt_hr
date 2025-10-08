@@ -92,7 +92,7 @@ def validate(doc, event):
                     docname=doc.name,
                     cc=cc,
                     send_link=False,
-                    fallback_subject=f"Attendance Request - {doc.employee}",
+                    fallback_subject=f"Attendance Request: {doc.workflow_state} - {doc.employee}",
                     fallback_message=fallback_message,
                 )
             else: #*Changed by Ayush
@@ -130,17 +130,32 @@ def notify_reporting_manager(doc, event):
                     doctype="Attendance Request",
                     cc = cc,
                     docname=doc.name,
+                    send_link=False,
                     fallback_subject=f"Attendance Request Created",
                     fallback_message=f"<p>Dear Reporting Head,<br> An attendance request has been created—please review it at your convenience.</p>",
                 )
             if event == "validate" and not doc.is_new():
+                if doc.has_value_changed("custom_reason_for_rejection"):
+                    try:
+                        prev_reason = frappe.db.get_value("Attendance Request", doc.name, "custom_reason_for_rejection")
+                    except:
+                        prev_reason = None
 
+                    if not prev_reason:
+                        return
+
+                if employee_id:
+                    cc = [employee_id]
+                else:
+                    cc = []
                 # Send generic update notification
                 send_notification_email(
                     recipients=[rh_user_id],
                     notification_name="Attendance Request Updated",
                     doctype="Attendance Request",
                     docname=doc.name,
+                    cc = cc,
+                    send_link=False,
                     fallback_subject=f"Attendance Request Updated",
                     fallback_message=f"<p>Dear Reporting Head,<br> An attendance request has been updated—please review it at your convenience.</p>",
                 )

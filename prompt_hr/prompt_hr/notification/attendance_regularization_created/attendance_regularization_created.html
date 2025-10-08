@@ -1,11 +1,20 @@
-<p>{% set rh_emp = frappe.db.get_value("Employee", doc.employee, "reports_to") %}
-{% if rh_emp%}
-    {% set reporting_head = frappe.db.get_value("Employee", rh_emp, "employee_name") %}
-{% else %} 
-    {% set reporting_head = "Reporting Head" %} 
-{% endif %}</p>
+{% set manager_name = frappe.db.get_value("Employee", doc.reporting_manager, "employee_name") %}
 
-<p>Dear {{reporting_head}},</p>
+<p>Dear <b>{{ manager_name }}</b>,</p>
 
-<p>I would like to inform you that I have created an Attendance Regularization record for date {{doc.regularization_date.strftime('%d-%m-%Y')}}.<br>
-The record is now available in the system for your review and necessary action.</p>
+<p>
+    A attendance regularization has been submitted by <b>{{ doc.employee }}</b>.  
+    Please review the details below and take the necessary action.
+</p>
+
+<p><b>Request Summary:</b></p>
+<ul>
+    <li><b>Employee:</b> {{ doc.employee }}</li>
+    <li><b>Regularization Date:</b> {{ frappe.utils.format_date(doc.regularization_date, "dd-MM-yyyy") }}</li>
+    <li><b>Workflow State:</b> {{ doc.workflow_state }}</li>
+    <li>
+        <b>View Request:</b>
+        {% set att_reg_link = frappe.utils.get_url() ~ '/app/attendance-regularization/' ~ doc.name %}
+        <a href="{{ att_reg_link }}">Click here</a>
+    </li>
+</ul>
