@@ -17,7 +17,15 @@ from prompt_hr.py.utils import (
 class ExitApprovalProcess(Document):
 
     def before_save(self):
+        # ? SET EXIT QUESTIONNAIRE AND EXIT CHECKLIST DATES
+        exit_questionnaire_days = frappe.db.get_value("HR Settings", None, "custom_days_before_exit_questionnaire_prompt") or 0
+        exit_questionnaire_date = add_days(self.last_date_of_working, -(int(exit_questionnaire_days)+1))
+        self.custom_exit_questionnaire_notification_date  = exit_questionnaire_date
 
+        exit_checklist_days = frappe.db.get_value("HR Settings", None, "custom_days_before_exit_checklist_prompt") or 0
+        exit_checklist_date = add_days(self.last_date_of_working, -(int(exit_checklist_days)+1))
+        self.custom_exit_checklist_notification_date = exit_checklist_date
+    
         # ? VALIDATE APPROVAL STATUS
         validate_approval_status(self)
 
@@ -42,18 +50,6 @@ def raise_exit_checklist(employee, company, exit_approval_process):
     doc = frappe.get_doc("Exit Approval Process", exit_approval_process)
     today_date = getdate(today())
     notif_date = doc.custom_exit_checklist_notification_date
-
-    # ? CALCULATE NOTIFICATION DATE IF NOT SET
-    if not notif_date:
-        field = "custom_days_before_exit_checklist_prompt"
-        days = frappe.db.get_value("HR Settings", None, field) or 0
-        notif_date = add_days(doc.last_date_of_working, -(int(days)+1))
-        frappe.db.set_value(
-            "Exit Approval Process",
-            exit_approval_process,
-            "custom_exit_checklist_notification_date",
-            notif_date,
-        )
 
     # ? SKIP IF FUTURE
     if getdate(notif_date) > today_date:
@@ -148,17 +144,6 @@ def raise_exit_interview(employee, company, exit_approval_process):
     doc = frappe.get_doc("Exit Approval Process", exit_approval_process)
     today_date = getdate(today())
     notif_date = doc.custom_exit_questionnaire_notification_date
-
-    if not notif_date:
-        field = "custom_days_before_exit_questionnaire_prompt"
-        days = frappe.db.get_value("HR Settings", None, field) or 0
-        notif_date = add_days(doc.last_date_of_working, -(int(days)+1))
-        frappe.db.set_value(
-            "Exit Approval Process",
-            exit_approval_process,
-            "custom_exit_questionnaire_notification_date",
-            notif_date,
-        )
 
     if getdate(notif_date) > today_date:
         return {
