@@ -3117,7 +3117,7 @@ def daily_attendance_request_rituals():
         all_employees = frappe.get_all(
             "Employee",
             filters={"status": "Active"},
-            fields=["name", "custom_attendance_capture_scheme"],
+            fields=["name", "custom_attendance_capture_scheme", "custom_default_attendance_capture_scheme"],
         )
 
         # ? ATTENDANCE CAPTURE SCHEME MAP BASED ON WORK MODE
@@ -3128,7 +3128,10 @@ def daily_attendance_request_rituals():
 
         # ? EMPLOYEE -> current scheme
         employee_map = {
-            emp.name: emp.custom_attendance_capture_scheme for emp in all_employees
+            emp.name: {
+                "current": emp.custom_attendance_capture_scheme,
+                "default": emp.custom_default_attendance_capture_scheme,
+            } for emp in all_employees
         }
 
         all_attendance_requests = frappe.get_all(
@@ -3147,9 +3150,13 @@ def daily_attendance_request_rituals():
 
 
         for employee, requests in request_map.items():
-            current_scheme = employee_map.get(employee)
+
+            current_scheme = employee_map[employee]["current"]
+            default_scheme = employee_map[employee]["default"]
+            
             active_request = None
             last_expired_request = None
+            
             for req in requests:
                 if getdate(req.from_date) <= getdate(today()) <= getdate(req.to_date):
                     active_request = req
@@ -3160,7 +3167,9 @@ def daily_attendance_request_rituals():
             # * FOR CUURENT ONE
             if active_request:
                 if active_request.reason in attendance_capture_scheme_map:
+                    
                     new_scheme = attendance_capture_scheme_map.get(active_request.reason)
+                    
                     if new_scheme and current_scheme != new_scheme:
                         # Save old scheme only once
                         if not active_request.custom_old_attendance_capture_scheme:
@@ -3186,10 +3195,14 @@ def daily_attendance_request_rituals():
                         employee_map[employee] = new_scheme
                             
             # * FOR THE EXPIRED
-            elif last_expired_request and last_expired_request.custom_old_attendance_capture_scheme:
-                if current_scheme != last_expired_request.custom_old_attendance_capture_scheme:
+            # elif last_expired_request and last_expired_request.custom_old_attendance_capture_scheme:
+            elif last_expired_request:
+            
+                # if current_scheme != last_expired_request.custom_old_attendance_capture_scheme:
+                if current_scheme != default_scheme and default_scheme:
                     emp_doc = frappe.get_doc("Employee", employee)
-                    emp_doc.custom_attendance_capture_scheme = last_expired_request.custom_old_attendance_capture_scheme
+                    # emp_doc.custom_attendance_capture_scheme = last_expired_request.custom_old_attendance_capture_scheme
+                    emp_doc.custom_attendance_capture_scheme = default_scheme
                     emp_doc.flags.ignore_mandatory = True
                     
                     try:
@@ -3200,7 +3213,8 @@ def daily_attendance_request_rituals():
                     # frappe.db.set_value(
                     #     "Employee", employee, "custom_attendance_capture_scheme", last_expired_request.custom_old_attendance_capture_scheme
                     # )
-                    employee_map[employee] = last_expired_request.custom_old_attendance_capture_scheme
+                    # employee_map[employee] = last_expired_request.custom_old_attendance_capture_scheme
+                    employee_map[employee]["current"] = default_scheme
                     
         frappe.db.commit()
     except Exception as e:
