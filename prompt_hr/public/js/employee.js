@@ -274,7 +274,13 @@ frappe.ui.form.on("Employee", {
         }
     },
 
-
+    custom_probation_status: function (frm) {
+        if (frm.doc.custom_probation_status === "Confirmed") {
+            frm.set_df_property("notice_number_of_days", "reqd", 1)
+            frm.set_value("notice_number_of_days", "")
+            frm.set_value("custom_leave_policy", "")
+        }
+    }
     // refresh: function (frm){
     //     prompt_probation_period = frappe.db.get_single_value("HR Settings","custom_probation_period_for_prompt")
     //     indifoss_probation_period = frappe.db.get_single_value("HR Settings","custom_probation_period_for_indifoss")
