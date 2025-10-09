@@ -27,6 +27,70 @@ class WeekOffChangeRequest(Document):
 
         # ? CHECK IF ANY LEAVE APPLICATION EXISTS FOR THE DATES ENTERED IN WEEKOFF CHANGE REQUEST
         check_if_leave_application_exists(self)
+        sent_auto_approve_emails = frappe.db.get_single_value("HR Settings", "custom_send_auto_approve_doc_emails") or 0
+        # *CHECKING IF THE CURRENT USER IS THE EMPLOYEE USER LINKED TO DOCUMENT THEN WHEN WE SAVES THIS DOCUMENT THEN SENDING AN EMAIL TO THE EMPLOYEE'S REPORTING HEAD ABOUT THE CREATION WEEKOFF CHANGE REQUEST
+        current_user = frappe.session.user
+        manager_id = get_employee_email(self.attendance_request)
+        if manager_id:
+            cc = [manager_id]
+        else:
+            cc = []
+        if self.status == "Approved" and (not self.auto_approve or sent_auto_approve_emails):
+            is_rh = is_user_reporting_manager_or_hr(current_user, self.employee)
+            if not is_rh.get("error") and is_rh.get("is_rh"):
+                emp_user_id = get_employee_email(self.employee)
+                if emp_user_id:
+                    # if "@" in emp_user_id:
+                    # 	emp_mail = emp_user_id
+                    # else:
+                    # emp_mail = frappe.db.get_value("User", emp_user_id, 'email')
+                    send_notification_email(
+                        recipients=[emp_user_id],
+                        notification_name="WeekOff Change Request Approved",
+                        doctype="WeekOff Change Request",
+                        docname=self.name,
+                        cc = cc,
+                        send_link=False,
+                        fallback_subject="WeekOff Change Request Approved",
+                        fallback_message=f"<p>Dear Employee</p>   <p>Your WeekOff Change Request has been reviewed and approved.<br>Best regards,<br>HR Department</p>",
+                    )
+            elif is_rh.get("error"):
+                throw(f"{is_rh.get('message')}")
+        if self.status == "Rejected" and (not self.auto_approve or sent_auto_approve_emails):
+            is_rh = is_user_reporting_manager_or_hr(current_user, self.employee)
+            if not is_rh.get("error") and is_rh.get("is_rh"):
+                emp_user_id = frappe.db.get_value("Employee", self.employee, "user_id")
+                if emp_user_id:
+                    send_notification_email(
+                        recipients=[emp_user_id],
+                        notification_name="WeekOff Change Request Rejected",
+                        doctype="WeekOff Change Request",
+                        docname=self.name,
+                        cc=cc,
+                        send_link=False,
+                        fallback_subject="WeekOff Change Request Rejected",
+                        fallback_message=f"<p>Dear Employee</p>\n\n    <p>We regret to inform you that your WeekOff Change Request has been rejected.</p>",
+                    )
+            elif is_rh.get("error"):
+                throw(f"{is_rh.get('message')}")
+
+        if self.workflow_state == "Approved":
+
+            # ? CREATE AND LINK NEW HOLIDAY LIST IF NOT EXISTS
+            holiday_list = frappe.db.get_value(
+                "Employee", self.employee, "holiday_list"
+            )
+            if not holiday_list:
+                frappe.throw(
+                    _("Please set Holiday List for Employee {0}").format(self.employee)
+                )
+
+            weekoff_details = self.weekoff_details
+
+            # ? CREATE NEW HOLIDAY LIST IF NOT EXISTS
+            new_list = create_new_holiday_list_for_employee(self.employee, holiday_list, weekoff_details, self.name)
+            if new_list:
+                frappe.db.set_value("Employee", self.employee, "holiday_list", new_list)
 
     def on_update(self):
         share_leave_with_manager(self)
@@ -126,7 +190,6 @@ class WeekOffChangeRequest(Document):
                         throw("Please Set Correct New weekoff Day as per the date")
 
     def validate(self):
-        sent_auto_approve_emails = frappe.db.get_single_value("HR Settings", "custom_send_auto_approve_doc_emails") or 0
         # *CHECKING IF THE EXISTING DETAILS IS VALID OR NOT, IF INVALID SHOWING AN ALERT TELLING USER THAT THE EXISTING DATE ENTERED DOES NOT EXISTS IN HOLIDAY LIST
         if self.weekoff_details:
             for row in self.weekoff_details:
@@ -170,70 +233,6 @@ class WeekOffChangeRequest(Document):
                         f"Error While Verifying Existing Date {exists.get('message')}"
                     )
         validate_for_sandwich_policy(self)
-
-        # *CHECKING IF THE CURRENT USER IS THE EMPLOYEE USER LINKED TO DOCUMENT THEN WHEN WE SAVES THIS DOCUMENT THEN SENDING AN EMAIL TO THE EMPLOYEE'S REPORTING HEAD ABOUT THE CREATION WEEKOFF CHANGE REQUEST
-        current_user = frappe.session.user
-        manager_id = get_employee_email(self.attendance_request)
-        if manager_id:
-            cc = [manager_id]
-        else:
-            cc = []
-        if self.status == "Approved" and (not self.auto_approve or sent_auto_approve_emails):
-            is_rh = is_user_reporting_manager_or_hr(current_user, self.employee)
-            if not is_rh.get("error") and is_rh.get("is_rh"):
-                emp_user_id = get_employee_email(self.employee)
-                if emp_user_id:
-                    # if "@" in emp_user_id:
-                    # 	emp_mail = emp_user_id
-                    # else:
-                    # emp_mail = frappe.db.get_value("User", emp_user_id, 'email')
-                    send_notification_email(
-                        recipients=[emp_user_id],
-                        notification_name="WeekOff Change Request Approved",
-                        doctype="WeekOff Change Request",
-                        docname=self.name,
-                        cc = cc,
-                        send_link=False,
-                        fallback_subject="WeekOff Change Request Approved",
-                        fallback_message=f"<p>Dear Employee</p>   <p>Your WeekOff Change Request has been reviewed and approved.<br>Best regards,<br>HR Department</p>",
-                    )
-            elif is_rh.get("error"):
-                throw(f"{is_rh.get('message')}")
-        if self.status == "Rejected" and (not self.auto_approve or sent_auto_approve_emails):
-            is_rh = is_user_reporting_manager_or_hr(current_user, self.employee)
-            if not is_rh.get("error") and is_rh.get("is_rh"):
-                emp_user_id = frappe.db.get_value("Employee", self.employee, "user_id")
-                if emp_user_id:
-                    send_notification_email(
-                        recipients=[emp_user_id],
-                        notification_name="WeekOff Change Request Rejected",
-                        doctype="WeekOff Change Request",
-                        docname=self.name,
-                        cc=cc,
-                        send_link=False,
-                        fallback_subject="WeekOff Change Request Rejected",
-                        fallback_message=f"<p>Dear Employee</p>\n\n    <p>We regret to inform you that your WeekOff Change Request has been rejected.</p>",
-                    )
-            elif is_rh.get("error"):
-                throw(f"{is_rh.get('message')}")
-
-        if self.workflow_state == "Approved":
-
-            # ? CREATE AND LINK NEW HOLIDAY LIST IF NOT EXISTS
-            holiday_list = frappe.db.get_value(
-                "Employee", self.employee, "holiday_list"
-            )
-            if not holiday_list:
-                frappe.throw(
-                    _("Please set Holiday List for Employee {0}").format(self.employee)
-                )
-
-            weekoff_details = self.weekoff_details
-
-            # ? CREATE NEW HOLIDAY LIST IF NOT EXISTS
-            new_list = create_new_holiday_list_for_employee(self.employee, holiday_list, weekoff_details, self.name)
-            if new_list:
-                frappe.db.set_value("Employee", self.employee, "holiday_list", new_list)
 
 
     def after_insert(self):

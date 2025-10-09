@@ -732,13 +732,13 @@ def on_update(doc, method):
                     reference_name=doc.name,
                     expose_recipients="header"
                 )
-                    if hr_manager_email:
-                        for hr_manager in hr_manager_email:
-                            create_notification_log(hr_manager, subject, message, "Leave Application", doc.name)
+                    if hr_manager_email or cc_recipients:
+                        #! MERGE BOTH LISTS AND REMOVE DUPLICATES
+                        all_recipients = list(set(hr_manager_email or []) | set(cc_recipients or []))
 
-                    if cc_recipients:
-                        for cc_recipient in cc_recipients:
-                            create_notification_log(cc_recipient, subject, message, "Leave Application", doc.name)
+                        #! LOOP THROUGH UNIQUE RECIPIENTS
+                        for recipient in all_recipients:
+                            create_notification_log(recipient, subject, message, "Leave Application", doc.name)
 
     # elif doc.workflow_state == "Rejected by Reporting Manager":
     #     doc.db_set("custom_pending_approval_at", "HR Team")
@@ -815,12 +815,13 @@ def on_update(doc, method):
                     reference_name=doc.name,
                     expose_recipients="header"
                 )
-                    if recipients:
-                        for recipient in recipients:
+                    if recipients or other_recipents:
+                        #! MERGE BOTH LISTS WHILE REMOVING DUPLICATES
+                        all_recipients = list(set(recipients or []) | set(other_recipents or []))
+
+                        #! LOOP THROUGH UNIQUE RECIPIENTS AND CREATE NOTIFICATION
+                        for recipient in all_recipients:
                             create_notification_log(recipient, subject, message, "Leave Application", doc.name)
-                    if other_recipents:
-                        for other_recipent in other_recipents:
-                            create_notification_log(other_recipent, subject, message, "Leave Application", doc.name)
 
         else:
             employee_notification = frappe.get_doc("Notification", "Leave Request Response By Reporting Manager")
