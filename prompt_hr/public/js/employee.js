@@ -287,19 +287,20 @@ frappe.ui.form.on("Employee", {
 
 frappe.ui.form.on("Probation Extension", {
     
-    custom_probation_extension_details_add: function (frm, cdt, cdn) {
-        let row = locals[cdt][cdn]
-        if (frm.doc.custom_probation_end_date) {
-            row.probation_end_date = frm.doc.custom_probation_end_date
-        }
-    },
+    // custom_probation_extension_details_add: function (frm, cdt, cdn) {
+    //     let row = locals[cdt][cdn]
+    //     if (frm.doc.custom_probation_end_date && !row.probation_end_date) {
+    //         row.probation_end_date = frm.doc.custom_probation_end_date
+    //     }
+    // },
     form_render: function (frm, cdt, cdn) {
-        // console.log("Hellooo")
         let row = locals[cdt][cdn]
-        if (frm.doc.custom_probation_end_date) {
+        if (frm.doc.custom_probation_end_date && !row.probation_end_date) {
             row.probation_end_date = frm.doc.custom_probation_end_date
             frm.refresh_field("custom_probation_extension_details")
-
+        }
+        else {
+            console.log("Has Value", row.probation_end_date)
         }
     },
     probation_end_date: function (frm, cdt, cdn) {
