@@ -174,7 +174,8 @@ permission_query_conditions = {
     "Interview": "prompt_hr.py.interview_availability.check_interviewer_permission",
     "Interview Feedback": "prompt_hr.py.interview_feedback.get_permission_query_conditions",
     "Job Opening": "prompt_hr.py.job_opening.get_permission_query_conditions",
-    "Salary Slip": "prompt_hr.py.salary_slip.salary_slip_view_and_access_permissions"
+    "Salary Slip": "prompt_hr.py.salary_slip.salary_slip_view_and_access_permissions",
+    "Organization Documents": "prompt_hr.prompt_hr.doctype.organization_documents.organization_documents.get_permission_query_conditions"
 }
 
 # has_permission = {
@@ -237,7 +238,6 @@ doc_events = {
         "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
     },
     "Employee": {
-        "onload": "prompt_hr.py.employee.onload",
         "on_update": "prompt_hr.py.employee.on_update",
         "autoname": "prompt_hr.py.employee.custom_autoname_employee",
         "validate": "prompt_hr.py.employee.validate",
@@ -271,9 +271,9 @@ doc_events = {
         "before_submit": "prompt_hr.py.attendance_request.before_submit",
         "on_update": "prompt_hr.py.attendance_request.on_update",
     },
-    # "Attendance":{
-    #     "on_submit":""
-    # },
+    "Attendance":{
+        "on_submit":"prompt_hr.py.attendance.on_submit"
+    },
     "Payroll Entry": {
         "on_update": "prompt_hr.py.payroll_entry.on_update",
         "on_submit": "prompt_hr.py.payroll_entry.on_submit",
@@ -398,7 +398,7 @@ scheduler_events = {
         "prompt_hr.py.employee_changes_approval.daily_check_employee_changes_approval",
         "prompt_hr.scheduler_methods.create_probation_feedback_form",
         "prompt_hr.scheduler_methods.create_confirmation_evaluation_form_for_prompt",
-        "prompt_hr.scheduler_methods.inform_employee_for_confirmation_process",
+        # "prompt_hr.scheduler_methods.inform_employee_for_confirmation_process",
         "prompt_hr.scheduler_methods.validate_employee_holiday_list",
         # "prompt_hr.scheduler_methods.assign_checkin_role",
         "prompt_hr.scheduler_methods.process_exit_approvals",
@@ -544,10 +544,10 @@ fixtures = [
     #     "dt":"Workflow", "filters": [["name", "in", ["Job Requisition","Loan Application", "Compensatory Leave Request", "Leave Application", "Expense Claim", "Travel Request", "Shift Request", "WeekOff Change Request", "Attendance Regularization", "Attendance Request"]]]
     # },
     # {
-    #     "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled", "Confirmed", "Approved by HR", "Rejected by HR", "Approved by BU Head", "Rejected by BU Head", "Extension Approved", "Extension Confirmed", "Extension Rejected", "Extension Requested", "Send For Approval", "Pending For Approval"]]]
+    #     "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Cancelled by Employee", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled", "Confirmed", "Approved by HR", "Rejected by HR", "Approved by BU Head", "Rejected by BU Head", "Extension Approved", "Extension Confirmed", "Extension Rejected", "Extension Requested", "Send For Approval", "Pending For Approval"]]]
     # },
     # {
-    #     "dt":"Workflow Action Master", "filters": [["name", "in", ["Confirm", "Send For Approval"]]]
+    #     "dt":"Workflow Action Master", "filters": [["name", "in", ["Confirm", "Send For Approval", "Withdraw"]]]
     # },
     # {
     #     "doctype": "Type of Document",

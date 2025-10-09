@@ -1424,7 +1424,28 @@ def get_approved_category_monthly_expense(
         month_start = expense_date.replace(day=1)
         next_month = month_start + relativedelta(months=1)
         month_end = next_month - timedelta(days=1)
+        grade, company = frappe.db.get_value('Employee', employee, ["grade", "company"])
+        additional_filters = {}
+        if grade:
+            # ? FETCH TRAVEL BUDGET RECORD LINKED TO EMPLOYEE
+            travel_budget_name = frappe.db.get_value(
+                "Travel Budget", {"company": company}, "name"
+            )
 
+            if travel_budget_name:
+                local_commute_entries = frappe.get_all(
+                    "Local Commute Details",
+                    filters={"parent": travel_budget_name, "grade": grade, "include_expenses":1},
+                    fields=["mode_of_commute", "type_of_commute","include_expenses"],
+                )
+                if local_commute_entries:
+                    type_of_commutes = []
+                    for entry in local_commute_entries:
+                        type_of_commutes.append(entry.type_of_commute)
+                        
+                    if type_of_commutes:
+                        additional_filters["custom_type_of_vehicle"] = ["in", type_of_commutes]
+                        
         filters = {
             "employee": employee,
             "approval_status": ["in", ["Draft", "Approved"]],
@@ -1441,15 +1462,30 @@ def get_approved_category_monthly_expense(
         if not all_approved_expense_claims:
             return 0.0
 
-        expense_claim_details = frappe.get_all(
-            doctype="Expense Claim Detail",
+        if expense_type == "Local Commute" and additional_filters:
+
             filters={
-                "expense_type": expense_type,
-                "parent": ["in", all_approved_expense_claims],
-                "expense_date": ["between", [month_start, month_end]],
-            },
-            fields=["sanctioned_amount"],
-        )
+                    "expense_type": expense_type,
+                    "parent": ["in", all_approved_expense_claims],
+                    "expense_date": ["between", [month_start, month_end]],                    
+            }
+            filters.update(additional_filters)
+            expense_claim_details = frappe.get_all(
+                doctype="Expense Claim Detail",
+                filters=filters,
+                fields=["sanctioned_amount"],
+            )
+                
+        else:
+            expense_claim_details = frappe.get_all(
+                doctype="Expense Claim Detail",
+                filters={
+                    "expense_type": expense_type,
+                    "parent": ["in", all_approved_expense_claims],
+                    "expense_date": ["between", [month_start, month_end]],
+                },
+                fields=["sanctioned_amount"],
+            )
 
         total_sanctioned_amount = sum(
             flt(detail.sanctioned_amount or 0) for detail in expense_claim_details
@@ -2848,3 +2884,78 @@ def get_allowance_budgets(employee_grade, company, expense_type, metro):
         return 0  # ! EXPENSE TYPE NOT RECOGNIZED
 
     return budget.get(key, 0)
+
+@frappe.whitelist()
+def get_travel_request_details(employee):
+    """
+    Fetches travel request details for the given employee and date range.
+    Each parent record includes travel itinerary, costing, and workflow state.
+    """
+    # Get all travel requests avoiding rejected states
+    travel_requests = frappe.get_all(
+        "Travel Request",
+        filters={
+            "employee": employee,
+            "workflow_state": ["not in", ["Rejected by Reporting Manager", "Rejected by BU Head"]],
+        },
+        fields=["name", "workflow_state"]
+    )
+
+    result = []
+    # Get only fields allowed in list view for itinerary and costing
+    itinerary_meta = frappe.get_meta("Travel Itinerary")
+    itinerary_fields = [
+        df.fieldname
+        for df in itinerary_meta.fields
+        if df.fieldname and getattr(df, "in_list_view", 0) == 1
+    ]
+    # Get corresponding labels for each field
+    travel_itineraries_label = [
+        df.label
+        for df in itinerary_meta.fields
+        if df.fieldname in itinerary_fields
+    ]
+
+    costing_meta = frappe.get_meta("Travel Request Costing")
+    costing_fields = [
+        df.fieldname
+        for df in costing_meta.fields
+        if df.fieldname and getattr(df, "in_list_view", 0) == 1
+    ]
+
+
+    # Get corresponding labels for each field
+    cost_data_label = [
+        df.label
+        for df in costing_meta.fields
+        if df.fieldname in costing_fields
+    ]
+
+    for request in travel_requests:
+        # Get itineraries for current parent request in range
+        itineraries = frappe.get_all(
+            "Travel Itinerary",
+            filters={
+                "parent": request["name"],
+            },
+            fields=itinerary_fields
+        )
+        # Get costings for current parent request
+        costings = frappe.get_all(
+            "Travel Request Costing",
+            filters={"parent": request["name"]},
+            fields=costing_fields
+        )
+        # Structure parent dict
+        parent_dict = {
+            "parent": request["name"],
+            "travel_itinerary_data": itineraries,
+            "travel_itinerary_label": travel_itineraries_label,
+            "cost_data_label":cost_data_label,
+            "cost_data": costings,
+            "workflow_state": request["workflow_state"]
+        }
+        result.append(parent_dict)
+
+    # Return the list of parent dicts
+    return result

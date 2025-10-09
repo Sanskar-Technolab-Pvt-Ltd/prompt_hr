@@ -80,8 +80,7 @@ class EmployeeStandardSalary(Document):
             component = self.create_component_row(row, "earnings")
             if component:
                 self.append("earnings", component)
-                # * Prepare data for evaluation
-                self.data, self.default_data = self.get_data_for_eval()
+                self.data.update({"gross_pay": total_gross_pay})
                 if not component.get("do_not_include_in_total") and not component.get("statistical_component"):
                     total_gross_pay += component.get("amount")
         self.data.update({"gross_pay": total_gross_pay})
@@ -90,8 +89,7 @@ class EmployeeStandardSalary(Document):
             component = self.create_component_row(row, "deductions")
             if component:
                 self.append("deductions", component)
-                # * Prepare data for evaluation
-                self.data, self.default_data = self.get_data_for_eval(total_gross_pay)
+                self.data.update({"gross_pay": total_gross_pay})
                 if not component.get("do_not_include_in_total") and not component.get("statistical_component"):
                     total_deductions +=component.get("amount")
 
@@ -100,8 +98,7 @@ class EmployeeStandardSalary(Document):
             component = self.create_component_row(row, "employer_contribution")
             if component:
                 self.append("employer_contribution", component)
-                # * Prepare data for evaluation
-                self.data, self.default_data = self.get_data_for_eval(total_gross_pay)
+                self.data.update({"gross_pay": total_gross_pay})
                 if not component.get("do_not_include_in_total") and not component.get("statistical_component"):
                     total_employer_contributions +=component.get("amount")
 
@@ -181,11 +178,10 @@ class EmployeeStandardSalary(Document):
                 f"Error: {e}\n\n"
                 f"Hint: Check formula/condition syntax. Only valid Python expressions are allowed."
             )
-
+        self.default_data[struct_row.abbr] = flt(amount)
+        self.data[struct_row.abbr] = flt(amount)        
         # Skip statistical components
         if struct_row.statistical_component:
-            self.default_data[struct_row.abbr] = flt(amount)
-            self.data[struct_row.abbr] = flt(amount)
             if struct_row.depends_on_payment_days:
                 payment_days_amount = (
                     flt(amount) * flt(self.data.get("payment_days", 30)) / cint(30)

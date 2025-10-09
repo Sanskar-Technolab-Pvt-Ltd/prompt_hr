@@ -19,8 +19,22 @@
   "hod",
   "evaluation_details_section",
   "table_txep",
+  "reporting_head_status_section",
   "rh_rating_added",
+  "confirmed_by_rh",
+  "further_to_by_rh",
+  "column_break_uvfd",
+  "reason_for_extension_by_rh",
+  "extension_period_by_rh",
+  "reason_for_termination_by_rh",
+  "department_head_status_section",
   "dh_rating_added",
+  "confirmed_by_dh",
+  "further_to_by_dh",
+  "column_break_oiqj",
+  "reason_for_extension_by_dh",
+  "extension_period_by_dh",
+  "reason_for_termination_by_dh",
   "confirmation_details_section",
   "probation_status",
   "confirmation_date",
@@ -113,6 +127,7 @@
   {
    "fieldname": "confirmation_details_section",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Confirmation Details"
   },
   {
@@ -135,8 +150,8 @@
   {
    "depends_on": "eval:doc.probation_status==\"Extend\";",
    "fieldname": "extension_period",
-   "fieldtype": "Float",
-   "label": "Extension Period",
+   "fieldtype": "Int",
+   "label": "Extension Period(in Days)",
    "mandatory_depends_on": "eval:doc.probation_status==\"Extend\";",
    "precision": "1"
   },
@@ -193,13 +208,95 @@
    "fieldtype": "Date",
    "label": "Last Work Date",
    "mandatory_depends_on": "eval:doc.probation_status == \"Terminate\";"
+  },
+  {
+   "fieldname": "reporting_head_status_section",
+   "fieldtype": "Section Break",
+   "label": "Reporting Head Status",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_uvfd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.further_to_by_rh === \"Extend\";",
+   "fieldname": "extension_period_by_rh",
+   "fieldtype": "Int",
+   "label": "Extension Period (in Days)",
+   "mandatory_depends_on": "eval: doc.further_to_by_rh === \"Extend\";"
+  },
+  {
+   "depends_on": "eval: doc.further_to_by_rh === \"Terminate\";",
+   "fieldname": "reason_for_termination_by_rh",
+   "fieldtype": "Small Text",
+   "label": "Reason for Termination"
+  },
+  {
+   "depends_on": "eval: doc.further_to_by_rh === \"Extend\";",
+   "fieldname": "reason_for_extension_by_rh",
+   "fieldtype": "Small Text",
+   "label": "Reason for Extension"
+  },
+  {
+   "fieldname": "confirmed_by_rh",
+   "fieldtype": "Select",
+   "label": "Confirmed",
+   "options": "\nYes\nNo"
+  },
+  {
+   "depends_on": "eval: doc.confirmed_by_rh === \"No\";",
+   "fieldname": "further_to_by_rh",
+   "fieldtype": "Select",
+   "label": "Further to",
+   "options": "\nExtend\nTerminate"
+  },
+  {
+   "fieldname": "department_head_status_section",
+   "fieldtype": "Section Break",
+   "label": "Department Head Status"
+  },
+  {
+   "fieldname": "confirmed_by_dh",
+   "fieldtype": "Select",
+   "label": "Confirmed",
+   "options": "\nYes\nNo"
+  },
+  {
+   "depends_on": "eval: doc.confirmed_by_dh === \"No\";",
+   "fieldname": "further_to_by_dh",
+   "fieldtype": "Select",
+   "label": "Further to",
+   "options": "\nExtend\nTerminate"
+  },
+  {
+   "fieldname": "column_break_oiqj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.further_to_by_dh === \"Extend\";",
+   "fieldname": "reason_for_extension_by_dh",
+   "fieldtype": "Small Text",
+   "label": "Reason for Extension"
+  },
+  {
+   "depends_on": "eval: doc.further_to_by_dh === \"Extend\";",
+   "fieldname": "extension_period_by_dh",
+   "fieldtype": "Int",
+   "label": "Extension Period (in Days)",
+   "mandatory_depends_on": "eval: doc.further_to_by_dh === \"Extend\";"
+  },
+  {
+   "depends_on": "eval: doc.further_to_by_dh === \"Terminate\";",
+   "fieldname": "reason_for_termination_by_dh",
+   "fieldtype": "Small Text",
+   "label": "Reason for Termination"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
- "is_submittable": 1,
  "links": [],
- "modified": "2025-07-22 15:36:15.391227",
+ "modified": "2025-10-07 18:51:30.936245",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Confirmation Evaluation Form",
@@ -216,7 +313,6 @@
    "report": 1,
    "role": "System Manager",
    "share": 1,
-   "submit": 1,
    "write": 1
   }
  ],

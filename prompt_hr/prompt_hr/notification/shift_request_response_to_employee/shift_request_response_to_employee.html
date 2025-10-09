@@ -1,37 +1,19 @@
-<p>Dear {{ doc.employee_name }},</p>
+<p>Dear <b>{{ doc.employee }}</b>,</p>
 
 <p>
-  Your Shift Request for <strong>{{ doc.shift_type }}</strong>
-  starting from <strong>{{ frappe.format_date(doc.from_date) }}</strong>
-  {% if doc.to_date %}
-    to <strong>{{ frappe.format_date(doc.to_date) }}</strong>
-  {% endif %}
-  has been <span class="status">{{ doc.workflow_state }}</span>
-  by your manager <strong>{{ manager_name }}</strong>.
-</p>
-
-{% if doc.workflow_state == "Approved" %}
-  <p>You may now follow the approved shift schedule.</p>
-{% else %}
-  <p>Please contact your manager for more details or to discuss next steps.</p>
-{% endif %}
-
-<p style="margin-top:20px;">
-<a href="{{ frappe.utils.get_url() }}/app/{{ doc.doctype | lower | replace(' ', '-') }}/{{ doc.name }}"
-   style="display:inline-block;
-          padding:8px 14px;
-          font-size:14px;
-          background:#1675e0;
-          color:#ffffff !important;
-          text-decoration:none;
-          border-radius:4px;
-          font-weight:600;">
-   View Shift Request
-</a>
+    Your shift request has been {{ doc.workflow_state}} by {{manager_name}}.<br>
+Please find the details below:
 
 </p>
 
-<p class="footer">
-  Regards,<br>
-  HR Team
-</p>
+<p><b>Request Summary:</b></p>
+<ul>
+    <li><b>Employee:</b> {{ doc.employee }}</li>
+    <li><b>Shift Type:</b> {{ doc.shift_type }}</li>
+    <li><b>Workflow State:</b> {{ doc.workflow_state }}</li>
+    <li>
+        <b>View Request:</b>
+        {% set shift_link = frappe.utils.get_url() ~ '/app/shift-request/' ~ doc.name %}
+        <a href="{{ shift_link }}">Click here</a>
+    </li>
+</ul>

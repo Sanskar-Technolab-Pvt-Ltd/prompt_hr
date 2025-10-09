@@ -10,9 +10,9 @@
  "event": "Custom",
  "idx": 0,
  "is_standard": 1,
- "message": "<p>Dear {{ doc.employee_name }},</p>\n\n<p>\n  Your Shift Request for <strong>{{ doc.shift_type }}</strong>\n  starting from <strong>{{ frappe.format_date(doc.from_date) }}</strong>\n  {% if doc.to_date %}\n    to <strong>{{ frappe.format_date(doc.to_date) }}</strong>\n  {% endif %}\n  has been <span class=\"status\">{{ doc.workflow_state }}</span>\n  by your manager <strong>{{ manager_name }}</strong>.\n</p>\n\n{% if doc.workflow_state == \"Approved\" %}\n  <p>You may now follow the approved shift schedule.</p>\n{% else %}\n  <p>Please contact your manager for more details or to discuss next steps.</p>\n{% endif %}\n\n<p style=\"margin-top:20px;\">\n<a href=\"{{ frappe.utils.get_url() }}/app/{{ doc.doctype | lower | replace(' ', '-') }}/{{ doc.name }}\"\n   style=\"display:inline-block;\n          padding:8px 14px;\n          font-size:14px;\n          background:#1675e0;\n          color:#ffffff !important;\n          text-decoration:none;\n          border-radius:4px;\n          font-weight:600;\">\n   View Shift Request\n</a>\n\n</p>\n\n<p class=\"footer\">\n  Regards,<br>\n  HR Team\n</p>\n",
+ "message": "<p>Dear <b>{{ doc.employee }}</b>,</p>\n\n<p>\n    Your shift request has been {{ doc.workflow_state}} by {{manager_name}}.<br>\nPlease find the details below:\n\n</p>\n\n<p><b>Request Summary:</b></p>\n<ul>\n    <li><b>Employee:</b> {{ doc.employee }}</li>\n    <li><b>Shift Type:</b> {{ doc.shift_type }}</li>\n    <li><b>Workflow State:</b> {{ doc.workflow_state }}</li>\n    <li>\n        <b>View Request:</b>\n        {% set shift_link = frappe.utils.get_url() ~ '/app/shift-request/' ~ doc.name %}\n        <a href=\"{{ shift_link }}\">Click here</a>\n    </li>\n</ul>",
  "message_type": "HTML",
- "modified": "2025-09-16 14:11:13.336232",
+ "modified": "2025-10-08 10:47:55.821629",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Shift Request Response To Employee",
@@ -22,5 +22,5 @@
  ],
  "send_system_notification": 1,
  "send_to_all_assignees": 0,
- "subject": "Your Shift Request has been {{ doc.workflow_state }}"
+ "subject": "Shift Request: {{doc.workflow_state}} - {{ doc.employee }}"
 }

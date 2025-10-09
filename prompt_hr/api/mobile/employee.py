@@ -465,13 +465,10 @@ def resignation_form_url():
         if not employee_name:
             frappe.throw("No Employee record linked with current user.")
 
-        # ? DETERMINE PATH FROM HR SETTINGS OR DEFAULT
-        if hr_setting.custom_resignation_url:
-            path = hr_setting.custom_resignation_url.format(name=employee_name)
-        else:
-            path = f"/app/employee/"
+      
+        path = f"/app/employee"
 
-        path += "/{employee_name}"
+        path += f"/{employee_name}"
         # ? PARSE EXISTING URL TO MERGE QUERY PARAMS SAFELY
         url_parts = urlparse(urljoin(base_url, path))
         query_dict = parse_qs(url_parts.query)
@@ -499,7 +496,7 @@ def resignation_form_url():
             "data": final_url,
         }
 
-
+from frappe.auth import LoginManager
 @frappe.whitelist()
 def employee_details_url():
     try:
@@ -508,6 +505,10 @@ def employee_details_url():
 
         # Ensure we have the current user
         user = frappe.session.user
+        # Generate a new session for the user
+        login_manager = LoginManager()
+        login_manager.user = user
+        login_manager.post_login()
         sid = frappe.session.sid
 
         if hr_setting.custom_employee_details_url:

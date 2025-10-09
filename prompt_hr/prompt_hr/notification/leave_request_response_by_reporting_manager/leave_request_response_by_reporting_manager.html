@@ -1,4 +1,4 @@
-Dear {{ doc.employee_name }},<br><br>
+Dear {{ doc.employee }},<br><br>
 {% set employee = frappe.get_doc("Employee", doc.employee) %}
 {% if employee.company %}
 {% set company = employee.company %}
@@ -7,17 +7,13 @@ Dear {{ doc.employee_name }},<br><br>
 {% if doc.doctype == "Compensatory Leave Request" %}
 Your compensatory leave request submitted for the period from <b>{{ frappe.utils.format_date(doc.work_from_date,"dd-MM-yyyy") }}</b> to <b>{{ frappe.utils.format_date(doc.work_end_date,"dd-MM-yyyy") }}</b>
 {% else %}
-Your leave application for <b>{{ doc.leave_type }}</b>
+Your leave application 
 {% endif %}
-has been <b>{{ doc.workflow_state }}</b> by {{manager}}.<br><br>
+has been <b>{{ doc.workflow_state }}</b> by {{manager}}.<br>
+Please find the details below:<br><br>
 
 <b>Request Summary:</b><br>
+- <b>Employee:</b> {{ doc.employee }}<br>
 - <b>Leave Type:</b> {{ doc.leave_type }}<br>
-- <b>Status:</b> {{ doc.workflow_state }}<br>
+- <b>Workflow State:</b> {{ doc.workflow_state }}<br>
 - <b>View Request:</b> <a href="{{ frappe.utils.get_url() }}/app/{{ doc.doctype|lower|replace(' ', '-') }}/{{ doc.name }}">Click here</a><br><br>
-
-If you have any questions or concerns, please reach out to {{manager or "Reporting Manager"}}.<br><br>
-
-Thank you,<br>
-HR Manager, <br>
-{{company or ""}}

@@ -3,6 +3,9 @@
 
 frappe.ui.form.on("Attendance Regularization", {
     refresh(frm) {
+
+        display_existing_checkin_punch_details(frm);
+
         if (frm.doc.employee && !frm.is_new()) {
             frappe.call({
                 method: "prompt_hr.py.utils.check_user_is_reporting_manager",
@@ -67,64 +70,102 @@ frappe.ui.form.on("Attendance Regularization", {
 
     regularization_date: (frm) => {
         populate_checkin_punch_table(frm);
+        display_existing_checkin_punch_details(frm);
     }
 });
 
-// ? FUNCTION TO POPULATE CHECK-IN / PUNCH DETAILS TABLE (PAIR IN/OUT WITH BLANKS IF MISSING)
-function populate_checkin_punch_table(frm) {
-    if (!frm.doc.regularization_date || !frm.doc.employee) return;
+// ? GENERIC FUNCTION TO FETCH CHECK-IN / PUNCH DETAILS
+function get_checkin_punch_details(employee, regularization_date) {
+    if (!employee || !regularization_date) return Promise.resolve([]);
 
-    frappe.call({
-        method: 'frappe.client.get_list',
-        args: {
-            doctype: 'Employee Checkin',
-            filters: {
-                employee: frm.doc.employee,
-                time: ['between', [
-                    frm.doc.regularization_date,
-                    frm.doc.regularization_date
-                ]]
+    return new Promise((resolve, reject) => {
+        frappe.call({
+            method: 'prompt_hr.api.mobile.attendance_regularization.get_checkin_punch_details',
+            args: {
+                employee: employee,
+                regularization_date: regularization_date
             },
-            fields: ['name', 'time', 'log_type'],
-            order_by: 'time asc'
-        },
-        callback: function (res) {
-            if (!res.message) return;
-
-            let punches = res.message;
-            let paired_rows = [];
-            let current_in = null;
-
-            // helper to extract only HH:mm:ss from datetime
-            const extractTime = (dt) => dt ? dt.split(" ")[1] : "";
-
-            punches.forEach(entry => {
-                if (entry.log_type === "IN") {
-                    current_in = {
-                        in_time: extractTime(entry.time),
-                        out_time: ""
-                    };
-                } else if (entry.log_type === "OUT") {
-                    if (current_in) {
-                        current_in.out_time = extractTime(entry.time);
-                        paired_rows.push(current_in);
-                        current_in = null;
-                    } else {
-                        paired_rows.push({
-                            in_time: "",
-                            out_time: extractTime(entry.time)
-                        });
-                    }
+            callback: function (res) {
+                if (res && res.message) {
+                    resolve(Array.isArray(res.message.data) ? res.message.data : [res.message]);
+                } else {
+                    resolve([]);
                 }
-            });
-
-            if (current_in) {
-                paired_rows.push(current_in);
+            },
+            error: function (err) {
+                reject(err);
             }
-
-            frm.set_value("checkinpunch_details", paired_rows);
-            frm.refresh_field("checkinpunch_details");
-        }
+        });
     });
 }
+
+
+// ? FUNCTION TO POPULATE CHECK-IN / PUNCH DETAILS TABLE
+async function populate_checkin_punch_table(frm) {
+    if (!frm.doc.regularization_date || !frm.doc.employee || !frm.is_new()) return;
+
+    let punches = await get_checkin_punch_details(frm.doc.employee, frm.doc.regularization_date);
+    console.log("Fetched Punches:", punches);
+
+    if (!punches.length) {
+        frm.set_value("checkinpunch_details", []);
+        frm.refresh_field("checkinpunch_details");
+        return;
+    }
+
+    // ? IF YOUR BACKEND ALREADY RETURNS PAIRED ROWS, JUST SET THE TABLE DIRECTLY
+    frm.set_value("checkinpunch_details", punches);
+    frm.refresh_field("checkinpunch_details");
+}
+
+
+// ? FUNCTION TO DISPLAY EXISTING CHECK-IN / PUNCH DETAILS IN HTML
+async function display_existing_checkin_punch_details(frm) {
+    if (!frm.doc.employee || !frm.doc.regularization_date) return;
+
+    let checkinpunch_details = await get_checkin_punch_details(frm.doc.employee, frm.doc.regularization_date);
+
+    // If no data, show message
+    if (!checkinpunch_details || !checkinpunch_details.length) {
+        frm.fields_dict.existing_check_in_check_out_logs.wrapper.innerHTML =
+            `<h5>Original Punch Logs</h5>
+             <div class="text-muted">No check-in/punch data available.</div>`;
+        return;
+    }
+
+    // Build HTML table with heading
+    let html = `
+        <h5>Original Logs</h5>
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>IN Time</th>
+                        <th>OUT Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    checkinpunch_details.forEach((entry, index) => {
+        html += `
+            <tr>
+                <td>${index + 1}</td>
+                <td>${entry.in_time || "-"}</td>
+                <td>${entry.out_time || "-"}</td>
+            </tr>
+        `;
+    });
+
+    html += `
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    // Inject HTML into your HTML field
+    frm.fields_dict.existing_check_in_check_out_logs.wrapper.innerHTML = html;
+}
+
 

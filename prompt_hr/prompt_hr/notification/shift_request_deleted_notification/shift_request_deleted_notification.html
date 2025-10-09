@@ -1,0 +1,13 @@
+<p>
+  A shift request for employee {{doc.employee}} has been deleted by {{current_user}}. 
+</p>
+
+<p><b>Request Summary:</b></p>
+
+<ul>
+    <li><b>Employee:</b> {{doc.employee}}</li>
+    <li><b>Shift Type:</b> {{ doc.shift_type }}</li>
+    <li><b>From Date:</b> {{ frappe.utils.format_date(doc.from_date, "dd-MM-yyyy") }}</li>
+    <li><b>To Date:</b> {{ frappe.utils.format_date(doc.to_date, "dd-MM-yyyy") if doc.to_date else "" }}</li>
+
+</ul>

@@ -1,4 +1,5 @@
 {
+ "_liked_by": "[\"Administrator\"]",
  "attach_print": 0,
  "channel": "Email",
  "creation": "2025-04-30 17:39:02.151076",
@@ -10,15 +11,15 @@
  "event": "Custom",
  "idx": 0,
  "is_standard": 1,
- "message": "<p>{% set reporting_head_id = frappe.db.get_value(\"Employee\", doc.employee, \"reports_to\") %}\n{% if reporting_head_id %}\n    {% set reporting_head_name = frappe.db.get_value(\"Employee\", reporting_head_id, \"employee_name\") %}\n{% else %}\n    {% set reporting_head_name = \"Reporting Head\" %}\n{% endif %}</p>\n\n<p>Dear {{ reporting_head_name }},<br>\n\nI am writing to formally request your approval for my WeekOff Change Request. <br>\nKindly review and approve the request at your earliest convenience.</p>\n",
+ "message": "{% set manager_name = frappe.db.get_value(\"Employee\", doc.attendance_request, \"employee_name\") %}\n<p>Dear <b>{{ manager_name }}</b>,</p>\n\n<p>\n    A weekoff change request has been submitted by <b>{{ doc.employee }}</b>.<br>\n    Please review the details below and take the necessary action.\n</p>\n\n<p><b>Request Summary:</b></p>\n<ul>\n    <li><b>Employee:</b> {{ doc.employee }}</li>\n    <li><b>Workflow State:</b> {{ doc.workflow_state }}</li>\n    <li>\n        <b>View Request:</b>\n        {% set weekoff_change_link = frappe.utils.get_url() ~ '/app/weekoff-change-request/' ~ doc.name %}\n        <a href=\"{{ weekoff_change_link }}\">Click here</a>\n    </li>\n</ul>",
  "message_type": "HTML",
- "modified": "2025-05-02 12:10:08.948553",
+ "modified": "2025-10-08 11:33:22.249744",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Request to RH to Approve WeekOff Change",
  "owner": "Administrator",
  "recipients": [],
- "send_system_notification": 0,
+ "send_system_notification": 1,
  "send_to_all_assignees": 1,
- "subject": " Request for Approval \u2013 WeekOff Change Request"
+ "subject": "WeekOff Change Request: {{doc.workflow_state}} - {{doc.employee}}"
 }

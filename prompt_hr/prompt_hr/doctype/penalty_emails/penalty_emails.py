@@ -4,6 +4,7 @@
 import frappe
 from frappe.utils import now_datetime
 from frappe.model.document import Document
+from prompt_hr.py.utils import create_notification_log
 import json
 
 
@@ -51,6 +52,11 @@ def send_penalty_emails(docname: str, selected_row_names: str | None = None):
                     subject=subject,
                     message=message
                 )
+                try:
+                    employee = frappe.db.get_value("Employee", {"user_id": recipient}, "name")
+                    create_notification_log(recipient, subject, message, "Employee", employee)
+                except Exception as e:
+                    frappe.log_error("Failed to create notification log",str(e))
                 email_row.sent = 1
                 successfully_sent_rows.append(email_row)
             except Exception as e:

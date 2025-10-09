@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-10-03 16:19:00.540175",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Leave Application",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "<p>\n  A leave application for employee {{doc.employee}} has been deleted by {{current_user}}. \n</p>\n\n<p><b>Request Summary:</b></p>\n\n<ul>\n    <li><b>Employee:</b> {{doc.employee}}</li>\n    <li><b>Leave Type:</b> {{ doc.leave_type }}</li>\n    <li><b>From Date:</b> {{ frappe.utils.format_date(doc.from_date, \"dd-MM-yyyy\") }}</li>\n    <li><b>To Date:</b> {{ frappe.utils.format_date(doc.to_date, \"dd-MM-yyyy\") }}</li>\n\n</ul>",
+ "message_type": "HTML",
+ "modified": "2025-10-08 10:49:26.567635",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Leave Application Deleted Notification",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "Leave Application: Deleted - {{doc.employee}}"
+}

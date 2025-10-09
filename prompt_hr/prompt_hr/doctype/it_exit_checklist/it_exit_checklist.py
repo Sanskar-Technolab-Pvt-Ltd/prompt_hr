@@ -10,6 +10,60 @@ class ITExitChecklist(Document):
         status_map = self.get_clearance_status_map()
         self.update_employee_clearance_status(status_map)
 
+    def before_save(self):
+        """
+        #! BEFORE SAVE HOOK FOR IT ASSET CLEARANCE
+        - TRACKS CHANGES IN APPROVAL STATUS FOR IT CHILD TABLE
+        - APPENDS CHANGE HISTORY WITH USER DETAILS
+        """
+
+        #? RETURN IF NO IT OR ENGINEERING CHILD TABLE RECORDS
+        if not self.it and not self.engineering:
+            return
+
+        #? RETURN IF DOCUMENT IS NEW
+        if self.is_new():
+            return
+
+        #? FETCH PREVIOUS RECORDS FROM DATABASE
+        prev_records = frappe.get_all(
+            "IT Asset Clearance",
+            filters={"parent": self.name},
+            fields=["name", "approval_status"]
+        )
+
+        #? CREATE DICTIONARY {name: approval_status} FOR QUICK LOOKUP
+        prev_dict = {rec["name"]: rec["approval_status"] for rec in prev_records}
+
+        #? GET CURRENT USER'S EMPLOYEE NAME
+        current_user = frappe.session.user
+        current_employee = frappe.get_all(
+            "Employee",
+            filters={"user_id": current_user, "status": "Active"},
+            fields=["employee_name"]
+        )
+
+        if current_employee:
+            user = current_employee[0].employee_name
+        else:
+            user = frappe.session.user
+
+        #? LOOP THROUGH IT CHILD TABLE AND TRACK STATUS CHANGES
+        for record in (self.it or []) + (self.engineering or []):
+            if record.name in prev_dict:
+                previous_status = prev_dict.get(record.name)
+                current_status = record.approval_status
+
+                #? CHECK IF APPROVAL STATUS HAS CHANGED
+                if current_status != previous_status:
+                    #? APPEND CHANGE HISTORY
+                    history_entry = f"Approval Status Changed From {previous_status} -> {current_status} by {user}"
+
+                    if record.approval_status_history:
+                        record.approval_status_history += f"\n{history_entry}"
+                    else:
+                        record.approval_status_history = history_entry
+
     # ? FUNCTION TO GET STATUS FOR EACH CHILD TABLE USING PER-TABLE STATUS RULES
     def get_clearance_status_map(self):
         

@@ -4,6 +4,7 @@
 import frappe
 import json
 from frappe.model.document import Document
+from prompt_hr.py.utils import create_notification_log, get_employee_email
 from frappe import _
 
 from prompt_hr.py.leave_application import handle_penalties_for_sandwich_rule
@@ -124,12 +125,9 @@ def handle_cancel_penalties(penalties, reason, attendance_modified):
                 )
 
                 if penalty_employee:
-                    emp_user_id = frappe.db.get_value("Employee", penalty_employee, "user_id")
+                    emp_user_id = get_employee_email(penalty_employee)
                     reporting_manager = frappe.db.get_value("Employee", penalty_employee, "reports_to")
-                    reporting_manager_user = (
-                        frappe.db.get_value("Employee", reporting_manager, "user_id")
-                        if reporting_manager else None
-                    )
+                    reporting_manager_user = get_employee_email(reporting_manager) if reporting_manager else None
 
                     current_user = frappe.session.user
                     current_user_employee = (
@@ -166,6 +164,14 @@ def handle_cancel_penalties(penalties, reason, attendance_modified):
                                 reference_doctype="Employee Penalty",
                                 reference_name=penalty_name,
                             )
+                            for recipient in email_recipients:
+                                create_notification_log(
+                                    recipient,
+                                    subject,
+                                    message,
+                                    "Employee Penalty",
+                                    penalty_name
+                                )
                 
             except Exception as e:
                 frappe.log_error(f"Error sending cancellation notification", str(e))

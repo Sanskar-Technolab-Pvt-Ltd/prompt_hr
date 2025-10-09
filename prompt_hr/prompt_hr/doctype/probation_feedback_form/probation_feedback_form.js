@@ -15,307 +15,66 @@ frappe.ui.form.on("Probation Feedback Form", {
             };
         }
 
-
-        frappe.call({
-            method: "frappe.client.get_single_value",
-            args: {
-                doctype: "HR Settings",
-                field: "custom_indifoss_abbr"
-            },
-            callback: function (r) {
-                console.log("Field", r)
-                if (r.message) {
-
-                    frappe.call({
-                        method: "frappe.client.get_value",
-                        args: {
-                            doctype: "Company",
-                            filters: {
-                                "abbr": r.message
-                            },
-                            fieldname: ["name"]
-                        },
-                        callback: function (response) {
-                            if (response.message && response.message.name) {
-                                // if (frm.doc.company === "IndiFOSS Analytical Pvt Ltd" && frm.doc.employee) {
-                                if (frm.doc.company === response.message.name && frm.doc.employee) {
-                                    // * APPLYING FILTER TO FACTOR CATEGORY LINK FIELD BASED ON SUB CATEGORY AND CATEGORY IN probation_feedback_indifoss
-                                    frm.fields_dict['probation_feedback_indifoss'].grid.get_field('factor_category').get_query = function (doc, cdt, cdn) {
-                                        let row = locals[cdt][cdn];
-                                        
-                                        if (row.category && row.category == "General") {
-                                            return {
-                                                filters: [
-                                                    ['parent_category', '=', row.sub_category]
-                                                ]
-                                            };
-                                        }
-                        
-                                        else if (row.category && row.category == "KPI Expectations") {
-                                            return {
-                                                filters: [
-                                                    ['parent_category', '=', row.category]
-                                                
-                                                ]
-                                            };
-                                        };
-                                        frm.fields_dict['probation_feedback_indifoss'].grid.refresh();
-                                    };
-                    
-                                    // * MAKING 45_DAYS, 90_DAYS AND 180_DAYS READ ONLY BASED ON EMPLOYEE JOINING DATE AND HR SETTINGS FIRST AND SECOND PROBATION FEEDBACK AND RELEASE CONFIRMATION FOR INDIFOSS FIELDS
-                                    // * CALLING SERVER METHOD TO GET THE FEEDBACK AND CONFIRMATION DAYS
-                                    // * IF THE custom_first_feedback_after_for_indifoss IS 0 OR NULL THEN BY DEFAULT VALUE WILL BE 45
-                                    // * IF THE custom_second_feedback_after_for_indifoss IS 0 OR NULL THEN BY DEFAULT VALUE WILL BE 90
-                                    // * IF THE custom_release_confirmation_form_for_indifoss IS 0 OR NULL THEN BY DEFAULT VALUE WILL BE 180
-                                    frappe.call({
-                                        "method": "prompt_hr.prompt_hr.doctype.probation_feedback_form.probation_feedback_form.get_feedback_days_for_indifoss",
-                                        callback: function (r) {
-                                            if (!r.message.error) {
-                                                let first_feedback_days = r.message.first_feedback_days
-                                                let second_feedback_days = r.message.second_feedback_days
-                                                let confirmation_days = r.message.confirmation_days
-
-
-                                                console.log( first_feedback_days,  second_feedback_days,  confirmation_days)
-                                                frappe.db.get_value("Employee", frm.doc.employee, "date_of_joining")
-                                                .then(r => {
-                                                    if (r.message && r.message.date_of_joining) {
-                                                        const joining_date = r.message.date_of_joining;
-                                                        const today = frappe.datetime.get_today();
-                                                        const days_diff = frappe.datetime.get_diff(today, joining_date);
-                                
-                                                        console.log( days_diff)
-                                                        if ((first_feedback_days <= days_diff) && ( days_diff < second_feedback_days)) {
-                                                            console.log("ehll")
-                                                            let grid = frm.fields_dict["probation_feedback_indifoss"].grid;
-                                
-                                                            if (grid && grid.get_docfield) {
-                                                                let docfield = grid.get_docfield("90_days");
-                                                                let second_docfield = grid.get_docfield("180_days");
-                                                                if (docfield && second_docfield) {
-                                                                    docfield.read_only = 1;
-                                                                    second_docfield.read_only = 1;
-                                                                    grid.refresh();
-                                
-                                                                    frm.fields_dict["probation_feedback_indifoss"].grid.grid_rows.forEach(row => {
-                                                                        if (row.docfields) {
-                                                                            row.docfields.forEach(df => {
-                                                                                if (df.fieldname === "90_days") {
-                                                                                    df.read_only = 1;
-                                                                                }
-                                                                                else if (df.fieldname === "180_days") {
-                                                                                    df.read_only = 1;
-                                                                                }
-                                                                            });
-                                                                        }
-                                                                    });
-                                                                    frm.refresh_field("probation_feedback_indifoss");
-                                                                }
-                                                            }
-                                                        } else if ((second_feedback_days <= days_diff) && (days_diff < confirmation_days)) {
-                                                            let grid = frm.fields_dict["probation_feedback_indifoss"].grid;
-                                
-                                                            if (grid && grid.get_docfield) {
-                                                                let docfield = grid.get_docfield("45_days");
-                                                                let second_docfield = grid.get_docfield("180_days");
-                                                                if (docfield && second_docfield) {
-                                                                    docfield.read_only = 1;
-                                                                    second_docfield.read_only = 1;
-                                                                    grid.refresh();
-                                
-                                                                    frm.fields_dict["probation_feedback_indifoss"].grid.grid_rows.forEach(row => {
-                                                                        if (row.docfields) {
-                                                                            row.docfields.forEach(df => {
-                                                                                if (df.fieldname === "45_days") {
-                                                                                    df.read_only = 1;
-                                                                                }
-                                                                                else if (df.fieldname === "180_days") {
-                                                                                    df.read_only = 1;
-                                                                                }
-                                                                            });
-                                                                        }
-                                                                    });
-                                                                    frm.refresh_field("probation_feedback_indifoss");
-                                                                }
-                                                            }
-                                                        } else if (confirmation_days < days_diff) {
-                                                            let grid = frm.fields_dict["probation_feedback_indifoss"].grid;
-                                
-                                                            if (grid && grid.get_docfield) {
-                                                                let docfield = grid.get_docfield("45_days");
-                                                                let second_docfield = grid.get_docfield("90_days");
-                                                                if (docfield && second_docfield) {
-                                                                    docfield.read_only = 1;
-                                                                    second_docfield.read_only = 1;
-                                                                    grid.refresh();
-                                
-                                                                    frm.fields_dict["probation_feedback_indifoss"].grid.grid_rows.forEach(row => {
-                                                                        if (row.docfields) {
-                                                                            row.docfields.forEach(df => {
-                                                                                if (df.fieldname === "45_days") {
-                                                                                    df.read_only = 1;
-                                                                                }
-                                                                                else if (df.fieldname === "90_days") {
-                                                                                    df.read_only = 1;
-                                                                                }
-                                                                            });
-                                                                        }
-                                                                    });
-                                                                    frm.refresh_field("probation_feedback_indifoss");
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                });
-
-                                            } else if (r.message.error) { 
-                                                frappe.throw(r.message.message)
-                                            }
-                                            
-                                        }
-                                    })
-                                                                                                
-                                }
-                            }
-                        }
-                    })
-                }
-            }
-
-        })
-        
-        
         const user = frappe.session.user;
+        const reporting_manager = frm.doc.reporting_manager;
+
+        console.log("User:", user);
+
         frappe.call({
             "method": "frappe.client.get_value",
             "args": {
                 "doctype": "Employee",
                 "filters": {
-                    "name": frm.doc.employee
+                    "user_id": user
                 },
-                "fieldname": ["custom_dotted_line_manager"]
+                "fieldname": ["name"]
             },
-            callback: function (r) { 
-                if (r.message.custom_dotted_line_manager) {
-                    frappe.call({
-                        "method": "frappe.client.get_value",
-                        "args": {
-                            "doctype": "Employee",
-                            "filters": {
-                                "name": r.message.custom_dotted_line_manager
-                            },
-                            "fieldname": ["user_id"]
-                        },
-                        callback: function (response) {
-                            if (response.message.user_id) {
-                                if (response.message.user_id == user) {
-                                    if (!frm.doc.added_dotted_manager_feedback) { 
-                                        frm.add_custom_button("Confirm Rating", function () {
-                                            
-                                            frappe.call({
-                                                method: "prompt_hr.prompt_hr.doctype.probation_feedback_form.probation_feedback_form.send_mail_to_hr",
-                                                args: {
-                                                    docname: frm.doc.name
-                                                },
-                                                callback: function (r) {
-                                                    if (r.message.error) {
-                                                        frappe.throw(r.message.message);
-                                                    }
-                                                    else {
-                                                        frm.set_value('added_dotted_manager_feedback', 1)
-                                                        frm.save();            
-                                                    }
-                                                }
-                                            })
-                                            
-                                        }).addClass("btn-primary");
-
-                                    }
-                                    
-                                }
-                                
-                            }
-                        }
-                    });
+            "callback": function (response) {
+                
+                if (response.message) {
+                    console.log("asdsadsad")
+                    fields = ["department", "company", "reporting_manager", "evaluation_date", "hod", "probation_feedback_for"]
                     
+                    const hr_manager_roles = ["S - HR L1", "S - HR Director (Global Admin)"];
+
+                    const user_employee_name = response.message.name;
+                    
+                    if (user_employee_name === reporting_manager) {
+                        console.log("User is Reporting Manager");
+                        frm.fields_dict.probation_feedback_prompt.grid.update_docfield_property('rating', 'read_only', 0);
+
+                        fields.forEach(field => {
+                            frm.set_df_property(field, "read_only", 1)
+                        })
+
+
+                        
+                    } else if (hr_manager_roles.some(role => frappe.user.has_role(role))) {
+                        console.log("hr manager")
+                        frm.fields_dict.probation_feedback_prompt.grid.update_docfield_property('rating', 'read_only', 0);
+
+                        fields.forEach(field => {
+                            frm.set_df_property(field, "read_only", 0)
+                        })
+
+                    }else {
+                        console.log("User is neither Reporting Manager nor Head of Department");
+                        frm.fields_dict.probation_feedback_prompt.grid.update_docfield_property('rating', 'read_only', 1);
+
+                        fields.forEach(field => {
+                            frm.set_df_property(field, "read_only", 1)
+                        })
+                        
+                    }
+                } else {
+                    console.log("sfdsadssdsad")
                 }
+                
             }
         })
-
-        frappe.call({
-            "method": "frappe.client.get_single_value",
-            "args": {
-                doctype: "HR Settings",
-                field: "custom_indifoss_abbr"
-            },
-            callback: function (r) {
-
-                if (r.message) {
-                    frappe.call({
-                        "method": "frappe.client.get_value",
-                        "args": {
-                            doctype: "Company",
-                            filters: { "abbr": r.message },
-                            fieldname: ["name"]
-                        },
-                        callback: function (res) {
-                            
-                            if (res.message.name) {
-                                if (res.message.name === frm.doc.company) {
-                                    if (frappe.user.has_role("S - HR Director (Global Admin)")) {
-                                        frappe.call({
-                                            "method": "frappe.client.get_value",
-                                            "args": {
-                                                "doctype": "Performance Improvement Plan",
-                                                "filters": {
-                                                    "employee": frm.doc.employee
-                                                },
-                                                "fieldname": ["name"]
-                                            },
-                                            callback: function (r) { 
-                                                if (r.message.name) {
-                                                    frm.add_custom_button(__('Go to PIP'), function() {
-                                                        frappe.set_route("Form", "Performance Improvement Plan", r.message.name);
-                                                    }).addClass("btn-primary");
-                                                }
-                                                else {
-                                                    frm.add_custom_button(__('Create PIP'), function() {
-                                                        frappe.route_options = {
-                                                            "employee": frm.doc.employee
-                                                            // "custom_job_requisition_record": frm.doc.name,
-                                                            // "designation": frm.doc.designation,
-                                                            // "department": frm.doc.department,
-                                                            // "employment_type": frm.doc.custom_employment_type,
-                                                            // "custom_no_of_position": frm.doc.no_of_positions,
-                                                            // "custom_priority": frm.doc.custom_priority,
-                                                            // "description": frm.doc.description,
-                                                            // "location": frm.doc.custom_work_location,
-                                                            // "custom_business_unit": frm.doc.custom_business_unit,
-                                                            // "custom_required_experience": frm.doc.custom_experience
-                                                        }
-                                                        frappe.set_route("Form", "Performance Improvement Plan", "new-performance-improvement-plan");
-                                                    }).addClass("btn-primary");
-                                                    
-                                                }
-                                                
-                                            }
-                                        })           
-                                        
-                                    } 
-                                }
-                            }
-                        }
-                    })
-                }
-                  
-            }
-        })
-
-        
-
+        frm.fields_dict['probation_feedback_prompt'].grid.refresh();
 
     },
-    
     
     probation_feedback_for: function (frm) {
 
@@ -336,34 +95,7 @@ frappe.ui.form.on("Probation Feedback Form", {
 
         frm.refresh_field('probation_feedback_prompt');
     },
-    probation_status: function (frm) { 
-        // *CALCULATING THE LAST DATE OF WORK FROM THE DATE WHEN PROBATION STATUS IS SET TO TERMINATE TO BASED ON THE NOTICE PERIOD DAYS
 
-        if (frm.doc.probation_status === "Terminate") {
-            frappe.call({
-                method: "frappe.client.get_value",
-                args: {
-                    doctype: "Employee",
-                    filters: { name: frm.doc.employee },
-                    fieldname: ["notice_number_of_days"]
-                },
-                callback: function (r) {
-                    if (r.message) {
-                        const notice_number_of_days = r.message.notice_number_of_days;
-                        let today = frappe.datetime.get_today();
-                        console.log("Today:", today);
-                        const last_work_date = frappe.datetime.add_days(today, notice_number_of_days);
-                        console.log("last work date", last_work_date, "after", notice_number_of_days, "days");
-
-
-                        frm.set_value("last_work_date", last_work_date);
-                    }
-                }
-            });
-        
-        }
-    
-    }
     
 
 });

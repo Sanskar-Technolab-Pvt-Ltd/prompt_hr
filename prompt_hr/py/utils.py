@@ -9,7 +9,6 @@ from hrms.hr.utils import get_salary_assignments
 from hrms.payroll.doctype.salary_structure.salary_structure import make_salary_slip
 from hrms.regional.india.utils import calculate_hra_exemption, get_component_pay, get_end_date_for_assignment, has_hra_component
 from hrms.hr.doctype.attendance.attendance import add_holidays, add_attendance
-from hrms.hr.doctype.leave_application.leave_application import add_block_dates, add_department_leaves, add_holidays, add_leaves
 from frappe.utils import get_datetime
 import re
 
@@ -76,6 +75,7 @@ def send_notification_email(
     doctype,
     docname,
     notification_name,
+    cc = [],
     send_link=True,
     button_label="View Details",
     button_link="None",
@@ -184,12 +184,34 @@ def send_notification_email(
                 )
                 system_notification.insert(ignore_permissions=True)
 
+            if cc:
+                try:
+                    for record in cc:
+                        try:
+                            system_notification = frappe.get_doc(
+                                {
+                                    "doctype": "Notification Log",
+                                    "subject": subject,
+                                    "for_user": record,
+                                    "type": "Energy Point",
+                                    "document_type": doctype,
+                                    "document_name": docname,
+                                }
+                            )
+                            system_notification.insert(ignore_permissions=True)
+                        except:
+                            frappe.log_error('Error in Sending Mobile Notification', str(e))
+                except:
+                    frappe.log_error('Error in Sending Mobile Notification', str(e))
+
             # ? SEND EMAIL WITH OPTIONAL ATTACHMENT
             frappe.sendmail(
                 recipients=[email],
+                cc = cc,
                 subject=subject,
                 message=final_message,
                 attachments=attachments if attachments else None,
+                expose_recipients="header"
             )
 
     except Exception as e:
@@ -978,83 +1000,6 @@ def get_colored_events(doctype, start, end, field_map, filters=None, fields=None
 
     return records
 
-@frappe.whitelist()
-def get_leave_application_event(start, end, filters=None):
-    """
-    #! FETCH LEAVE APPLICATION EVENTS BASED ON FILTERED EMPLOYEE (IF PROVIDED)
-    #! ELSE FALLBACK TO LOGGED-IN USER'S EMPLOYEE OR DEFAULT COMPANY
-    """
-
-    import json
-
-    #? PARSE INCOMING FILTERS JSON
-    filters = json.loads(filters or "[]")
-
-    #? EXTRACT ONLY THE RELEVANT FIELDS: [fieldname, condition, value]
-    for idx, f in enumerate(filters):
-        # ORIGINAL FORMAT: [doctype, fieldname, condition, value, hidden]
-        filters[idx] = f[1:-1]
-
-    frappe.logger().debug({"parsed_filters": filters})  # OPTIONAL DEBUG LOG
-
-    events = []
-
-    #! DEFAULT: EMPLOYEE OF THE CURRENT LOGGED-IN USER
-    employee_doc = frappe.db.get_value(
-        "Employee",
-        filters={"user_id": frappe.session.user},
-        fieldname=["name", "company"],
-        as_dict=True
-    )
-
-    if employee_doc:
-        employee = employee_doc.name
-        company = employee_doc.company
-    else:
-        employee = ""
-        company = frappe.db.get_value("Global Defaults", None, "default_company")
-
-    #? TRY TO OVERRIDE EMPLOYEE FROM THE FILTERS (IF PASSED)
-    try:
-        # FILTER FORMAT AFTER SLICE: ['employee', '=', 'EMP-0001']
-        employee_filter = next(
-            (f for f in filters if len(f) >= 3 and f[0] == "employee"),
-            None
-        )
-        if employee_filter:
-            employee_value = employee_filter[2]
-            if employee_value:
-                employee = employee_value
-    except Exception:
-        frappe.log_error("Error getting employee filter from filters list")
-
-    #! HANDLE CASE WHEN EMPLOYEE FILTER VALUE IS A LIST (MULTIPLE EMPLOYEES)
-    if isinstance(employee, list):
-        employee_list = employee
-        try:
-            for emp in employee_list:
-                add_block_dates(events, start, end, emp, company)
-                add_holidays(events, start, end, emp, company)
-                user = frappe.db.get_value("Employee", {"name":emp}, "user_id")
-                if "S - Employee" in frappe.get_roles(user):
-                    add_department_leaves(events, start, end, employee, company)
-        except Exception:
-            frappe.log_error("Error while adding block dates/holidays for multiple employees")
-    else:
-        #? SINGLE EMPLOYEE OR DEFAULT
-        add_block_dates(events, start, end, employee, company)
-        add_holidays(events, start, end, employee, company)
-
-        #! ADD DEPARTMENT LEAVES IF USER HAS 'Employee' ROLE
-        if "S - Employee" in frappe.get_roles():
-            add_department_leaves(events, start, end, employee, company)
-
-    #! ADD LEAVES BASED ON THE FILTERS
-    add_leaves(events, start, end, filters)
-
-    return events
-
-
 # ! PROMPT_HR.PY.UTILS.SHARE_DOC_WITH_EMPLOYEE
 @frappe.whitelist()
 def share_doc_with_employee(employee, doctype, docname):
@@ -1112,3 +1057,81 @@ def get_reporting_manager_info(employee: str) -> dict | None:
             frappe.get_traceback()
         )
         return None
+
+def redirect_to_link(link):
+    frappe.local.response["type"] = "redirect"
+    frappe.local.response["location"] = link
+
+
+def create_notification_log(user, subject, message, document_type=None, document_name=None):
+    try:
+        mobile_notification_enable = frappe.db.get_single_value("HR Settings", "custom_enable_mobile_notifications") or 0
+    except Exception as e:
+        frappe.log_error(
+            "In Enabling Mobile Notifications", str(e)
+        )
+        mobile_notification_enable = 0
+
+    try:
+        if mobile_notification_enable:
+            try:
+                for_user = frappe.db.get_value(
+                    "User", {"name": user}, ["name", "first_name"], as_dict=True
+                )
+                if not for_user:
+                    return
+            except Exception as e:
+                frappe.log_error(
+                    "Error in Getting User for Mobile Notifications", str(e)
+                )
+            notification = frappe.new_doc("Notification Log")
+            notification.subject = subject
+            notification.email_content = subject
+            notification.for_user = user
+            notification.type = "Alert"
+
+            if document_type:
+                notification.document_type = document_type
+
+            if document_name:
+                notification.document_name = document_name
+            notification.insert(ignore_permissions=True)
+    except Exception as e:
+        frappe.log_error(
+            "Error in Sending Mobile Notifications", str(e)
+        )
+
+def get_employee_email(employee=None):
+    """
+    RETURN THE BEST AVAILABLE EMAIL ADDRESS FOR AN EMPLOYEE.
+    PRIORITY ORDER:
+    1. user_id (linked user email)
+    2. company_email
+    3. personal_email
+    """
+
+    #! VALIDATE INPUT
+    if not employee:
+        return None
+
+    #! FETCH RELEVANT FIELDS IN ONE DB CALL
+    employee_data = frappe.db.get_value(
+        "Employee",
+        employee,
+        ["user_id", "company_email", "personal_email"],
+        as_dict=True
+    )
+
+    if not employee_data:
+        return None
+
+    #! PRIORITY CHECK ORDER
+    if employee_data.user_id:
+        return employee_data.user_id
+    elif employee_data.company_email:
+        return employee_data.company_email
+    elif employee_data.personal_email:
+        return employee_data.personal_email
+
+    #! FALLBACK (NO EMAIL FOUND)
+    return None

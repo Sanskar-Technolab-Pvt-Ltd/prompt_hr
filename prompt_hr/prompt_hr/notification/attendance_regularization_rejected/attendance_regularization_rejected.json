@@ -1,4 +1,5 @@
 {
+ "_liked_by": "[\"Administrator\"]",
  "attach_print": 0,
  "channel": "Email",
  "creation": "2025-05-05 15:57:55.234430",
@@ -10,15 +11,15 @@
  "event": "Custom",
  "idx": 0,
  "is_standard": 1,
- "message": "<p>Dear {{doc.employee_name}},</p><br>\n\n<p>This is to inform you that your Attendance Regularization request for {{doc.regularization_date.strftime('%d-%m-%Y')}} has been reviewed and has unfortunately been rejected.</p>\n",
- "message_type": "Markdown",
- "modified": "2025-05-06 15:03:19.232576",
+ "message": "<p>{% set manager_name = frappe.db.get_value(\"Employee\", {\"user_id\": frappe.session.user}, \"name\") %}</p>\n\n<p>Dear <b>{{ doc.employee }}</b>,</p>\n\n<p>\n    Your attendance regularization has been Rejected by {{manager_name or frappe.session.user}}.<br>\nPlease find the details below:\n\n</p>\n\n<p><b>Request Summary:</b></p>\n\n<ul>\n    <li><b>Employee:</b> {{ doc.employee }}</li>\n    <li><b>Workflow State:</b> Rejected</li>\n    <li><b>Regularization Date:</b> {{frappe.utils.format_date(doc.regularization_date, \"dd-MM-yyyy\")}}</li>\n\n    <li>\n        <b>View Request:</b>\n        {% set att_reg_link = frappe.utils.get_url() ~ '/app/attendance-regularization/' ~ doc.name %}\n        <a href=\"{{ att_reg_link }}\">Click here</a>\n    </li>\n</ul>\n",
+ "message_type": "HTML",
+ "modified": "2025-10-08 17:41:52.285034",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Attendance Regularization Rejected",
  "owner": "Administrator",
  "recipients": [],
- "send_system_notification": 0,
+ "send_system_notification": 1,
  "send_to_all_assignees": 1,
- "subject": "Attendance Regularization Rejected"
+ "subject": "Attendance Regularization: Rejected - {{doc.employee}}"
 }

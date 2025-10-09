@@ -1,0 +1,11 @@
+<p>
+  A attendance regularization for employee {{doc.employee}} has been deleted by {{current_user}}. 
+</p>
+
+<p><b>Request Summary:</b></p>
+
+<ul>
+    <li><b>Employee:</b> {{doc.employee}}</li>
+    <li><b>Regularization Date:</b> {{frappe.utils.format_date(doc.regularization_date, "dd-MM-yyyy") }}</li>
+
+</ul>

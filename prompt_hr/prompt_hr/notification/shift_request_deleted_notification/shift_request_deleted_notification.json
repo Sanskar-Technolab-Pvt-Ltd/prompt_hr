@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-10-04 19:03:33.015963",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Shift Request",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "<p>\n  A shift request for employee {{doc.employee}} has been deleted by {{current_user}}. \n</p>\n\n<p><b>Request Summary:</b></p>\n\n<ul>\n    <li><b>Employee:</b> {{doc.employee}}</li>\n    <li><b>Shift Type:</b> {{ doc.shift_type }}</li>\n    <li><b>From Date:</b> {{ frappe.utils.format_date(doc.from_date, \"dd-MM-yyyy\") }}</li>\n    <li><b>To Date:</b> {{ frappe.utils.format_date(doc.to_date, \"dd-MM-yyyy\") if doc.to_date else \"\" }}</li>\n\n</ul>",
+ "message_type": "HTML",
+ "modified": "2025-10-08 10:48:45.595740",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Shift Request Deleted Notification",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "Shift Request: Deleted - {{doc.employee}}"
+}

@@ -2,8 +2,54 @@ import frappe
 from datetime import timedelta
 from frappe import throw, _
 from frappe.utils import get_datetime, time_diff_in_hours, today, getdate, days_diff, add_months, date_diff,format_duration
-from prompt_hr.py.utils import send_notification_email
+from prompt_hr.py.utils import send_notification_email, get_employee_email
 import json
+
+def on_submit(doc,method=None):
+    share_leave_with_manager(doc)
+    
+def share_leave_with_manager(leave_doc):
+    """
+    Share Attendance with employee's custom_dotted_line_manager (read-only)
+    """
+    # Get employee linked to this leave
+    employee_id = leave_doc.employee
+    
+    if not employee_id:
+        return
+
+    # Get the manager linked in Employee's custom_dotted_line_manager field
+    manager_id = frappe.db.get_value("Employee", employee_id, "custom_dotted_line_manager")
+    
+    if not manager_id:
+        return
+
+    # Get the manager's user ID (needed for sharing the document)
+    manager_user_id = frappe.db.get_value("Employee", manager_id, "user_id")
+    
+    if not manager_user_id:
+        return
+
+    # Check if the Attendance is already shared with the manager
+    existing_share = frappe.db.exists("DocShare", {
+        "share_doctype": "Attendance",
+        "share_name": leave_doc.name,
+        "user": manager_user_id
+    })
+
+    if existing_share:
+        return
+
+    # Share the Attendance with manager (read-only)
+    frappe.share.add_docshare(
+        doctype="Attendance",
+        name=leave_doc.name,
+        user=manager_user_id,
+        read=1,      # Read permission
+        write=0,
+        share=0,
+        flags={"ignore_share_permission": True}
+    )
 
 @frappe.whitelist()
 def create_attendance_regularization(attendance_id, update_data, reason):
@@ -32,24 +78,7 @@ def create_attendance_regularization(attendance_id, update_data, reason):
             attendance_regularization_doc.append("checkinpunch_details", row)
         
         
-        attendance_regularization_doc.save(ignore_permissions=True)
-        
-        # * SENDING EMAIL TO EMPLOYEE'S REPORTING HEAD
-        if attendance_regularization_doc.name:
-            rh_emp = frappe.db.get_value("Employee", attendance_doc.employee, "reports_to")
-            if rh_emp:
-                rh_user_id = frappe.db.get_value("Employee", rh_emp, "user_id")
-                if rh_user_id:
-                    send_notification_email(
-                        recipients=[rh_user_id],
-                        notification_name="Attendance Regularization Created",
-                        doctype="Attendance Regularization",
-                        docname=attendance_regularization_doc.name,
-                        send_link=True,
-                        fallback_subject=f"Attendance Regularization Created for {attendance_doc.attendance_date}",
-                        fallback_message=f"Dear Reporting Head, <br>   I would like to inform you that I have created an Attendance Regularization record for {attendance_doc.attendance_date}. <br>The record is now available in the system for your review and necessary action."
-                        
-                    )                    
+        attendance_regularization_doc.save(ignore_permissions=True)                   
         
         return {"attendance_regularization_id": attendance_regularization_doc.name}
         

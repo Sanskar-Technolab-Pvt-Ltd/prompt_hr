@@ -5,6 +5,7 @@ from prompt_hr.py.utils import (
     send_notification_email,
     check_user_is_reporting_manager,
     fetch_company_name,
+    get_employee_email
 )
 
 
@@ -47,9 +48,12 @@ def validate(doc, event):
             "Approved",
             "Rejected",
         ]:
-            employee_mail = frappe.db.get_value(
-                "Employee", doc.employee, "prefered_email"
-            )
+            employee_mail = get_employee_email(doc.employee)
+            manager_id = get_employee_email(doc.custom_reporting_manager)
+            if manager_id:
+                cc = [manager_id]
+            else:
+                cc = []
             if not doc.is_new():
                 auto_approve = frappe.db.get_value("Attendance Request", doc.name, "custom_auto_approve")
                 if auto_approve:
@@ -57,13 +61,39 @@ def validate(doc, event):
                     if not is_email_sent_allowed:
                         return
             if employee_mail:
+                # FETCH MANAGER NAME IN PYTHON
+                manager_name = frappe.db.get_value("Employee", {"user_id": frappe.session.user}, "name") or frappe.session.user
+
+                # BUILD WEEKOFF LINK
+                att_req_link = f"{frappe.utils.get_url()}/app/attendance-request/{doc.name}"
+
+                # CREATE THE MESSAGE AS PYTHON F-STRING
+                fallback_message = f"""
+                    <p>Dear <b>{doc.employee}</b>,</p>
+
+                    <p>
+                        Your Attendance request has been {doc.workflow_state} by {manager_name}.<br>
+                        Please find the details below:
+                    </p>
+
+                    <p><b>Request Summary:</b></p>
+                    <ul>
+                        <li><b>Employee:</b> {doc.employee}</li>
+                        <li><b>Workflow State:</b> {doc.workflow_state}</li>
+                        <li><b>Type:</b> {doc.reason}</li>
+                        <li><b>View Request:</b> <a href="{att_req_link}">Click here</a></li>
+                    </ul>
+                    """
+
                 send_notification_email(
                     recipients=[employee_mail],
                     notification_name="Attendance Request Status Changed",
                     doctype="Attendance Request",
                     docname=doc.name,
-                    fallback_subject="Attendance Request Status Changed",
-                    fallback_message=f"<p>Dear User,<br> The status of an attendance request has been changed from <b>{old_status}</b> to <b>{doc.custom_status}</b>. Please take note.</p>",
+                    cc=cc,
+                    send_link=False,
+                    fallback_subject=f"Attendance Request: {doc.workflow_state} - {doc.employee}",
+                    fallback_message=fallback_message,
                 )
             else: #*Changed by Ayush
                 frappe.msgprint(f"No Email Sent Because Employee {doc.employee} does not have a preferred email set.")                
@@ -81,30 +111,51 @@ def notify_reporting_manager(doc, event):
     try:
         if doc.employee and doc.custom_status == "Pending":
             rh_emp = frappe.db.get_value("Employee", doc.employee, "reports_to")
+            employee_id = get_employee_email(doc.employee)
             if not rh_emp:
                 throw(f"No Reporting Head found for employee {doc.employee}")
 
-            rh_user_id = frappe.db.get_value("Employee", rh_emp, "user_id")
+            rh_user_id = get_employee_email(rh_emp)
             if not rh_user_id:
                 throw(f"Reporting Head User ID not found from {rh_emp}")
 
             if event == "after_insert":
+                if employee_id:
+                    cc = [employee_id]
+                else:
+                    cc = []
                 send_notification_email(
                     recipients=[rh_user_id],
                     notification_name="Attendance Request Creation",
                     doctype="Attendance Request",
+                    cc = cc,
                     docname=doc.name,
+                    send_link=False,
                     fallback_subject=f"Attendance Request Created",
                     fallback_message=f"<p>Dear Reporting Head,<br> An attendance request has been created—please review it at your convenience.</p>",
                 )
             if event == "validate" and not doc.is_new():
+                if doc.has_value_changed("custom_reason_for_rejection"):
+                    try:
+                        prev_reason = frappe.db.get_value("Attendance Request", doc.name, "custom_reason_for_rejection")
+                    except:
+                        prev_reason = None
 
+                    if not prev_reason:
+                        return
+
+                if employee_id:
+                    cc = [employee_id]
+                else:
+                    cc = []
                 # Send generic update notification
                 send_notification_email(
                     recipients=[rh_user_id],
                     notification_name="Attendance Request Updated",
                     doctype="Attendance Request",
                     docname=doc.name,
+                    cc = cc,
+                    send_link=False,
                     fallback_subject=f"Attendance Request Updated",
                     fallback_message=f"<p>Dear Reporting Head,<br> An attendance request has been updated—please review it at your convenience.</p>",
                 )
@@ -173,7 +224,8 @@ def share_leave_with_manager(leave_doc):
         user=manager_user_id,
         read=1,      # Read permission
         write=0,
-        share=0
+        share=0,
+        flags={"ignore_share_permission": True}
     )
 
 

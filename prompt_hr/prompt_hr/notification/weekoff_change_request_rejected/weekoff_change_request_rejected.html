@@ -1,6 +1,19 @@
-{% set emp_name = frappe.db.get_value("Employee", self.employee, "employee_name") %}
+{% set manager_name = frappe.db.get_value("Employee", {"user_id": frappe.session.user}, "name") %}
+<p>Dear <b>{{ doc.employee }}</b>,</p>
 
-<p>Dear {% if emp_name %} {{emp_name}} {% else %} {{"Employee"}} {% endif %}</p>
+<p>
+    Your weekoff change request has been Rejected by {{manager_name or frappe.session.user}}.<br>
+Please find the details below:
 
-<p>We regret to inform you that your WeekOff Change Request has been rejected.</p>
+</p>
 
+<p><b>Request Summary:</b></p>
+<ul>
+    <li><b>Employee:</b> {{ doc.employee }}</li>
+    <li><b>Workflow State:</b> Rejected</li>
+    <li>
+        <b>View Request:</b>
+        {% set week_off_link = frappe.utils.get_url() ~ '/app/weekoff-change-request/' ~ doc.name %}
+        <a href="{{ week_off_link }}">Click here</a>
+    </li>
+</ul>

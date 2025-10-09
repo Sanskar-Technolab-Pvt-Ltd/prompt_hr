@@ -10,6 +10,10 @@ frappe.ui.form.on("Travel Request", {
 	company: function (frm) {
 		add_query_filter_to_existing_rows(frm);
 	},
+	onload:function(frm){
+		 add_current_user_employee(frm);
+		
+	}
 });
 
 
@@ -25,7 +29,29 @@ frappe.ui.form.on("Travel Itinerary", {
 	}
 });
 
-
+function add_current_user_employee(frm){
+	if (!frm.doc.employee) {
+            frappe.call({
+                method: "frappe.client.get_value",
+                args: {
+                    doctype: "Employee",
+                    filters: { user_id: frappe.session.user },  // Check if employee exists for the current user
+                    fieldname: ["name"]
+                },
+                callback: function(r) {
+                    if (r.message) {
+                        // If employee exists, set the value in the field
+                        frm.set_value("employee", r.message.name);
+                    } else {
+						// If no employee is found, clear the employee field
+                        frm.set_value("employee", '');
+                    }
+                },
+                // Ignore permissions while fetching the employee
+                ignore_permissions: true
+            });
+        }
+}
 
 // ? FUNCTION TO ADD QUERY FILTER TO EXISTING ROWS
 function add_query_filter_to_existing_rows(frm) {

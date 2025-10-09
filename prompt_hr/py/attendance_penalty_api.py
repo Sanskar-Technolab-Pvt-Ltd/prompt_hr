@@ -1,5 +1,6 @@
 import frappe
 from frappe.utils import getdate, today, add_to_date, add_days, get_datetime_str, format_date
+from prompt_hr.py.utils import create_notification_log, get_employee_email
 from prompt_hr.scheduler_methods import add_leave_ledger_entry
 from hrms.hr.utils import get_holiday_dates_for_employee
 from datetime import datetime, timedelta, time, date
@@ -368,6 +369,12 @@ def prompt_employee_attendance_penalties():
                             subject=email_details.get("subject"),
                             message=email_details.get("message"),
                         )
+                        try:
+                            create_notification_log(email_details.get("email"), email_details.get("subject"), email_details.get("message"), "Employee", emp_id)
+                        except Exception as e:
+                            frappe.log_error(
+                                "Error in Creating Notification Log", str(e)
+                            )
                 else:
                     if email_details and email_details.get("email"):
                         clean_penalties = clean_dates(penalties)
@@ -571,6 +578,17 @@ def process_late_entry_penalties_for_prompt(
                 except Exception as e:
                     frappe.log_error(
                         f"Error in Getting Holiday Date",str(e)
+                    )
+                    continue
+
+                # ? CHECK NO ATTENDANCE AND PENALTY IS CHECK IN EMPLOYEE MASTER
+                try:
+                    is_no_attendance_and_penalty = frappe.db.get_value("Employee", employee, "custom_no_attendance_and_penalty") or 0
+                    if is_no_attendance_and_penalty:
+                        continue
+                except Exception as e:
+                    frappe.log_error(
+                        f"Error in Getting No Attendance and Penalty Value From Employee Master",str(e)
                     )
                     continue
                 penalty_entries.update(
@@ -946,6 +964,18 @@ def process_daily_hours_penalties_for_prompt(
                 f"Error in Checking Full Day Leave Existence",str(e)
             )
             continue
+
+        # ? CHECK NO ATTENDANCE AND PENALTY IS CHECK IN EMPLOYEE MASTER
+        try:
+            is_no_attendance_and_penalty = frappe.db.get_value("Employee", employee, "custom_no_attendance_and_penalty") or 0
+            if is_no_attendance_and_penalty:
+                continue
+        except Exception as e:
+            frappe.log_error(
+                f"Error in Getting No Attendance and Penalty Value From Employee Master",str(e)
+            )
+            continue
+
         try:
             penalty_entries.update(
                 calculate_leave_deductions_based_on_priority(
@@ -1352,6 +1382,17 @@ def process_no_attendance_penalties_for_prompt(
                 )
                 continue
 
+            # ? CHECK NO ATTENDANCE AND PENALTY IS CHECK IN EMPLOYEE MASTER
+            try:
+                is_no_attendance_and_penalty = frappe.db.get_value("Employee", emp, "custom_no_attendance_and_penalty") or 0
+                if is_no_attendance_and_penalty:
+                    continue
+            except Exception as e:
+                frappe.log_error(
+                    f"Error in Getting No Attendance and Penalty Value From Employee Master",str(e)
+                )
+                continue
+
             # ? CHECK IF EMPLOYEE HAS LEAVE APPLICATION APPROVED
             # ? FOR THE TARGET DATE
             # ? SKIP IF EMPLOYEE HAS APPROVED LEAVE APPLICATION
@@ -1492,6 +1533,18 @@ def process_mispunch_penalties_for_prompt(
                 f"Error in Checking Full Day Leave Existence",str(e)
             )
             continue
+
+        # ? CHECK NO ATTENDANCE AND PENALTY IS CHECK IN EMPLOYEE MASTER
+        try:
+            is_no_attendance_and_penalty = frappe.db.get_value("Employee", emp, "custom_no_attendance_and_penalty") or 0
+            if is_no_attendance_and_penalty:
+                continue
+        except Exception as e:
+            frappe.log_error(
+                f"Error in Getting No Attendance and Penalty Value From Employee Master",str(e)
+            )
+            continue
+
         try:
             penalty_entries.update(
                 calculate_leave_deductions_based_on_priority(
@@ -2036,7 +2089,14 @@ def send_penalty_notification_emails():
             for penalty in all_penalties:
                 if notification_doc:
                     try:
-                        emp_user_id = frappe.db.get_value("Employee", penalty.employee, "user_id")
+                        emp_user_id = get_employee_email(penalty.employee)
+                        try:
+                            no_penalty_for_employee = frappe.db.get_value("Employee", penalty.employee, "custom_no_attendance_and_penalty") or 0
+                        except:
+                            frappe.log_error("Error in getting no attendance and penalty settings from Employee", str(e))
+                            no_penalty_for_employee = 0
+                        if no_penalty_for_employee:
+                            continue
                         if emp_user_id:
                             subject = frappe.render_template(
                                 notification_doc.subject,
@@ -2092,6 +2152,7 @@ def send_penalty_notification_emails():
                                     reference_doctype="Employee Penalty",
                                     reference_name=penalty.name,
                                 )
+                                create_notification_log(emp_user_id, subject, message, "Employee Penalty", penalty.name)
                     except Exception as e:
                         frappe.log_error("Error in sending penalty notification email", str(e))
                         continue

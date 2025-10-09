@@ -1,4 +1,5 @@
 {
+ "_liked_by": "[\"Administrator\"]",
  "attach_print": 0,
  "channel": "Email",
  "creation": "2025-09-16 12:47:54.386929",
@@ -10,9 +11,9 @@
  "event": "Custom",
  "idx": 0,
  "is_standard": 1,
- "message": "<p>Dear {{ manager_name }},</p>\n\n    <p>\n      A <strong>Shift Request</strong> from\n      <strong>{{ doc.employee_name }}</strong>\n      (Employee ID: <strong>{{ doc.employee }}</strong>)\n      is awaiting your approval.\n    </p>\n\n    <p>\n      <strong>Shift:</strong> {{ doc.shift_type }}<br>\n      <strong>From Date:</strong> {{ frappe.format_date(doc.from_date) }}<br>\n      {% if doc.to_date %}\n      <strong>To Date:</strong> {{ frappe.format_date(doc.to_date) }}\n      {% endif %}\n    </p>\n\n    <p>Please review the request and approve or reject it.</p>\n\n    <a href=\"{{ frappe.utils.get_url() }}/app/{{ doc.doctype | lower | replace(' ', '-') }}/{{ doc.name }}\" class=\"btn btn-primary\">\n      Review\n    </a>\n\n    <p class=\"footer\">\n      Regards,<br>\n      HR Team\n    </p>",
+ "message": "<p>Dear <b>{{ manager_name }}</b>,</p>\n\n<p>\n    A shift request has been submitted by <b>{{ doc.employee }}</b>.  \n    Please review the details below and take the necessary action.\n</p>\n\n<p><b>Request Summary:</b></p>\n<ul>\n    <li><b>Employee:</b> {{ doc.employee }}</li>\n    <li><b>Shift Type:</b> {{ doc.shift_type }}</li>\n    <li><b>Workflow State:</b> {{ doc.workflow_state }}</li>\n    <li>\n        <b>View Request:</b>\n        {% set shift_link = frappe.utils.get_url() ~ '/app/shift-request/' ~ doc.name %}\n        <a href=\"{{ shift_link }}\">Click here</a>\n    </li>\n</ul>",
  "message_type": "HTML",
- "modified": "2025-09-16 14:17:14.135097",
+ "modified": "2025-10-08 11:47:47.199432",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Shift Request Pending Approval",
@@ -22,5 +23,5 @@
  ],
  "send_system_notification": 1,
  "send_to_all_assignees": 0,
- "subject": "Shift Request Pending Approval for {{ doc.employee_name }}"
+ "subject": "Shift Request: {{doc.workflow_state}} - {{ doc.employee }}"
 }

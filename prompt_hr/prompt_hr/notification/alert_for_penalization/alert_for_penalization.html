@@ -1,7 +1,7 @@
 <p>Dear <b>{{ employee_name }}</b>,</p>
 
 <p>
-    This is a gentle reminder regarding the following scheduled penalizations for the date <b>{{ frappe.utils.format_date(penalization_date,"dd-MM-yyyy") }}</b>, arising from policy guidelines:
+    This is a gentle reminder regarding the upcoming scheduled penalizations for the date <b>{{ frappe.utils.format_date(penalization_date,"dd-MM-yyyy") }}</b>, arising from policy guidelines:
 </p>
 
 <table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 14px;">
@@ -29,16 +29,4 @@
 
 <p>
     We kindly request you to take any necessary corrective action to avoid or minimize these penalizations.
-</p>
-
-<p>
-    Should you have any questions or need clarification, please do not hesitate to contact the HR department.
-</p>
-
-<p><br></p>
-
-<p>
-    Warm regards,<br>
-    HR Team<br>
-    {{ company }}
 </p>

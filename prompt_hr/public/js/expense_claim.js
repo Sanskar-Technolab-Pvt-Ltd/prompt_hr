@@ -26,6 +26,11 @@ frappe.ui.form.on('Expense Claim', {
                 }
             });
         }
+        frm.fields.forEach(field => {
+            if (field.df.fieldtype === "Section Break" && field.df.collapsible) {
+                field.collapse(false);  // ? OPEN BY DEFAULT
+            }
+        });
     },
 	refresh(frm) {
         if ( !frm.is_new() && frm.doc.workflow_state == "Pending For Approval") {
@@ -44,6 +49,7 @@ frappe.ui.form.on('Expense Claim', {
 		add_view_field_visit_expense_button(frm);
 		fetch_commute_data(frm);
 		set_local_commute_monthly_expense(frm);
+        set_travel_request_details(frm)
 		// ? FETCH GENDER OF THE CURRENT EMPLOYEE
         if (frm.doc.employee) {
             frappe.db.get_value('Employee', frm.doc.employee, 'gender', function(r) {
@@ -190,7 +196,9 @@ frappe.ui.form.on('Expense Claim', {
     },
 	employee: (frm) => { 
 		fetch_commute_data(frm); 
-		set_local_commute_monthly_expense(frm); 
+		set_local_commute_monthly_expense(frm);
+        // ? MAKE A TABLE OF TRAVEL REQUEST DETAILS
+        set_travel_request_details(frm)
 	},
 	company: fetch_commute_data,
 	project(frm) {
@@ -276,81 +284,6 @@ function claim_extra_expenses(frm) {
         const service_roles = ["S - Service Engineer", "Service Engineer", "S - Service Director"];
         const all_perm_roles = ["S - HR L5", "S - HR L4", "S - HR L3", "S - HR L2", "S - HR L1", "S - HR L2 Manager", "S - HR Supervisor (RM)", "System Manager", "S - HR Director (Global Admin)"]
         const sales_roles = ["S - Sales Director", "S - Sales Manager", "S - Sales Supervisor", "S - Sales Executive"];
-        let all_tour_visit_cache = []
-        let customer_cache = [];
-        let filtered_tour_visit_cache = []
-        let all_field_visit_cache = [];
-        let filtered_field_visit_cache = [];
-
-        // ? INITIAL LOAD ALL FIELD VISITS
-        frappe.db.get_list("Field Visit", {
-            fields: ["name"],
-            filters: {
-                service_mode: "On Site(Customer Premise)",
-                field_visited_by: frm.doc.employee
-            },
-            limit_page_length: 0
-        }).then(records => {
-            all_field_visit_cache = records.map(r => r.name);
-            filtered_field_visit_cache = [...all_field_visit_cache]; // default: all
-        });
-
-        // ? FETCH FILTERED FIELD VISITS BY DATE RANGE
-        function fetchFilteredFieldVisits(frm, from_date, to_date) {
-            const from_datetime = from_date + " 00:00:00";
-            const to_datetime = to_date + " 23:59:59";
-            return frappe.db.get_list("Field Visit", {
-                fields: ["name"],
-                filters: {
-                    service_mode: "On Site(Customer Premise)",
-                    field_visited_by: frm.doc.employee,
-                    status: "Visit Completed",
-                    visit_ended: ["between", [from_datetime, to_datetime]]
-                },
-                limit_page_length: 0
-            }).then(records => {
-                filtered_field_visit_cache = records.map(r => r.name);
-            });
-        }
-
-        // ? FETCH FILTERED TOUR VISITS BY DATE RANGE
-        function fetchFilteredTourVisits(frm, from_date, to_date) {
-            return frappe.db.get_list("Tour Visit", {
-                fields: ["name"],
-                filters: {
-                    person: frm.doc.employee,
-                    status: "Completed",
-                    tour_end_date: ["between", [from_date, to_date]]
-                },
-                limit_page_length: 0
-            }).then(records => {
-                filtered_tour_visit_cache = records.map(r => r.name);
-            });
-        }
-
-        frappe.db.get_list("Tour Visit", {
-            fields: ["name"],
-            filters: {
-                person: frm.doc.employee,
-                status: "Completed",
-            },
-            limit_page_length: 0
-        }).then(records => {
-            all_tour_visit_cache = records.map(r => r.name);
-            filtered_tour_visit_cache = [...all_tour_visit_cache];
-        });
-
-        // ? CONSTRUCT CUSTOMER CACHE TO GET DATA FASTER
-        frappe.db.get_list("Customer", {
-            fields: ["name", "customer_name"],
-            limit_page_length: 0
-        }).then(records => {
-            // ? STORE AS OBJECTS { value: name, label: customer_name }
-            customer_cache = records.map(r => ({
-                value: r.name,
-                label: r.customer_name || r.name  // fallback if customer_name is empty
-            }));
-        });
 
 
         let userRoles = frappe.user_roles || [];
@@ -359,14 +292,9 @@ function claim_extra_expenses(frm) {
         function hasRole(roleList) {
             return roleList.some(r => userRoles.includes(r));
         }
-        let service_call_cache = {};
 
         // ? FUNCTION TO GET SERVICE CALLS AS PER FIELD VISIT
         function load_service_calls_for_visits(field_visits) {
-            let cache_key = field_visits.sort().join(",");
-            if (service_call_cache[cache_key]) {
-                return Promise.resolve(service_call_cache[cache_key]);
-            }
             return frappe.call({
                 method: "prompt_hr.py.expense_claim.get_service_calls_from_field_visits",
                 args: {
@@ -375,7 +303,6 @@ function claim_extra_expenses(frm) {
                 }
             }).then(r => {
                 let list = (r.message || []).map(d => ({ value: d.name, label: __(d.name), description: "" }));
-                service_call_cache[cache_key] = list;
                 return list;
             });
         }
@@ -428,14 +355,6 @@ function claim_extra_expenses(frm) {
                     fieldname: 'from_date',
                     fieldtype: 'Date',
                     hidden: 1,
-                    onchange: async function () {
-                        const from_date = dialog.get_value("from_date");
-                        const to_date = dialog.get_value("to_date");
-                        if (from_date && to_date) {
-                            await fetchFilteredFieldVisits(frm, from_date, to_date);
-                            await fetchFilteredTourVisits(frm, from_date, to_date);
-                        }
-                    }
                 },
                 {
                     label: 'From Time',
@@ -448,14 +367,6 @@ function claim_extra_expenses(frm) {
                     fieldname: 'to_date',
                     fieldtype: 'Date',
                     hidden: 1,
-                    onchange: async function () {
-                        const from_date = dialog.get_value("from_date");
-                        const to_date = dialog.get_value("to_date");
-                        if (from_date && to_date) {
-                            await fetchFilteredFieldVisits(frm, from_date, to_date);
-                            await fetchFilteredTourVisits(frm, from_date, to_date);
-                        }
-                    }
                 },
                 {
                     label: 'To Time',
@@ -471,9 +382,7 @@ function claim_extra_expenses(frm) {
                     options: "Customer",
                     hidden: 1,
                     get_data: function (txt) {
-                        return customer_cache
-                        .filter(d => !txt || d.label.toLowerCase().includes(txt.toLowerCase()))
-                        .map(d => ({ value: d.value, description: d.label }));
+                        return frappe.db.get_link_options("Customer", txt);
                     }
                 },
 
@@ -484,9 +393,19 @@ function claim_extra_expenses(frm) {
                     fieldtype: "MultiSelectList",
                     hidden: 1,
                     get_data: function (txt) {
-                        return filtered_field_visit_cache
-                            .filter(d => !txt || d.toLowerCase().includes(txt.toLowerCase()))
-                            .map(d => ({ value: d, description: "" }));
+                        filters = {
+                            service_mode: "On Site(Customer Premise)",
+                            field_visited_by: frm.doc.employee,
+                            status: "Visit Completed",
+                        }
+                        const from_date = dialog.get_value("from_date");
+                        const to_date = dialog.get_value("to_date");
+                        if (from_date && to_date) {
+                            const from_datetime = from_date + " 00:00:00";
+                            const to_datetime = to_date + " 23:59:59";
+                            filters.visit_ended = ["between", [from_datetime, to_datetime]];
+                        }
+                        return frappe.db.get_link_options("Field Visit", txt, filters);
                     }
                 },
                 {
@@ -511,9 +430,16 @@ function claim_extra_expenses(frm) {
                     fieldtype: "MultiSelectList",
                     hidden: 1,
                     get_data: function (txt) {
-                        return filtered_tour_visit_cache
-                            .filter(d => !txt || d.toLowerCase().includes(txt.toLowerCase()))
-                            .map(d => ({ value: d, description: "" }));
+                        filters = {
+                            person: frm.doc.employee,
+                            status: "Completed",
+                        }
+                        const from_date = dialog.get_value("from_date");
+                        const to_date = dialog.get_value("to_date");
+                        if (from_date && to_date) {
+                            filters.tour_end_date = ["between", [from_date, to_date]];
+                        }
+                        return frappe.db.get_link_options("Tour Visit", txt, filters);
                     }
                 },
                 {
@@ -1291,4 +1217,142 @@ function check_and_remove_expense_buttons(frm) {
         frm.remove_custom_button("Get Field Visit Expenses");
         frm.remove_custom_button("Get Tour Visit Expense");
     }
+}
+
+function set_travel_request_details(frm) {
+    if (!frm.doc.employee) {
+        const html = `
+            <div style="padding: 16px;background: #fff3cd; border: 1px solid #ffeeba; border-radius: 8px; color: #856404;">
+                <strong>No Employee Selected</strong><br>
+                Please select an employee to view their Travel Request details.
+            </div>
+        `;
+        frm.set_df_property("custom_travel_request_details", "options", html);
+        frm.refresh_field("custom_travel_request_details");
+        return;
+    }
+
+    frappe.call({
+        method: "prompt_hr.py.expense_claim.get_travel_request_details",
+        args: { employee: frm.doc.employee },
+        callback: (res) => {
+            const data = res.message;
+            let html = "";
+
+            if (!data || data.length === 0) {
+                html = `
+                    <div style="padding: 16px; background: #fff3cd; border: 1px solid #ffeeba; border-radius: 8px; color: #856404;">
+                        <strong>Travel Request details are not available for this employee.</strong><br>
+                    </div>
+                `;
+            } else {
+                data.forEach(request => {
+                    html += `
+                        <div style="border: 1px solid #ccc; border-radius: 8px; margin-bottom: 24px; padding: 12px; background: #fafafa;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-weight: 600; margin-bottom: 8px;">
+                                <div>
+                                    Travel Request - 
+                                    <a href="${frappe.urllib.get_base_url()}/app/travel-request/${request.parent}" target="_blank" 
+                                       style="text-decoration: none; color: #0275d8;">
+                                       ${request.parent}
+                                    </a>
+                                </div>
+                                <div style="color: #555;">${request.workflow_state}</div>
+                            </div>
+
+                            <!-- Travel Itinerary Label -->
+                            <div style="font-weight: 600; margin: 6px 0; color: #333;">Travel Itinerary</div>
+                            <div style="max-height: 180px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 12px;">
+                                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                                    <thead style="background: #e9ecef;">
+                                        <tr>
+                                            ${request.travel_itinerary_data.length > 0
+                        ? request.travel_itinerary_label.map(field => `
+                                                    <th style="border: 1px solid #ccc; padding: 6px; text-align: left;">
+                                                        ${field}
+                                                    </th>`).join('')
+                        : `<th style="padding: 6px;">No Itinerary Data</th>`
+                    }
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${request.travel_itinerary_data.length > 0
+                        ? request.travel_itinerary_data.map(row => {
+                            const cols = Object.values(row).map(val => {
+                                const isAttach = val && typeof val === 'string' &&
+                                    (val.endsWith('.jpg') || val.endsWith('.png') || val.endsWith('.jpeg') || val.endsWith('.gif') ||
+                                        val.endsWith('.pdf') || val.endsWith('.docx'));
+                                if (isAttach) {
+                                    return `<td style="border: 1px solid #ccc; padding: 6px;">
+                                                <a href="${frappe.urllib.get_base_url()}${val}" target="_blank" style="color: #0275d8; font-weight: 600; cursor: pointer; text-decoration: underline;">
+                                                    View
+                                                </a>
+                                            </td>`;
+                                } else {
+                                    return `<td style="border: 1px solid #ccc; padding: 6px;">${val || ''}</td>`;
+                                }
+                            });
+                            return `<tr>${cols.join('')}</tr>`;
+                        }).join('')
+                        : ''
+                    }
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Cost Label -->
+                            <div style="font-weight: 600; margin: 6px 0; color: #333;">Costing Details</div>
+                            <div style="max-height: 140px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px;">
+                                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                                    <thead style="background: #e9ecef;">
+                                        <tr>
+                                            ${request.cost_data.length > 0
+                        ? request.cost_data_label.map(field => `
+                                                    <th style="border: 1px solid #ccc; padding: 6px; text-align: left;">
+                                                        ${field.replace(/_/g, ' ').toUpperCase()}
+                                                    </th>`).join('')
+                        : `<th style="padding: 6px;">No Cost Data</th>`
+                    }
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${request.cost_data.length > 0
+                        ? request.cost_data.map(row => {
+                            const cols = Object.values(row).map(val => {
+                                const isAttach = val && typeof val === 'string' &&
+                                    (val.endsWith('.jpg') || val.endsWith('.png') || val.endsWith('.jpeg') || val.endsWith('.gif') ||
+                                        val.endsWith('.pdf') || val.endsWith('.docx'));
+                                if (isAttach) {
+                                    return `<td style="border: 1px solid #ccc; padding: 6px;">
+                                                <a href="${frappe.urllib.get_base_url()}${val}" target="_blank" style="color: #0275d8; font-weight: 600; cursor: pointer; text-decoration: underline;">
+                                                    View
+                                                </a>
+                                            </td>`;
+                                }
+                                else {
+                                    return `<td style="border: 1px solid #ccc; padding: 6px;">${val || ''}</td>`;
+                                }
+                            });
+                            return `<tr>${cols.join('')}</tr>`;
+                        }).join('')
+                        : ''
+                    }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            frm.fields_dict['custom_travel_request_details'].wrapper.innerHTML = html;
+
+            frm.set_df_property("custom_travel_request_details", "options", html);
+            frm.refresh_field("custom_travel_request_details");
+        },
+        error: (err) => {
+            frappe.msgprint("Error fetching travel request details.");
+            console.error(err);
+        }
+    });
 }

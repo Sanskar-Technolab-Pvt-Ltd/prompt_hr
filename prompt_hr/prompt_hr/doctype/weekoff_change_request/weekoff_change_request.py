@@ -9,6 +9,8 @@ from prompt_hr.py.utils import (
     send_notification_email,
     is_user_reporting_manager_or_hr,
     get_reporting_manager_info,
+    create_notification_log,
+    get_employee_email
 )
 from erpnext.setup.doctype.employee.employee import is_holiday
 from hrms.hr.utils import get_leave_period
@@ -25,6 +27,70 @@ class WeekOffChangeRequest(Document):
 
         # ? CHECK IF ANY LEAVE APPLICATION EXISTS FOR THE DATES ENTERED IN WEEKOFF CHANGE REQUEST
         check_if_leave_application_exists(self)
+        sent_auto_approve_emails = frappe.db.get_single_value("HR Settings", "custom_send_auto_approve_doc_emails") or 0
+        # *CHECKING IF THE CURRENT USER IS THE EMPLOYEE USER LINKED TO DOCUMENT THEN WHEN WE SAVES THIS DOCUMENT THEN SENDING AN EMAIL TO THE EMPLOYEE'S REPORTING HEAD ABOUT THE CREATION WEEKOFF CHANGE REQUEST
+        current_user = frappe.session.user
+        manager_id = get_employee_email(self.attendance_request)
+        if manager_id:
+            cc = [manager_id]
+        else:
+            cc = []
+        if self.status == "Approved" and (not self.auto_approve or sent_auto_approve_emails):
+            is_rh = is_user_reporting_manager_or_hr(current_user, self.employee)
+            if not is_rh.get("error") and is_rh.get("is_rh"):
+                emp_user_id = get_employee_email(self.employee)
+                if emp_user_id:
+                    # if "@" in emp_user_id:
+                    # 	emp_mail = emp_user_id
+                    # else:
+                    # emp_mail = frappe.db.get_value("User", emp_user_id, 'email')
+                    send_notification_email(
+                        recipients=[emp_user_id],
+                        notification_name="WeekOff Change Request Approved",
+                        doctype="WeekOff Change Request",
+                        docname=self.name,
+                        cc = cc,
+                        send_link=False,
+                        fallback_subject="WeekOff Change Request Approved",
+                        fallback_message=f"<p>Dear Employee</p>   <p>Your WeekOff Change Request has been reviewed and approved.<br>Best regards,<br>HR Department</p>",
+                    )
+            elif is_rh.get("error"):
+                throw(f"{is_rh.get('message')}")
+        if self.status == "Rejected" and (not self.auto_approve or sent_auto_approve_emails):
+            is_rh = is_user_reporting_manager_or_hr(current_user, self.employee)
+            if not is_rh.get("error") and is_rh.get("is_rh"):
+                emp_user_id = frappe.db.get_value("Employee", self.employee, "user_id")
+                if emp_user_id:
+                    send_notification_email(
+                        recipients=[emp_user_id],
+                        notification_name="WeekOff Change Request Rejected",
+                        doctype="WeekOff Change Request",
+                        docname=self.name,
+                        cc=cc,
+                        send_link=False,
+                        fallback_subject="WeekOff Change Request Rejected",
+                        fallback_message=f"<p>Dear Employee</p>\n\n    <p>We regret to inform you that your WeekOff Change Request has been rejected.</p>",
+                    )
+            elif is_rh.get("error"):
+                throw(f"{is_rh.get('message')}")
+
+        if self.workflow_state == "Approved":
+
+            # ? CREATE AND LINK NEW HOLIDAY LIST IF NOT EXISTS
+            holiday_list = frappe.db.get_value(
+                "Employee", self.employee, "holiday_list"
+            )
+            if not holiday_list:
+                frappe.throw(
+                    _("Please set Holiday List for Employee {0}").format(self.employee)
+                )
+
+            weekoff_details = self.weekoff_details
+
+            # ? CREATE NEW HOLIDAY LIST IF NOT EXISTS
+            new_list = create_new_holiday_list_for_employee(self.employee, holiday_list, weekoff_details, self.name)
+            if new_list:
+                frappe.db.set_value("Employee", self.employee, "holiday_list", new_list)
 
     def on_update(self):
         share_leave_with_manager(self)
@@ -124,8 +190,6 @@ class WeekOffChangeRequest(Document):
                         throw("Please Set Correct New weekoff Day as per the date")
 
     def validate(self):
-        validate_for_sandwich_policy(self)
-        sent_auto_approve_emails = frappe.db.get_single_value("HR Settings", "custom_send_auto_approve_doc_emails") or 0
         # *CHECKING IF THE EXISTING DETAILS IS VALID OR NOT, IF INVALID SHOWING AN ALERT TELLING USER THAT THE EXISTING DATE ENTERED DOES NOT EXISTS IN HOLIDAY LIST
         if self.weekoff_details:
             for row in self.weekoff_details:
@@ -149,6 +213,11 @@ class WeekOffChangeRequest(Document):
                                 )
 
                         if row.new_weekoff_date:
+                            exists = check_existing_date(self.employee, row.new_weekoff_date)
+                            if exists.get("exists"):
+                                throw(
+                                    f"Date {formatdate(row.new_weekoff_date)} already exists in holiday list"
+                                )
                             day_name = get_day_name(row.new_weekoff_date)
                             if not row.new_weekoff:
                                 row.new_weekoff = day_name
@@ -163,63 +232,7 @@ class WeekOffChangeRequest(Document):
                     throw(
                         f"Error While Verifying Existing Date {exists.get('message')}"
                     )
-
-        # *CHECKING IF THE CURRENT USER IS THE EMPLOYEE USER LINKED TO DOCUMENT THEN WHEN WE SAVES THIS DOCUMENT THEN SENDING AN EMAIL TO THE EMPLOYEE'S REPORTING HEAD ABOUT THE CREATION WEEKOFF CHANGE REQUEST
-        current_user = frappe.session.user
-        if self.status == "Approved" and (not self.auto_approve or sent_auto_approve_emails):
-            is_rh = is_user_reporting_manager_or_hr(current_user, self.employee)
-            if not is_rh.get("error") and is_rh.get("is_rh"):
-                emp_user_id = frappe.db.get_value("Employee", self.employee, "user_id")
-                if emp_user_id:
-                    # if "@" in emp_user_id:
-                    # 	emp_mail = emp_user_id
-                    # else:
-                    # emp_mail = frappe.db.get_value("User", emp_user_id, 'email')
-                    send_notification_email(
-                        recipients=[emp_user_id],
-                        notification_name="WeekOff Change Request Approved",
-                        doctype="WeekOff Change Request",
-                        docname=self.name,
-                        send_link=True,
-                        fallback_subject="WeekOff Change Request Approved",
-                        fallback_message=f"<p>Dear Employee</p>   <p>Your WeekOff Change Request has been reviewed and approved.<br>Best regards,<br>HR Department</p>",
-                    )
-            elif is_rh.get("error"):
-                throw(f"{is_rh.get('message')}")
-        if self.status == "Rejected" and (not self.auto_approve or sent_auto_approve_emails):
-            is_rh = is_user_reporting_manager_or_hr(current_user, self.employee)
-            if not is_rh.get("error") and is_rh.get("is_rh"):
-                emp_user_id = frappe.db.get_value("Employee", self.employee, "user_id")
-                if emp_user_id:
-                    send_notification_email(
-                        recipients=[emp_user_id],
-                        notification_name="WeekOff Change Request Rejected",
-                        doctype="WeekOff Change Request",
-                        docname=self.name,
-                        send_link=True,
-                        fallback_subject="WeekOff Change Request Rejected",
-                        fallback_message=f"<p>Dear Employee</p>\n\n    <p>We regret to inform you that your WeekOff Change Request has been rejected.</p>",
-                    )
-            elif is_rh.get("error"):
-                throw(f"{is_rh.get('message')}")
-
-        if self.workflow_state == "Approved":
-
-            # ? CREATE AND LINK NEW HOLIDAY LIST IF NOT EXISTS
-            holiday_list = frappe.db.get_value(
-                "Employee", self.employee, "holiday_list"
-            )
-            if not holiday_list:
-                frappe.throw(
-                    _("Please set Holiday List for Employee {0}").format(self.employee)
-                )
-
-            weekoff_details = self.weekoff_details
-
-            # ? CREATE NEW HOLIDAY LIST IF NOT EXISTS
-            new_list = create_new_holiday_list_for_employee(self.employee, holiday_list, weekoff_details, self.name)
-            if new_list:
-                frappe.db.set_value("Employee", self.employee, "holiday_list", new_list)
+        validate_for_sandwich_policy(self)
 
 
     def after_insert(self):
@@ -228,7 +241,7 @@ class WeekOffChangeRequest(Document):
         emp_user = frappe.db.get_value("Employee", self.employee, "user_id")
 
         # * NOTIFY REPORTING MANAGER IF THE CURRENT USER IS THE EMPLOYEE WHOSE WEEKOFF CHANGE REQUEST IS RAISED FOR
-        notify_reporting_manager(self.employee, self.name, emp_user, current_user)
+        notify_reporting_manager(self.employee, self.name, emp_user, emp_user)
 
     def before_validate(self):
         if not self.is_new():
@@ -237,12 +250,65 @@ class WeekOffChangeRequest(Document):
             elif self.workflow_state == "Approved":
                 self.status = "Approved"
 
+        if not self.is_new() and self.workflow_state == "Cancelled by Employee":
+            weekoff_change_doc = self.as_dict()
+            self.delete(ignore_permissions=True)
+            employee = weekoff_change_doc.employee
+            reporting_manager = weekoff_change_doc.attendance_request
+
+            # ? Get user IDs and names if present
+            employee_user_id = get_employee_email(employee) if employee else None
+            reporting_manager_id = get_employee_email(reporting_manager) if reporting_manager else None
+            reporting_manager_name = None
+            if reporting_manager:
+                reporting_manager_name = frappe.db.get_value("Employee", reporting_manager, "employee_name")
+
+            if employee_user_id or reporting_manager_id:
+                recipients = []
+                if employee_user_id:
+                    recipients.append(employee_user_id)
+                if reporting_manager_id:
+                    recipients.append(reporting_manager_id)
+                notification_doc = frappe.get_doc("Notification", "WeekOff Change Request Deleted Notification")
+                if notification_doc:
+                    user = frappe.session.user
+                    current_user = frappe.db.get_value("Employee", {"user_id":user}, "name") or user
+                    subject = frappe.render_template(notification_doc.subject, {"doc": weekoff_change_doc})
+                    message = frappe.render_template(notification_doc.message, {"doc": weekoff_change_doc, "current_user": current_user})
+                    frappe.sendmail(
+                        recipients=recipients,
+                        subject=subject,
+                        message=message,
+                    )
+                    if recipients:
+                        for recipient in recipients:
+                            create_notification_log(recipient, subject, message, "Employee", weekoff_change_doc.employee)
+
+
+            frappe.db.commit()
+            frappe.msgprint(
+                _("WeekOff Change Request has been deleted successfully. You can go back to the WeekOff Change Request List to continue."),
+                title=_("Success"),
+                indicator="green",
+                raise_exception=True,
+                primary_action={
+                    "label": _("Go to WeekOff Change Request"),
+                    "client_action": "frappe.set_route",
+                    "args": ["List", "WeekOff Change Request"],
+                }
+            )
+
 
 def notify_reporting_manager(employee_id, docname, emp_user, current_user):
     """Method to check if the current user is the employee whose weekoff change request is, if it is the same user then, sending an email to  employee's reporting manager"""
     rh_emp = frappe.db.get_value("Employee", employee_id, "reports_to")
     if rh_emp:
-        rh_user = frappe.db.get_value("Employee", rh_emp, "user_id")
+        rh_user = get_employee_email(rh_emp)
+        employee_id = get_employee_email(employee_id)
+        if employee_id:
+            cc = [employee_id]
+        else:
+            cc = []
         if rh_user:
             if current_user == emp_user:
                 send_notification_email(
@@ -250,7 +316,8 @@ def notify_reporting_manager(employee_id, docname, emp_user, current_user):
                     notification_name="Request to RH to Approve WeekOff Change",
                     doctype="WeekOff Change Request",
                     docname=docname,
-                    send_link=True,
+                    cc = cc,
+                    send_link=False,
                     fallback_subject=" Request for Approval – WeekOff Change Request",
                     fallback_message=f"Dear Reporting Head,\n\n     I am writing to formally request your approval for my WeekOff Change Request.\n Kindly review and approve the request at your earliest convenience.",
                 )
@@ -628,6 +695,7 @@ def share_leave_with_manager(leave_doc):
         user=manager_user_id,
         read=1,      # Read permission
         write=0,
-        share=0
+        share=0,
+        flags={"ignore_share_permission": True}
     )
 

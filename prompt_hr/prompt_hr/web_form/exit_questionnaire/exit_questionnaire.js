@@ -2,8 +2,8 @@ $(document).ready(function () {
 
     // ? CALL THE BACKEND METHOD TO CHECK USER ROLE AND EMPLOYEE
     frappe.call({
-        method: "prompt_hr.prompt_hr.web_form.exit_questionnaire.exit_questionnaire.check_user_role_and_employee",  
-        callback: function(response) {
+        method: "prompt_hr.prompt_hr.web_form.exit_questionnaire.exit_questionnaire.check_user_role_and_employee",
+        callback: function (response) {
             const isHrOrAdmin = response.message.is_hr_or_admin;
             const sessionEmployee = response.message.employee;
 
@@ -29,7 +29,7 @@ $(document).ready(function () {
     }
 
     // ? FUNCTION TO SET THE EMPLOYEE FIELD VALUE FOR NON-HR/ADMIN (SET FROM SESSION)
- 	function setEmployeeField(employee) {
+    function setEmployeeField(employee) {
         let employeeField = getEmployeeField();
         if (employeeField.length > 0) {
             employeeField.val(employee).prop('readonly', true);
@@ -51,9 +51,9 @@ $(document).ready(function () {
     // ? HIDE THE DEFAULT SAVE BUTTON BUT KEEP THE DISCARD BUTTON VISIBLE
     $('.right-area .submit-btn').hide();
     $('.web-form-actions .discard-btn').show();
-    
+
     // ? PREVENT DEFAULT FORM SUBMISSION
-    $('form.web-form').on('submit', function(e) {
+    $('form.web-form').on('submit', function (e) {
         e.preventDefault();
         console.log("Default form submission prevented");
         return false;
@@ -100,7 +100,7 @@ $(document).ready(function () {
                 console.log("Employee field set to read-only");
             });
         } else {
-            setTimeout(setupValueChangeDetection, 1000); 
+            setTimeout(setupValueChangeDetection, 1000);
         }
     }
 
@@ -139,22 +139,104 @@ $(document).ready(function () {
     function displayQuestions(questions) {
         const questionContainer = $('#question-container');
         questionContainer.empty();
-    
-        questionContainer.append('<h3 class="mb-4">Exit Interview Questions</h3>');
-    
+
+        // HEADER
+        questionContainer.append(`
+        <h3 class="mb-4 text-center fw-bold" style="color: #3b5bdb; font-family: 'Poppins', sans-serif;">
+            Exit Interview Questions
+        </h3>
+        <hr style="border-top: 2px solid #3b5bdb;">
+    `);
+
         questions.forEach((question, index) => {
-            const questionHtml = `
-                <div class="question-item mb-2 p-2 border rounded bg-light" style="font-size: 14px;">
-                    <p>${question.question_detail || 'No question details available'}</p>
-                    <textarea class="form-control" rows="2" name="answer-${question.question}" style="font-size: 14px;"></textarea>
+            let questionHtml = '';
+
+            // QUESTION CARD START
+            questionHtml += `
+            <div class="question-item mb-4 p-4 border rounded shadow-sm bg-light hover-shadow" style="font-size: 15px; position: relative;">
+                <div class="d-flex align-items-center mb-3">
+                    <span class="badge rounded-pill bg-primary text-white me-3 shadow-sm" style="margin-right:20px; font-size: 14px; min-width: 35px; text-align: center;">Q${index + 1}</span>
+                    <label class="fw-semibold mb-0" style="font-size: 15px;">${question.question_detail || 'No question details available'}</label>
                 </div>
+        `;
+
+            // INPUT FIELD
+            if (question.input_type) {
+                switch (question.input_type) {
+                    case 'Checkbox':
+                        if (Array.isArray(question.multi_checkselect_options)) {
+                            question.multi_checkselect_options.forEach((opt, i) => {
+                                questionHtml += `
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="check-${index}-${i}" name="answer-${question.question}" value="${opt}">
+                                    <label class="form-check-label" for="check-${index}-${i}" style="font-size:14px;">${opt}</label>
+                                </div>
+                            `;
+                            });
+                        }
+                        break;
+
+                    case 'Yes/No/NA':
+                        questionHtml += `
+                        <select class="form-select mb-2" name="answer-${question.question}" style="font-size: 14px; width: 100%; padding: 6px 12px;">
+                            <option value="">Select</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                            <option value="NA">N/A</option>
+                        </select>
+                    `;
+                        break;
+
+                    case 'Single Line Input':
+                        questionHtml += `
+                        <input type="text" class="form-control mb-2" name="answer-${question.question}" style="font-size:14px;" placeholder="Enter your answer here ✍️">
+                    `;
+                        break;
+
+                    case 'Dropdown':
+                        if (Array.isArray(question.multi_checkselect_options)) {
+                            questionHtml += `
+                            <select class="form-select mb-2" name="answer-${question.question}" style="font-size: 14px; width: 100%; padding: 6px 12px;">
+                                <option value="">Select an option</option>
+                        `;
+                            question.multi_checkselect_options.forEach(opt => {
+                                questionHtml += `<option value="${opt}">${opt}</option>`;
+                            });
+                            questionHtml += `</select>`;
+                        }
+                        break;
+
+                    case 'Date':
+                        questionHtml += `
+                        <input type="date" class="form-control mb-2" name="answer-${question.question}" style="font-size:14px;">
+                    `;
+                        break;
+
+                    default:
+                        questionHtml += `
+                        <textarea class="form-control mb-2" rows="2" name="answer-${question.question}" style="font-size:14px;" placeholder="Your feedback..."></textarea>
+                    `;
+                }
+            } else {
+                questionHtml += `
+                <textarea class="form-control mb-2" rows="2" name="answer-${question.question}" style="font-size:14px;" placeholder="Your feedback..."></textarea>
             `;
+            }
+
+            // QUESTION CARD END
+            questionHtml += '</div>';
+
+            // APPEND TO CONTAINER
             questionContainer.append(questionHtml);
-            console.log("Rendered question:", index + 1, question.question_detail);
         });
-    
-        questionContainer.append('<p class="text-muted">Please answer all questions above.</p>');
+
+        // FOOTER NOTE
+        questionContainer.append(`
+        <p class="text-center text-muted fst-italic" style="margin-top: 20px;">Please answer all questions above.</p>
+    `);
+
         addButtons();
+        console.log("Rendered questions:", questions.length);
     }
 
     // ? ADD SAVE RESPONSE BUTTON (ONLY ONCE)
@@ -170,7 +252,7 @@ $(document).ready(function () {
             $('#save-response').on('click', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 frappe.confirm(
                     'Are you sure you want to save your responses?',
                     function () {
@@ -180,7 +262,7 @@ $(document).ready(function () {
                         console.log("Save action cancelled.");
                     }
                 );
-                
+
                 return false;
             });
         }
@@ -191,22 +273,56 @@ $(document).ready(function () {
         const responses = [];
         const employeeField = getEmployeeField();
         const employee = employeeField.val();
-    
-        // ? LOOP THROUGH EACH TEXTAREA AND MAP ANSWERS TO QUESTION.NAME
-        $('#question-container textarea').each(function () {
-            const questionName = $(this).attr('name').replace('answer-', '');
-            const answer = $(this).val();
-            responses.push({
-                question: questionName,
-                answer: answer
+
+        //! COLLECT ANSWERS FROM ALL QUESTION TYPES
+        $('#question-container')
+            .find('input, textarea, select')
+            .each(function () {
+                const element = $(this);
+                const nameAttr = element.attr('name');
+
+                //? SKIP IF NO NAME ATTRIBUTE
+                if (!nameAttr || !nameAttr.startsWith('answer-')) return;
+
+                const questionName = nameAttr.replace('answer-', '');
+                let answer = '';
+
+                //? HANDLE CHECKBOXES (COLLECT MULTIPLE VALUES)
+                if (element.attr('type') === 'checkbox') {
+                    if (element.is(':checked')) {
+                        // IF QUESTION ALREADY EXISTS, PUSH ADDITIONAL VALUE
+                        const existing = responses.find(r => r.question === questionName);
+                        if (existing) {
+                            existing.answer += `, ${element.val()}`;
+                        } else {
+                            responses.push({
+                                question: questionName,
+                                answer: element.val()
+                            });
+                        }
+                    }
+                    return; // SKIP FURTHER PROCESSING FOR CHECKBOX
+                }
+
+                //? HANDLE OTHER INPUT TYPES
+                answer = element.val();
+
+                //? ONLY PUSH IF QUESTION NOT ALREADY ADDED (AVOID DUPLICATE CHECKBOX HANDLING)
+                const existingResponse = responses.find(r => r.question === questionName);
+                if (existingResponse) {
+                    existingResponse.answer = answer;
+                } else {
+                    responses.push({
+                        question: questionName,
+                        answer: answer
+                    });
+                }
             });
-        });
-        console.log("Employee value:", employee);
-        console.log("Collected responses:", responses);
-    
+
+
         frappe.call({
             method: "prompt_hr.prompt_hr.web_form.exit_questionnaire.exit_questionnaire.save_response",
-            args: { 
+            args: {
                 employee: employee,
                 response: responses
             },
@@ -220,9 +336,9 @@ $(document).ready(function () {
             }
         });
     }
-    
+
     // ? DISABLE ONLY THE DEFAULT SAVE BUTTON BUT KEEP DISCARD BUTTON
-    setTimeout(function() {
+    setTimeout(function () {
         // ? TARGET ONLY THE SUBMIT/SAVE BUTTON IN WEB-FORM-ACTIONS, NOT ALL BUTTONS
         $('.web-form-actions .btn-primary, .right-area .submit-btn').off('click').prop('disabled', true);
         console.log("Disabled default save button, kept discard button functional");

@@ -7,6 +7,8 @@ from prompt_hr.py.utils import (
     send_notification_email,
     is_user_reporting_manager_or_hr,
     get_reporting_manager_info,
+    create_notification_log,
+    get_employee_email,
 )
 from datetime import datetime
 from frappe.utils import get_datetime, getdate, format_date, get_link_to_form
@@ -115,9 +117,8 @@ class AttendanceRegularization(Document):
                 # *----------------------------------------------------------------------------------
                 # * SENDING MAIL TO INFORM EMPLOYEE ABOUT ATTENDANCE REGULARIZATION IS APPROVED AND ONLY SENDING MAIL IF EMPLOYEE IS NOT NOTIFIED
                 if not self.employee_notified:
-                    emp_user_id = frappe.db.get_value(
-                        "Employee", self.employee, "user_id"
-                    )
+                    emp_user_id = get_employee_email(self.employee)
+                    reporting_manager_id = get_employee_email(self.reporting_manager)
                     if emp_user_id:
 
                         # ? EMAIL SHOULD ONLY SENT IN AUTO APPROVAL CASE IF IT IS ENABLE IN HR SETTINGS
@@ -135,12 +136,18 @@ class AttendanceRegularization(Document):
                                 )
                                 if not is_email_sent_allowed:
                                     return
+                                
+                        if reporting_manager_id:
+                            cc = [reporting_manager_id]
+                        else:
+                            cc = []
                         send_notification_email(
                             recipients=[emp_user_id],
                             notification_name="Attendance Regularization Approved",
                             doctype="Attendance Regularization",
                             docname=self.name,
-                            send_link=True,
+                            cc=cc,
+                            send_link=False,
                             fallback_subject=f"Attendance Regularization Approved for {self.regularization_date}",
                             fallback_message=f"<p>Dear {self.employee_name},</p> <br> <p>This is to inform you that your Attendance Regularization request for {self.regularization_date} has been reviewed and approved.</p>",
                         )
@@ -148,7 +155,8 @@ class AttendanceRegularization(Document):
 
             if self.status == "Rejected" and not self.employee_notified:
 
-                emp_user_id = frappe.db.get_value("Employee", self.employee, "user_id")
+                emp_user_id = get_employee_email(self.employee)
+                reporting_manager_id = get_employee_email(self.reporting_manager)
                 if emp_user_id:
 
                     # ? EMAIL SHOULD ONLY SENT IN AUTO APPROVAL CASE IF IT IS ENABLE IN HR SETTINGS
@@ -166,12 +174,17 @@ class AttendanceRegularization(Document):
                             if not is_email_sent_allowed:
                                 return
 
+                    if reporting_manager_id:
+                        cc = [reporting_manager_id]
+                    else:
+                        cc = []
                     send_notification_email(
                         recipients=[emp_user_id],
                         notification_name="Attendance Regularization Rejected",
                         doctype="Attendance Regularization",
                         docname=self.name,
-                        send_link=True,
+                        cc = cc,
+                        send_link=False,
                         fallback_subject=f"Attendance Regularization Rejected for {self.regularization_date}",
                         fallback_message=f"<p>Dear {self.employee_name},</p> <br> <p>This is to inform you that your Attendance Regularization request for {self.regularization_date} has been reviewed and has unfortunately been rejected.</p>",
                     )
@@ -229,9 +242,79 @@ class AttendanceRegularization(Document):
             elif self.workflow_state == "Approved":
                 self.status = "Approved"
 
+        if not self.is_new() and self.workflow_state == "Cancelled by Employee":
+            attendance_reg_doc = self.as_dict()
+            self.delete(ignore_permissions=True)
+            employee = attendance_reg_doc.employee
+            reporting_manager = attendance_reg_doc.reporting_manager
+
+            # ? Get user IDs and names if present
+            employee_user_id = get_employee_email(employee) if employee else None
+            reporting_manager_id = get_employee_email(reporting_manager) if reporting_manager else None
+            reporting_manager_name = None
+            if reporting_manager:
+                reporting_manager_name = frappe.db.get_value("Employee", reporting_manager, "employee_name")
+
+            if employee_user_id or reporting_manager_id:
+                recipients = []
+                if employee_user_id:
+                    recipients.append(employee_user_id)
+                if reporting_manager_id:
+                    recipients.append(reporting_manager_id)
+                notification_doc = frappe.get_doc("Notification", "Attendance Regularization Deleted Notification")
+                if notification_doc:
+                    user = frappe.session.user
+                    current_user = frappe.db.get_value("Employee", {"user_id":user}, "name") or user
+                    subject = frappe.render_template(notification_doc.subject, {"doc": attendance_reg_doc})
+                    message = frappe.render_template(notification_doc.message, {"doc": attendance_reg_doc, "current_user": current_user})
+
+                    if employee_user_id:
+                        frappe.sendmail(
+                            recipients=recipients,
+                            subject=subject,
+                            message=message,
+                        )
+                        if recipients:
+                            for recipient in recipients:
+                                create_notification_log(recipient, subject, message, "Employee", attendance_reg_doc.employee)
+
+            frappe.db.commit()
+            frappe.msgprint(
+                _("Attendance Regularization has been deleted successfully. You can go back to the Attendance Regularization List to continue."),
+                title=_("Success"),
+                indicator="green",
+                raise_exception=True,
+                primary_action={
+                    "label": _("Go to Attendance Regularization List"),
+                    "client_action": "frappe.set_route",
+                    "args": ["List", "Attendance Regularization"],
+                }
+            )
+
     def on_update(self):
         if self.workflow_state == "Pending":
             manager_info = get_reporting_manager_info(self.employee)
+            if self.has_value_changed("workflow_state"):
+                # * SENDING EMAIL TO EMPLOYEE'S REPORTING HEAD
+                rh_emp = frappe.db.get_value("Employee", self.employee, "reports_to")
+                if rh_emp:
+                    rh_user_id = get_employee_email(rh_emp)
+                    emp_id = get_employee_email(self.employee)
+                    if emp_id:
+                        cc = [emp_id]
+                    else:
+                        cc = []
+                    if rh_user_id:
+                        send_notification_email(
+                            recipients=[rh_user_id],
+                            notification_name="Attendance Regularization Created",
+                            doctype="Attendance Regularization",
+                            docname=self.name,
+                            cc =cc,
+                            send_link=False,
+                            fallback_subject=f"Attendance Regularization Created for {self.regularization_date}",
+                            fallback_message=f"Dear Reporting Head, <br>   I would like to inform you that I have created an Attendance Regularization record for {self.regularization_date}. <br>The record is now available in the system for your review and necessary action."
+                        )  
             if manager_info:
                 #! STORE AS: <manager_docname> - <manager_employee_name>
                 self.db_set(

@@ -20,6 +20,22 @@ function set_text_field_height() {
 
 }
 frappe.ui.form.on("Employee", {
+
+    onload(frm) {
+            
+        if ( frappe.route_options && frappe.route_options.show_update_message) {            
+            setTimeout(() => {
+                frappe.msgprint("Please update Notice Period, Leave Policy, and Leave Policy Change Date.");
+            }, 1000);
+
+            frappe.route_options = {};
+        }
+    },
+
+    after_save(frm) {
+        set_field_visibility(frm)
+    },
+
     refresh: function (frm) {
         // ? SET AUTOCOMPLETE OPTIONS FOR CURRENT AND PERMANENT STATE
         set_state_options(frm, "custom_current_state", "custom_current_country");
@@ -31,24 +47,13 @@ frappe.ui.form.on("Employee", {
         handle_location_change(frm, "custom_permanent")
 
         set_text_field_height();
-
+        set_field_visibility(frm)
         addEmployeeDetailsChangesButton(frm);
         // ? ADD APPROVAL BUTTON FOR LOGIN QUESTIONNAIRE TO EMPLOYEE
         if (!frm.is_new() && !frm.doc.custom_employees_all_response_approve) {
             addApproveEmployeeDetailsButton(frm);
         }
         add_profile_completion_percentage(frm)
-        frappe.db.get_value('Employee', { 'name': frm.doc.name }, 'user_id').then(r => {
-            if (!frappe.user_roles.includes("S - HR Director (Global Admin)") && !frappe.user_roles.includes("System Manager") && !frappe.user_roles.includes("S - HR L1") && !frappe.user_roles.includes("S - HR L2")) {
-                if (frappe.session.user != r.message.user_id) {
-                    const fields_to_hidden = ["salary_currency", "custom_salary_structure_based_on", "ctc", "custom_gross_salary", "payroll_cost_center", "salary_mode", "pan_number", "provident_fund_account", "custom_esi_number", "custom_esic_ip_number", "custom_uan_number", "custom_aadhaar_number", "custom_name_as_per_aadhaar", "custom_pran_number", "custom_mealcard_ref_number", "custom_mealcard_number", "custom_income_tax_regime", "custom_consents", "bank_details_section", "custom_nominee_details_section", "health_insurance_section", "custom_submitted_document", "passport_details_section", "marital_status", "custom_religion", "family_background", "blood_group", "health_details", "custom_physically_handicaped", "bio", "custom_expense_details", "new_workplace", "leave_encashed", "encashment_date", "custom_ff_settlement_date", "custom_is_fit_to_be_rehired", "held_on", "custom_is_notice_period_served", "reason_for_leaving", "feedback", "custom_is_overtime_applicable", "approvers_section", "custom_probation_extension", "custom_probation_details", "custom_section_break_mm3qg", "custom_mrf_id", "scheduled_confirmation_date", "job_applicant", "custom_contract_start_date", "custom_contract_start_date", "date_of_retirement"]
-                    fields_to_hidden.forEach(field => {
-                        frm.set_df_property(field, "hidden", 1);
-                    });
-                }
-            }
-        });
-
 
         frm.set_query("custom_leave_policy", () => {
             return {
@@ -269,7 +274,13 @@ frappe.ui.form.on("Employee", {
         }
     },
 
-
+    custom_probation_status: function (frm) {
+        if (frm.doc.custom_probation_status === "Confirmed") {
+            frm.set_df_property("notice_number_of_days", "reqd", 1)
+            frm.set_value("notice_number_of_days", "")
+            frm.set_value("custom_leave_policy", "")
+        }
+    }
     // refresh: function (frm){
     //     prompt_probation_period = frappe.db.get_single_value("HR Settings","custom_probation_period_for_prompt")
     //     indifoss_probation_period = frappe.db.get_single_value("HR Settings","custom_probation_period_for_indifoss")
@@ -279,6 +290,51 @@ frappe.ui.form.on("Employee", {
     // }
 
 });
+
+frappe.ui.form.on("Probation Extension", {
+    
+    // custom_probation_extension_details_add: function (frm, cdt, cdn) {
+    //     let row = locals[cdt][cdn]
+    //     if (frm.doc.custom_probation_end_date && !row.probation_end_date) {
+    //         row.probation_end_date = frm.doc.custom_probation_end_date
+    //     }
+    // },
+    form_render: function (frm, cdt, cdn) {
+        let row = locals[cdt][cdn]
+        if (frm.doc.custom_probation_end_date && !row.probation_end_date) {
+            row.probation_end_date = frm.doc.custom_probation_end_date
+            frm.refresh_field("custom_probation_extension_details")
+        }
+        else {
+            console.log("Has Value", row.probation_end_date)
+        }
+    },
+    probation_end_date: function (frm, cdt, cdn) {
+        let row = locals[cdt][cdn]
+
+        if (row.probation_end_date && row.extended_period) {
+            row.extended_date = frappe.datetime.add_days(row.probation_end_date, row.extended_period)
+            frm.refresh_field("custom_probation_extension_details")
+        }
+
+    },
+    extended_period: function (frm, cdt, cdn) {
+        let row = locals[cdt][cdn]
+
+        if (row.probation_end_date && row.extended_period) {
+            row.extended_date = frappe.datetime.add_days(row.probation_end_date, row.extended_period)
+            frm.refresh_field("custom_probation_extension_details")
+        }
+    }
+
+})
+
+
+
+
+
+
+
 
 // ? FUNCTION TO APPROVE/REJECT DETAILS UPLOADED BY EMPLOYEE
 function addApproveEmployeeDetailsButton(frm) {
@@ -1077,4 +1133,61 @@ function raise_resignation_button_auto_click_from_url(frm) {
         // ? REMOVE PARAM TO PREVENT RE-TRIGGER ON NEXT REFRESH
         window.history.replaceState({}, document.title, window.location.pathname);
     }
+}
+
+// ? FUNCTION TO CHANGE PERM LEVEL OF EMPLOYEE FOR CERTAIN FIELDS VISIBILITY
+function set_field_visibility(frm) {
+    let current_user = frappe.session.user;
+
+    // ? GET USER LINKED TO THIS EMPLOYEE
+    frappe.call({
+        method: "frappe.client.get_value",
+        args: {
+            doctype: "Employee",
+            filters: { name: frm.doc.name },
+            fieldname: "user_id"
+        },
+        callback: function (r) {
+            if (r && r.message && r.message.user_id) {
+                let employee_user = r.message.user_id;
+
+                // ? CHECK IF LOGGED-IN USER IS SAME AS EMPLOYEE'S USER
+                if (employee_user === current_user) {
+                    // ? CALL BACKEND TO GET FIELD VISIBILITY SETTINGS
+                    frappe.call({
+                        method: "prompt_hr.py.employee.get_field_visibility_settings",
+                        args: {
+                            employee: frm.doc.name,
+                            user: current_user
+                        },
+                        callback: function (res) {
+                            if (res && res.message) {
+                                Object.entries(res.message).forEach(([field, value]) => {
+                                    let field_obj = frm.fields_dict[field];
+                                    if (field_obj) {
+                                        if (field_obj.df.permlevel > 0) {
+                                            has_perm = frappe.perm.has_perm("Employee", "read", employee_user, permlevel=field_obj.df.permlevel)
+                                            if (!has_perm) {
+                                                frm.set_df_property(field, "permlevel", 0)
+                                                frm.set_value(field, value, null, true)
+                                                frm.refresh_field(field)
+                                            }
+                                        }
+                                        else {
+                                            if(!frm.doc.field) {
+                                                frm.set_value(field, value, null, true)
+                                                frm.refresh_field(field)
+                                            }
+
+                                        }
+
+                                    }
+                                });
+                            }
+                        }
+                    });
+                }
+            }
+        }
+    });
 }

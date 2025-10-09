@@ -1,11 +1,18 @@
-<p>{% set reporting_head_id = frappe.db.get_value("Employee", doc.employee, "reports_to") %}
-{% if reporting_head_id %}
-    {% set reporting_head_name = frappe.db.get_value("Employee", reporting_head_id, "employee_name") %}
-{% else %}
-    {% set reporting_head_name = "Reporting Head" %}
-{% endif %}</p>
+{% set manager_name = frappe.db.get_value("Employee", doc.attendance_request, "employee_name") %}
+<p>Dear <b>{{ manager_name }}</b>,</p>
 
-<p>Dear {{ reporting_head_name }},<br>
+<p>
+    A weekoff change request has been submitted by <b>{{ doc.employee }}</b>.<br>
+    Please review the details below and take the necessary action.
+</p>
 
-I am writing to formally request your approval for my WeekOff Change Request. <br>
-Kindly review and approve the request at your earliest convenience.</p>
+<p><b>Request Summary:</b></p>
+<ul>
+    <li><b>Employee:</b> {{ doc.employee }}</li>
+    <li><b>Workflow State:</b> {{ doc.workflow_state }}</li>
+    <li>
+        <b>View Request:</b>
+        {% set weekoff_change_link = frappe.utils.get_url() ~ '/app/weekoff-change-request/' ~ doc.name %}
+        <a href="{{ weekoff_change_link }}">Click here</a>
+    </li>
+</ul>

@@ -12,7 +12,7 @@ from frappe.utils import (
     add_months,
     add_days,
 )
-from prompt_hr.py.utils import fetch_company_name
+from prompt_hr.py.utils import fetch_company_name, send_notification_email, get_employee_email
 from prompt_hr.py.auto_mark_attendance import mark_attendance, is_holiday_or_weekoff
 from datetime import timedelta, datetime
 from prompt_hr.prompt_hr.doctype.exit_approval_process.exit_approval_process import (
@@ -36,9 +36,8 @@ def create_probation_feedback_form():
     """
 
     try:
-        print("aaaa\n\n\n\n")
         probation_feedback_for_prompt()
-        probation_feedback_for_indifoss()
+        # probation_feedback_for_indifoss()
 
     except Exception as e:
         frappe.log_error(
@@ -49,309 +48,301 @@ def create_probation_feedback_form():
 # *CREATING PROBATION FEEDBACK FOR PROMPT EMPLOYEES
 def probation_feedback_for_prompt():
     """Method to create probation feedback form for Prompt employees"""
-    print("jsfdjsfdndksfdnsfdnknsfd\n\n\n\n")
+    
+    frappe.log_error("probation_feedback_for_prompt_start", "Scheduler Started")
     first_feedback_days = frappe.db.get_single_value(
         "HR Settings", "custom_first_feedback_after"
     )
     second_feedback_days = frappe.db.get_single_value(
         "HR Settings", "custom_second_feedback_after"
     )
-    company_abbr = frappe.db.get_single_value("HR Settings", "custom_prompt_abbr")
+        
+    if first_feedback_days or second_feedback_days:
 
-    if company_abbr:
-        if first_feedback_days or second_feedback_days:
-            company_id = frappe.db.get_value("Company", {"abbr": company_abbr}, "name")
+            # employees_list = frappe.db.get_all("Employee", {"status": "Active", "company": "Prompt Equipments PVT LTD", "custom_probation_status": "Pending"}, "name")
+            employees_list = frappe.db.get_all(
+                "Employee",
+                {
+                    "status": "Active",
+                    "custom_probation_status": "In Probation",
+                    # "custom_probation_status": "Pending",
+                },
+                ["name", "employee_name"],
+            )
+            for employee in employees_list:
+                if employee.get("name"):
+                    emp_joining_date = frappe.db.get_value(
+                        "Employee", employee.get("name"), "date_of_joining"
+                    )
 
-            if company_id:
-                # employees_list = frappe.db.get_all("Employee", {"status": "Active", "company": "Prompt Equipments PVT LTD", "custom_probation_status": "Pending"}, "name")
-                employees_list = frappe.db.get_all(
-                    "Employee",
-                    {
-                        "status": "Active",
-                        "company": company_id,
-                        "custom_probation_status": "Pending",
-                    },
-                    "name",
-                )
-                print(f"\n\n\n\n\n\n\n\n\n\n {employees_list} \n\n\n\n")
-                for employee in employees_list:
-                    if employee.get("name"):
-                        emp_joining_date = frappe.db.get_value(
-                            "Employee", employee.get("name"), "date_of_joining"
+                    first_feedback_form_id = (
+                        frappe.db.get_value(
+                            "Employee",
+                            employee.get("name"),
+                            "custom_first_probation_feedback",
                         )
-
-                        first_feedback_form_id = (
-                            frappe.db.get_value(
-                                "Employee",
-                                employee.get("name"),
-                                "custom_first_probation_feedback",
-                            )
-                            or None
+                        or None
+                    )
+                    second_feedback_form_id = (
+                        frappe.db.get_value(
+                            "Employee",
+                            employee.get("name"),
+                            "custom_second_probation_feedback",
                         )
-                        second_feedback_form_id = (
-                            frappe.db.get_value(
-                                "Employee",
-                                employee.get("name"),
-                                "custom_second_probation_feedback",
-                            )
-                            or None
-                        )
+                        or None
+                    )
 
-                        create_only_one = (
-                            True
-                            if not first_feedback_form_id
-                            and not second_feedback_form_id
-                            else False
-                        )
+                    create_only_one = (
+                        True
+                        if not first_feedback_form_id
+                        and not second_feedback_form_id
+                        else False
+                    )
 
-                        if emp_joining_date:
-                            date_difference = date_diff(today(), emp_joining_date)
+                    if emp_joining_date:
+                        date_difference = date_diff(today(), emp_joining_date)
+                        frappe.log_error("probation_feedback_for_prompt_date_diff", f"Date Diff {date_difference}")
+                        if first_feedback_days <= date_difference:
+                            if not first_feedback_form_id:
+                                employee_doc = frappe.get_doc(
+                                    "Employee", employee.get("name")
+                                )
+                                first_probation_form = frappe.get_doc(
+                                    {
+                                        "doctype": "Probation Feedback Form",
+                                        "employee": employee.get("name"),
+                                        "employee_name": employee_doc.get(
+                                            "employee_name"
+                                        ),
+                                        "department": employee_doc.get(
+                                            "department"
+                                        ),
+                                        "designation": employee_doc.get(
+                                            "designation"
+                                        ),
+                                        "company": employee_doc.get("company"),
+                                        "product_line": employee_doc.get(
+                                            "custom_product_line"
+                                        ),
+                                        "business_unit": employee_doc.get(
+                                            "custom_business_unit"
+                                        ),
+                                        "reporting_manager": employee_doc.get(
+                                            "reports_to"
+                                        ),
+                                        "probation_feedback_for": "30 Days",
+                                        "evaluation_date": today(),
+                                    }
+                                )
 
-                            if first_feedback_days <= date_difference:
-                                if not first_feedback_form_id:
-                                    employee_doc = frappe.get_doc(
-                                        "Employee", employee.get("name")
+                                question_list = frappe.db.get_all(
+                                    "Probation Question",
+                                    {
+                                        "probation_feedback_for": "30 Days",
+                                    },
+                                    "name",
+                                )
+
+                                if question_list:
+
+                                    for question in question_list:
+                                        first_probation_form.append(
+                                            "probation_feedback_prompt",
+                                            {
+                                                "question": question.get("name"),
+                                                "frequency": "30 Days",
+                                            },
+                                        )
+
+                                first_probation_form.insert(ignore_permissions=True)
+                                employee_doc.custom_first_probation_feedback = (
+                                    first_probation_form.name
+                                )
+                                employee_doc.save(ignore_permissions=True)
+                                frappe.db.commit()
+                            else:
+                                remarks_added = frappe.db.exists(
+                                    "Probation Feedback Prompt",
+                                    {
+                                        "parenttype": "Probation Feedback Form",
+                                        "parent": first_feedback_form_id,
+                                        "rating": ["not in", ["0", ""]],
+                                    },
+                                    "name",
+                                )
+
+                                if not remarks_added:
+                                    reporting_manager_emp_id = (
+                                        frappe.db.get_value(
+                                            "Probation Feedback Form",
+                                            first_feedback_form_id,
+                                            "reporting_manager",
+                                        )
+                                        or None
                                     )
-                                    first_probation_form = frappe.get_doc(
-                                        {
-                                            "doctype": "Probation Feedback Form",
-                                            "employee": employee.get("name"),
-                                            "employee_name": employee_doc.get(
-                                                "employee_name"
-                                            ),
-                                            "department": employee_doc.get(
-                                                "department"
-                                            ),
-                                            "designation": employee_doc.get(
-                                                "designation"
-                                            ),
-                                            "company": employee_doc.get("company"),
-                                            "product_line": employee_doc.get(
-                                                "custom_product_line"
-                                            ),
-                                            "business_unit": employee_doc.get(
-                                                "custom_business_unit"
-                                            ),
-                                            "reporting_manager": employee_doc.get(
-                                                "reports_to"
-                                            ),
-                                            "probation_feedback_for": "30 Days",
-                                            "evaluation_date": today(),
-                                        }
-                                    )
 
-                                    question_list = frappe.db.get_all(
-                                        "Probation Question",
-                                        {
-                                            "company": company_id,
-                                            "probation_feedback_for": "30 Days",
-                                        },
-                                        "name",
-                                    )
-
-                                    if question_list:
-
-                                        for question in question_list:
-                                            first_probation_form.append(
-                                                "probation_feedback_prompt",
-                                                {
-                                                    "question": question.get("name"),
-                                                    "frequency": "30 Days",
-                                                },
-                                            )
-
-                                    first_probation_form.insert(ignore_permissions=True)
-                                    employee_doc.custom_first_probation_feedback = (
-                                        first_probation_form.name
-                                    )
-                                    employee_doc.save(ignore_permissions=True)
-                                    frappe.db.commit()
-                                else:
-                                    remarks_added = frappe.db.exists(
-                                        "Probation Feedback Prompt",
-                                        {
-                                            "parenttype": "Probation Feedback Form",
-                                            "parent": first_feedback_form_id,
-                                            "rating": ["not in", ["0", ""]],
-                                        },
-                                        "name",
-                                    )
-
-                                    if not remarks_added:
+                                    if not reporting_manager_emp_id:
                                         reporting_manager_emp_id = (
                                             frappe.db.get_value(
-                                                "Probation Feedback Form",
-                                                first_feedback_form_id,
-                                                "reporting_manager",
+                                                "Employee",
+                                                employee.get("name"),
+                                                "reports_to",
                                             )
                                             or None
                                         )
 
-                                        if not reporting_manager_emp_id:
-                                            reporting_manager_emp_id = (
-                                                frappe.db.get_value(
-                                                    "Employee",
-                                                    employee.get("name"),
-                                                    "reports_to",
-                                                )
-                                                or None
-                                            )
+                                    if reporting_manager_emp_id:
 
-                                        if reporting_manager_emp_id:
-
-                                            reporting_manager_user_id = (
-                                                frappe.db.get_value(
-                                                    "Employee",
-                                                    reporting_manager_emp_id,
-                                                    "user_id",
-                                                )
-                                                or None
-                                            )
-
-                                            if reporting_manager_user_id:
-                                                reporting_manager_email = (
-                                                    frappe.db.get_value(
-                                                        "User",
-                                                        reporting_manager_user_id,
-                                                        "email",
-                                                    )
-                                                )
-                                                if reporting_manager_email:
-                                                    send_reminder_mail_to_reporting_manager(
-                                                        reporting_manager_email,
-                                                        reporting_manager_user_id,
-                                                        first_feedback_form_id,
-                                                        employee.get("employee_name"),
-                                                    )
-
-                            if second_feedback_days <= date_difference:
-                                if not second_feedback_form_id and not create_only_one:
-
-                                    employee_doc = frappe.get_doc(
-                                        "Employee", employee.get("name")
-                                    )
-                                    second_probation_form = frappe.get_doc(
-                                        {
-                                            "doctype": "Probation Feedback Form",
-                                            "employee": employee.get("name"),
-                                            "employee_name": employee_doc.get(
-                                                "employee_name"
-                                            ),
-                                            "department": employee_doc.get(
-                                                "department"
-                                            ),
-                                            "designation": employee_doc.get(
-                                                "designation"
-                                            ),
-                                            "company": employee_doc.get("company"),
-                                            "product_line": employee_doc.get(
-                                                "custom_product_line"
-                                            ),
-                                            "business_unit": employee_doc.get(
-                                                "custom_business_unit"
-                                            ),
-                                            "reporting_manager": employee_doc.get(
-                                                "reports_to"
-                                            ),
-                                            "probation_feedback_for": "60 Days",
-                                            "evaluation_date": today(),
-                                        }
-                                    )
-
-                                    question_list = frappe.db.get_all(
-                                        "Probation Question",
-                                        {
-                                            "company": company_id,
-                                            "probation_feedback_for": "60 Days",
-                                        },
-                                        "name",
-                                    )
-
-                                    if question_list:
-                                        for question in question_list:
-                                            second_probation_form.append(
-                                                "probation_feedback_prompt",
-                                                {
-                                                    "question": question.get("name"),
-                                                    "frequency": "60 Days",
-                                                },
-                                            )
-
-                                    second_probation_form.insert(
-                                        ignore_permissions=True
-                                    )
-                                    employee_doc.custom_second_probation_feedback = (
-                                        second_probation_form.name
-                                    )
-                                    employee_doc.save(ignore_permissions=True)
-
-                                    frappe.db.commit()
-                                elif second_feedback_form_id:
-
-                                    remarks_added = frappe.db.exists(
-                                        "Probation Feedback Prompt",
-                                        {
-                                            "parenttype": "Probation Feedback Form",
-                                            "parent": second_feedback_form_id,
-                                            "rating": ["not in", ["0", ""]],
-                                        },
-                                    )
-                                    if not remarks_added:
-                                        reporting_manager_emp_id = (
+                                        reporting_manager_user_id = (
                                             frappe.db.get_value(
-                                                "Probation Feedback Form",
-                                                second_feedback_form_id,
-                                                "reporting_manager",
+                                                "Employee",
+                                                reporting_manager_emp_id,
+                                                "user_id",
                                             )
                                             or None
                                         )
-                                        if not reporting_manager_emp_id:
-                                            reporting_manager_emp_id = (
-                                                frappe.db.get_value(
-                                                    "Employee",
-                                                    employee.get("name"),
-                                                    "reports_to",
-                                                )
-                                                or None
-                                            )
 
-                                        if reporting_manager_emp_id:
-                                            reporting_manager_user_id = (
+                                        if reporting_manager_user_id:
+                                            reporting_manager_email = (
                                                 frappe.db.get_value(
-                                                    "Employee",
-                                                    reporting_manager_emp_id,
-                                                    "user_id",
+                                                    "User",
+                                                    reporting_manager_user_id,
+                                                    "email",
                                                 )
-                                                or None
                                             )
-                                            if reporting_manager_user_id:
-                                                reporting_manager_email = (
-                                                    frappe.db.get_value(
-                                                        "User",
-                                                        reporting_manager_user_id,
-                                                        "email",
-                                                    )
+                                            if reporting_manager_email:
+                                                send_reminder_mail_to_reporting_manager(
+                                                    reporting_manager_email,
+                                                    reporting_manager_user_id,
+                                                    first_feedback_form_id,
+                                                    employee.get("employee_name"),
                                                 )
-                                                if reporting_manager_email:
-                                                    send_reminder_mail_to_reporting_manager(
-                                                        reporting_manager_email,
-                                                        reporting_manager_user_id,
-                                                        second_feedback_form_id,
-                                                        employee.get("employee_name"),
-                                                    )
-            else:
-                frappe.log_error(
-                    "Issue while checking for probation feedback form for Prompt",
-                    f"No Company found for abbreviation {company_abbr}",
-                )
+
+                        if second_feedback_days <= date_difference:
+                            if not second_feedback_form_id and not create_only_one:
+
+                                employee_doc = frappe.get_doc(
+                                    "Employee", employee.get("name")
+                                )
+                                second_probation_form = frappe.get_doc(
+                                    {
+                                        "doctype": "Probation Feedback Form",
+                                        "employee": employee.get("name"),
+                                        "employee_name": employee_doc.get(
+                                            "employee_name"
+                                        ),
+                                        "department": employee_doc.get(
+                                            "department"
+                                        ),
+                                        "designation": employee_doc.get(
+                                            "designation"
+                                        ),
+                                        "company": employee_doc.get("company"),
+                                        "product_line": employee_doc.get(
+                                            "custom_product_line"
+                                        ),
+                                        "business_unit": employee_doc.get(
+                                            "custom_business_unit"
+                                        ),
+                                        "reporting_manager": employee_doc.get(
+                                            "reports_to"
+                                        ),
+                                        "probation_feedback_for": "60 Days",
+                                        "evaluation_date": today(),
+                                    }
+                                )
+
+                                question_list = frappe.db.get_all(
+                                    "Probation Question",
+                                    {
+                                        "probation_feedback_for": "60 Days",
+                                    },
+                                    "name",
+                                )
+
+                                if question_list:
+                                    for question in question_list:
+                                        second_probation_form.append(
+                                            "probation_feedback_prompt",
+                                            {
+                                                "question": question.get("name"),
+                                                "frequency": "60 Days",
+                                            },
+                                        )
+
+                                second_probation_form.insert(
+                                    ignore_permissions=True
+                                )
+                                employee_doc.custom_second_probation_feedback = (
+                                    second_probation_form.name
+                                )
+                                employee_doc.save(ignore_permissions=True)
+
+                                frappe.db.commit()
+                            elif second_feedback_form_id:
+
+                                remarks_added = frappe.db.exists(
+                                    "Probation Feedback Prompt",
+                                    {
+                                        "parenttype": "Probation Feedback Form",
+                                        "parent": second_feedback_form_id,
+                                        "rating": ["not in", ["0", ""]],
+                                    },
+                                )
+                                if not remarks_added:
+                                    reporting_manager_emp_id = (
+                                        frappe.db.get_value(
+                                            "Probation Feedback Form",
+                                            second_feedback_form_id,
+                                            "reporting_manager",
+                                        )
+                                        or None
+                                    )
+                                    if not reporting_manager_emp_id:
+                                        reporting_manager_emp_id = (
+                                            frappe.db.get_value(
+                                                "Employee",
+                                                employee.get("name"),
+                                                "reports_to",
+                                            )
+                                            or None
+                                        )
+
+                                    if reporting_manager_emp_id:
+                                        reporting_manager_user_id = (
+                                            frappe.db.get_value(
+                                                "Employee",
+                                                reporting_manager_emp_id,
+                                                "user_id",
+                                            )
+                                            or None
+                                        )
+                                        if reporting_manager_user_id:
+                                            reporting_manager_email = (
+                                                frappe.db.get_value(
+                                                    "User",
+                                                    reporting_manager_user_id,
+                                                    "email",
+                                                )
+                                            )
+                                            if reporting_manager_email:
+                                                send_reminder_mail_to_reporting_manager(
+                                                    reporting_manager_email,
+                                                    reporting_manager_user_id,
+                                                    second_feedback_form_id,
+                                                    employee.get("employee_name"),
+                                                )
     else:
         frappe.log_error(
             "Issue while check for probation feedback form for Prompt",
             "Please set abbreviation in HR Settings FOR Prompt",
         )
+    frappe.log_error("probation_feedback_for_prompt_ended", "Scheduler Ended")
+    
 
 
 # *CREATING PROBATION FEEDBACK FOR INDIFOSS EMPLOYEES
+# ! THIS METHOD IS FOR INDIFOSS
 def probation_feedback_for_indifoss():
     """Method to create probation feedback form for Indifoss employees"""
 
@@ -823,327 +814,322 @@ def send_reminder_mail_to_reporting_manager(
 
 
 # * CREATING CONFIRMATION EVALUATION FORM AND IF ALREADY CREATED THEN, SENDING MAIL TO REPORTING MANAGER OR HEAD OF DEPARTMENT BASED ON THE RATING ADDED OR NOT
-@frappe.whitelist()
+# @frappe.whitelist()
 def create_confirmation_evaluation_form_for_prompt():
     try:
 
-        company_abbr = frappe.db.get_single_value("HR Settings", "custom_prompt_abbr")
-        create_cff_before_days = (
-            frappe.db.get_single_value(
-                "HR Settings", "custom_release_confirmation_form"
-            )
-            or 15
-        )
+        frappe.log_error("create_confirmation_evaluation_form_for_prompt_start", "Scheduler Started")
+        create_cff_before_days = frappe.db.get_single_value("HR Settings", "custom_release_confirmation_form") or 15
+        
+        
+        
+        employees_list = frappe.db.get_all("Employee",{"status": "Active", "custom_probation_status": "In Probation"}, ["name", "custom_probation_period", "custom_probation_end_date", "date_of_joining"])
 
-        if company_abbr:
-            company_id = frappe.db.get_value("Company", {"abbr": company_abbr}, "name")
-            if company_id:
-                employees_list = frappe.db.get_all(
-                    "Employee",
-                    {
-                        "status": "Active",
-                        "company": company_id,
-                        "custom_probation_status": "Pending",
-                    },
-                    "name",
-                )
+        if employees_list:
+            for employee_id in employees_list:
+                
+                probation_days = employee_id.get("custom_probation_period")
+                result =  frappe.db.get_all("Probation Extension", {"parenttype": "Employee", "parent": employee_id.get("name")}, "extended_period", pluck="extended_period", order_by="idx desc")
+                                
+                extended_period = result[0] if result else 0
+                                                
+                if probation_days:
+                
+                    probation_end_date = employee_id.get("custom_probation_end_date")
+                    joining_date = employee_id.get("date_of_joining")
+                    
+                    if not probation_end_date:
+                        if extended_period:
+                            
+                            probation_end_date = getdate(add_to_date(joining_date, days=probation_days + extended_period))
+                        else:
+                            probation_end_date = getdate(add_to_date(joining_date, days=probation_days))
 
-                if employees_list:
-                    for employee_id in employees_list:
-                        probation_days = frappe.db.get_value(
-                            "Employee",
-                            employee_id.get("name"),
-                            "custom_probation_period",
-                        )
+                    today_date = getdate()
+                    days_remaining = (probation_end_date - today_date).days
+                    
+                    frappe.log_error(f"info_confirmation_evaluation_form_for_prompt_end_{employee_id.get('name')}", f"days remaining {days_remaining}")
+                    
+                    if 0 <= days_remaining <= create_cff_before_days:
+                        
+                        employee_doc = frappe.get_doc("Employee", employee_id.get("name"))
+                        employee_name = employee_id.get("name")
+                        
+                        def create_evaluation():
+                            confirmation_eval_doc = frappe.get_doc({
+                                "doctype": "Confirmation Evaluation Form",
+                                "employee": employee_name,
+                                "evaluation_date": today()
+                            })
 
-                        if probation_days:
+                            category_list = [
+                                "Functional/ Technical Skills",
+                                "Behavioural Skills",
+                            ]
 
-                            joining_date = frappe.db.get_value(
-                                "Employee", employee_id.get("name"), "date_of_joining"
+                            parameters_list = frappe.db.get_all(
+                                "Confirmation Evaluation Parameter",
+                                {"category": ["in", category_list]},
+                                ["name", "category"]
                             )
 
-                            probation_end_date = getdate(
-                                add_to_date(joining_date, days=probation_days)
-                            )
-
-                            today_date = getdate()
-                            days_remaining = (probation_end_date - today_date).days
-
-                            if 0 <= days_remaining <= create_cff_before_days:
-                                confirmation_eval_form = frappe.db.get_value(
-                                    "Employee",
-                                    employee_id.get("name"),
-                                    "custom_confirmation_evaluation_form",
-                                )
-                                try:
-                                    if not confirmation_eval_form:
-                                        employee_doc = frappe.get_doc(
-                                            "Employee", employee_id.get("name")
-                                        )
-                                        confirmation_eval_doc = frappe.get_doc(
-                                            {
-                                                "doctype": "Confirmation Evaluation Form",
-                                                "employee": employee_id.get("name"),
-                                                "evaluation_date": today(),
-                                                "probation_status": "Pending",
-                                            }
-                                        )
-
-                                        category_list = [
-                                            "Functional/ Technical Skills",
-                                            "Behavioural Skills",
-                                        ]
-
-                                        parameters_list = frappe.db.get_all(
-                                            "Confirmation Evaluation Parameter",
-                                            {"category": ["in", category_list]},
-                                            ["name", "category"],
-                                        )
-
-                                        for parameter in parameters_list:
-
-                                            confirmation_eval_doc.append(
-                                                "table_txep",
-                                                {
-                                                    "category": parameter.get(
-                                                        "category"
-                                                    ),
-                                                    "parameters": parameter.get("name"),
-                                                },
-                                            )
-
-                                        confirmation_eval_doc.insert(
-                                            ignore_permissions=True
-                                        )
-                                        employee_doc.custom_confirmation_evaluation_form = (
-                                            confirmation_eval_doc.name
-                                        )
-                                        employee_doc.save(ignore_permissions=True)
-                                        frappe.db.commit()
-
-                                        # frappe.db.set_value("Employee", employee_id.get("name"), "custom_confirmation_evaluation_form", confirmation_eval_doc.name)
-                                    elif confirmation_eval_form:
-
-                                        confirmation_eval_form_doc = frappe.get_doc(
-                                            "Confirmation Evaluation Form",
-                                            confirmation_eval_form,
-                                        )
-
-                                        rh_rating_added = (
-                                            confirmation_eval_form_doc.rh_rating_added
-                                        )
-                                        dh_rating_added = (
-                                            confirmation_eval_form_doc.dh_rating_added
-                                        )
-                                        context = {
-                                            "doc": confirmation_eval_form_doc,
-                                            "doctype": "Confirmation Evaluation Form",
-                                            "docname": confirmation_eval_form_doc.name,
-                                        }
-                                        notification_template = frappe.get_doc(
-                                            "Notification",
-                                            "Confirmation Evaluation Form Remarks Reminder",
-                                        )
-                                        subject = frappe.render_template(
-                                            notification_template.subject, context
-                                        )
-                                        message = frappe.render_template(
-                                            notification_template.message, context
-                                        )
-
-                                        if not rh_rating_added:
-                                            reporting_head = (
-                                                confirmation_eval_form_doc.reporting_manager
-                                            )
-                                            reporting_head_user_id = (
-                                                frappe.db.get_value(
-                                                    "Employee",
-                                                    reporting_head,
-                                                    "user_id",
-                                                )
-                                                if reporting_head
-                                                else None
-                                            )
-                                            reporting_head_email = (
-                                                frappe.db.get_value(
-                                                    "User",
-                                                    reporting_head_user_id,
-                                                    "email",
-                                                )
-                                                if reporting_head_user_id
-                                                else None
-                                            )
-
-                                            if reporting_head_email:
-
-                                                try:
-                                                    frappe.sendmail(
-                                                        recipients=[
-                                                            reporting_head_email
-                                                        ],
-                                                        subject=subject,
-                                                        message=message,
-                                                        reference_doctype="Confirmation Evaluation Form",
-                                                        reference_name=confirmation_eval_form_doc.name,
-                                                        now=True,
-                                                    )
-                                                except Exception as e:
-                                                    frappe.log_error(
-                                                        "Error while sending confirmation evaluation form reminder mail",
-                                                        frappe.get_traceback(),
-                                                    )
-
-                                        elif rh_rating_added and not dh_rating_added:
-
-                                            head_of_department = (
-                                                confirmation_eval_form_doc.hod
-                                            )
-                                            head_of_department_employee = (
-                                                frappe.db.get_value(
-                                                    "Employee",
-                                                    head_of_department,
-                                                    "user_id",
-                                                )
-                                                if head_of_department
-                                                else None
-                                            )
-                                            head_of_department_email = (
-                                                frappe.db.get_value(
-                                                    "User",
-                                                    head_of_department_employee,
-                                                    "email",
-                                                )
-                                                if head_of_department_employee
-                                                else None
-                                            )
-
-                                            if head_of_department_email:
-                                                frappe.sendmail(
-                                                    recipients=[
-                                                        head_of_department_email
-                                                    ],
-                                                    subject=subject,
-                                                    message=message,
-                                                    reference_doctype="Confirmation Evaluation Form",
-                                                    reference_name=confirmation_eval_form_doc.name,
-                                                    now=True,
-                                                )
-                                except Exception as e:
-                                    frappe.log_error(
-                                        "Error while creating confirmation evaluation form",
-                                        frappe.get_traceback(),
-                                    )
-
-            else:
-                frappe.log_error(
-                    "Issue while creating confirmation form for prompt",
-                    f"Company Not found for abbreviation {company_abbr}",
-                )
-        else:
-            frappe.log_error(
-                "Issue while creating confirmation form for prompt",
-                "Company abbreviation Not Found Please Set Company abbreviation for Prompt in HR Settings",
-            )
-    except Exception as e:
-        frappe.log_error(
-            "Error while creating confirmation evaluation form", frappe.get_traceback()
-        )
-
-
-def inform_employee_for_confirmation_process():
-    """Method to inform employee about confirmation process  before the days set user in HR Settings probation period is over
-    FOR INDIFOSS
-    """
-    try:
-
-        company_abbr = frappe.db.get_single_value("HR Settings", "custom_indifoss_abbr")
-        company_id = frappe.db.get_value("Company", {"abbr": company_abbr}, "name")
-        employee_list = frappe.db.get_all(
-            "Employee",
-            {
-                "status": "Active",
-                "company": company_id,
-                "custom_probation_status": "Pending",
-            },
-            "name",
-        )
-
-        inform_days_before_confirmation = frappe.db.get_single_value(
-            "HR Settings", "custom_inform_employees_probation_end_for_indifoss"
-        )
-        if inform_days_before_confirmation:
-            final_inform_days = -abs(inform_days_before_confirmation)
-        else:
-            final_inform_days = -5
-        if employee_list:
-
-            for employee in employee_list:
-                employee_doc = frappe.get_doc("Employee", employee.get("name"))
-                probation_period = (
-                    employee_doc.custom_probation_period
-                    or 0 + employee_doc.custom_extended_period
-                    or 0
-                )
-
-                if probation_period:
-                    joining_date = employee_doc.date_of_joining
-                    if joining_date:
-
-                        probation_end_date = add_to_date(
-                            joining_date, days=probation_period
-                        )
-                        if probation_end_date:
-                            five_days_before_date = add_to_date(
-                                probation_end_date,
-                                days=final_inform_days,
-                                as_string=True,
-                            )
-                            if (
-                                five_days_before_date
-                                and five_days_before_date == today()
-                            ):
-
-                                employee_email = (
-                                    frappe.db.get_value(
-                                        "User", employee_doc.user_id, "email"
-                                    )
-                                    if employee_doc.user_id
-                                    else None
+                            for parameter in parameters_list:
+                                confirmation_eval_doc.append(
+                                    "table_txep",
+                                    {"category": parameter.get("category"), "parameters": parameter.get("name")}
                                 )
 
-                                if employee_email:
-                                    notification_template = frappe.get_doc(
-                                        "Notification",
-                                        "Inform Employee about Confirmation Process",
-                                    )
-                                    if notification_template:
-                                        subject = frappe.render_template(
-                                            notification_template.subject,
-                                            {"doc": employee_doc},
-                                        )
-                                        message = frappe.render_template(
-                                            notification_template.message,
-                                            {"doc": employee_doc},
-                                        )
+                            confirmation_eval_doc.insert(ignore_permissions=True)
+                            return confirmation_eval_doc
+                                                                        
+                        try:
+                            first_confirmation_form = employee_doc.custom_confirmation_evaluation_form
+                            
+                            
+                            if not first_confirmation_form:
+                                confirmation_doc = create_evaluation()
+                                employee_doc.custom_confirmation_evaluation_form = confirmation_doc.name
+                                employee_doc.save(ignore_permissions=True)
+                                frappe.db.commit()
+                            
+                            else:
+                                
+                                # * IF FIRST CONFIRMATION EXISTS AND PROBATION EXTENSION CHILD TABLE HAS NO DATA
 
-                                        frappe.sendmail(
-                                            recipients=[employee_email],
-                                            subject=subject,
-                                            message=message,
-                                            now=True,
-                                        )
-                                    else:
-                                        frappe.sendmail(
-                                            recipients=[employee_email],
-                                            subject="Confirmation Process Reminder",
-                                            message=f"Dear {employee_doc.employee_name or 'Employee'}, your probation period is ending soon. Please check with your reporting manager for the confirmation process.",
-                                            now=True,
-                                        )
+                                if not employee_doc.custom_probation_extension_details:
+                                    try:
+                                        check_cff_ratings_and_send_emails(first_confirmation_form)
+                                    except Exception as e:
+                                        frappe.log_error("error_confirmation_evaluation_form_for_prompt_start", f" Error while trying to send email {frappe.get_traceback()}")
+                                        continue
+                                    
+                                else:
+                                    create_confirmation = next((row for row in employee_doc.custom_probation_extension_details if row.extended_date == employee_doc.custom_probation_end_date), None)
+                                    
+                                    if create_confirmation:
+                                        if create_confirmation.get("confirmation_evaluation_form"):
+                                            try:
+                                                check_cff_ratings_and_send_emails(create_confirmation.get("confirmation_evaluation_form"))
+                                            except Exception as e:
+                                                frappe.log_error("error_confirmation_evaluation_form_for_prompt_start", f" Error while trying to send email {frappe.get_traceback()}")
+                                                continue
+                                        else:
+                                            confirmation_doc = create_evaluation()
+                                            create_confirmation.confirmation_evaluation_form = confirmation_doc.name
+                                            employee_doc.save(ignore_permissions=True)
+                                            frappe.db.commit()                                                                                                
+                                
+                        except Exception as e:
+                            frappe.log_error(
+                                "error_confirmation_evaluation_form_for_prompt_start",
+                                frappe.get_traceback(),
+                            )
+                            continue
+                    else:
+                        frappe.log_error("error_confirmation_evaluation_form_for_prompt_end", "Not")
+        frappe.log_error("create_confirmation_evaluation_form_for_prompt_end", "Scheduler End")
     except Exception as e:
         frappe.log_error(
-            "Error while sending confirmation process reminder email",
-            frappe.get_traceback(),
+            "error_confirmation_evaluation_form_for_prompt_end", frappe.get_traceback()
         )
+
+
+
+# * FUNCTION TO CHECK IF THE RATINGS ARE ADDED IN THE CONFIRMATION FORM OR NO. IF NOT ADDED THEN SENDING MAIL TO THE RH FOR DH
+def check_cff_ratings_and_send_emails(confirmation_form):
+    confirmation_eval_form_doc = frappe.get_doc(
+        "Confirmation Evaluation Form",
+        confirmation_form,
+    )
+
+    ratings = ["Yes", "No"]
+    rh_rating_added = 1 if confirmation_eval_form_doc.get("confirmed_by_rh") in ratings else 0
+    dh_rating_added = 1 if confirmation_eval_form_doc.get("confirmed_by_dh") in ratings else 0
+
+    context = {
+    "doc": confirmation_eval_form_doc,
+    "doctype": "Confirmation Evaluation Form",
+    "docname": confirmation_eval_form_doc.name,
+    }
+
+    notification_template = frappe.get_doc(
+    "Notification",
+    "Confirmation Evaluation Form Remarks Reminder",
+    )
+    subject = frappe.render_template(
+    notification_template.subject, context
+    )
+    message = frappe.render_template(
+    notification_template.message, context
+    )
+
+    if not rh_rating_added:
+        reporting_head = (
+            confirmation_eval_form_doc.reporting_manager
+        )
+        reporting_head_user_id = (
+            frappe.db.get_value(
+                "Employee",
+                reporting_head,
+                "user_id",
+            )
+            if reporting_head
+            else None
+        )
+        reporting_head_email = (
+            frappe.db.get_value(
+                "User",
+                reporting_head_user_id,
+                "email",
+            )
+            if reporting_head_user_id
+            else None
+        )
+
+        if reporting_head_email:
+                frappe.sendmail(
+                    recipients=[
+                        reporting_head_email
+                    ],
+                    subject=subject,
+                    message=message,
+                    reference_doctype="Confirmation Evaluation Form",
+                    reference_name=confirmation_eval_form_doc.name,
+                    now=True,
+                )
+
+    elif rh_rating_added and not dh_rating_added:
+
+        head_of_department = (
+            confirmation_eval_form_doc.hod
+        )
+        head_of_department_employee = (
+            frappe.db.get_value(
+                "Employee",
+                head_of_department,
+                "user_id",
+            )
+            if head_of_department
+            else None
+        )
+        head_of_department_email = (
+            frappe.db.get_value(
+                "User",
+                head_of_department_employee,
+                "email",
+            )
+            if head_of_department_employee
+            else None
+        )
+
+        if head_of_department_email:
+            frappe.sendmail(
+                recipients=[
+                    head_of_department_email
+                ],
+                subject=subject,
+                message=message,
+                reference_doctype="Confirmation Evaluation Form",
+                reference_name=confirmation_eval_form_doc.name,
+                now=True,
+            ) 
+# !THIS METHOD IS FOR INDIFOSS
+# def inform_employee_for_confirmation_process():
+#     """Method to inform employee about confirmation process  before the days set user in HR Settings probation period is over
+#     FOR INDIFOSS
+#     """
+#     try:
+
+#         company_abbr = frappe.db.get_single_value("HR Settings", "custom_indifoss_abbr")
+#         company_id = frappe.db.get_value("Company", {"abbr": company_abbr}, "name")
+#         employee_list = frappe.db.get_all(
+#             "Employee",
+#             {
+#                 "status": "Active",
+#                 "company": company_id,
+#                 "custom_probation_status": "Pending",
+#             },
+#             "name",
+#         )
+
+#         inform_days_before_confirmation = frappe.db.get_single_value(
+#             "HR Settings", "custom_inform_employees_probation_end_for_indifoss"
+#         )
+#         if inform_days_before_confirmation:
+#             final_inform_days = -abs(inform_days_before_confirmation)
+#         else:
+#             final_inform_days = -5
+#         if employee_list:
+
+#             for employee in employee_list:
+#                 employee_doc = frappe.get_doc("Employee", employee.get("name"))
+#                 extended_period = employee_doc.custom_probation_extension_details[-1].get("extended_period") if employee_doc.custom_probation_extension_details else 0
+                    
+                
+#                 probation_period = (
+#                     employee_doc.custom_probation_period
+#                     or 0 + extended_period
+#                 )
+
+#                 if probation_period:
+#                     joining_date = employee_doc.date_of_joining
+#                     if joining_date:
+
+#                         probation_end_date = add_to_date(
+#                             joining_date, days=probation_period
+#                         )
+#                         if probation_end_date:
+#                             five_days_before_date = add_to_date(
+#                                 probation_end_date,
+#                                 days=final_inform_days,
+#                                 as_string=True,
+#                             )
+#                             if (
+#                                 five_days_before_date
+#                                 and five_days_before_date == today()
+#                             ):
+
+#                                 employee_email = (
+#                                     frappe.db.get_value(
+#                                         "User", employee_doc.user_id, "email"
+#                                     )
+#                                     if employee_doc.user_id
+#                                     else None
+#                                 )
+
+#                                 if employee_email:
+#                                     notification_template = frappe.get_doc(
+#                                         "Notification",
+#                                         "Inform Employee about Confirmation Process",
+#                                     )
+#                                     if notification_template:
+#                                         subject = frappe.render_template(
+#                                             notification_template.subject,
+#                                             {"doc": employee_doc},
+#                                         )
+#                                         message = frappe.render_template(
+#                                             notification_template.message,
+#                                             {"doc": employee_doc},
+#                                         )
+
+#                                         frappe.sendmail(
+#                                             recipients=[employee_email],
+#                                             subject=subject,
+#                                             message=message,
+#                                             now=True,
+#                                         )
+#                                     else:
+#                                         frappe.sendmail(
+#                                             recipients=[employee_email],
+#                                             subject="Confirmation Process Reminder",
+#                                             message=f"Dear {employee_doc.employee_name or 'Employee'}, your probation period is ending soon. Please check with your reporting manager for the confirmation process.",
+#                                             now=True,
+#                                         )
+#     except Exception as e:
+#         frappe.log_error(
+#             "Error while sending confirmation process reminder email",
+#             frappe.get_traceback(),
+#         )
 
 
 @frappe.whitelist()
@@ -2684,15 +2670,11 @@ def send_penalty_warnings(emp_id, penalization_data, penalization_date=None):
 
         # Fetch employee
         employee = frappe.get_doc("Employee", emp_id)
-        if not employee.user_id:
-            frappe.log_error(f"User ID not set for Employee {emp_id}")
-            return
 
         # Fetch user email
-        user = frappe.get_doc("User", employee.user_id)
-        email_id = getattr(user, "email", None) or getattr(user, "email_id", None)
+        email_id = get_employee_email(employee.name)
         if not email_id:
-            frappe.log_error(f"Email not found for User {employee.user_id}")
+            frappe.log_error(f"Email not found for Employee {employee.name}")
             return
 
         email_details = {}
@@ -2709,12 +2691,12 @@ def send_penalty_warnings(emp_id, penalization_data, penalization_date=None):
                     continue
 
             subject = frappe.render_template(
-                notification.subject, {"employee_name": employee.employee_name}
+                notification.subject, {"employee_name": employee.name}
             )
             message = frappe.render_template(
                 notification.message,
                 {
-                    "employee_name": employee.employee_name,
+                    "employee_name": employee.name,
                     "penalization_date": penalization_date,
                     "penalization_data": penalization_data,
                     "company": employee.company,
@@ -3064,7 +3046,7 @@ def daily_attendance_request_rituals():
         all_employees = frappe.get_all(
             "Employee",
             filters={"status": "Active"},
-            fields=["name", "custom_attendance_capture_scheme"],
+            fields=["name", "custom_attendance_capture_scheme", "custom_default_attendance_capture_scheme"],
         )
 
         # ? ATTENDANCE CAPTURE SCHEME MAP BASED ON WORK MODE
@@ -3075,7 +3057,10 @@ def daily_attendance_request_rituals():
 
         # ? EMPLOYEE -> current scheme
         employee_map = {
-            emp.name: emp.custom_attendance_capture_scheme for emp in all_employees
+            emp.name: {
+                "current": emp.custom_attendance_capture_scheme,
+                "default": emp.custom_default_attendance_capture_scheme,
+            } for emp in all_employees
         }
 
         all_attendance_requests = frappe.get_all(
@@ -3094,9 +3079,13 @@ def daily_attendance_request_rituals():
 
 
         for employee, requests in request_map.items():
-            current_scheme = employee_map.get(employee)
+
+            current_scheme = employee_map[employee]["current"]
+            default_scheme = employee_map[employee]["default"]
+            
             active_request = None
             last_expired_request = None
+            
             for req in requests:
                 if getdate(req.from_date) <= getdate(today()) <= getdate(req.to_date):
                     active_request = req
@@ -3107,7 +3096,9 @@ def daily_attendance_request_rituals():
             # * FOR CUURENT ONE
             if active_request:
                 if active_request.reason in attendance_capture_scheme_map:
+                    
                     new_scheme = attendance_capture_scheme_map.get(active_request.reason)
+                    
                     if new_scheme and current_scheme != new_scheme:
                         # Save old scheme only once
                         if not active_request.custom_old_attendance_capture_scheme:
@@ -3133,10 +3124,14 @@ def daily_attendance_request_rituals():
                         employee_map[employee] = new_scheme
                             
             # * FOR THE EXPIRED
-            elif last_expired_request and last_expired_request.custom_old_attendance_capture_scheme:
-                if current_scheme != last_expired_request.custom_old_attendance_capture_scheme:
+            # elif last_expired_request and last_expired_request.custom_old_attendance_capture_scheme:
+            elif last_expired_request:
+            
+                # if current_scheme != last_expired_request.custom_old_attendance_capture_scheme:
+                if current_scheme != default_scheme and default_scheme:
                     emp_doc = frappe.get_doc("Employee", employee)
-                    emp_doc.custom_attendance_capture_scheme = last_expired_request.custom_old_attendance_capture_scheme
+                    # emp_doc.custom_attendance_capture_scheme = last_expired_request.custom_old_attendance_capture_scheme
+                    emp_doc.custom_attendance_capture_scheme = default_scheme
                     emp_doc.flags.ignore_mandatory = True
                     
                     try:
@@ -3147,7 +3142,8 @@ def daily_attendance_request_rituals():
                     # frappe.db.set_value(
                     #     "Employee", employee, "custom_attendance_capture_scheme", last_expired_request.custom_old_attendance_capture_scheme
                     # )
-                    employee_map[employee] = last_expired_request.custom_old_attendance_capture_scheme
+                    # employee_map[employee] = last_expired_request.custom_old_attendance_capture_scheme
+                    employee_map[employee]["current"] = default_scheme
                     
         frappe.db.commit()
     except Exception as e:
