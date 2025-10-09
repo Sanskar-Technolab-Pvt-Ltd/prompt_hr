@@ -656,7 +656,11 @@ def on_update(doc, method):
                     recipients.append(employee_id)
 
                 if manager_id:
-                    other_recipents.append(manager_id)
+                    try:
+                        if "@" in manager_id:
+                            other_recipents.append(manager_id)
+                    except:
+                        frappe.log_error("Not a Valid Email ID")
                 # Notify the employee regarding the approval of their leave by Reporting Manager.
                 subject = frappe.render_template(employee_notification.subject, {"doc":doc,"manager":manager_name,"request_type":"Leave Application"})
                 if employee_id:
@@ -670,13 +674,14 @@ def on_update(doc, method):
                     reference_name=doc.name,
                     expose_recipients="header"
                 )
-                    if recipients:
-                        for recipient in recipients:
-                            create_notification_log(recipient, subject, message, "Leave Application", doc.name)
+                    #! SEND NOTIFICATIONS TO UNIQUE RECIPIENTS ONLY
+                    if recipients or other_recipents:
+                        #? MERGE BOTH LISTS AND REMOVE DUPLICATES
+                        all_recipients = list(set(recipients or []) | set(other_recipents or []))
 
-                    if other_recipents:
-                        for other_recipent in other_recipents:
-                            create_notification_log(other_recipent, subject, message, "Leave Application", doc.name)
+                        #? LOOP THROUGH UNIQUE RECIPIENTS AND CREATE NOTIFICATION LOG
+                        for recipient in all_recipients:
+                            create_notification_log(recipient, subject, message, "Leave Application", doc.name)
 
         else:
             employee_notification = frappe.get_doc("Notification", "Leave Request Response By Reporting Manager")
@@ -801,7 +806,12 @@ def on_update(doc, method):
                     recipients.append(employee_id)
 
                 if manager_id:
-                    other_recipents.append(manager_id)
+                    try:
+                        if "@" in manager_id:
+                            other_recipents.append(manager_id)
+                    except:
+                        frappe.log_error("Not a Valid Email ID")
+
                 # Notify the employee regarding the approval of their leave by Reporting Manager.
                 subject = frappe.render_template(employee_notification.subject, {"doc":doc,"manager":manager_name,"request_type":"Leave Application"})
                 if employee_id:
