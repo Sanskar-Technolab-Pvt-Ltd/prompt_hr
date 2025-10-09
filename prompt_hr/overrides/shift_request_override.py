@@ -91,6 +91,52 @@ class CustomShiftRequest(ShiftRequest):
     def on_cancel(self):
         self.db_set("workflow_state", "Cancelled")
         return super().on_cancel()
+    
+    def on_submit(self):
+        super().on_submit()
+        self.db_set("custom_pending_approval_at", "")
+        user = frappe.session.user
+        current_user = frappe.db.get_value("Employee", {"user_id":user}, "name") or user
+
+        if not self.is_new():
+            auto_approve = frappe.db.get_value("Shift Request", self.name, "custom_auto_approve")
+            if auto_approve:
+                is_email_sent_allowed = frappe.db.get_single_value("HR Settings", "custom_send_auto_approve_doc_emails") or 0
+                if not is_email_sent_allowed:
+                    return
+
+        if (self.workflow_state == "Approved" or self.workflow_state == "Rejected") and self.has_value_changed("workflow_state"):
+            manager_info = get_reporting_manager_info(self.employee)
+            manager_id = get_employee_email(manager_info.get("name"))
+            if manager_id:
+                cc = [manager_id]
+            else:
+                cc = []
+            employee_user_id = get_employee_email(self.employee)
+            if manager_info or employee_user_id:
+                notification = frappe.get_doc("Notification", "Shift Request Response To Employee")
+                if notification:
+                    message = frappe.render_template(
+                        notification.message,
+                        {"doc": self, "manager_name": current_user}
+                    )
+                    subject = frappe.render_template(
+                        notification.subject,
+                        {"doc": self, "manager_name": current_user}
+                    )
+                    frappe.sendmail(
+                        recipients=[employee_user_id],
+                        cc = cc,
+                        subject=subject,
+                        message=message,
+                        reference_doctype=self.doctype,
+                        reference_name=self.name,
+                    )
+                    create_notification_log(employee_user_id, subject, message, "Shift Request", self.name)
+
+                    if cc:
+                        for recipient in cc:
+                            create_notification_log(recipient, subject, message, "Shift Request", self.name)
 
     def on_update(self):
         self.notify_approval_status()
@@ -129,50 +175,7 @@ class CustomShiftRequest(ShiftRequest):
                         create_notification_log(manager_info.get("user_id"), subject, message, "Shift Request", self.name)
                         for recipient in cc:
                             create_notification_log(recipient, subject, message, "Shift Request", self.name)
-                        
-        else:
-            self.db_set("custom_pending_approval_at", "")
-            user = frappe.session.user
-            current_user = frappe.db.get_value("Employee", {"user_id":user}, "name") or user
-
-            if not self.is_new():
-                auto_approve = frappe.db.get_value("Shift Request", self.name, "custom_auto_approve")
-                if auto_approve:
-                    is_email_sent_allowed = frappe.db.get_single_value("HR Settings", "custom_send_auto_approve_doc_emails") or 0
-                    if not is_email_sent_allowed:
-                        return
-            if (self.workflow_state == "Approved" or self.workflow_state == "Rejected") and self.has_value_changed("workflow_state"):
-                manager_info = get_reporting_manager_info(self.employee)
-                manager_id = get_employee_email(manager_info.get("name"))
-                if manager_id:
-                    cc = [manager_id]
-                else:
-                    cc = []
-                employee_user_id = get_employee_email(self.employee)
-                if manager_info or employee_user_id:
-                    notification = frappe.get_doc("Notification", "Shift Request Response To Employee")
-                    if notification:
-                        message = frappe.render_template(
-                            notification.message,
-                            {"doc": self, "manager_name": current_user}
-                        )
-                        subject = frappe.render_template(
-                            notification.subject,
-                            {"doc": self, "manager_name": current_user}
-                        )
-                        frappe.sendmail(
-                            recipients=[employee_user_id],
-                            cc = cc,
-                            subject=subject,
-                            message=message,
-                            reference_doctype=self.doctype,
-                            reference_name=self.name,
-                        )
-                        create_notification_log(employee_user_id, subject, message, "Shift Request", self.name)
-
-                        if cc:
-                            for recipient in cc:
-                                create_notification_log(recipient, subject, message, "Shift Request", self.name)
+            
 
 
 import frappe
