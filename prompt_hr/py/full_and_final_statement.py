@@ -23,11 +23,11 @@ def validate_payroll_and_update_linked_payroll_entry(doc):
         if account_user_users:                                                
             account_user_emails = [user.get("parent") for user in account_user_users]
             fnf_link = frappe.utils.get_url_to_form("Full and Final Statement", doc.name)            
-            frappe.sendmail(
-                recipients=account_user_emails,
-                subject="Full and Final Statement",
-                message=f"""Full and Final Statement has been released by HR department. You can view it here: {fnf_link}"""
-            )
+            # frappe.sendmail(
+            #     recipients=account_user_emails,
+            #     subject="Full and Final Statement",
+            #     message=f"""Full and Final Statement has been released by HR department. You can view it here: {fnf_link}"""
+            # )
 
 # * METHOD TO SEND MAIL WHEN RELEASE FNF BUTTON IS CLICKED
 @frappe.whitelist()
