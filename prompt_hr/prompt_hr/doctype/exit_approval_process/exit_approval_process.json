@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "field:employee",
+ "autoname": "format:{employee}",
  "creation": "2025-04-18 07:18:52.049691",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -9,6 +9,7 @@
   "posting_date",
   "employee",
   "employee_name",
+  "reporting_manager",
   "exit_interview",
   "employee_separation",
   "column_break_lhxs",
@@ -103,16 +104,23 @@
    "fieldtype": "Data",
    "label": "Exit Checkliist Notification Date",
    "read_only": 1
+  },
+  {
+   "fetch_from": "employee.reports_to",
+   "fieldname": "reporting_manager",
+   "fieldtype": "Data",
+   "ignore_user_permissions": 1,
+   "label": "Reporting Manager"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-08 18:43:25.354179",
+ "modified": "2025-10-10 18:07:14.564698",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Exit Approval Process",
- "naming_rule": "By fieldname",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {

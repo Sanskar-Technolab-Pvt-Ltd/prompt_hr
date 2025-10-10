@@ -875,7 +875,7 @@ def send_probation_extension_letter(name):
 
 # ! prompt_hr.py.employee.get_raise_resignation_questions
 @frappe.whitelist()
-def get_raise_resignation_questions(company):
+def get_raise_resignation_questions(company, employee):
     try:
 
         if company == get_prompt_company_name().get("company_name"):
@@ -894,6 +894,14 @@ def get_raise_resignation_questions(company):
 
         if quiz_name is None:
             frappe.throw(_("Exit quiz not configured for this company."))
+
+        if employee:
+            if frappe.db.exists(
+                "Exit Approval Process",
+                {"employee": employee, "resignation_approval": ["!=", "Rejected"]},
+            ):
+                frappe.msgprint("Resignation already in process or approved.")
+                return []
 
         questions = frappe.get_all(
             "LMS Quiz Question",

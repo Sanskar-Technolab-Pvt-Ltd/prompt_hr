@@ -567,7 +567,8 @@ fixtures = [
     #             "Employee ESS",
     #             "Leaves",
     #             "Shift & Attendance",
-    #             "HR"
+    #             "HR",
+    #             "Employee Lifecycle",
     #         ]]
     #     }
     # },
@@ -581,6 +582,8 @@ fixtures = [
     #             "Shift Request - Pending Approval",
     #             "WeekOff Change Request - Pending Approval",
     #             "Leave Application - Approved/Rejected by RM",
+    #             "Exit Approval Process - Pending Approval",
+    #             "Exit Approval Process - Approved/Rejected by RM",
     #         ]]
     #     }
     # }

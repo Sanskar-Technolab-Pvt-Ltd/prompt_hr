@@ -600,7 +600,7 @@ function createEmployeeResignationButton(frm) {
         // ? FETCH RESIGNATION QUESTIONS FROM BACKEND
         frappe.call({
             method: "prompt_hr.py.employee.get_raise_resignation_questions",
-            args: { "company": frm.doc.company },
+            args: { "company": frm.doc.company, "employee":frm.doc.name },
             callback: function (res) {
                 if (res.message && res.message.length > 0) {
                     const questions = res.message;
@@ -724,7 +724,7 @@ function createEmployeeResignationButton(frm) {
 
 
                 } else {
-                    frappe.msgprint(__('No resignation questions found.'));
+                    frappe.msgprint(__('No resignation questions found or Resignation is already in process.'));
                 }
             }
         });

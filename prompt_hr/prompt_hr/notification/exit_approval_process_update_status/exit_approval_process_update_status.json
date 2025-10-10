@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-10-10 18:24:10.233244",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Exit Approval Process",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "<p>\n    The exit approval process for employee <b>{{ doc.employee }}</b> has been <b>{{ doc.workflow_state }}</b>\n</p>\n\n<p><b>Process Summary:</b></p>\n\n<ul>\n    <li><b>Employee:</b> {{ doc.employee }}</li>\n    <li><b>Last Working Date:</b> {{ frappe.utils.format_date(doc.last_date_of_working, \"dd-MM-yyyy\") }}</li>\n    <li><b>Workflow State:</b> {{ doc.workflow_state }}</li>\n    <li>\n        <b>View Process:</b>\n        {% set exit_link = frappe.utils.get_url() ~ '/app/exit-approval-process/' ~ doc.name %}\n        <a href=\"{{ exit_link }}\" target=\"_blank\">Click here</a>\n    </li>\n</ul>\n\n",
+ "message_type": "HTML",
+ "modified": "2025-10-10 18:33:07.504602",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Exit Approval Process Update Status",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "Exit Approval Process: {{doc.workflow_state}} - {{doc.employee}}"
+}
