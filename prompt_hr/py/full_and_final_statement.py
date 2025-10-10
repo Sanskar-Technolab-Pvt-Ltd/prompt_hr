@@ -37,11 +37,11 @@ def send_release_fnf_mail(fnf_id):
         if account_user_users:           
             account_user_emails = [user.get("parent") for user in account_user_users]                                     
             fnf_link = frappe.utils.get_url_to_form("Full and Final Statement", fnf_id)            
-            frappe.sendmail(
-                recipients=account_user_emails,
-                subject="Full and Final Statement",
-                message=f"""Full and Final Statement has been released by HR department. You can view it here: {fnf_link}"""
-            )
+            # frappe.sendmail(
+            #     recipients=account_user_emails,
+            #     subject="Full and Final Statement",
+            #     message=f"""Full and Final Statement has been released by HR department. You can view it here: {fnf_link}"""
+            # )
     except Exception as e:
         frappe.log_error("fnf send_release_fnf_email_error", frappe.get_traceback())
         frappe.throw(str(e), title="Error while sending mails to account users")
