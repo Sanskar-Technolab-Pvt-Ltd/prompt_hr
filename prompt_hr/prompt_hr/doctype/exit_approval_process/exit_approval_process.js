@@ -54,7 +54,7 @@ function update_last_date_of_working(frm) {
     if (frm.doc.posting_date && frm.doc.notice_period_days) {
         const posting_date = frappe.datetime.str_to_obj(frm.doc.posting_date);
         const new_date = frappe.datetime.add_days(posting_date, frm.doc.notice_period_days);
-        frm.set_value("last_date_of_working", frappe.datetime.obj_to_str(new_date));
+        frm.set_value("last_date_of_working", frappe.datetime.obj_to_str(new_date), null, true);
     }
 }
 
@@ -64,7 +64,7 @@ function update_notice_period_days(frm) {
         const posting_date = frappe.datetime.str_to_obj(frm.doc.posting_date);
         const end_date = frappe.datetime.str_to_obj(frm.doc.last_date_of_working);
         const diff = frappe.datetime.get_diff(end_date, posting_date);
-        frm.set_value("notice_period_days", diff);
+        frm.set_value("notice_period_days", diff, null, true);
     }
 }
 
