@@ -546,6 +546,8 @@ function claim_extra_expenses(frm) {
                     callback: function (r) {
                         if (!r.exc && r.message) {
                             const expense = {
+                                expense_date: values.from_date,
+                                custom_expense_end_date: values.to_date,
                                 custom_field_visits: r.message.custom_field_visit,
                                 custom_service_calls: r.message.custom_service_call,
                                 custom_field_visit_and_service_call_details: r.message.custom_field_visit_and_service_call_details,
@@ -574,6 +576,8 @@ function claim_extra_expenses(frm) {
                                 const expense = {
                                     custom_tour_visits: r.message.custom_tour_visits,
                                     custom_tour_visit_details: r.message.custom_tour_visit_details,
+                                    expense_date: values.from_date,
+                                    custom_expense_end_date: values.to_date,
                                 };
                                 for (let i = 0; i < values.number_of_row; i++) {
                                     frm.add_child("expenses", expense);
