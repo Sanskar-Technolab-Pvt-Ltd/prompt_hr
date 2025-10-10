@@ -308,11 +308,13 @@ function claim_extra_expenses(frm) {
         }
 
         let defaultVisit = "";
+        let expense_type_reqd = 1
         let readOnlyField = false;
 
         // LOGIC TO SET DEFAULT AND READONLY
         if (hasRole(all_perm_roles)) {
-            defaultVisit = "Field Visit";
+            defaultVisit = "General Purpose";
+            expense_type_reqd = 0
             readOnlyField = false;
         } else if (hasRole(service_roles)) {
             defaultVisit = "Field Visit";
@@ -330,7 +332,7 @@ function claim_extra_expenses(frm) {
                     label: 'Visit Type',
                     fieldname: 'visit_type',
                     fieldtype: 'Select',
-                    options: "\nField Visit\nTour Visit",
+                    options: "\nGeneral Purpose\nField Visit\nTour Visit",
                     default: defaultVisit,
                     reqd: 1,
                     read_only: readOnlyField,
@@ -343,9 +345,52 @@ function claim_extra_expenses(frm) {
                     fieldname: 'expense_type',
                     fieldtype: 'Select',
                     options: "DA\nNon DA",
-                    reqd: 1,
+                    reqd: expense_type_reqd,
+                    hidden: !expense_type_reqd,
                     onchange: function () {
                         toggleExpenseFields(dialog);
+                    }
+                },
+
+                {
+                    label: "Add Without Field Visit and Service Call",
+                    fieldname: "add_without_fv_sc",
+                    fieldtype: "Check",
+                    hidden: 1,
+                    onchange: function () {
+                        const isRequired = !dialog.get_value("add_without_fv_sc");
+                        dialog.set_df_property("field_visit", "reqd", isRequired);
+                        dialog.set_df_property("service_call", "reqd", isRequired);
+                        dialog.set_df_property("field_visit", "hidden", !isRequired);
+                        dialog.set_df_property("service_call", "hidden", !isRequired);
+                        dialog.set_df_property("customer", "hidden", isRequired);
+                        dialog.set_df_property("customer", "reqd", !isRequired);
+                        dialog.set_df_property("from_date", "reqd", isRequired);
+                        dialog.set_df_property("to_date", "reqd", isRequired);
+                        dialog.set_df_property("from_date", "hidden", !isRequired);
+                        dialog.set_df_property("to_date", "hidden", !isRequired);
+
+                        dialog.fields_dict.field_visit.refresh();
+                        dialog.fields_dict.service_call.refresh();
+                    }
+                },
+                {
+                    label: "Add Without Tour Visits",
+                    fieldname: "add_without_tv",
+                    fieldtype: "Check",
+                    hidden: 1,
+                    onchange: function () {
+                        const isRequired = !dialog.get_value("add_without_tv");
+                        dialog.set_df_property("tour_visit", "reqd", isRequired);
+                        dialog.set_df_property("tour_visit", "hidden", !isRequired);
+                        dialog.set_df_property("customer", "hidden", isRequired);
+                        dialog.set_df_property("customer", "reqd", !isRequired);
+                        dialog.set_df_property("from_date", "reqd", isRequired);
+                        dialog.set_df_property("to_date", "reqd", isRequired);
+                        dialog.set_df_property("from_date", "hidden", !isRequired);
+                        dialog.set_df_property("to_date", "hidden", !isRequired);
+                        dialog.fields_dict.field_visit.refresh();
+                        dialog.fields_dict.service_call.refresh();
                     }
                 },
 
@@ -449,49 +494,8 @@ function claim_extra_expenses(frm) {
                     default: 1,
                     min: 1,
                     max: 4,
-                    hidden: 1
+                    hidden: expense_type_reqd
                 },
-                {
-                    label: "Add Without Field Visit and Service Call",
-                    fieldname: "add_without_fv_sc",
-                    fieldtype: "Check",
-                    hidden: 1,
-                    onchange: function () {
-                        const isRequired = !dialog.get_value("add_without_fv_sc");
-                        dialog.set_df_property("field_visit", "reqd", isRequired);
-                        dialog.set_df_property("service_call", "reqd", isRequired);
-                        dialog.set_df_property("field_visit", "hidden", !isRequired);
-                        dialog.set_df_property("service_call", "hidden", !isRequired);
-                        dialog.set_df_property("customer", "hidden", isRequired);
-                        dialog.set_df_property("customer", "reqd", !isRequired);
-                        dialog.set_df_property("from_date", "reqd", isRequired);
-                        dialog.set_df_property("to_date", "reqd", isRequired);
-                        dialog.set_df_property("from_date", "hidden", !isRequired);
-                        dialog.set_df_property("to_date", "hidden", !isRequired);
-
-                        dialog.fields_dict.field_visit.refresh();
-                        dialog.fields_dict.service_call.refresh();
-                    }
-                },
-                {
-                    label: "Add Without Tour Visits",
-                    fieldname: "add_without_tv",
-                    fieldtype: "Check",
-                    hidden: 1,
-                    onchange: function () {
-                        const isRequired = !dialog.get_value("add_without_tv");
-                        dialog.set_df_property("tour_visit", "reqd", isRequired);
-                        dialog.set_df_property("tour_visit", "hidden", !isRequired);
-                        dialog.set_df_property("customer", "hidden", isRequired);
-                        dialog.set_df_property("customer", "reqd", !isRequired);
-                        dialog.set_df_property("from_date", "reqd", isRequired);
-                        dialog.set_df_property("to_date", "reqd", isRequired);
-                        dialog.set_df_property("from_date", "hidden", !isRequired);
-                        dialog.set_df_property("to_date", "hidden", !isRequired);
-                        dialog.fields_dict.field_visit.refresh();
-                        dialog.fields_dict.service_call.refresh();
-                    }
-                }
             ],
             primary_action_label: "ADD EXPENSE",
             primary_action(values) {
@@ -500,7 +504,17 @@ function claim_extra_expenses(frm) {
                     return;
                 }
 
-                if ((values.add_without_fv_sc || values.add_without_tv) && values.expense_type == "Non DA"){
+                if (values.visit_type == "General Purpose") {
+                    for (let i = 0; i < values.number_of_row; i++) {
+                        let new_expense = {
+                        }
+                        frm.add_child("expenses", new_expense);
+                    }
+                    frm.refresh_field("expenses");
+                    dialog.hide();
+                }
+
+                else if ((values.add_without_fv_sc || values.add_without_tv) && values.expense_type == "Non DA"){
                     let customers = values.customer;
                     let customer_list = Array.isArray(customers) ? customers.join(", ") : customers;
                     for (let i = 0; i < values.number_of_row; i++) {
@@ -585,31 +599,39 @@ function claim_extra_expenses(frm) {
                     dialog.set_df_property(f, "hidden", 1);
                     dialog.set_df_property(f, "reqd", 0);
                 });
-        
-            if (expenseType === "DA") {
-                // SHOW + REQUIRE DA FIELDS
-                ["from_date", "from_time", "to_date", "to_time", "customer"].forEach(f => {
-                    dialog.set_df_property(f, "hidden", 0);
-                    dialog.set_df_property(f, "reqd", 1);
-                });
-            } else if (expenseType === "Non DA") {
-                if (visit_type === "Field Visit") {
-                    ["field_visit", "from_date", "to_date", "service_call", "number_of_row", "add_without_fv_sc"].forEach(f => {
+            if (visit_type === "General Purpose") {
+                dialog.set_df_property("expense_type", "reqd", 0)
+                dialog.set_df_property("expense_type", "hidden", 1)
+                dialog.set_df_property("number_of_row", "hidden", 0)
+            }
+            else {
+                dialog.set_df_property("expense_type", "hidden", 0)
+                dialog.set_df_property("expense_type", "reqd", 1)
+                if (expenseType === "DA") {
+                    // SHOW + REQUIRE DA FIELDS
+                    ["from_date", "from_time", "to_date", "to_time", "customer"].forEach(f => {
                         dialog.set_df_property(f, "hidden", 0);
-                    });
-                    ["field_visit", "service_call", "from_date", "to_date",].forEach(f => {
                         dialog.set_df_property(f, "reqd", 1);
                     });
-                    dialog.set_value("add_without_fv_sc", 0);
-                } else if (visit_type === "Tour Visit") {
+                } else if (expenseType === "Non DA") {
+                    if (visit_type === "Field Visit") {
+                        ["field_visit", "from_date", "to_date", "service_call", "number_of_row", "add_without_fv_sc"].forEach(f => {
+                            dialog.set_df_property(f, "hidden", 0);
+                        });
+                        ["field_visit", "service_call", "from_date", "to_date",].forEach(f => {
+                            dialog.set_df_property(f, "reqd", 1);
+                        });
+                        dialog.set_value("add_without_fv_sc", 0);
+                    } else if (visit_type === "Tour Visit") {
 
-                    ["tour_visit","number_of_row", "add_without_tv", "from_date", "to_date"].forEach(f => {
-                        dialog.set_df_property(f, "hidden", 0);
-                    });
-                        dialog.set_df_property("tour_visit", "reqd", 1);
-                        dialog.set_df_property("from_date", "reqd", 1);
-                        dialog.set_df_property("to_date", "reqd", 1);
-                        dialog.set_value("add_without_tv", 0);
+                        ["tour_visit","number_of_row", "add_without_tv", "from_date", "to_date"].forEach(f => {
+                            dialog.set_df_property(f, "hidden", 0);
+                        });
+                            dialog.set_df_property("tour_visit", "reqd", 1);
+                            dialog.set_df_property("from_date", "reqd", 1);
+                            dialog.set_df_property("to_date", "reqd", 1);
+                            dialog.set_value("add_without_tv", 0);
+                    }
                 }
             }
         
