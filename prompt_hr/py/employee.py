@@ -985,10 +985,13 @@ def create_exit_approval_process(user_response, employee, notice_number_of_days=
         frappe.db.commit()
 
         hr_managers = get_hr_managers_by_company(exit_approval_process.company)
+        reporting_manager = frappe.db.get_value("Employee", employee, "reports_to")
+        reporting_manager_email = frappe.db.get_value("Employee", reporting_manager, "user_id")
+        
         send_notification_email(
             doctype="Exit Approval Process",
             docname=exit_approval_process.name,
-            recipients=hr_managers,
+            recipients=hr_managers.append(reporting_manager_email) if reporting_manager_email else hr_managers,
             notification_name="Employee Exit Process Creation Notification",
         )
         return "Resignation process initiated successfully."
