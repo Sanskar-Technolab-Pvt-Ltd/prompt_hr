@@ -382,7 +382,7 @@
   "doctype": "Workflow State",
   "icon": "",
   "modified": "2025-04-09 13:03:07.301513",
-  "name": "Rework",
+  "name": "Cancelled by Employee",
   "style": "Danger",
   "workflow_state_name": "Cancelled by Employee"
  }
