@@ -20,6 +20,7 @@ def get_columns():
         # * BASIC EMPLOYEE DETAILS
         {"label": "Salary Slip ID", "fieldname":"salary_slip", "fieldtype":"Link", "options":"Salary Slip", "width":150},
         {"label": "Status", "fieldname":"status", "fieldtype":"Select", "width":150},
+        {"label": "Type", "fieldname":"type", "fieldtype":"Data", "width":150},
         {"label": "Employee Number", "fieldname": "employee", "fieldtype": "Link", "options": "Employee", "width": 200},
         {"label": "Employee Name", "fieldname": "employee_name", "fieldtype": "Data", "width": 150},
         {"label": "Date Of Joining", "fieldname": "date_of_joining", "fieldtype": "Date", "width": 200},
@@ -137,21 +138,74 @@ def get_data(filters):
     )
 
     data = []
+    employee_fnf = {}
+    payroll_entries = set()
+
+    # Collect payroll_entry references from slips
+    for slip in slips:
+        if slip.get("payroll_entry"):
+            payroll_entries.add(slip["payroll_entry"])
+
+    # Convert set to list and handle errors
+    try:
+        payroll_entries = list(payroll_entries)
+    except Exception as e:
+        frappe.log_error("Error converting payroll_entries to list", str(e))
+        payroll_entries = []
+
+    # Query Pending FnF Details if there are payroll entries
+    child_table_data = []
+    if payroll_entries:
+        try:
+            child_table_data = frappe.get_all(
+                "Pending FnF Details",
+                filters={
+                    "parent": ["in", payroll_entries],
+                    "parentfield": "custom_pending_fnf_details",
+                    "parenttype": "Payroll Entry",
+                    "fnf_record": ["is", "set"]
+                },
+                fields=["employee", "parent", "fnf_record"]
+            )
+        except Exception as e:
+            frappe.log_error("Error fetching Pending FnF Details", str(e))
+            child_table_data = []
+
+    # Build the hash map: (employee, payroll_entry) => fnf_record
+    for row in child_table_data:
+        try:
+            key = (row.get("employee"), row.get("parent"))
+            employee_fnf[key] = row.get("fnf_record")
+        except Exception as e:
+            frappe.log_error("Error processing Pending FnF row", str(e))
+
     for slip in slips:
 
         employee = frappe.get_doc("Employee", slip.employee)
 
         # ? GET CUSTOM WORK LOCATION IF EXISTS
         work_location = ""
+        type = "Salary"
         if employee.custom_work_location:
             work_location = frappe.db.get_value("Address", employee.custom_work_location, "address_title")
 
         # ? GET REMUNERATION FROM SALARY STRUCTURE ASSIGNMENT
         remuneration_amount = frappe.db.get_value("Salary Structure Assignment", slip.custom_salary_structure_assignment, "base") or 0
+        # ? SET TYPE TO FNF IF FNF LINK TO PAYROLL AND FOR THAT EMPLOYEE
+        if slip.payroll_entry:
+            search_key = (slip.employee, slip.payroll_entry)
+            try:
+                if employee_fnf and employee_fnf.get(search_key):
+                    type = "FnF"
+
+            except:
+                frappe.log_error("Error in Making key From Employee and Payroll Entry")
+
         # * BUILD ROW DATA
         row = {
             "salary_slip": slip.name,
             "status": slip.status,
+            "type": type or "",
             "employee": slip.employee,
             "employee_name": slip.employee_name,
             "designation": employee.designation,
