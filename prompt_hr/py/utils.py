@@ -678,7 +678,7 @@ def get_travel_desk_user_emails(company):
         return valid_emails
     except Exception as e:
         frappe.log_error(
-            f"Error getting travel desk user emails: {str(e)}\n{traceback.format_exc()}"
+            f"Error getting travel desk user emails:", f"{str(e)}\n{traceback.format_exc()}"
         )
         return []
 
@@ -745,7 +745,7 @@ def send_email_to_users(doc, user_ids, notification_name, send_header_greeting=F
         )
     except Exception as e:
         frappe.log_error(
-            f"Error sending email to multiple users: {str(e)}\n{traceback.format_exc()}"
+            f"Error sending email to multiple users:", f"{str(e)}\n{traceback.format_exc()}"
         )
 
 
