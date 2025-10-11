@@ -144,7 +144,7 @@
    "fieldtype": "Link",
    "in_standard_filter": 1,
    "label": "Work Location",
-   "options": "Employee"
+   "options": "Address"
   },
   {
    "fetch_from": "employee.status",
@@ -166,7 +166,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-11 11:06:01.710259",
+ "modified": "2025-10-11 11:22:16.520314",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "IT Exit Checklist",
