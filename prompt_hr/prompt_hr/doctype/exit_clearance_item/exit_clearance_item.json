@@ -6,6 +6,7 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "disable",
   "clearance_item",
   "table_name"
  ],
@@ -21,12 +22,18 @@
    "fieldtype": "Select",
    "label": "Table Name",
    "options": "\nit\nengineering"
+  },
+  {
+   "default": "0",
+   "fieldname": "disable",
+   "fieldtype": "Check",
+   "label": "Disable"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-22 15:36:16.109561",
+ "modified": "2025-10-11 16:09:36.241288",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Exit Clearance Item",

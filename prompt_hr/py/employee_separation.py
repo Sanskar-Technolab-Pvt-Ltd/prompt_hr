@@ -81,7 +81,7 @@ def create_new_it_exit_checklist(employee_id):
 
         # ? FETCH ALL CLEARANCE ITEMS
         clearance_items = frappe.get_all(
-            "Exit Clearance Item", fields=["clearance_item", "table_name"]
+            "Exit Clearance Item", filters = {"disable": 0},fields=["clearance_item", "table_name"]
         )
         # ? GROUP ITEMS BY TABLE NAME
         table_map = {}
