@@ -14,7 +14,8 @@
   "column_break_ykvc",
   "approval_status",
   "date_of_changes_made",
-  "changes_applicable_date"
+  "changes_applicable_date",
+  "reason_for_rejection"
  ],
  "fields": [
   {
@@ -71,12 +72,18 @@
    "fieldname": "changes_applicable_date",
    "fieldtype": "Date",
    "label": "Changes Applicable Date"
+  },
+  {
+   "fieldname": "reason_for_rejection",
+   "fieldtype": "Small Text",
+   "label": "Reason for Rejection",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-22 15:36:10.778170",
+ "modified": "2025-10-11 17:26:47.573097",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Profile Changes Approval Interface",
