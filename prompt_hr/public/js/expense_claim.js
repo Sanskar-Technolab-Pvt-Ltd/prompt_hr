@@ -92,111 +92,9 @@ frappe.ui.form.on('Expense Claim', {
         frappe.dom.unfreeze();  // ! ENSURE UI IS UNFROZEN
         console.log(">>> Workflow action:", frm.selected_workflow_action);
 
-        return new Promise((resolve, reject) => {
-
-            console.log(">>> Fetching transitions for the current document...");
-
-            frappe.workflow.get_transitions(frm.doc).then(transitions => {
-                console.log("<<< Transitions fetched:", transitions);
-
-                const selected_transition = transitions.find(
-                    t => t.action === frm.selected_workflow_action
-                );
-
-                const target_state = selected_transition ? selected_transition.next_state : null;
-                console.log(">>> Selected transition:", selected_transition);
-                console.log(">>> Target workflow state:", target_state);
-
-                let dialog_fields = [];
-
-                if (target_state === "Sent to Accounting Team") {
-                    console.log(">>> Target state is 'Sent to Accounting Team' – filtering Employees by 'Accounts User' role.");
-
-                    dialog_fields = [
-                        {
-                            label: "Role",
-                            fieldname: "role",
-                            fieldtype: "Link",
-                            options: "Role",
-                            reqd: 1,
-                            default: "Accounts User",
-                            read_only: 1
-                        },
-                        {
-                            label: "Employee",
-                            fieldname: "employee",
-                            fieldtype: "Link",
-                            options: "Employee",
-                            reqd: 1,
-                            get_query: function () {
-                                console.log(">>> get_query called for Employee – filter by Accounts User.");
-                                return {
-                                    query: "prompt_hr.py.expense_claim.get_employees_by_role",
-                                    filters: { role: "Accounts User" }
-                                };
-                            }
-                        }
-                    ];
-                } else {
-                    console.log(">>> Target state is NOT 'Sent to Accounting Team' – show all Employees, hide Role field.");
-
-                    dialog_fields = [
-                        {
-                            label: "Employee",
-                            fieldname: "employee",
-                            fieldtype: "Link",
-                            options: "Employee",
-                            reqd: 1,
-                            get_query: function () {
-                                console.log(">>> get_query called for Employee – no filter.");
-                                return {};
-                            }
-                        }
-                    ];
-                }
-
-                let dialog = new frappe.ui.Dialog({
-                    title: __("Confirm {0}", [frm.selected_workflow_action]),
-                    fields: dialog_fields,
-                    primary_action_label: "Send For Approval",
-                    primary_action: function (values) {
-                        console.log(">>> Primary action triggered with values:", values);
-
-                        dialog.hide();
-
-                        console.log(">>> Calling backend API to share document...");
-                        frappe.call({
-                            method: "prompt_hr.py.utils.share_doc_with_employee",
-                            args: {
-                                employee: values.employee,
-                                doctype: cur_frm.doctype,
-                                docname: cur_frm.docname
-                            },
-                            callback: function (r) {
-                                console.log("<<< API response:", r);
-
-                                if (r.message && r.message.status === "success") {
-                                    frappe.msgprint(`Document shared with ${values.employee} successfully.`);
-                                    resolve();
-                                } else {
-                                    frappe.msgprint("Failed to share document.");
-                                    console.log("!!! Document sharing failed, rejecting workflow.");
-                                    reject();
-                                }
-                            },
-                            error: function (err) {
-                                console.error("!!! Error during API call:", err);
-                                frappe.msgprint("Error occurred while sharing document.");
-                                reject();
-                            }
-                        });
-                    }
-                });
-
-                console.log(">>> Showing dialog to user...");
-                dialog.show();
-            });
-        });
+        handleWorkflowTransition(frm)
+        .then(() => console.log("Workflow action completed successfully."))
+        .catch(() => console.log("Workflow action failed."));
     },
 	employee: (frm) => { 
 		fetch_commute_data(frm); 
@@ -251,6 +149,16 @@ function make_border_red_for_is_exception_records(frm) {
                 `Row ${rowDoc?.idx}: ${rowDoc?.expense_type} allowance limit has been crossed.`
             );
         }
+        if (!rowDoc?.custom_field_visit_and_service_call_details && !rowDoc?.custom_tour_visit_details) {
+            // APPLY RED BORDER IF EXCEPTION
+            $row.css("border", "2px solid red");
+            
+            // COLLECT EXCEPTION MESSAGE WITH ROW NUMBER
+            exceptionMessages.push(
+                `Row ${rowDoc?.idx}: No Field Visit and Service Call details found.`
+            );
+        }
+        
     });
 
     if (exceptionMessages.length > 0) {
@@ -404,24 +312,36 @@ function claim_extra_expenses(frm) {
                     fieldname: 'from_date',
                     fieldtype: 'Date',
                     hidden: 1,
+                    onchange: function () {
+                        validate_dates_debounced(dialog)
+                    }
                 },
                 {
                     label: 'From Time',
                     fieldname: 'from_time',
                     fieldtype: 'Time',
-                    hidden: 1
+                    hidden: 1,
+                    onchange: function () {
+                        validate_dates_debounced(dialog)
+                    }
                 },
                 {
                     label: 'To Date',
                     fieldname: 'to_date',
                     fieldtype: 'Date',
                     hidden: 1,
+                    onchange: function () {
+                        validate_dates_debounced(dialog)
+                    }
                 },
                 {
                     label: 'To Time',
                     fieldname: 'to_time',
                     fieldtype: 'Time',
-                    hidden: 1
+                    hidden: 1,
+                    onchange: function () {
+                        validate_dates_debounced(dialog)
+                    }
                 },
 
                 {
@@ -956,22 +876,23 @@ function add_view_field_visit_expense_button(frm) {
                     label: 'From Date',
                     fieldname: 'from_date',
                     fieldtype: 'Date',
-                    reqd: 1
+                    reqd: 1,
+                    onchange: function() {
+                        validate_dates_debounced(dialog)
+                    }
                 },
                 {
                     label: 'To Date',
                     fieldname: 'to_date',
                     fieldtype: 'Date',
-                    reqd: 1
+                    reqd: 1,
+                    onchange: function() {
+                        validate_dates_debounced(dialog)
+                    }
                 }
             ],
             primary_action_label: 'Fetch Expense Claims',
             primary_action(values) {
-                // ? VALIDATE DATE RANGE
-                if (values.from_date > values.to_date) {
-                    frappe.throw(__('From Date cannot be after To Date.'));
-                    return;
-                }
 
                 frappe.call({
                     method: 'prompt_hr.py.expense_claim.get_date_wise_da_hours',
@@ -1124,13 +1045,19 @@ function getTourVisitExpenseDialog(frm) {
                         label: 'From Date',
                         fieldname: 'from_date',
                         fieldtype: 'Date',
-                        reqd: 1
+                        reqd: 1,
+                        onchange: function() {
+                            validate_dates_debounced(dialog)
+                        }
                     },
                     {
                         label: 'To Date',
                         fieldname: 'to_date',
                         fieldtype: 'Date',
-                        reqd: 1
+                        reqd: 1,
+                        onchange: function() {
+                            validate_dates_debounced(dialog)
+                        }
                     }
                 ],
                 primary_action_label: 'Fetch Tour Visit Expenses',
@@ -1408,5 +1335,163 @@ function set_travel_request_details(frm) {
             frappe.msgprint("Error fetching travel request details.");
             console.error(err);
         }
+    });
+}
+
+function validate_dates(dialog) {
+    const from_date = dialog.get_value("from_date");
+    const to_date = dialog.get_value("to_date");
+    const from_time = dialog.get_value("from_time");
+    const to_time = dialog.get_value("to_time");
+
+    // ! VALIDATE THAT START DATE IS NOT GREATER THAN END DATE
+    if (from_date && to_date && frappe.datetime.str_to_obj(from_date) > frappe.datetime.str_to_obj(to_date)) {
+        dialog.set_value("from_date", "");
+        dialog.set_value("to_date", "");
+        frappe.throw(__("From Date cannot be after To Date"));
+    }
+
+    if (from_date && frappe.datetime.str_to_obj(from_date) > frappe.datetime.str_to_obj(frappe.datetime.get_today())) {
+        dialog.set_value("from_date", "");
+        frappe.throw(__("From Date cannot be a future date"));
+    }
+
+    if (to_date && frappe.datetime.str_to_obj(to_date) > frappe.datetime.str_to_obj(frappe.datetime.get_today())) {
+        dialog.set_value("to_date", "");
+        frappe.throw(__("To Date cannot be a future date"));
+    }
+    
+
+
+    // ! VALIDATE THAT COMBINED FROM DATETIME IS NOT GREATER THAN TO DATETIME
+    if (from_date && to_date && from_time && to_time) {
+        const from_datetime_str = `${from_date} ${from_time}`;
+        const to_datetime_str = `${to_date} ${to_time}`;
+
+        const from_datetime = frappe.datetime.str_to_obj(from_datetime_str);
+        const to_datetime = frappe.datetime.str_to_obj(to_datetime_str);
+
+        if (from_datetime > to_datetime) {
+            dialog.set_value("from_time", "");
+            dialog.set_value("to_time", "");
+            frappe.throw(__("From Date & Time cannot be after To Date & Time"));
+        }
+    }
+}
+
+
+// Debounce helper function
+function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+}
+
+// Wrap the validate_dates function with debounce of 300 ms (adjust as needed)
+const validate_dates_debounced = debounce(validate_dates, 300);
+
+
+function handleWorkflowTransition(frm) {
+    return new Promise((resolve, reject) => {
+
+        console.log(">>> Fetching transitions for the current document...");
+
+        frappe.workflow.get_transitions(frm.doc).then(transitions => {
+            console.log("<<< Transitions fetched:", transitions);
+
+            const selected_transition = transitions.find(
+                t => t.action === frm.selected_workflow_action
+            );
+
+            const target_state = selected_transition ? selected_transition.next_state : null;
+            console.log(">>> Selected transition:", selected_transition);
+            console.log(">>> Target workflow state:", target_state);
+
+            let dialog_fields = [];
+
+            if (target_state === "Sent to Accounting Team") {
+                frappe.call({
+                    method: "prompt_hr.py.expense_claim.send_mail_to_accounting_team",
+                    args: {
+                        doctype: cur_frm.doctype,
+                        docname: cur_frm.docname
+                    },
+                    callback: function (r) {
+                        if (r.message && r.message.status === "success") {
+                            frappe.msgprint(`Document Mailed To Accounting Team successfully.`);
+                            resolve();
+                        } else {
+                            frappe.msgprint("Failed to share document.");
+                            reject();
+                        }
+                    },
+                    error: function (err) {
+                        console.error("!!! Error during API call:", err);
+                        frappe.msgprint("Error occurred while emailing document.");
+                        reject();
+                    }
+                });
+            
+            } else {
+                console.log(">>> Target state is NOT 'Sent to Accounting Team' – show all Employees, hide Role field.");
+
+                dialog_fields = [
+                    {
+                        label: "Employee",
+                        fieldname: "employee",
+                        fieldtype: "Link",
+                        options: "Employee",
+                        reqd: 1,
+                        get_query: function () {
+                            console.log(">>> get_query called for Employee – no filter.");
+                            return {};
+                        }
+                    }
+                ];
+            
+                let dialog = new frappe.ui.Dialog({
+                    title: __("Confirm {0}", [frm.selected_workflow_action]),
+                    fields: dialog_fields,
+                    primary_action_label: "Send For Approval",
+                    primary_action: function (values) {
+                        console.log(">>> Primary action triggered with values:", values);
+
+                        dialog.hide();
+
+                        console.log(">>> Calling backend API to share document...");
+                        frappe.call({
+                            method: "prompt_hr.py.utils.share_doc_with_employee",
+                            args: {
+                                employee: values.employee,
+                                doctype: cur_frm.doctype,
+                                docname: cur_frm.docname
+                            },
+                            callback: function (r) {
+                                console.log("<<< API response:", r);
+
+                                if (r.message && r.message.status === "success") {
+                                    frappe.msgprint(`Document shared with ${values.employee} successfully.`);
+                                    resolve();
+                                } else {
+                                    frappe.msgprint("Failed to share document.");
+                                    console.log("!!! Document sharing failed, rejecting workflow.");
+                                    reject();
+                                }
+                            },
+                            error: function (err) {
+                                console.error("!!! Error during API call:", err);
+                                frappe.msgprint("Error occurred while sharing document.");
+                                reject();
+                            }
+                        });
+                    }
+                });
+
+                console.log(">>> Showing dialog to user...");
+                dialog.show();
+            }
+        });
     });
 }

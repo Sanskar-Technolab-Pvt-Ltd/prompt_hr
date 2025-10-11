@@ -7,7 +7,9 @@
  "engine": "InnoDB",
  "field_order": [
   "clearance_item",
-  "table_name"
+  "table_name",
+  "role_allowed_to_modify_approval_status",
+  "user_allowed_to_modify_approval_status"
  ],
  "fields": [
   {
@@ -21,12 +23,24 @@
    "fieldtype": "Select",
    "label": "Table Name",
    "options": "\nit\nengineering"
+  },
+  {
+   "fieldname": "role_allowed_to_modify_approval_status",
+   "fieldtype": "Link",
+   "label": "Role Allowed to Modify Approval Status",
+   "options": "Role"
+  },
+  {
+   "fieldname": "user_allowed_to_modify_approval_status",
+   "fieldtype": "Link",
+   "label": "User Allowed to Modify Approval Status",
+   "options": "User"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-22 15:36:16.109561",
+ "modified": "2025-10-11 18:28:30.361602",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Exit Clearance Item",
