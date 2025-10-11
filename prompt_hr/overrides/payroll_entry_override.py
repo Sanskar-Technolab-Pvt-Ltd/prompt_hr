@@ -295,10 +295,10 @@ class CustomPayrollEntry(PayrollEntry):
 
         check_step_completed(self)
         not_create_slips = []
-        if self.custom_salary_withholding_details:
-            not_create_slips = [
-                emp.employee for emp in self.custom_salary_withholding_details if (self.start_date <= emp.from_date <= self.end_date and self.start_date <= emp.to_date <= self.end_date) and emp.withholding_type == "Hold Salary Processing"
-            ]
+        # if self.custom_salary_withholding_details:
+        #     not_create_slips = [
+        #         emp.employee for emp in self.custom_salary_withholding_details if (self.start_date <= emp.from_date <= self.end_date and self.start_date <= emp.to_date <= self.end_date) and emp.withholding_type == "Hold Salary Processing"
+        #     ]
 
         if self.custom_pending_withholding_salary:
             not_create_slips += [

@@ -722,6 +722,11 @@ function send_salary_slip(frm) {
                                     changes_in_employee_ids = values.withheld_employee_table
                                         .filter(row => row.__checked)          // Filter rows where checked is true
                                         .map(row => row.employee);           // Map to employee IDs
+                                    console.log(changes_in_employee_ids)
+                                    if(!changes_in_employee_ids.length > 0){
+                                        frappe.msgprint(__('Please select at least one employee to release salary.'));
+                                        return;
+                                    }
                                 }
                 
                                 frappe.call({
