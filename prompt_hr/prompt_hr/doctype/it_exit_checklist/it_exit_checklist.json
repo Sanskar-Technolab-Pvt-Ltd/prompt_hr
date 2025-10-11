@@ -9,12 +9,15 @@
   "employee",
   "employee_name",
   "reports_to",
+  "employee_status",
   "date_of_joining",
   "company",
   "column_break_ktcw",
   "designation",
   "crm_user_id",
   "department",
+  "work_location",
+  "employment_type",
   "relieving_date",
   "section_break_nzqc",
   "it",
@@ -29,6 +32,7 @@
   {
    "fieldname": "employee",
    "fieldtype": "Link",
+   "in_standard_filter": 1,
    "label": "Employee ID",
    "options": "Employee"
   },
@@ -36,12 +40,15 @@
    "fetch_from": "employee.employee_name",
    "fieldname": "employee_name",
    "fieldtype": "Data",
+   "in_standard_filter": 1,
    "label": "Employee Name"
   },
   {
    "fetch_from": "employee.reports_to",
    "fieldname": "reports_to",
    "fieldtype": "Link",
+   "ignore_user_permissions": 1,
+   "in_standard_filter": 1,
    "label": "Reports To",
    "options": "Employee"
   },
@@ -59,6 +66,7 @@
    "fetch_from": "employee.designation",
    "fieldname": "designation",
    "fieldtype": "Link",
+   "in_standard_filter": 1,
    "label": "Designation",
    "options": "Designation"
   },
@@ -71,6 +79,7 @@
    "fetch_from": "employee.department",
    "fieldname": "department",
    "fieldtype": "Link",
+   "in_standard_filter": 1,
    "label": "Department",
    "options": "Department"
   },
@@ -103,6 +112,7 @@
    "fetch_from": "employee.relieving_date",
    "fieldname": "relieving_date",
    "fieldtype": "Date",
+   "in_standard_filter": 1,
    "label": "Last Working Date"
   },
   {
@@ -127,12 +137,36 @@
    "fieldtype": "Table",
    "label": "Engineering",
    "options": "IT Asset Clearance"
+  },
+  {
+   "fetch_from": "employee.custom_work_location",
+   "fieldname": "work_location",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Work Location",
+   "options": "Employee"
+  },
+  {
+   "fetch_from": "employee.status",
+   "fieldname": "employee_status",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Employee Status",
+   "options": "Active\nInactive\nSuspended\nAbsconded\nLeft"
+  },
+  {
+   "fetch_from": "employee.employment_type",
+   "fieldname": "employment_type",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Employment Type",
+   "options": "Employment Type"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-22 15:36:11.998279",
+ "modified": "2025-10-11 11:06:01.710259",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "IT Exit Checklist",
