@@ -10,8 +10,6 @@
   "employee_name",
   "withholding_type",
   "column_break_uqiv",
-  "from_date",
-  "to_date",
   "withholding_record"
  ],
  "fields": [
@@ -30,27 +28,17 @@
    "label": "Employee Name"
   },
   {
+   "default": "Hold Salary Release",
    "fieldname": "withholding_type",
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Withholding Type",
-   "options": "Hold Salary Processing\nHold Salary Release"
+   "options": "Hold Salary Release",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_uqiv",
    "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "from_date",
-   "fieldtype": "Date",
-   "in_list_view": 1,
-   "label": "From Date"
-  },
-  {
-   "fieldname": "to_date",
-   "fieldtype": "Date",
-   "in_list_view": 1,
-   "label": "To Date"
   },
   {
    "fieldname": "withholding_record",
@@ -63,7 +51,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-07-17 12:47:08.403155",
+ "modified": "2025-10-11 12:22:05.442932",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Hold Salary",

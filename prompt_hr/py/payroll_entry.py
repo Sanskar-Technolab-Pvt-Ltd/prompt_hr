@@ -1168,12 +1168,12 @@ def send_salary_sleep_to_employee(payroll_entry_id, email_details):
 def on_submit(doc, method):
     if doc.custom_salary_withholding_details:
         for withholding in doc.custom_salary_withholding_details:
-            if not frappe.db.exists("Employee Salary Withholding", {"employee": withholding.employee, "from_date": withholding.from_date, "to_date": withholding.to_date}):
+            if not frappe.db.exists("Employee Salary Withholding", {"employee": withholding.employee, "from_date": doc.start_date, "to_date": doc.end_date}):
                 frappe.get_doc({
                     "doctype": "Employee Salary Withholding",
                     "employee": withholding.employee,
-                    "from_date": withholding.from_date,
-                    "to_date": withholding.to_date,
+                    "from_date": doc.start_date,
+                    "to_date": doc.end_date,
                     "withholding_type": withholding.withholding_type
                 }).insert(ignore_permissions=True)
 @frappe.whitelist()
