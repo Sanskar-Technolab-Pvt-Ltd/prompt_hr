@@ -786,6 +786,8 @@ def get_expense_claim_exception(doc):
 
         for exp in expenses:
             exp.custom_is_exception = 0
+            exp.custom_max_limit = 0
+
 
         for idx, exp in enumerate(expenses, start=1):
             _validate_and_process_expense(
@@ -841,6 +843,8 @@ def _validate_and_process_expense(
     Validates and processes an individual expense item within the claim.
     """
     exp.custom_is_exception = 0
+    exp.custom_max_limit = 0
+
     exp_amount = flt(exp.amount or 0)
     days = exp.custom_days or 1
     expense_date = getdate(exp.expense_date)
@@ -1073,7 +1077,7 @@ def _process_food_lodging_expense(
                 exp.amount = (change_percentage * exp.amount) / 100
                 exp.sanctioned_amount = exp.amount
 
-
+    max_limit = 0
     exceeded_any_day = False
     for i in range(days):
         current_day = expense_start_date + timedelta(days=i)
@@ -1089,6 +1093,7 @@ def _process_food_lodging_expense(
 
         if cumulative_daily_total > flt(limit) and limit>0:
             exceeded_any_day = True
+            max_limit = limit * float(exp.custom_days or 0)
             break
 
     if exceeded_any_day:
@@ -1102,6 +1107,7 @@ def _process_food_lodging_expense(
 
         if employee_limit != 0:
             exp.custom_is_exception = 1
+            exp.custom_max_limit = round(max_limit,2)
 
 @frappe.whitelist()
 def get_employees_by_role(doctype, txt, searchfield, start, page_len, filters):
@@ -1337,7 +1343,7 @@ def _process_local_commute_expense(
 
     daily_limit = flt(budget_row.get("local_commute_limit_daily", 0))
     monthly_limit = flt(budget_row.get("local_commute_limit_monthly", 0))
-
+    max_limit = 0
     daily_per_item_amount = exp_amount / days
     exceeded_daily = False
     exceeded_monthly = False
@@ -1357,6 +1363,7 @@ def _process_local_commute_expense(
 
         # Check if daily limit is exceeded
         if daily_limit and cumulative_daily_total > daily_limit:
+            max_limit = daily_limit
             exceeded_daily = True
             break
 
@@ -1373,6 +1380,7 @@ def _process_local_commute_expense(
 
     if monthly_limit and cumulative_monthly_spend > monthly_limit:
         exceeded_monthly = True
+        max_limit = monthly_limit
 
     # Flag as exception if any limit is exceeded
     if exceeded_daily or exceeded_monthly:
@@ -1382,6 +1390,7 @@ def _process_local_commute_expense(
             )
 
         exp.custom_is_exception = 1
+        exp.custom_max_limit = round(max_limit,2)
 
 
 def validate_attachments_compulsion(doc):

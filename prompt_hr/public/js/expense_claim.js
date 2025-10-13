@@ -143,11 +143,20 @@ function make_border_red_for_is_exception_records(frm) {
         if (rowDoc?.custom_is_exception) {
             // APPLY RED BORDER IF EXCEPTION
             $row.css("border", "2px solid red");
-    
-            // COLLECT EXCEPTION MESSAGE WITH ROW NUMBER
-            exceptionMessages.push(
-                `Row ${rowDoc?.idx}: ${rowDoc?.expense_type} allowance limit has been crossed.`
-            );
+
+            if (rowDoc?.custom_max_limit > 0) {
+                // COLLECT EXCEPTION MESSAGE WITH ROW NUMBER
+                exceptionMessages.push(
+                    `Row ${rowDoc?.idx}: ${rowDoc?.expense_type
+                    } allowance limit has been crossed by ${(rowDoc?.amount - rowDoc?.custom_max_limit
+                ).toFixed(2)}`
+                );
+            } else {
+                // COLLECT EXCEPTION MESSAGE WITH ROW NUMBER
+                exceptionMessages.push(
+                    `Row ${rowDoc?.idx}: ${rowDoc?.expense_type} allowance limit has been crossed.`
+                );
+            }
         }
         if (!rowDoc?.custom_field_visit_and_service_call_details && !rowDoc?.custom_tour_visit_details) {
             // APPLY RED BORDER IF EXCEPTION
