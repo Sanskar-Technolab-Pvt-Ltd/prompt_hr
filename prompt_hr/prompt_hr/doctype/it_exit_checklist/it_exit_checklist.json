@@ -34,6 +34,7 @@
   {
    "fieldname": "employee",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Employee ID",
    "options": "Employee"
@@ -42,6 +43,7 @@
    "fetch_from": "employee.employee_name",
    "fieldname": "employee_name",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Employee Name"
   },
@@ -68,6 +70,7 @@
    "fetch_from": "employee.designation",
    "fieldname": "designation",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Designation",
    "options": "Designation"
@@ -81,6 +84,7 @@
    "fetch_from": "employee.department",
    "fieldname": "department",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Department",
    "options": "Department"
@@ -177,7 +181,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-13 12:32:12.640221",
+ "modified": "2025-10-13 16:24:52.699552",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "IT Exit Checklist",

@@ -11,7 +11,6 @@
   "employee_name",
   "reporting_manager",
   "work_location",
-  "employee_status",
   "department",
   "employment_type",
   "exit_interview",
@@ -30,6 +29,7 @@
   {
    "fieldname": "posting_date",
    "fieldtype": "Date",
+   "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Posting Date"
   },
@@ -47,6 +47,7 @@
    "fetch_from": "employee.employee_name",
    "fieldname": "employee_name",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Employee Name"
   },
@@ -86,6 +87,7 @@
   {
    "fieldname": "last_date_of_working",
    "fieldtype": "Date",
+   "in_list_view": 1,
    "label": "Last Date of Working"
   },
   {
@@ -125,6 +127,7 @@
    "fetch_from": "employee.department",
    "fieldname": "department",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Department",
    "options": "Department"
@@ -144,20 +147,12 @@
    "in_standard_filter": 1,
    "label": "Work Location",
    "options": "Address"
-  },
-  {
-   "fetch_from": "employee.status",
-   "fieldname": "employee_status",
-   "fieldtype": "Select",
-   "in_standard_filter": 1,
-   "label": "Employee Status",
-   "options": "Active\nInactive\nSuspended\nAbsconded\nLeft"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-11 10:57:34.688364",
+ "modified": "2025-10-13 16:24:42.147291",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Exit Approval Process",
