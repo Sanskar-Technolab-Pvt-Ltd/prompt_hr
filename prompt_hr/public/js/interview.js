@@ -3,6 +3,11 @@ const original_submit_feedback = frappe.ui.form.handlers.Interview?.submit_feedb
 frappe.ui.form.off("Interview", "submit_feedback")
 frappe.ui.form.on("Interview", {
     refresh: function (frm) {
+        frm.fields.forEach(field => {
+            if (field.df.fieldtype === "Section Break" && field.df.collapsible) {
+                field.collapse(false);  // ? OPEN BY DEFAULT
+            }
+        });
         if (!frm.is_new()) {
             let button_label = frm.doc.custom_teams_calender_book 
             ? "Revise Teams Calendar" 
