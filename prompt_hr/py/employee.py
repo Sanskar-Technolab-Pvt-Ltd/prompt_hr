@@ -1812,8 +1812,8 @@ def before_save(doc, method=None):
     validate_create_checkin_role(doc)
     auto_shift_assign(doc)
     # ? RUN ONLY FOR OLD DOCS
-    if not doc.is_new():
-        update_leave_and_notice_for_confirmed_employee(doc)
+    # if not doc.is_new():
+    #     update_leave_and_notice_for_confirmed_employee(doc)
 
 
 def validate_create_checkin_role(doc):
