@@ -58,7 +58,7 @@
    "fieldtype": "Select",
    "label": "Approval Status",
    "options": "Pending\nRejected",
-   "read_only_depends_on": "eval:!(frappe.session.user === doc.user_allowed_to_modify_approval_status || frappe.user.has_role(doc.role_allowed_to_modify_approval_status))\n"
+   "read_only_depends_on": "eval:!(frappe.session.user === doc.user_allowed_to_modify_approval_status || frappe.user.has_role(doc.role_allowed_to_modify_approval_status) || frappe.session.user == \"Administrator\")\n"
   },
   {
    "fieldname": "approval_status_history",
@@ -87,7 +87,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-10-11 18:44:17.193514",
+ "modified": "2025-10-13 12:39:49.336807",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "IT Asset Clearance",

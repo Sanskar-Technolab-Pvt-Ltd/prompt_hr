@@ -28,19 +28,21 @@
    "fieldname": "role_allowed_to_modify_approval_status",
    "fieldtype": "Link",
    "label": "Role Allowed to Modify Approval Status",
+   "mandatory_depends_on": "eval: !doc.user_allowed_to_modify_approval_status",
    "options": "Role"
   },
   {
    "fieldname": "user_allowed_to_modify_approval_status",
    "fieldtype": "Link",
    "label": "User Allowed to Modify Approval Status",
+   "mandatory_depends_on": "eval: !doc.role_allowed_to_modify_approval_status",
    "options": "User"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-11 18:28:30.361602",
+ "modified": "2025-10-13 12:43:26.150021",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Exit Clearance Item",

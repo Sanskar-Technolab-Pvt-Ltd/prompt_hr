@@ -19,6 +19,8 @@
   "work_location",
   "employment_type",
   "relieving_date",
+  "section_break_kvyj",
+  "approval_access_details",
   "section_break_nzqc",
   "it",
   "section_break_xqaa",
@@ -161,12 +163,21 @@
    "in_standard_filter": 1,
    "label": "Employment Type",
    "options": "Employment Type"
+  },
+  {
+   "fieldname": "section_break_kvyj",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "approval_access_details",
+   "fieldtype": "HTML",
+   "label": "Approval Access Details"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-11 11:22:16.520314",
+ "modified": "2025-10-13 12:32:12.640221",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "IT Exit Checklist",
