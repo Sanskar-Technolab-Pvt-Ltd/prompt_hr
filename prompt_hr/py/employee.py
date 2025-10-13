@@ -936,7 +936,7 @@ import json
 
 @frappe.whitelist()
 def create_resignation_quiz_submission(
-    user_response, employee, notice_number_of_days=None
+    user_response, employee, notice_number_of_days=None, resignation_date = None
 ):
     try:
         # ? PARSE USER RESPONSE FROM JSON STRING
@@ -946,6 +946,14 @@ def create_resignation_quiz_submission(
         exit_approval = create_exit_approval_process(
             user_response, employee, notice_number_of_days
         )
+
+        try:
+            if not resignation_date:
+                resignation_date = getdate()
+            frappe.db.set_value("Employee", employee, "resignation_letter_date", resignation_date)
+            frappe.db.commit()
+        except Exception as e:
+            frappe.log_error("Error in Setting Resignation Date", str(e))
         return exit_approval
 
     except Exception as e:
