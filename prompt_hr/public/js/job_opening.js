@@ -237,27 +237,40 @@ function fetchReferralBonusPolicy(frm) {
 function handleInternalJobPosting(frm) {
     if (frm.doc.custom_job_opening_type === "Internal") {
         frm.add_custom_button(__('Release for Internal Application'), () => {
-            frappe.call({
-                method: "prompt_hr.py.job_opening.send_job_opening_notification",
-                args: {
-                    company: frm.doc.company,
-                    due_date: frm.doc.custom_due_date_for_applying_job,
-                    min_tenure_in_company: frm.doc.custom_minimum_tenure_in_company_in_months,
-                    min_tenure_in_current_role: frm.doc.custom_minimum_tenure_in_current_role_in_months,
-                    allowed_department: (frm.doc.custom_can_refer_from_department_internal).map(item => item.department),
-                    allowed_location: (frm.doc.custom_can_refer_from_work_location_internal).map(item => item.work_location),
-                    allowed_grade: (frm.doc.custom_can_refer_from_grade_internal).map(item => item.grade),
-                    notification_name: "Internal Job Opening Email",
-                    job_opening: frm.doc.name,
-                    source: "Internal Application"
+
+            frappe.confirm(
+                'Are you sure you want to send the internal job opening notification?',
+                () => {
+                    //? YES clicked - send email
+                    frappe.call({
+                        method: "prompt_hr.py.job_opening.send_job_opening_notification",
+                        args: {
+                            company: frm.doc.company,
+                            due_date: frm.doc.custom_due_date_for_applying_job,
+                            min_tenure_in_company: frm.doc.custom_minimum_tenure_in_company_in_months,
+                            min_tenure_in_current_role: frm.doc.custom_minimum_tenure_in_current_role_in_months,
+                            allowed_department: (frm.doc.custom_can_refer_from_department_internal || []).map(item => item.department),
+                            allowed_location: (frm.doc.custom_can_refer_from_work_location_internal || []).map(item => item.work_location),
+                            allowed_grade: (frm.doc.custom_can_refer_from_grade_internal || []).map(item => item.grade),
+                            notification_name: "Internal Job Opening Email",
+                            job_opening: frm.doc.name,
+                            source: "Internal Application"
+                        },
+                        callback: (res) => {
+                            frappe.msgprint(`${res.message?.length || 0} eligible employees have been notified.`);
+                        }
+                    });
                 },
-                callback: (res) => {
-                    frappe.msgprint(`${res.message?.length || 0} eligible employees have been notified.`);
+                () => {
+                    //?  NO clicked - do nothing
+                    frappe.show_alert({message: 'Notification cancelled', indicator: 'orange'});
                 }
-            });
+            );
+
         });
     }
 }
+
 
 // ? EMPLOYEE REFERRAL
 function handleEmployeeReferral(frm) {
