@@ -24,6 +24,7 @@
    "depends_on": "eval:doc.allowed_by == \"User\";",
    "fieldname": "employee",
    "fieldtype": "Link",
+   "ignore_user_permissions": 1,
    "label": "Employee",
    "options": "Employee"
   },
@@ -108,7 +109,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-05-22 16:19:14.234321",
+ "modified": "2025-10-13 18:34:24.247200",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Workflow Approval Hierarchy",

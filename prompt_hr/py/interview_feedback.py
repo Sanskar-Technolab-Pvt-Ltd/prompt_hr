@@ -2,6 +2,9 @@ import frappe
 from prompt_hr.py.utils import send_notification_email, get_hr_managers_by_company
 
 def on_submit(doc,method):
+    if doc.result == "Pending":
+        frappe.throw("Interview Feedback cannot be submitted while the result is marked as 'Pending'. Please update the result to proceed.")
+
     hr_managers = get_hr_managers_by_company(company=doc.custom_company)
     if send_notification_email(
         recipients=hr_managers,
@@ -26,12 +29,12 @@ def on_update(doc, method):
             total_rating_scale += assessment.custom_rating_scale
         if assessment.custom_rating_given:
             total_rating_given += assessment.custom_rating_given
-    #! CALCULATE FINAL RATING OUT OF 5 (NORMALIZED)
-    final_rating = total_rating_given/total_rating_scale * 5
+    #! CALCULATE FINAL RATING OUT OF 10 (NORMALIZED)
+    final_rating = total_rating_given/total_rating_scale * 10
     doc.db_set("custom_obtained_average_score", final_rating)
     if doc.custom_expected_average_score:
         if doc.has_value_changed("custom_obtained_average_score") and (doc.result == "Pending" or doc.has_value_changed("custom_obtained_average_score")):
-            if doc.custom_obtained_average_score >= doc.custom_expected_average_score:
+            if doc.custom_obtained_average_score >= float(doc.custom_expected_average_score):
                 doc.db_set("result", "Cleared")
             else:
                 doc.db_set("result", "Rejected")

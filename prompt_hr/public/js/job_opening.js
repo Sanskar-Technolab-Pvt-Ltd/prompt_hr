@@ -6,20 +6,17 @@ frappe.ui.form.on("Job Opening", {
 
         // ? FUNCTION TO APPLY FILTER ON JOB REQUISITION WITH STATUS == "FINAL APPROVAL"
         applyJobRequisitionFilter(frm)
-        frm.events.make_dashboard(frm);
+        if (!frm.is_new()) {
+            frm.events.make_dashboard(frm);
+        }
         const current_user = frappe.session.user;
         let hide_notify_buttons = false;
-        let show_confirm_button = false;
         // Check if current user is an internal recruiter
         (frm.doc.custom_internal_recruiter || []).forEach(rec => {
             if (rec.user) {
                 frappe.db.get_value("Employee", rec.user, "user_id", function (r) {
                     if (r.user_id === current_user) {
                         hide_notify_buttons = true;
-                        if (!rec.is_confirm) {
-                            show_confirm_button = true;
-                        }
-                        
                     }
                 });
             }
@@ -36,9 +33,6 @@ frappe.ui.form.on("Job Opening", {
                     callback: function (r) {
                         if (r.message === current_user) {
                             hide_notify_buttons = true;
-                            if (!rec.is_confirm) {
-                                show_confirm_button = true;
-                            }
                         }
                     }
                 });
@@ -110,26 +104,6 @@ frappe.ui.form.on("Job Opening", {
                 }, __("Notify"));
             }
 
-            if (show_confirm_button) {
-                frm.add_custom_button(__("Confirm"), function() {
-                    frappe.dom.freeze(__('Confirming Your Availability...'));
-                    frappe.call({
-                        method: "prompt_hr.py.job_opening.send_notification_to_hr_manager",
-                        args: {
-                            name: frm.doc.name,
-                            company: frm.doc.company,
-                            user: frappe.session.user
-                        },
-                        callback: function(res) {
-                            frappe.msgprint(res.message || __("Your availability has been confirmed."));
-                            frm.reload_doc();
-                        },
-                        always: function () {
-                            frappe.dom.unfreeze();
-                        }
-                    });
-                }).removeClass('btn-default').addClass('btn btn-primary btn-sm primary-action');
-            }
         }, 100);
     },
 
