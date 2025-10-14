@@ -88,6 +88,7 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                         filters={
                             "employee": employee_data.get("name"),
                             "docstatus": 1,
+                            "status": "Active",
                             "start_date": ["<=", attendance_date]
                         },
                         or_filters=[
@@ -124,6 +125,7 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                         filters={
                             "employee": ["in", employee_ids],
                             "docstatus": 1,
+                            "status": "Active",
                             "start_date": ["<=", attendance_date]
                         },
                         or_filters=[
@@ -201,6 +203,7 @@ def mark_attendance(attendance_date=None, company = None,is_scheduler=0, regular
                     filters={
                         "employee": ["in", employee_ids],
                         "docstatus": 1,
+                        "status": "Active",
                         "start_date": ["<=", attendance_date]
                     },
                     or_filters=[
@@ -397,14 +400,20 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
         "start_date": ["<=", mark_attendance_date]
     }
 
+    shift_or_filters=[
+                {"end_date": [">=", mark_attendance_date]},
+                {"end_date": ["is", "not set"]}
+            ],
+
     # Print the filters
     print(f"[DEBUG] Shift Assignment Filters: {shift_filters}")
 
     # Now execute the query
     assigned_shift = frappe.db.get_all(
         "Shift Assignment",
-        shift_filters,
-        ["name", "shift_type"],
+        filters=shift_filters,
+        or_filters=shift_or_filters,
+        fields=["name", "shift_type"],
         order_by="creation desc",
         limit=1
     )
