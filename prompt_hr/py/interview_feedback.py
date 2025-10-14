@@ -2,6 +2,8 @@ import frappe
 from prompt_hr.py.utils import send_notification_email, get_hr_managers_by_company
 
 def on_submit(doc,method):
+    
+    
     if doc.result == "Pending":
         frappe.throw("Interview Feedback cannot be submitted while the result is marked as 'Pending'. Please update the result to proceed.")
 
@@ -18,6 +20,8 @@ def on_submit(doc,method):
 
 
 def on_update(doc, method):
+    update_interview_status(doc.interview)
+    
     skill_assessments = frappe.get_all("Skill Assessment", filters={"parent": doc.name}, fields=["*"])
     # ? INITIALIZE RATING VARIABLES
     final_rating = 0
@@ -59,3 +63,44 @@ def get_permission_query_conditions(user):
         return (
             f"""(`tabInterview Feedback`.interviewer = {frappe.db.escape(user)})"""
         )
+
+
+def update_interview_status(interview_name):
+    # Fetch all feedback for this interview
+    feedback_list = frappe.get_all(
+        "Interview Feedback",
+        filters={"interview": interview_name},
+        fields=["result", "docstatus"]
+    )
+
+    # Consider only submitted feedback
+    submitted_feedback = [f for f in feedback_list if f.docstatus == 1]
+    total_feedback = len(feedback_list)
+    total_submitted = len(submitted_feedback)
+
+    # If no feedback submitted at all or none has result yet
+    if total_submitted == 0:
+        frappe.db.set_value("Interview", interview_name, "status", "Pending")
+        return
+
+    results = [f.result for f in submitted_feedback]
+
+    cleared_count = results.count("Cleared")
+    rejected_count = results.count("Rejected")
+
+    # 1. All Cleared
+    if total_submitted == total_feedback and cleared_count == total_feedback:
+        frappe.db.set_value("Interview", interview_name, "status", "Cleared")
+
+    # 2. All Rejected
+    elif total_submitted == total_feedback and rejected_count == total_feedback:
+        frappe.db.set_value("Interview", interview_name, "status", "Rejected")
+
+    # 3. Some feedbacks are submitted but not all finalized
+    elif cleared_count > 0 or rejected_count > 0:
+        frappe.db.set_value("Interview", interview_name, "status", "Under Review")
+
+    # 4. All pending (none cleared/rejected yet)
+    else:
+        frappe.db.set_value("Interview", interview_name, "status", "Pending")
+
