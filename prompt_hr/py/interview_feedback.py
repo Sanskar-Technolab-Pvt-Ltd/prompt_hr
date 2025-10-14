@@ -59,3 +59,17 @@ def get_permission_query_conditions(user):
         return (
             f"""(`tabInterview Feedback`.interviewer = {frappe.db.escape(user)})"""
         )
+
+
+def before_validate(doc, method=None):
+    set_skill_ratings(doc)
+
+def set_skill_ratings(doc):
+    for assessment in doc.skill_assessment:
+        if assessment.custom_rating_scale and assessment.custom_rating_given:
+            rating = (assessment.custom_rating_given / assessment.custom_rating_scale)
+            assessment.rating = rating
+
+        else:
+            if assessment.custom_rating_given == 0:
+                assessment.rating = 0
