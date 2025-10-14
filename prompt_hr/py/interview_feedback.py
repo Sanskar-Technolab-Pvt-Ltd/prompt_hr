@@ -65,6 +65,18 @@ def get_permission_query_conditions(user):
         )
 
 
+def before_validate(doc, method=None):
+    set_skill_ratings(doc)
+
+def set_skill_ratings(doc):
+    for assessment in doc.skill_assessment:
+        if assessment.custom_rating_scale and assessment.custom_rating_given:
+            rating = (assessment.custom_rating_given / assessment.custom_rating_scale)
+            assessment.rating = rating
+
+        else:
+            if assessment.custom_rating_given == 0:
+                assessment.rating = 0
 def update_interview_status(interview_name):
     # Fetch all feedback for this interview
     feedback_list = frappe.get_all(
