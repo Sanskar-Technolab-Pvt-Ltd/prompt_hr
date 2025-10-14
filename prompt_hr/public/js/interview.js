@@ -2,7 +2,27 @@ const original_add_custom_buttons = frappe.ui.form.handlers.Interview?.add_custo
 const original_submit_feedback = frappe.ui.form.handlers.Interview?.submit_feedback;
 frappe.ui.form.off("Interview", "submit_feedback")
 frappe.ui.form.on("Interview", {
+    custom_template: function(frm) {
+        if (!frm.doc.custom_template) return;
+
+        frappe.db.get_doc('Email Template', frm.doc.custom_template)
+        .then(template => {
+            // 1. Show raw Jinja template in main editor
+            frm.set_value('custom_template_data', template.response);
+
+            // 2. Render immediately for preview
+            update_preview(frm, template.response);
+        })
+        .catch(err => {
+            frappe.msgprint('Failed to fetch Email Template.');
+        });
+    },
+
     refresh: function (frm) {
+        if (frm.doc.custom_template_data) {
+            update_preview(frm, frm.doc.custom_template_data);
+        }
+
         frm.fields.forEach(field => {
             if (field.df.fieldtype === "Section Break" && field.df.collapsible) {
                 field.collapse(false);  // ? OPEN BY DEFAULT
@@ -336,6 +356,9 @@ frappe.ui.form.on("Interview", {
         updateInterviewerAvailability(frm)
     },
     after_save: function (frm) {
+        if (frm.doc.custom_template_data) {
+            update_preview(frm, frm.doc.custom_template_data);
+        }
 
         // ? HIDE THE AVAILABLE INTERVIEWERS FIELD AFTER SAVING
         frm.toggle_display("custom_available_interviewers", false);
@@ -658,4 +681,79 @@ function createInviteButton(frm) {
 
         dialog.show();
     });
+}
+
+
+function update_preview(frm, template_text) {
+    // If a Job Applicant is linked
+    if (frm.doc.job_applicant) {
+        frappe.db.get_doc('Job Applicant', frm.doc.job_applicant)
+        .then(applicant_doc => {
+            // Include the full job applicant doc in the context
+            let context = {
+                ...frm.doc,           // current form doc fields
+                today_date: frappe.datetime.now_date(),
+                applicant: applicant_doc // entire Job Applicant document
+            };
+
+            render_preview(frm, template_text, context);
+        })
+        .catch(err => {
+            frappe.msgprint('Failed to fetch Job Applicant data.');
+            // fallback context without applicant
+            let context = {
+                ...frm.doc,
+                today_date: frappe.datetime.now_date()
+            };
+            render_preview(frm, template_text, context);
+        });
+    } else {
+        // context without applicant if not linked
+        let context = {
+            ...frm.doc,
+            today_date: frappe.datetime.now_date()
+        };
+        render_preview(frm, template_text, context);
+    }
+}
+
+// function to render preview
+function render_preview(frm, template_text, context) {
+    let rendered_html = frappe.render_template(template_text, context);
+
+    let preview_html = `
+        <div style="
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+            overflow: hidden;
+            margin-top: 10px;
+            font-family: 'Arial', sans-serif;
+        ">
+            <!-- Header -->
+            <div style="
+                background-color: #3b82f6;
+                color: white;
+                padding: 10px 15px;
+                font-weight: 600;
+                font-size: 14px;
+            ">
+                📩 Preview
+            </div>
+
+            <!-- Content -->
+            <div style="
+                padding: 15px;
+                background-color: #f9fafb;
+                color: #111827;
+                font-size: 14px;
+                line-height: 1.5;
+            ">
+                ${rendered_html}
+            </div>
+        </div>
+    `;
+
+    frm.set_df_property('custom_template_preview', 'options', preview_html);
+    frm.set_df_property('custom_template_preview', 'read_only', 1);
 }
