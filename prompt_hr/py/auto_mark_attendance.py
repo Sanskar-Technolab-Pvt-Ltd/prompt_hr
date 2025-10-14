@@ -403,7 +403,7 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
     shift_or_filters=[
                 {"end_date": [">=", mark_attendance_date]},
                 {"end_date": ["is", "not set"]}
-            ],
+            ]
 
     # Print the filters
     print(f"[DEBUG] Shift Assignment Filters: {shift_filters}")
