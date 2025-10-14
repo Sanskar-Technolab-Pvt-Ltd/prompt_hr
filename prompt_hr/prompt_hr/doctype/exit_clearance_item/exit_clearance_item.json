@@ -21,8 +21,10 @@
   {
    "fieldname": "table_name",
    "fieldtype": "Select",
+   "in_list_view": 1,
    "label": "Table Name",
-   "options": "\nit\nengineering"
+   "options": "\nit\nengineering",
+   "reqd": 1
   },
   {
    "fieldname": "role_allowed_to_modify_approval_status",
@@ -42,7 +44,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-13 12:43:26.150021",
+ "modified": "2025-10-14 17:33:10.919170",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Exit Clearance Item",

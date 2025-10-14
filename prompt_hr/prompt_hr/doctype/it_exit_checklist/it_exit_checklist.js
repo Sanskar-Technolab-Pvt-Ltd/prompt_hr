@@ -35,6 +35,26 @@ function make_border_red_for_user_eligible_for_approval_process(frm) {
 
             if (canModify) {
                 $row.css("border", "2px solid red");
+            
+                // Find the status field's static area
+                let $statusStatic = $row.find("div[data-fieldname='status'] .static-area");
+                
+                if (!rowDoc?.status) {
+                    // Set placeholder text when status is empty
+                    $statusStatic.text("Please Fill Value")
+                        .css({
+                            color: "red",
+                            "font-weight": "bold"
+                        });
+                } else {
+                    // Remove placeholder text and reset styles when value is present
+                    $statusStatic.text(rowDoc.status)
+                        .css({
+                            color: "",
+                            "font-weight": ""
+                        });
+                }
+
                 exceptionMessages.push(
                     `Row ${rowDoc?.idx}: Approval status change is allowed for this user in ${frappe.utils.to_title_case(tableName)} table.`
                 );
