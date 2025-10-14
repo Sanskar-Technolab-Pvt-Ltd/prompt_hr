@@ -16,6 +16,9 @@ frappe.ui.form.on("Job Requisition", {
         if (frm.doc.workflow_state === "Final Approval") {
             show_job_opening_buttons(frm);
         }
+        if (!frm.is_new()) {
+            make_workflow_details(frm)
+        }
     }
 });
 
@@ -42,6 +45,63 @@ function show_job_opening_buttons(frm) {
                     frappe.set_route("Form", "Job Opening", job.name);
                 }, group);
             });
+        }
+    });
+}
+
+function make_workflow_details(frm) {
+    if (!frm.doc.company || !frm.doc.doctype || !frm.doc.name) return;
+
+    frappe.call({
+        method: "prompt_hr.py.job_requisition.get_workflow_approvals",
+        args: {
+            company: frm.doc.company,
+            doctype: frm.doc.doctype,
+            docname: frm.doc.name
+        },
+        callback: function(r) {
+            if (r.message && r.message.length) {
+                const data = r.message;
+
+                // 🧱 BUILD TABLE HEADER
+                let html = `
+                    <table class="table table-bordered table-sm mt-2">
+                        <thead style="background-color: #f8f9fa;">
+                            <tr>
+                                <th>State</th>
+                                <th>Action</th>
+                                <th>Next State</th>
+                                <th>Allowed By</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                // POPULATE TABLE ROWS
+                data.forEach(row => {
+                    html += `
+                        <tr>
+                            <td>${row.state || '-'}</td>
+                            <td>${row.action || '-'}</td>
+                            <td>${row.next_state || '-'}</td>
+                            <td>${row.allowed_by || '-'}</td>
+                            <td>${row.value || '-'}</td>
+                        </tr>
+                    `;
+                });
+
+                html += `
+                        </tbody>
+                    </table>
+                `;
+                // SET HTML FIELD VALUE
+                frm.fields_dict.custom_workflow_details.$wrapper.html(html);
+            } else {
+                frm.fields_dict.custom_workflow_details.$wrapper.html(
+                    `<p style="color: #888; margin-top:10px;">No applicable workflow approval found.</p>`
+                );
+            }
         }
     });
 }
