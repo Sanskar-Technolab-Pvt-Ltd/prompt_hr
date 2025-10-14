@@ -103,6 +103,8 @@ def attendance_calendar_list(
     limit_start=0,
 ):
     try:
+
+        employee = "HR-EMP-00001"
         if not employee:
             frappe.throw("Employee is required")
 
@@ -127,6 +129,8 @@ def attendance_calendar_list(
             "name",
             "employee",
             "status",
+            "leave_application",
+            "custom_employee_penalty_id"
         ]
 
         # Fetch attendance list
@@ -138,6 +142,21 @@ def attendance_calendar_list(
             limit_page_length=limit_page_length,
             limit_start=limit_start,
         )
+
+        for attendance in attendance_list:
+
+            attendance["leave_total"] = 0
+
+            if attendance.get("status") == "On Leave":
+                
+                attendance["leave_total"] = 1
+                
+            elif attendance.get("status") == "Half Day" and attendance.get("Leave Application"):
+                attendance["leave_total"] = 0.5
+
+            if attendance.get("custom_employee_penalty_id"):
+                attendance["total_penalty"] = frappe.db.get_value("Employee Penalty", attendance.get("custom_employee_penalty_id"), "total_leave_penalty")
+
 
         # Get HR Settings and build a status → label map
         hr_settings = frappe.get_single("HR Settings")
