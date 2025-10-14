@@ -2629,9 +2629,11 @@ def process_exit_approvals():
             )
 
             # ? PROCESS CHECKLIST IF DUE AND NOT YET CREATED
+            checklist_date_str = r.custom_exit_questionnaire_notification_date
+            exit_checklist_date = datetime.strptime(checklist_date_str, "%d-%m-%Y").strftime("%Y-%m-%d")
             checklist_due = (
-                r.custom_exit_checklist_notification_date
-                and getdate(r.custom_exit_checklist_notification_date) <= today_date
+                exit_checklist_date
+                and getdate(exit_checklist_date) <= today_date
                 and not r.employee_separation
             )
             if checklist_due:
@@ -2640,9 +2642,11 @@ def process_exit_approvals():
                 print(f"  ✔ Checklist Result: {result.get('message')}")
 
             # ? PROCESS EXIT INTERVIEW IF DUE AND NOT YET CREATED
+            exit_date_str = r.custom_exit_questionnaire_notification_date
+            exit_questionnaire_date = datetime.strptime(exit_date_str, "%d-%m-%Y").strftime("%Y-%m-%d")
             interview_due = (
-                r.custom_exit_questionnaire_notification_date
-                and getdate(r.custom_exit_questionnaire_notification_date) <= today_date
+                exit_questionnaire_date
+                and getdate(exit_questionnaire_date) <= today_date
                 and not r.exit_interview
             )
             if interview_due:
