@@ -202,3 +202,90 @@ def set_requested_by(doc, event):
 #             frappe.log_error("No HR Managers Found", f"No HR Managers found for company: {doc.company}")
 #     except Exception as e:
 #         frappe.log_error("Error in after_insert", str(e))
+
+
+
+@frappe.whitelist()
+def get_workflow_approvals(company, doctype, docname):
+    """
+    #! GET WORKFLOW APPROVALS FOR GIVEN COMPANY AND DOCTYPE
+    #! IF NO CUSTOM APPROVAL FOUND, USE DEFAULT WORKFLOW CONFIG
+    """
+    table_data = []
+
+    #? FETCH CUSTOM WORKFLOW APPROVALS
+    approvals = frappe.get_all(
+        'Workflow Approval',
+        filters={
+            'company': company,
+            'applicable_doctype': doctype
+        },
+        fields=['name'],
+        order_by='modified desc',
+    )
+
+    doc = frappe.get_doc(doctype, docname)
+    filtered_approvals = []
+
+    if approvals:
+        for approval in approvals:
+            criteria = frappe.get_all(
+                'Workflow Approval Criteria',
+                filters={'parent': approval.name},
+                fields=['field_name', 'expected_value']
+            )
+            if not criteria:
+                filtered_approvals.append(approval)
+            else:
+                is_approval_applicable = True
+                for c in criteria:
+                    if doc.get(c.field_name):
+                        if str(doc.get(c.field_name)) != str(c.expected_value):
+                            is_approval_applicable = False
+                            break
+                    else:
+                        is_approval_applicable = False
+                        break
+
+                if is_approval_applicable:
+                    filtered_approvals.append(approval)
+    #? CASE 1 — USE CUSTOM WORKFLOW APPROVAL (IF FOUND)
+    if filtered_approvals:
+        approval = filtered_approvals[0]
+        workflow_approval_hierarchy = frappe.get_all(
+            'Workflow Approval Hierarchy',
+            filters={'parent': approval.name, "state": doc.workflow_state},
+            fields=['*'],
+            order_by='idx asc'
+        )
+        if workflow_approval_hierarchy:
+            for row in workflow_approval_hierarchy:
+                table_data.append({
+                    "state": row.state,
+                    "action": row.action,
+                    "next_state": row.next_state,
+                    "allowed_by": row.allowed_by,
+                    "value": row.employee if row.allowed_by == "User" else row.role,
+                })
+
+    #? CASE 2 — FALLBACK TO DEFAULT WORKFLOW
+    else:
+        workflow_name = frappe.db.get_value('Workflow', {'document_type': doctype, 'is_active': 1}, 'name')
+        if workflow_name:
+            transitions = frappe.get_all(
+                'Workflow Transition',
+                filters={'parent': workflow_name, 'state': doc.workflow_state},
+                fields=['state', 'action', 'next_state', 'allowed'],
+                order_by='idx asc'
+            )
+
+            for row in transitions:
+                table_data.append({
+                    "state": row.state,
+                    "action": row.action,
+                    "next_state": row.next_state,
+                    "allowed_by": "Role",
+                    "value": row.allowed
+                })
+
+    return table_data

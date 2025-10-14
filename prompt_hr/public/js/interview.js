@@ -339,10 +339,74 @@ frappe.ui.form.on("Interview", {
 
         // ? HIDE THE AVAILABLE INTERVIEWERS FIELD AFTER SAVING
         frm.toggle_display("custom_available_interviewers", false);
+    },
+    custom_send_reminder: function (frm, cdt, cdn) {
+        console.log("Hi")
+        frappe.msgprint("Sending Reminder to Interviewers...");
+    }
+
+});
+
+frappe.ui.form.on("Interview Detail", {
+    custom_send_reminder: function (frm, cdt, cdn) {
+        let child = locals[cdt][cdn];
+        if (frm.doc.docstatus !== 1) {
+            frappe.throw("Only Reminder Send For Submitted Interview");
+            return
+        }
+
+        if (!child.custom_interviewer_employee) {
+            frappe.throw("Please Select Interviewer Employee");
+            return
+        }
+
+        frappe.call({
+            method: "prompt_hr.py.interview.send_interview_reminder_to_interviewer",
+            args: {
+                interviewer_employee: child.custom_interviewer_employee,
+                interview_name: frm.doc.name,
+                job_applicant: frm.doc.job_applicant,
+                interview_round: frm.doc.interview_round,
+            },
+            callback: function (r) {
+                if (r.message) {
+                    frappe.msgprint(r.message);
+                }
+            }
+        });
     }
 });
 
+frappe.ui.form.on("External Interviewer", {
+    send_reminder: function (frm, cdt, cdn) {
+        let child = locals[cdt][cdn];
+        if (frm.doc.docstatus !== 1) {
+            frappe.throw("Only Reminder Send For Submitted Interview");
+            return
+        }
 
+        if (!child.user) {
+            frappe.throw("Please Select Interviewer Employee");
+            return
+        }
+
+        frappe.call({
+            method: "prompt_hr.py.interview.send_interview_reminder_to_interviewer",
+            args: {
+                interviewer_employee: child.user,
+                interview_name: frm.doc.name,
+                job_applicant: frm.doc.job_applicant,
+                interview_round: frm.doc.interview_round,
+                external:1
+            },
+            callback: function (r) {
+                if (r.message) {
+                    frappe.msgprint(r.message);
+                }
+            }
+        });
+    }
+});
 
 // ? FUNCTION TO FETCH AVAILABLE INTERVIEWERS AND UPDATE ONLY NEW ONES
 function fetchAvailableInterviewers(frm) {
