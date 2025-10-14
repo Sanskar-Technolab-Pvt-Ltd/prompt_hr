@@ -77,6 +77,7 @@ def set_skill_ratings(doc):
         else:
             if assessment.custom_rating_given == 0:
                 assessment.rating = 0
+
 def update_interview_status(interview_name):
     # Fetch all feedback for this interview
     feedback_list = frappe.get_all(
