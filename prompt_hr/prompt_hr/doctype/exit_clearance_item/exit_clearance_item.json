@@ -1,43 +1,191 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "field:clearance_item",
- "creation": "2025-06-23 15:04:34.401721",
+ "autoname": "EXIT-.YYYY.-.###",
+ "creation": "2025-06-04 13:10:39.163503",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "disable",
-  "clearance_item",
-  "table_name"
+  "employee",
+  "employee_name",
+  "reports_to",
+  "employee_status",
+  "date_of_joining",
+  "company",
+  "column_break_ktcw",
+  "designation",
+  "crm_user_id",
+  "department",
+  "work_location",
+  "employment_type",
+  "relieving_date",
+  "section_break_kvyj",
+  "approval_access_details",
+  "section_break_nzqc",
+  "it",
+  "section_break_xqaa",
+  "engineering",
+  "production_app_server",
+  "db_server",
+  "filled_by",
+  "note"
  ],
  "fields": [
   {
-   "fieldname": "clearance_item",
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Employee ID",
+   "options": "Employee"
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
    "fieldtype": "Data",
-   "label": "Clearance Item",
-   "unique": 1
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Employee Name"
   },
   {
-   "fieldname": "table_name",
+   "fetch_from": "employee.reports_to",
+   "fieldname": "reports_to",
+   "fieldtype": "Link",
+   "ignore_user_permissions": 1,
+   "in_standard_filter": 1,
+   "label": "Reports To",
+   "options": "Employee"
+  },
+  {
+   "fetch_from": "employee.date_of_joining",
+   "fieldname": "date_of_joining",
+   "fieldtype": "Date",
+   "label": "Date Of Joining"
+  },
+  {
+   "fieldname": "column_break_ktcw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "employee.designation",
+   "fieldname": "designation",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Designation",
+   "options": "Designation"
+  },
+  {
+   "fieldname": "crm_user_id",
+   "fieldtype": "Data",
+   "label": "CRM User ID"
+  },
+  {
+   "fetch_from": "employee.department",
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Department",
+   "options": "Department"
+  },
+  {
+   "fieldname": "section_break_xqaa",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "production_app_server",
+   "fieldtype": "Data",
+   "label": "Mention Production App Server user name, if any"
+  },
+  {
+   "fieldname": "db_server",
+   "fieldtype": "Data",
+   "label": "Mention Production DB Server user name, if any "
+  },
+  {
+   "fieldname": "filled_by",
+   "fieldtype": "Link",
+   "label": "Filled By",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "note",
+   "fieldtype": "Small Text",
+   "label": "Note"
+  },
+  {
+   "fetch_from": "employee.relieving_date",
+   "fieldname": "relieving_date",
+   "fieldtype": "Date",
+   "in_standard_filter": 1,
+   "label": "Last Working Date"
+  },
+  {
+   "fetch_from": "employee.company",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "section_break_nzqc",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "it",
+   "fieldtype": "Table",
+   "label": "IT",
+   "options": "IT Asset Clearance"
+  },
+  {
+   "fieldname": "engineering",
+   "fieldtype": "Table",
+   "label": "Engineering",
+   "options": "IT Asset Clearance"
+  },
+  {
+   "fetch_from": "employee.custom_work_location",
+   "fieldname": "work_location",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Work Location",
+   "options": "Address"
+  },
+  {
+   "fetch_from": "employee.status",
+   "fieldname": "employee_status",
    "fieldtype": "Select",
-   "label": "Table Name",
-   "options": "\nit\nengineering"
+   "in_standard_filter": 1,
+   "label": "Employee Status",
+   "options": "Active\nInactive\nSuspended\nAbsconded\nLeft"
   },
   {
-   "default": "0",
-   "fieldname": "disable",
-   "fieldtype": "Check",
-   "label": "Disable"
+   "fetch_from": "employee.employment_type",
+   "fieldname": "employment_type",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Employment Type",
+   "options": "Employment Type"
+  },
+  {
+   "fieldname": "section_break_kvyj",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "approval_access_details",
+   "fieldtype": "HTML",
+   "label": "Approval Access Details"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-11 16:09:36.241288",
+ "modified": "2025-10-13 16:24:52.699552",
  "modified_by": "Administrator",
  "module": "Prompt HR",
- "name": "Exit Clearance Item",
- "naming_rule": "By fieldname",
+ "name": "IT Exit Checklist",
+ "naming_rule": "Expression (old style)",
  "owner": "Administrator",
  "permissions": [
   {
@@ -49,6 +197,30 @@
    "read": 1,
    "report": 1,
    "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR User",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
    "share": 1,
    "write": 1
   }

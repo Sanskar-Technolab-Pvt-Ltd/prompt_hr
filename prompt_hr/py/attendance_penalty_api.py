@@ -1204,6 +1204,7 @@ def check_if_shift_is_assign(employee, date):
         {
             "employee": employee,
             "docstatus": 1,
+            "status": "Active",
             "start_date": ["<=", date],
             "end_date": [">=", date],
         },
@@ -1216,6 +1217,7 @@ def check_if_shift_is_assign(employee, date):
         {
             "employee": employee,
             "docstatus": 1,
+            "status": "Active",
             "start_date": ["<=", date],
             "end_date": ["is", "not set"],  # no end date
         },
@@ -1251,6 +1253,7 @@ def get_below_threshold_daily_hours(
             "Shift Assignment",
             filters={
                 "employee": ["in", employees],
+                "status": "Active",
                 "docstatus": 1,
                 "start_date": ["<=", target_date],
             },

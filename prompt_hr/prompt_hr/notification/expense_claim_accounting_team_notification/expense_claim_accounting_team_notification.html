@@ -1,0 +1,39 @@
+<p>
+    An <b>Expense Claim</b> has been submitted by {{doc.employee}} and requires your attention.
+</p>
+
+<table style="border-collapse: collapse; width: 100%; max-width: 600px;">
+    <tr style="background-color: #f2f2f2;">
+        <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">Field</th>
+        <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">Details</th>
+    </tr>
+    <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">Expense Claim ID</td>
+        <td style="padding: 8px; border: 1px solid #ddd;"><b>{{ doc.name }}</b></td>
+    </tr>
+    <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">Employee</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">{{ doc.employee }}</td>
+    </tr>
+    <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">Expense Approver</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">{{ doc.expense_approver or "Not Assigned" }}</td>
+    </tr>
+    <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">Total Claimed Amount</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">{{ doc.total_claimed_amount or 0 }}</td>
+    </tr>
+    <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">Status</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">{{ doc.workflow_state or "Pending" }}</td>
+    </tr>
+</table>
+
+<p style="margin-top: 16px;">
+    You can review and take action on this Expense Claim by clicking the link below:
+</p>
+<p>
+    <a href="{{ frappe.utils.get_url() }}/app/expense-claim/{{ doc.name }}" target="_blank" style="display: inline-block; padding: 10px 16px; background-color: #1f77d0; color: white; text-decoration: none; border-radius: 4px;">
+        View Expense Claim
+    </a>
+</p>

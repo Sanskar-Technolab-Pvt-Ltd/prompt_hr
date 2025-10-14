@@ -321,8 +321,56 @@ def validate_expenses_entry(doc):
 
 def validate_expense_claim_detail_rules(doc):
     try:
+        # ! FETCH BUFFER DAYS FROM HR SETTINGS FOR PREVIOUS MONTH EXPENSE CLAIM ALLOWED
+        buffer_days_for_prev_month_expense_allowed = frappe.db.get_single_value("HR Settings", "custom_buffer_days_for_previous_month_expense") or 0
         #! LOOP THROUGH ALL CHILD ROWS IN EXPENSE CLAIM
         for row in doc.expenses:
+            # ? GENERAL RULES VERIFICATION
+            # ? FROM DATE CANNOT BE GREATER THAN TO DATE
+            if row.expense_date > row.custom_expense_end_date:
+                raise frappe.ValidationError(
+                    _(f"Start Date cannot be greater than End Date in row {row.idx}.")
+                )
+            
+            # ? FUTURE DATES ARE NOT ALLOWED
+            if getdate(row.custom_expense_end_date) > getdate():
+                raise frappe.ValidationError(
+                    _(f"Row {row.idx}: Future Dates Are Not Allowed")
+                )
+            
+            # ? CHECK FOR PREV MONTH EXPENSE IS ALLOWED OR NOT
+            if row.expense_date and row.custom_expense_end_date:
+                current_month = getdate().month
+                expense_date_month = getdate(row.custom_expense_end_date).month
+                expense_start_month = getdate(row.expense_date).month
+                if buffer_days_for_prev_month_expense_allowed:
+                    if current_month == expense_date_month:
+                        # ! CHECK START DATE AND END DATE DIFFERNCE NOT MORE THAN MONTH
+                        if (expense_date_month - expense_start_month) > 1:
+                            #? CONVERT MONTH NUMBER TO MONTH NAME
+                            month_name = getdate(row.expense_date).strftime("%B")
+                            raise frappe.ValidationError(
+                                _(f"Expense Claim is not allowed for {month_name} month in Row {row.idx}.")
+                            )
+
+                    else:
+                        # ! VALIDATE MONTH NOT BEFORE THAN LAST MONTH
+                        if (current_month - expense_start_month) > 1:
+                            month_name = getdate(row.expense_date).strftime("%B")
+                            raise frappe.ValidationError(
+                                _(f"Expense Claim is not allowed for {month_name} month in Row {row.idx}.")
+                            )
+                        
+                        # ! VALIDATE THE DATE MUST BE IN BUFFER DAYS PERIOD FOR PREV MONTH CLAIMS
+                        else:
+                            allowed_date = add_days(getdate().replace(day=1), int(buffer_days_for_prev_month_expense_allowed)-1)
+                            month_name = getdate(row.custom_expense_end_date).strftime("%B")
+                            if getdate() > allowed_date:
+                                raise frappe.ValidationError(
+                                    _(f"Expense Claim is not allowed for {month_name} month in Row {row.idx}.")
+                                )
+
+
             expense_days = row.custom_days or 0
             #? RULE 1: CITY IS MANDATORY IF EXPENSE TYPE IS 'Lodging'
             if row.expense_type == "Lodging" and not row.custom_city:
@@ -738,6 +786,8 @@ def get_expense_claim_exception(doc):
 
         for exp in expenses:
             exp.custom_is_exception = 0
+            exp.custom_max_limit = 0
+
 
         for idx, exp in enumerate(expenses, start=1):
             _validate_and_process_expense(
@@ -793,6 +843,8 @@ def _validate_and_process_expense(
     Validates and processes an individual expense item within the claim.
     """
     exp.custom_is_exception = 0
+    exp.custom_max_limit = 0
+
     exp_amount = flt(exp.amount or 0)
     days = exp.custom_days or 1
     expense_date = getdate(exp.expense_date)
@@ -1025,7 +1077,7 @@ def _process_food_lodging_expense(
                 exp.amount = (change_percentage * exp.amount) / 100
                 exp.sanctioned_amount = exp.amount
 
-
+    max_limit = 0
     exceeded_any_day = False
     for i in range(days):
         current_day = expense_start_date + timedelta(days=i)
@@ -1041,6 +1093,7 @@ def _process_food_lodging_expense(
 
         if cumulative_daily_total > flt(limit) and limit>0:
             exceeded_any_day = True
+            max_limit = limit * float(exp.custom_days or 0)
             break
 
     if exceeded_any_day:
@@ -1054,6 +1107,7 @@ def _process_food_lodging_expense(
 
         if employee_limit != 0:
             exp.custom_is_exception = 1
+            exp.custom_max_limit = round(max_limit,2)
 
 @frappe.whitelist()
 def get_employees_by_role(doctype, txt, searchfield, start, page_len, filters):
@@ -1289,7 +1343,7 @@ def _process_local_commute_expense(
 
     daily_limit = flt(budget_row.get("local_commute_limit_daily", 0))
     monthly_limit = flt(budget_row.get("local_commute_limit_monthly", 0))
-
+    max_limit = 0
     daily_per_item_amount = exp_amount / days
     exceeded_daily = False
     exceeded_monthly = False
@@ -1309,6 +1363,7 @@ def _process_local_commute_expense(
 
         # Check if daily limit is exceeded
         if daily_limit and cumulative_daily_total > daily_limit:
+            max_limit = daily_limit
             exceeded_daily = True
             break
 
@@ -1325,6 +1380,7 @@ def _process_local_commute_expense(
 
     if monthly_limit and cumulative_monthly_spend > monthly_limit:
         exceeded_monthly = True
+        max_limit = monthly_limit
 
     # Flag as exception if any limit is exceeded
     if exceeded_daily or exceeded_monthly:
@@ -1334,6 +1390,7 @@ def _process_local_commute_expense(
             )
 
         exp.custom_is_exception = 1
+        exp.custom_max_limit = round(max_limit,2)
 
 
 def validate_attachments_compulsion(doc):
@@ -2959,3 +3016,98 @@ def get_travel_request_details(employee):
 
     # Return the list of parent dicts
     return result
+
+@frappe.whitelist()
+def send_mail_to_accounting_team(doctype, docname):
+    """
+    Sends email notifications to users with accounting roles configured in HR Settings,
+    excluding specific users like employee, reporting manager, last shared user, and expense approver.
+    """
+    try:
+        #! FETCH ACCOUNTING ROLES FROM HR SETTINGS
+        accounting_roles_str = frappe.db.get_single_value(
+            'HR Settings', "custom_accounting_roles_for_expense_claims"
+        )
+        if not accounting_roles_str:
+            frappe.log_error("No accounting roles configured in HR Settings", "Send Mail To Accounting Team")
+            return {"status": "success", "message": "No Roles Found To Notify"}
+
+        roles = [role.strip() for role in accounting_roles_str.split(",") if role.strip()]
+        if not roles:
+            frappe.log_error("HR Settings contains empty roles", "Send Mail To Accounting Team")
+            return {"status": "success", "message": "No Roles Found To Notify"}
+
+        #! FETCH EMPLOYEE, REPORTING MANAGER, AND EXPENSE APPROVER
+        doc = frappe.get_doc(doctype, docname)
+        employee_user_id = None
+        reporting_manager_user_id = None
+        expense_approver_user_id = None
+
+        if getattr(doc, "employee", None):
+            employee_user_id = frappe.db.get_value("Employee", doc.employee, "user_id")
+            reporting_manager = frappe.db.get_value("Employee", doc.employee, "reports_to")
+            if reporting_manager:
+                reporting_manager_user_id = frappe.db.get_value("Employee", reporting_manager, "user_id")
+
+        if getattr(doc, "expense_approver", None):
+            expense_approver_user_id = doc.expense_approver
+
+        #! FETCH LAST SHARED USER
+        last_shared_user_id = None
+        last_shared = frappe.get_all(
+            "DocShare",
+            filters={"share_doctype": doctype, "share_name": docname, "user": ["!=", employee_user_id]},
+            fields=["user"],
+            order_by="creation desc",
+            limit_page_length=1
+        )
+        if last_shared:
+            last_shared_user_id = last_shared[0].user
+
+        #! COLLECT USERS TO NOTIFY
+        users_to_notify = set()
+        for role in roles:
+            try:
+                users = frappe.get_all(
+                    "Has Role",
+                    filters={"role": role, "parenttype": "User"},
+                    fields=["parent"]
+                )
+                for user in users:
+                    user_email = user.parent
+                    if user_email not in (
+                        "Administrator",
+                        "Guest",
+                        employee_user_id,
+                        reporting_manager_user_id,
+                        expense_approver_user_id,
+                        last_shared_user_id
+                    ):
+                        users_to_notify.add(user_email)
+            except Exception as e:
+                frappe.log_error(f"Failed to fetch users for role '{role}'", str(e))
+
+        if not users_to_notify:
+            frappe.log_error("No users found for roles after exclusions", "Send Mail To Accounting Team")
+            return {"status": "success", "message": "No Users Found To Notify"}
+
+        #! SEND EMAILS
+        if users_to_notify:
+            users_to_notify = list(users_to_notify)
+            try:
+                send_notification_email(
+                    doctype=doctype,
+                    docname=docname,
+                    recipients=users_to_notify,
+                    notification_name="Expense Claim Accounting Team Notification",
+                    send_link=False,
+                    send_header_greeting=True,
+                )
+            except Exception as e:
+                frappe.log_error("Error While Sending Emails", str(e))
+
+        return {"status": "success", "message": "Mail sent to all accounting team members."}
+
+    except Exception as e:
+        frappe.log_error("Unexpected error in send_mail_to_accounting_team", str(e))
+        return {"status": "error", "message": "An error occurred while sending emails."}

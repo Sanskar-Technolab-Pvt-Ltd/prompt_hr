@@ -257,6 +257,7 @@ doc_events = {
     "Interview Feedback": {
         "on_submit": "prompt_hr.py.interview_feedback.on_submit",
         "on_update": "prompt_hr.py.interview_feedback.on_update",
+        "before_validate": "prompt_hr.py.interview_feedback.before_validate"
     },
     # "User": {
     #     "after_insert": "prompt_hr.py.welcome_status.after_insert"

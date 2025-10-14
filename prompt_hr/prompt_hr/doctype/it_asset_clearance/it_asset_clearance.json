@@ -7,6 +7,8 @@
  "engine": "InnoDB",
  "field_order": [
   "clearance_item",
+  "role_allowed_to_modify_approval_status",
+  "user_allowed_to_modify_approval_status",
   "status",
   "remarks",
   "hold_till",
@@ -55,12 +57,29 @@
    "fieldname": "approval_status",
    "fieldtype": "Select",
    "label": "Approval Status",
-   "options": "Pending\nRejected"
+   "options": "Pending\nRejected",
+   "read_only_depends_on": "eval:!(frappe.session.user === doc.user_allowed_to_modify_approval_status || frappe.user.has_role(doc.role_allowed_to_modify_approval_status) || frappe.session.user == \"Administrator\")\n"
   },
   {
    "fieldname": "approval_status_history",
    "fieldtype": "Small Text",
    "label": "Approval Status History",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "clearance_item.role_allowed_to_modify_approval_status",
+   "fieldname": "role_allowed_to_modify_approval_status",
+   "fieldtype": "Link",
+   "label": "Role Allowed to Modify Approval Status",
+   "options": "Role",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "clearance_item.user_allowed_to_modify_approval_status",
+   "fieldname": "user_allowed_to_modify_approval_status",
+   "fieldtype": "Link",
+   "label": "User Allowed to Modify Approval Status",
+   "options": "User",
    "read_only": 1
   }
  ],
@@ -68,7 +87,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-10-08 16:41:43.798390",
+ "modified": "2025-10-13 12:39:49.336807",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "IT Asset Clearance",

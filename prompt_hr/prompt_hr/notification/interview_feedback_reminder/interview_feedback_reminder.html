@@ -1,0 +1,36 @@
+<p>
+   A <b>Interview Feedback</b> is pending for <b>{{ doc.job_applicant }}</b> (Round: {{ doc.interview_round }}) and requires your attention.
+</p>
+
+<table style="border-collapse: collapse; width: 100%; max-width: 600px;">
+    <tr style="background-color: #f2f2f2;">
+        <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">Field</th>
+        <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">Details</th>
+    </tr>
+    <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">Interview ID</td>
+        <td style="padding: 8px; border: 1px solid #ddd;"><b>{{ doc.name }}</b></td>
+    </tr>
+    <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">Job Applicant</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">{{ doc.job_applicant }}</td>
+    </tr>
+    <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">Interview Round</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">{{ doc.interview_round }}</td>
+    </tr>
+    <tr>
+        <td style="padding: 8px; border: 1px solid #ddd;">Interview Date</td>
+        <td style="padding: 8px; border: 1px solid #ddd;">{{ frappe.utils.format_date(doc.scheduled_on, "dd-MM-yyyy") or "Not Scheduled" }}</td>
+    </tr>
+
+</table>
+
+<p style="margin-top: 16px;">
+    You can view the interview details by clicking the link below:
+</p>
+<p>
+    <a href="{{ frappe.utils.get_url() }}/app/interview/{{ doc.name }}" target="_blank" style="display: inline-block; padding: 10px 16px; background-color: #1f77d0; color: white; text-decoration: none; border-radius: 4px;">
+        View Interview
+    </a>
+</p>

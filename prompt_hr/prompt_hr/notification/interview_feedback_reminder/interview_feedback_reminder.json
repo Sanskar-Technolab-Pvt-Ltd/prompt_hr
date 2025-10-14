@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-10-14 11:48:44.160286",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Interview",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "<p>\n   A <b>Interview Feedback</b> is pending for <b>{{ doc.job_applicant }}</b> (Round: {{ doc.interview_round }}) and requires your attention.\n</p>\n\n<table style=\"border-collapse: collapse; width: 100%; max-width: 600px;\">\n    <tr style=\"background-color: #f2f2f2;\">\n        <th style=\"text-align: left; padding: 8px; border: 1px solid #ddd;\">Field</th>\n        <th style=\"text-align: left; padding: 8px; border: 1px solid #ddd;\">Details</th>\n    </tr>\n    <tr>\n        <td style=\"padding: 8px; border: 1px solid #ddd;\">Interview ID</td>\n        <td style=\"padding: 8px; border: 1px solid #ddd;\"><b>{{ doc.name }}</b></td>\n    </tr>\n    <tr>\n        <td style=\"padding: 8px; border: 1px solid #ddd;\">Job Applicant</td>\n        <td style=\"padding: 8px; border: 1px solid #ddd;\">{{ doc.job_applicant }}</td>\n    </tr>\n    <tr>\n        <td style=\"padding: 8px; border: 1px solid #ddd;\">Interview Round</td>\n        <td style=\"padding: 8px; border: 1px solid #ddd;\">{{ doc.interview_round }}</td>\n    </tr>\n    <tr>\n        <td style=\"padding: 8px; border: 1px solid #ddd;\">Interview Date</td>\n        <td style=\"padding: 8px; border: 1px solid #ddd;\">{{ frappe.utils.format_date(doc.scheduled_on, \"dd-MM-yyyy\") or \"Not Scheduled\" }}</td>\n    </tr>\n\n</table>\n\n<p style=\"margin-top: 16px;\">\n    You can view the interview details by clicking the link below:\n</p>\n<p>\n    <a href=\"{{ frappe.utils.get_url() }}/app/interview/{{ doc.name }}\" target=\"_blank\" style=\"display: inline-block; padding: 10px 16px; background-color: #1f77d0; color: white; text-decoration: none; border-radius: 4px;\">\n        View Interview\n    </a>\n</p>\n",
+ "message_type": "HTML",
+ "modified": "2025-10-14 14:31:02.988601",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Interview Feedback Reminder",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "Reminder: Submit Interview Feedback for {{doc.job_applicant}} ({{doc.interview_round}})"
+}

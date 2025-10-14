@@ -19,6 +19,8 @@
   "work_location",
   "employment_type",
   "relieving_date",
+  "section_break_kvyj",
+  "approval_access_details",
   "section_break_nzqc",
   "it",
   "section_break_xqaa",
@@ -32,6 +34,7 @@
   {
    "fieldname": "employee",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Employee ID",
    "options": "Employee"
@@ -40,6 +43,7 @@
    "fetch_from": "employee.employee_name",
    "fieldname": "employee_name",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Employee Name"
   },
@@ -66,6 +70,7 @@
    "fetch_from": "employee.designation",
    "fieldname": "designation",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Designation",
    "options": "Designation"
@@ -79,6 +84,7 @@
    "fetch_from": "employee.department",
    "fieldname": "department",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Department",
    "options": "Department"
@@ -161,12 +167,21 @@
    "in_standard_filter": 1,
    "label": "Employment Type",
    "options": "Employment Type"
+  },
+  {
+   "fieldname": "section_break_kvyj",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "approval_access_details",
+   "fieldtype": "HTML",
+   "label": "Approval Access Details"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-11 11:22:16.520314",
+ "modified": "2025-10-13 16:24:52.699552",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "IT Exit Checklist",
