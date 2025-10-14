@@ -1983,6 +1983,7 @@ def auto_shift_assign(doc):
         filters={
             "employee": doc.name,
             "docstatus": 1,
+            "status": "Active",
             "start_date": ["<=", shift_start_date]
         },
         or_filters=[

@@ -156,6 +156,7 @@ class CustomLeaveApplication(LeaveApplication):
                     filters={
                         "employee": doc.employee,
                         "docstatus": 1,
+                        "status": "Active",
                         "start_date": ["<=", doc.attendance_date],
                     },
                     or_filters=[{"end_date": [">=", doc.attendance_date]}, {"end_date": ["is", "not set"]}],
