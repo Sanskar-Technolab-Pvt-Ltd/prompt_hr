@@ -13,8 +13,8 @@ frappe.ui.form.on("Job Opening", {
         let hide_notify_buttons = false;
         // Check if current user is an internal recruiter
         (frm.doc.custom_internal_recruiter || []).forEach(rec => {
-            if (rec.user) {
-                frappe.db.get_value("Employee", rec.user, "user_id", function (r) {
+            if (rec.custom_user) {
+                frappe.db.get_value("Employee", rec.custom_user, "user_id", function (r) {
                     if (r.user_id === current_user) {
                         hide_notify_buttons = true;
                     }
@@ -24,11 +24,11 @@ frappe.ui.form.on("Job Opening", {
 
         // Check if current user is an external recruiter
         (frm.doc.custom_external_recruiter || []).forEach(rec => {
-            if (rec.user) {
+            if (rec.custom_user) {
                 frappe.call({
                     method: "prompt_hr.py.interview_availability.get_supplier_custom_user",
                     args: {
-                        supplier_name: rec.user
+                        supplier_name: rec.custom_user
                     },
                     callback: function (r) {
                         if (r.message === current_user) {
@@ -41,8 +41,8 @@ frappe.ui.form.on("Job Opening", {
 
         // Check if current user is an internal interviewer
         (frm.doc.custom_internal_interviewers || []).forEach(rec => {
-            if (rec.user) {
-                frappe.db.get_value("Employee", rec.user, "user_id", function (r) {
+            if (rec.custom_user) {
+                frappe.db.get_value("Employee", rec.custom_user, "user_id", function (r) {
                     if (r.user_id === current_user) {
                         hide_notify_buttons = true;
                     }
@@ -52,11 +52,11 @@ frappe.ui.form.on("Job Opening", {
 
         // Check if current user is an external interviewer
         (frm.doc.custom_external_interviewers || []).forEach(rec => {
-            if (rec.user) {
+            if (rec.custom_user) {
                 frappe.call({
                     method: "prompt_hr.py.interview_availability.get_supplier_custom_user",
                     args: {
-                        supplier_name: rec.user
+                        supplier_name: rec.custom_user
                     },
                     callback: function (r) {
                         if (r.message === current_user) {

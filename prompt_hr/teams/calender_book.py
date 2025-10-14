@@ -114,8 +114,8 @@ def teams_calender_book(docname):
         # 3. Add External Interviewers (custom_external_interviewers child table)
         
         for row in interview_doc.custom_external_interviewers:
-            if row.user:
-                custom_user_email = frappe.db.get_value("Supplier", row.user, "custom_user")
+            if row.custom_user:
+                custom_user_email = frappe.db.get_value("Supplier", row.custom_user, "custom_user")
                 if custom_user_email:
                     attendees.append({
                         "emailAddress": {
