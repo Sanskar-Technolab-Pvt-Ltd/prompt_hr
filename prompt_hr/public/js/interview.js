@@ -145,17 +145,17 @@ frappe.ui.form.on("Interview", {
                     if (frm.doc.custom_external_interviewers && frm.doc.custom_external_interviewers.length) {
                         console.log("External Interviewers:", frm.doc.custom_external_interviewers);
                         frm.doc.custom_external_interviewers.forEach(function (interviewer) {
-                            if (interviewer.user) {
+                            if (interviewer.custom_user) {
                                 if (interviewer.is_confirm === 0) {
                                     frappe.call({
                                         method: "prompt_hr.py.interview_availability.get_supplier_custom_user",
                                         args: {
-                                            supplier_name: interviewer.user
+                                            supplier_name: interviewer.custom_user
                                         },
                                         callback: function (r) {
                                             if (r.message === current_user) {
                                                 frm.remove_custom_button(__("Notify Interviewer"));
-                                                console.log("External Interviewer:", interviewer.user);
+                                                console.log("External Interviewer:", interviewer.custom_user);
                                                 is_external_interviewer_not_confirmed = true;
                                                 showConfirmButton();
                                             }
@@ -166,7 +166,7 @@ frappe.ui.form.on("Interview", {
                                     frappe.call({
                                         method: "prompt_hr.py.interview_availability.get_supplier_custom_user",
                                         args: {
-                                            supplier_name: interviewer.user
+                                            supplier_name: interviewer.custom_user
                                         },
                                         callback: function (r) {
                                             console.log(r)
@@ -268,10 +268,10 @@ frappe.ui.form.on("Interview", {
         // ?  CHECK EXTERNAL INTERVIEWERS
         let allow_external = false;
         for (const ext of frm.doc.custom_external_interviewers || []) {
-            if (ext.user) {
+            if (ext.custom_user) {
                 const r = await frappe.call({
                     method: "prompt_hr.py.interview_availability.get_supplier_custom_user",
-                    args: { supplier_name: ext.user },
+                    args: { supplier_name: ext.custom_user },
                 });
                 if (r?.message === frappe.session.user) {
                     allow_external = true;
@@ -385,7 +385,7 @@ frappe.ui.form.on("External Interviewer", {
             return
         }
 
-        if (!child.user) {
+        if (!child.custom_user) {
             frappe.throw("Please Select Interviewer Employee");
             return
         }
@@ -393,7 +393,7 @@ frappe.ui.form.on("External Interviewer", {
         frappe.call({
             method: "prompt_hr.py.interview.send_interview_reminder_to_interviewer",
             args: {
-                interviewer_employee: child.user,
+                interviewer_employee: child.custom_user,
                 interview_name: frm.doc.name,
                 job_applicant: frm.doc.job_applicant,
                 interview_round: frm.doc.interview_round,

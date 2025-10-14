@@ -6,19 +6,12 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "user",
+  "custom_user",
   "user_name",
   "assign_date",
   "is_confirm"
  ],
  "fields": [
-  {
-   "fieldname": "user",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Recruiter",
-   "options": "Employee"
-  },
   {
    "fetch_from": "user.employee_name",
    "fieldname": "user_name",
@@ -36,13 +29,20 @@
    "fieldname": "is_confirm",
    "fieldtype": "Check",
    "label": "is Confirm"
+  },
+  {
+   "fieldname": "custom_user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Recruiter",
+   "options": "Employee"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-04-24 13:59:43.534301",
+ "modified": "2025-10-14 16:26:26.127977",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Internal Recruiter",

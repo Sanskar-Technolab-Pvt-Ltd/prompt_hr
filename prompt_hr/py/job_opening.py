@@ -112,13 +112,13 @@ def send_job_opening_recruiter_notification(name):
         internal_recruiters = frappe.get_all(
             "Internal Recruiter",
             filters={"parent": doc.name},
-            fields=["name", "user"]
+            fields=["name", "custom_user"]
         )
 
         for recruiter in internal_recruiters:
-            if recruiter.user:
+            if recruiter.custom_user:
                 try:
-                    recruiter_employee = frappe.get_doc("Employee", recruiter.user)
+                    recruiter_employee = frappe.get_doc("Employee", recruiter.custom_user)
                     if recruiter_employee.user_id:
                         user_email = frappe.db.get_value("User", recruiter_employee.user_id, "email")
                         frappe.share.add(doc.doctype, doc.name, recruiter_employee.user_id, read=1)
@@ -143,13 +143,13 @@ def send_job_opening_recruiter_notification(name):
         external_recruiters = frappe.get_all(
             "External Recruiter",
             filters={"parent": doc.name},
-            fields=["name", "user"]
+            fields=["name", "custom_user"]
         )
 
         for recruiter in external_recruiters:
-            if recruiter.user:
+            if recruiter.custom_user:
                 try:
-                    supplier_doc = frappe.get_doc("Supplier", recruiter.user)
+                    supplier_doc = frappe.get_doc("Supplier", recruiter.custom_user)
                     if supplier_doc.custom_user:
                         user_email = frappe.db.get_value("User", supplier_doc.custom_user, "email")
                         frappe.share.add(doc.doctype, doc.name, supplier_doc.custom_user, read=1)
@@ -181,13 +181,13 @@ def send_job_opening_interview_notification(name):
         internal_interviewers = frappe.get_all(
             "Internal Interviewer",
             filters={"parent": doc.name},
-            fields=["name", "user"]
+            fields=["name", "custom_user"]
         )
 
         for interviewer in internal_interviewers:
-            if interviewer.user:
+            if interviewer.custom_user:
                 try:
-                    employee = frappe.get_doc("Employee", interviewer.user)
+                    employee = frappe.get_doc("Employee", interviewer.custom_user)
                     if employee.user_id:
                         user_email = frappe.db.get_value("User", employee.user_id, "email")
                         frappe.share.add(doc.doctype, doc.name, employee.user_id, read=1)
@@ -216,13 +216,13 @@ def send_job_opening_interview_notification(name):
         external_interviewers = frappe.get_all(
             "External Interviewer",
             filters={"parent": doc.name},
-            fields=["name", "user"]
+            fields=["name", "custom_user"]
         )
 
         for interviewer in external_interviewers:
-            if interviewer.user:
+            if interviewer.custom_user:
                 try:
-                    supplier = frappe.get_doc("Supplier", interviewer.user)
+                    supplier = frappe.get_doc("Supplier", interviewer.custom_user)
                     if supplier.custom_user:
                         user_email = frappe.db.get_value("User", supplier.custom_user, "email")
                         frappe.share.add(doc.doctype, doc.name, supplier.custom_user, read=1)

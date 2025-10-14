@@ -6,30 +6,30 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "user",
+  "custom_user",
   "user_name"
  ],
  "fields": [
-  {
-   "fieldname": "user",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Interviewer",
-   "options": "Employee"
-  },
   {
    "fetch_from": "user.employee_name",
    "fieldname": "user_name",
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Interviewer Name"
+  },
+  {
+   "fieldname": "custom_user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Interviewer",
+   "options": "Employee"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-04-24 16:59:42.519658",
+ "modified": "2025-10-14 16:31:57.375370",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Internal Interviewer",
