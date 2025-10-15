@@ -339,36 +339,37 @@ def validate_expense_claim_detail_rules(doc):
                 )
             
             # ? CHECK FOR PREV MONTH EXPENSE IS ALLOWED OR NOT
-            if row.expense_date and row.custom_expense_end_date:
-                current_month = getdate().month
-                expense_date_month = getdate(row.custom_expense_end_date).month
-                expense_start_month = getdate(row.expense_date).month
-                if buffer_days_for_prev_month_expense_allowed:
-                    if current_month == expense_date_month:
-                        # ! CHECK START DATE AND END DATE DIFFERNCE NOT MORE THAN MONTH
-                        if (expense_date_month - expense_start_month) > 1:
-                            #? CONVERT MONTH NUMBER TO MONTH NAME
-                            month_name = getdate(row.expense_date).strftime("%B")
-                            raise frappe.ValidationError(
-                                _(f"Expense Claim is not allowed for {month_name} month in Row {row.idx}.")
-                            )
-
-                    else:
-                        # ! VALIDATE MONTH NOT BEFORE THAN LAST MONTH
-                        if (current_month - expense_start_month) > 1:
-                            month_name = getdate(row.expense_date).strftime("%B")
-                            raise frappe.ValidationError(
-                                _(f"Expense Claim is not allowed for {month_name} month in Row {row.idx}.")
-                            )
-                        
-                        # ! VALIDATE THE DATE MUST BE IN BUFFER DAYS PERIOD FOR PREV MONTH CLAIMS
-                        else:
-                            allowed_date = add_days(getdate().replace(day=1), int(buffer_days_for_prev_month_expense_allowed)-1)
-                            month_name = getdate(row.custom_expense_end_date).strftime("%B")
-                            if getdate() > allowed_date:
+            if doc.is_new() or doc.workflow_state == "Draft":
+                if row.expense_date and row.custom_expense_end_date:
+                    current_month = getdate().month
+                    expense_date_month = getdate(row.custom_expense_end_date).month
+                    expense_start_month = getdate(row.expense_date).month
+                    if buffer_days_for_prev_month_expense_allowed:
+                        if current_month == expense_date_month:
+                            # ! CHECK START DATE AND END DATE DIFFERNCE NOT MORE THAN MONTH
+                            if (expense_date_month - expense_start_month) > 1:
+                                #? CONVERT MONTH NUMBER TO MONTH NAME
+                                month_name = getdate(row.expense_date).strftime("%B")
                                 raise frappe.ValidationError(
                                     _(f"Expense Claim is not allowed for {month_name} month in Row {row.idx}.")
                                 )
+
+                        else:
+                            # ! VALIDATE MONTH NOT BEFORE THAN LAST MONTH
+                            if (current_month - expense_start_month) > 1:
+                                month_name = getdate(row.expense_date).strftime("%B")
+                                raise frappe.ValidationError(
+                                    _(f"Expense Claim is not allowed for {month_name} month in Row {row.idx}.")
+                                )
+                            
+                            # ! VALIDATE THE DATE MUST BE IN BUFFER DAYS PERIOD FOR PREV MONTH CLAIMS
+                            else:
+                                allowed_date = add_days(getdate().replace(day=1), int(buffer_days_for_prev_month_expense_allowed)-1)
+                                month_name = getdate(row.custom_expense_end_date).strftime("%B")
+                                if getdate() > allowed_date:
+                                    raise frappe.ValidationError(
+                                        _(f"Expense Claim is not allowed for {month_name} month in Row {row.idx}.")
+                                    )
 
 
             expense_days = row.custom_days or 0
