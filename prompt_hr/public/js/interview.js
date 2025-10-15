@@ -2,20 +2,20 @@ const original_add_custom_buttons = frappe.ui.form.handlers.Interview?.add_custo
 const original_submit_feedback = frappe.ui.form.handlers.Interview?.submit_feedback;
 frappe.ui.form.off("Interview", "submit_feedback")
 frappe.ui.form.on("Interview", {
-    custom_template: function(frm) {
+    custom_template: function (frm) {
         if (!frm.doc.custom_template) return;
 
         frappe.db.get_doc('Email Template', frm.doc.custom_template)
-        .then(template => {
-            // 1. Show raw Jinja template in main editor
-            frm.set_value('custom_template_data', template.response);
+            .then(template => {
+                // 1. Show raw Jinja template in main editor
+                frm.set_value('custom_template_data', template.response);
 
-            // 2. Render immediately for preview
-            update_preview(frm, template.response);
-        })
-        .catch(err => {
-            frappe.msgprint('Failed to fetch Email Template.');
-        });
+                // 2. Render immediately for preview
+                update_preview(frm, template.response);
+            })
+            .catch(err => {
+                frappe.msgprint('Failed to fetch Email Template.');
+            });
     },
 
     refresh: function (frm) {
@@ -29,10 +29,10 @@ frappe.ui.form.on("Interview", {
             }
         });
         if (!frm.is_new()) {
-            let button_label = frm.doc.custom_teams_calender_book 
-            ? "Revise Teams Calendar" 
-            : "Book Teams Calendar";
-            frm.add_custom_button(__(button_label), function() {
+            let button_label = frm.doc.custom_teams_calender_book
+                ? "Revise Teams Calendar"
+                : "Book Teams Calendar";
+            frm.add_custom_button(__(button_label), async function () {
                 if (frm.is_dirty()) {
                     frappe.msgprint({
                         title: __("Unsaved Changes"),
@@ -42,13 +42,20 @@ frappe.ui.form.on("Interview", {
                     return;
                 }
 
+
+                let template_text = frm.doc.custom_template_data
+                let rendered_html = await getTeamsMessageHTML(frm, template_text)
+
+                console.log(rendered_html)
+
                 frappe.call({
                     method: 'prompt_hr.teams.calender_book.teams_calender_book',
                     args: {
-                        docname: frm.doc.name
+                        docname: frm.doc.name,
+                        rendered_html: rendered_html
                     },
-                    
-                    callback: function(r) {
+
+                    callback: function (r) {
                         if (r.message) {
                             frappe.msgprint({
                                 title: __("Meeting Scheduled"),
@@ -65,10 +72,10 @@ frappe.ui.form.on("Interview", {
                         frm.reload_doc()
                         frm.refresh_field("custom_teams_calender_book");
                     },
-                    freeze: true,  
+                    freeze: true,
                     freeze_message: "Please Wait, We are Scheduling Microsoft Teams meeting...",
                 });
-            }); 
+            });
         }
 
         // ?  FETCH AVAILABLE INTERVIEWERS ON REFRESH
@@ -127,7 +134,7 @@ frappe.ui.form.on("Interview", {
                     let is_external_interviewer_not_confirmed = false;
                     // ?  CHECK INTERNAL INTERVIEWERS
                     if (frm.doc.interview_details && frm.doc.interview_details.length) {
-                        frm.doc.interview_details.forEach(function(interviewer) {
+                        frm.doc.interview_details.forEach(function (interviewer) {
                             if (interviewer.custom_interviewer_employee) {
                                 if (interviewer.custom_is_confirm === 0) {
                                     frappe.call({
@@ -420,7 +427,7 @@ frappe.ui.form.on("External Interviewer", {
                 interview_name: frm.doc.name,
                 job_applicant: frm.doc.job_applicant,
                 interview_round: frm.doc.interview_round,
-                external:1
+                external: 1
             },
             callback: function (r) {
                 if (r.message) {
@@ -688,25 +695,25 @@ function update_preview(frm, template_text) {
     // If a Job Applicant is linked
     if (frm.doc.job_applicant) {
         frappe.db.get_doc('Job Applicant', frm.doc.job_applicant)
-        .then(applicant_doc => {
-            // Include the full job applicant doc in the context
-            let context = {
-                ...frm.doc,           // current form doc fields
-                today_date: frappe.datetime.now_date(),
-                applicant: applicant_doc // entire Job Applicant document
-            };
+            .then(applicant_doc => {
+                // Include the full job applicant doc in the context
+                let context = {
+                    ...frm.doc,           // current form doc fields
+                    today_date: frappe.datetime.now_date(),
+                    applicant: applicant_doc // entire Job Applicant document
+                };
 
-            render_preview(frm, template_text, context);
-        })
-        .catch(err => {
-            frappe.msgprint('Failed to fetch Job Applicant data.');
-            // fallback context without applicant
-            let context = {
-                ...frm.doc,
-                today_date: frappe.datetime.now_date()
-            };
-            render_preview(frm, template_text, context);
-        });
+                render_preview(frm, template_text, context);
+            })
+            .catch(err => {
+                frappe.msgprint('Failed to fetch Job Applicant data.');
+                // fallback context without applicant
+                let context = {
+                    ...frm.doc,
+                    today_date: frappe.datetime.now_date()
+                };
+                render_preview(frm, template_text, context);
+            });
     } else {
         // context without applicant if not linked
         let context = {
@@ -756,4 +763,40 @@ function render_preview(frm, template_text, context) {
 
     frm.set_df_property('custom_template_preview', 'options', preview_html);
     frm.set_df_property('custom_template_preview', 'read_only', 1);
+}
+
+
+async function getTeamsMessageHTML(frm, template_text) {
+    // Initialize the context
+    let context = {
+        ...frm.doc,
+        today_date: frappe.datetime.now_date()
+    };
+
+    try {
+        // If a Job Applicant is linked
+        if (frm.doc.job_applicant) {
+            console.log("Fetching Job Applicant data...");
+
+            // Wait for the Job Applicant document
+            const applicant_doc = await frappe.db.get_doc('Job Applicant', frm.doc.job_applicant);
+
+            // Log the fetched data for debugging
+            console.log("Fetched Applicant Doc:", applicant_doc);
+
+            // Add the applicant data to the context
+            context.applicant = applicant_doc;
+        }
+
+        // Render the template with the complete context (whether applicant data was included or not)
+        const rendered_html = await frappe.render_template(template_text, context);
+
+        // Return the rendered HTML
+        return rendered_html;
+    } catch (err) {
+        // Handle errors such as failed fetch or template rendering issues
+        console.error("Error occurred:", err);
+        frappe.msgprint('Failed to fetch Job Applicant data or render template.');
+        return '';  // Return empty string or some fallback if error occurs
+    }
 }
