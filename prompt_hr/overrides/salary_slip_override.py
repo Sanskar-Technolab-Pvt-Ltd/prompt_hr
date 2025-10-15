@@ -284,8 +284,8 @@ class CustomSalarySlip(SalarySlip):
                 if earning.is_flexible_benefit:
                     flexi_benefits += amount
                 else:
-                    taxable_earnings += amount - additional_amount
-                    additional_income += additional_amount
+                    taxable_earnings += amount - (additional_amount or 0)
+                    additional_income += (additional_amount or 0)
 
                     if additional_amount and earning.is_recurring_additional_salary:
                         additional_income += self.get_future_recurring_additional_amount(
@@ -293,7 +293,7 @@ class CustomSalarySlip(SalarySlip):
                         )
 
                     if earning.deduct_full_tax_on_selected_payroll_date:
-                        additional_income_with_full_tax += additional_amount
+                        additional_income_with_full_tax += (additional_amount or 0)
 
         if allow_tax_exemption:
             for ded in self.deductions:
@@ -313,9 +313,9 @@ class CustomSalarySlip(SalarySlip):
                     if based_on_payment_days:
                         amount, additional_amount = self.get_amount_based_on_payment_days(ded)
 
-                    taxable_earnings -= flt(amount - additional_amount)
-                    additional_income -= additional_amount
-                    amount_exempted_from_income_tax += flt(amount - additional_amount)
+                    taxable_earnings -= flt(amount - (additional_amount or 0))
+                    additional_income -= (additional_amount or 0)
+                    amount_exempted_from_income_tax += flt(amount - (additional_amount or 0))
 
                     if additional_amount and ded.is_recurring_additional_salary:
                         additional_income -= self.get_future_recurring_additional_amount(
