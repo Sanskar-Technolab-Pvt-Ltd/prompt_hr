@@ -34,11 +34,7 @@ class CustomSalarySlip(SalarySlip):
         self.set_salary_structure_assignment()
 
         # ? ONLY CALCULATE NET PAY WHEN THE SALARY SLIP IS NEW.
-        if self.is_new():
-            self.calculate_net_pay()
-        else:
-            set_loan_repayment(self)
-            self.set_totals()
+        self.calculate_net_pay()
 
         self.compute_year_to_date()
         self.compute_month_to_date()
@@ -195,11 +191,7 @@ class CustomSalarySlip(SalarySlip):
                                 slip_row = row
                                 break
 
-                        if slip_row and structure_row:
-                            # * Case 1: Exists in both structure and slip → update amount
-                            slip_row.amount = flt(slip_row.amount) + flt(entry.amount)
-
-                        elif slip_row and not structure_row:
+                        if slip_row and not structure_row:
                             # * Case 2: Manually added (not in structure) → skip
                             continue
 
@@ -212,7 +204,7 @@ class CustomSalarySlip(SalarySlip):
                             })
 
                 # * Update gross pay and totals
-                self.set_totals()
+                self.calculate_net_pay()
                 self.compute_year_to_date()
                 self.compute_month_to_date()
                 self.compute_component_wise_year_to_date()
