@@ -1,0 +1,82 @@
+[
+ {
+  "docstatus": 0,
+  "doctype": "Email Template",
+  "modified": "2025-10-13 13:40:53.199262",
+  "name": "Travel Request - Pending Approval",
+  "response": "<div class=\"ql-editor read-mode\"><p><br></p></div>",
+  "response_html": "<p>Dear Manager,</p>\n\n<p>A travel request has been submitted by <strong>{{ doc.employee_name or \"\"}}</strong>.</p>\n<p>Please review the details below and take the necessary action.</p>\n\n<h3 style=\"margin-top: 20px;\">Request Summary:</h3>\n<table style=\"border-collapse: collapse; width: 100%; margin: 10px 0;\">\n    <tbody><tr style=\"background-color: #f8f9fa;\">\n        <td style=\"padding: 10px; border: 1px solid #dee2e6; font-weight: bold;\">Employee ID</td>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6;\">{{ doc.employee or \"\"}}</td>\n    </tr>\n    <tr>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6; font-weight: bold;\">Employee Name</td>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6;\">{{ doc.employee_name or \"\"}}</td>\n    </tr>\n    <tr style=\"background-color: #f8f9fa;\">\n        <td style=\"padding: 10px; border: 1px solid #dee2e6; font-weight: bold;\">Purpose of Travel</td>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6;\">{{ doc.purpose_of_travel or \"\"}}</td>\n    </tr>\n    <tr style=\"background-color: #f8f9fa;\">\n        <td style=\"padding: 10px; border: 1px solid #dee2e6; font-weight: bold;\">Workflow State</td>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6;\">{{ doc.workflow_state or \"\"}}</td>\n    </tr>\n</tbody></table>\n\n<p>\n    <a href=\"{{ frappe.utils.get_url_to_form(doc.doctype, doc.name) }}\" style=\"background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; \n              border-radius: 5px; display: inline-block;\">\n        View Travel Request\n    </a>\n</p>\n\n<p>Thanks,<br>Travel Management System</p>\n",
+  "subject": "Travel Request {{ doc.workflow_state }} - {{ doc.employee_name }}",
+  "use_html": 1
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Email Template",
+  "modified": "2025-10-13 13:42:23.980032",
+  "name": "Travel Request - RM Approved",
+  "response": null,
+  "response_html": "<p>Dear Travel Desk Team,</p>\n\n<p>A travel request has been approved by <strong>{{ frappe.db.get_value(\"User\", frappe.session.user, \"email\") or \"\"}}</strong> \nfor employee <strong>{{ doc.employee }}</strong>.</p>\n<p>Please review the details below and take the necessary action.</p>\n\n<h3 style=\"margin-top: 20px;\">Request Summary:</h3>\n<table style=\"border-collapse: collapse; width: 100%; margin: 10px 0;\">\n    <tbody><tr style=\"background-color: #f8f9fa;\">\n        <td style=\"padding: 10px; border: 1px solid #dee2e6; font-weight: bold;\">Employee</td>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6;\">{{ doc.employee or \"\"}} - {{ doc.employee_name or \"\"}}</td>\n    </tr>\n    <tr>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6; font-weight: bold;\">Purpose of Travel</td>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6;\">{{ doc.purpose_of_travel or \"\"}}</td>\n    </tr>\n    <tr style=\"background-color: #f8f9fa;\">\n        <td style=\"padding: 10px; border: 1px solid #dee2e6; font-weight: bold;\">Workflow State</td>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6;\">\n            <span style=\"color: #28a745; font-weight: bold;\">{{ doc.workflow_state or \"\"}}</span>\n        </td>\n    </tr>\n</tbody></table>\n\n<p>\n    <a href=\"{{ frappe.utils.get_url_to_form(doc.doctype, doc.name) }}\" style=\"background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; \n              border-radius: 5px; display: inline-block;\">\n        View Travel Request\n    </a>\n</p>\n\n<p>Thanks,<br>Travel Management System</p>\n",
+  "subject": "Travel Request {{ doc.workflow_state }} - {{ doc.employee_name }}",
+  "use_html": 1
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Email Template",
+  "modified": "2025-10-13 13:43:38.363796",
+  "name": "Travel Request - RM Rejected",
+  "response": null,
+  "response_html": "<p>Dear Travel desk user,</p>\n\n<p>A travel request has been <strong>rejected</strong> by <strong>{{frappe.db.get_value(\"User\", frappe.session.user, \"email\") or \"\"}}</strong> \nfor employee <strong>{{ doc.employee_name }}</strong>.</p>\n<p>Please review the details below and take the necessary action.</p>\n\n<h3 style=\"margin-top: 20px;\">Request Summary:</h3>\n\n<table style=\"border-collapse: collapse; width: 100%; margin: 10px 0;\">\n    <tbody><tr style=\"background-color: #f8f9fa;\">\n        <td style=\"padding: 10px; border: 1px solid #dee2e6; font-weight: bold;\">Employee</td>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6;\">{{ doc.employee or \"\"}} - {{ doc.employee_name or \"\"}}</td>\n    </tr>\n    <tr>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6; font-weight: bold;\">Purpose of Travel</td>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6;\">{{ doc.purpose_of_travel or \"\"}}</td>\n    </tr>\n    <tr style=\"background-color: #f8f9fa;\">\n        <td style=\"padding: 10px; border: 1px solid #dee2e6; font-weight: bold;\">Workflow State</td>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6;\">\n            <span style=\"color: #dc3545; font-weight: bold;\">{{ doc.workflow_state or \"\"}}</span>\n        </td>\n    </tr></tbody></table>\n\n<p>\n    <a href=\"{{ frappe.utils.get_url_to_form(doc.doctype, doc.name) }}\" style=\"background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; \n              border-radius: 5px; display: inline-block;\">\n        View Travel Request\n    </a>\n</p>\n\n<p>Thanks,<br>Travel Management System</p>\n",
+  "subject": "Travel Request {{ doc.workflow_state }} - {{ doc.employee_name }}",
+  "use_html": 1
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Email Template",
+  "modified": "2025-10-13 13:46:15.724875",
+  "name": "Travel Request - Escalated to BU Head",
+  "response": null,
+  "response_html": "<p>Dear Travel Desk Team,</p>\n\n<p>A travel request has been escalated by <strong>{{ frappe.db.get_value(\"User\", frappe.session.user, \"email\") or \"\"}}</strong> \nfor employee <strong>{{ doc.employee }}</strong>.</p>\n<p>Please review the details below and take the necessary action.</p>\n\n<h3 style=\"margin-top: 20px;\">Request Summary:</h3>\n<table style=\"border-collapse: collapse; width: 100%; margin: 10px 0;\">\n    <tbody><tr style=\"background-color: #f8f9fa;\">\n        <td style=\"padding: 10px; border: 1px solid #dee2e6; font-weight: bold;\">Employee</td>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6;\">{{ doc.employee or \"\"}} - {{ doc.employee_name or \"\"}}</td>\n    </tr>\n    <tr>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6; font-weight: bold;\">Purpose of Travel</td>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6;\">{{ doc.purpose_of_travel or \"\"}}</td>\n    </tr>\n    <tr style=\"background-color: #f8f9fa;\">\n        <td style=\"padding: 10px; border: 1px solid #dee2e6; font-weight: bold;\">Workflow State</td>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6;\">\n            <span style=\"color: #ffc107; font-weight: bold;\">{{ doc.workflow_state or \"\"}}</span>\n        </td>\n    </tr><tr style=\"background-color: #fff3cd;\">\n        <td style=\"padding: 10px; border: 1px solid #dee2e6; font-weight: bold;\">Escalation Reason</td>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6;\">{{ doc.custom_escalation_reason or \"\"}}</td>\n    </tr></tbody></table>\n\n<p>\n    <a href=\"{{ frappe.utils.get_url_to_form(doc.doctype, doc.name) }}\" style=\"background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; \n              border-radius: 5px; display: inline-block;\">\n        View Travel Request\n    </a>\n</p>\n\n<p>Thanks,<br>Travel Management System</p>\n",
+  "subject": "Travel Request {{ doc.workflow_state }} - {{ doc.employee_name }}",
+  "use_html": 1
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Email Template",
+  "modified": "2025-10-13 13:45:05.654789",
+  "name": "Travel Request - BU Head Approved",
+  "response": null,
+  "response_html": "<p>Dear Travel Desk Team,</p>\n\n<p>A travel request has been approved by <strong>{{ frappe.db.get_value(\"User\", frappe.session.user, \"email\") or \"\"}}</strong> \nfor employee <strong>{{ doc.employee_name }}</strong>.</p>\n<p>Please review the details below and take the necessary action.</p>\n\n<h3 style=\"margin-top: 20px;\">Request Summary:</h3>\n<table style=\"border-collapse: collapse; width: 100%; margin: 10px 0;\">\n    <tbody><tr style=\"background-color: #f8f9fa;\">\n        <td style=\"padding: 10px; border: 1px solid #dee2e6; font-weight: bold;\">Employee</td>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6;\">{{ doc.employee or \"\"}} - {{ doc.employee_name or \"\" }}</td>\n    </tr>\n    <tr>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6; font-weight: bold;\">Purpose of Travel</td>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6;\">{{ doc.purpose_of_travel or \"\"}}</td>\n    </tr>\n    <tr style=\"background-color: #f8f9fa;\">\n        <td style=\"padding: 10px; border: 1px solid #dee2e6; font-weight: bold;\">Workflow State</td>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6;\">\n            <span style=\"color: #28a745; font-weight: bold;\">{{ doc.workflow_state or \"\"}}</span>\n        </td>\n    </tr>\n</tbody></table>\n\n<p>\n    <a href=\"{{ frappe.utils.get_url_to_form(doc.doctype, doc.name) }}\" style=\"background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; \n              border-radius: 5px; display: inline-block;\">\n        View Travel Request\n    </a>\n</p>\n\n<p>Thanks,<br>Travel Management System</p>\n",
+  "subject": "Travel Request {{ doc.workflow_state }} - {{ doc.employee_name }}",
+  "use_html": 1
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Email Template",
+  "modified": "2025-10-13 13:44:13.044440",
+  "name": "Travel Request - BU Head Rejected",
+  "response": null,
+  "response_html": "<p>Dear Team,</p>\n\n<p>A travel request has been <strong>rejected by BU Head</strong> \n(<strong>{{ frappe.db.get_value(\"User\", frappe.session.user, \"email\") }}</strong>) for employee <strong>{{ doc.employee or \"\"}}</strong>.</p>\n<p>Please review the details below, close the request, and inform the employee.</p>\n\n<h3 style=\"margin-top: 20px;\">Request Summary:</h3>\n\n<table style=\"border-collapse: collapse; width: 100%; margin: 10px 0;\">\n    <tbody><tr style=\"background-color: #f8f9fa;\">\n        <td style=\"padding: 10px; border: 1px solid #dee2e6; font-weight: bold;\">Employee</td>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6;\">{{ doc.employee or \"\"}} - {{ doc.employee_name or \"\"}}</td>\n    </tr>\n    <tr>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6; font-weight: bold;\">Purpose of Travel</td>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6;\">{{ doc.purpose_of_travel or \"\"}}</td>\n    </tr>\n    <tr style=\"background-color: #f8f9fa;\">\n        <td style=\"padding: 10px; border: 1px solid #dee2e6; font-weight: bold;\">Workflow State</td>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6;\">\n            <span style=\"color: #dc3545; font-weight: bold;\">{{ doc.workflow_state or \"\"}}</span>\n        </td>\n    </tr></tbody></table>\n\n<p>\n    <a href=\"{{ frappe.utils.get_url_to_form(doc.doctype, doc.name) }}\" style=\"background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; \n              border-radius: 5px; display: inline-block;\">\n        View Travel Request\n    </a>\n</p>\n\n<p>Thanks,<br>Travel Management System</p>\n",
+  "subject": "Travel Request {{ doc.workflow_state }} - {{ doc.employee_name }}",
+  "use_html": 1
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Email Template",
+  "modified": "2025-10-13 13:40:19.204869",
+  "name": "Travel Request - Booking Confirmed",
+  "response": null,
+  "response_html": "<p>Dear {{ doc.employee_name or \"\"}},</p>\n\n<p>Great news! Your travel request has been successfully booked by \n<strong>{{ frappe.db.get_value(\"User\", frappe.session.user, \"email\") or \"\"}}</strong>.</p>\n<p>You can review the ticket details below:</p>\n\n<h3 style=\"margin-top: 20px;\">Request Summary:</h3>\n<table style=\"border-collapse: collapse; width: 100%; margin: 10px 0;\">\n    <tbody><tr style=\"background-color: #f8f9fa;\">\n        <td style=\"padding: 10px; border: 1px solid #dee2e6; font-weight: bold;\">Travel Request ID</td>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6;\">{{ doc.name or \"\"}}</td>\n    </tr>\n    <tr>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6; font-weight: bold;\">Employee</td>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6;\">{{ doc.employee or \"\"}} - {{ doc.employee_name or \"\"}}</td>\n    </tr>\n    <tr style=\"background-color: #f8f9fa;\">\n        <td style=\"padding: 10px; border: 1px solid #dee2e6; font-weight: bold;\">Purpose of Travel</td>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6;\">{{ doc.purpose_of_travel or \"\"}}</td>\n    </tr>\n    <tr style=\"background-color: #f8f9fa;\">\n        <td style=\"padding: 10px; border: 1px solid #dee2e6; font-weight: bold;\">Workflow State</td>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6;\">\n            <span style=\"color: #28a745; font-weight: bold;\">{{ doc.workflow_state or \"\"}}</span>\n        </td>\n    </tr></tbody></table>\n\n<p>Please check the system for complete booking details and confirmation documents.</p>\n\n<p>\n    <a href=\"{{ frappe.utils.get_url_to_form(doc.doctype, doc.name) }}\" style=\"background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; \n              border-radius: 5px; display: inline-block;\">\n        View Booking Details\n    </a>\n</p>\n\n<p>Have a safe journey!</p>\n<p>Thanks,<br>Travel Management System</p>\n",
+  "subject": "Travel Request {{ doc.workflow_state }} - {{ doc.employee_name }}",
+  "use_html": 1
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Email Template",
+  "modified": "2025-10-13 13:43:03.124176",
+  "name": "Travel Request - Sent to Accounts",
+  "response": null,
+  "response_html": "<p>Dear Accounts Team,</p>\n\n<p>A travel request has been processed by the Travel Desk for employee \n<strong>{{ doc.employee or \"\"}}</strong>. Please proceed further. You can review the details below:</p>\n\n<h3 style=\"margin-top: 20px;\">Request Summary:</h3>\n<table style=\"border-collapse: collapse; width: 100%; margin: 10px 0;\">\n    <tbody><tr style=\"background-color: #f8f9fa;\">\n        <td style=\"padding: 10px; border: 1px solid #dee2e6; font-weight: bold;\">Travel Request ID</td>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6;\">{{ doc.name or \"\"}}</td>\n    </tr>\n    <tr>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6; font-weight: bold;\">Employee</td>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6;\">{{ doc.employee or \"\"}}</td>\n    </tr>\n    <tr>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6; font-weight: bold;\">Employee Name</td>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6;\">{{ doc.employee_name or \"\"}}</td>\n    </tr>\n   <tr style=\"background-color: #f8f9fa;\">\n        <td style=\"padding: 10px; border: 1px solid #dee2e6; font-weight: bold;\">Workflow State</td>\n        <td style=\"padding: 10px; border: 1px solid #dee2e6;\">\n            <span style=\"color: #28a745; font-weight: bold;\">{{ doc.workflow_state or \"\"}}</span>\n        </td>\n    </tr>\n</tbody></table>\n\n<p>Please process the payment and update the status accordingly.</p>\n\n<p>\n    <a href=\"{{ frappe.utils.get_url_to_form(doc.doctype, doc.name) }}\" style=\"background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; \n              border-radius: 5px; display: inline-block;\">\n        View Travel Request\n    </a>\n</p>\n\n<p>Thanks,<br>Travel Management System</p>\n",
+  "subject": "Travel Request {{ doc.workflow_state }} - {{ doc.employee_name }}",
+  "use_html": 1
+ }
+]
