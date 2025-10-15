@@ -1400,7 +1400,7 @@ def _process_local_commute_expense(
                 frappe.throw(
                     f"Row #{exp.get('idx')}: Attachment is required as the expense exceeds limits."
                 )
-        if exceeded_daily or (exceeded_monthly and doc.is_new() and doc.workflow_state == "Draft"):
+        if exceeded_daily or (exceeded_monthly and (doc.is_new() or doc.workflow_state == "Draft")):
             exp.custom_is_exception = 1
             exp.custom_max_limit = round(max_limit,2)
 
