@@ -57,7 +57,7 @@
    "fieldname": "approval_status",
    "fieldtype": "Select",
    "label": "Approval Status",
-   "options": "Pending\nRejected",
+   "options": "Pending\nApproved",
    "read_only_depends_on": "eval:!(frappe.session.user === doc.user_allowed_to_modify_approval_status || frappe.user.has_role(doc.role_allowed_to_modify_approval_status) || frappe.session.user == \"Administrator\")\n"
   },
   {
@@ -87,8 +87,8 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-10-13 12:39:49.336807",
- "modified_by": "Administrator",
+ "modified": "2025-10-14 19:42:25.515717",
+ "modified_by": "malav@sanskartechnolab.com",
  "module": "Prompt HR",
  "name": "IT Asset Clearance",
  "owner": "Administrator",

@@ -2,9 +2,9 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on("IT Exit Checklist", {
-	refresh(frm) {
+    refresh(frm) {
         make_border_red_for_user_eligible_for_approval_process(frm)
-	},
+    },
     after_save(frm) {
         make_border_red_for_user_eligible_for_approval_process(frm)
     },
@@ -33,27 +33,30 @@ function make_border_red_for_user_eligible_for_approval_process(frm) {
             const canModify =
                 rowDoc?.user_allowed_to_modify_approval_status === user || hasApprovalRole;
 
-            if (canModify) {
-                $row.css("border", "2px solid red");
-            
+            if (!rowDoc?.status) {
+
                 // Find the status field's static area
                 let $statusStatic = $row.find("div[data-fieldname='status'] .static-area");
-                
-                if (!rowDoc?.status) {
-                    // Set placeholder text when status is empty
-                    $statusStatic.text("Please Fill Value")
-                        .css({
-                            color: "red",
-                            "font-weight": "bold"
-                        });
-                } else {
-                    // Remove placeholder text and reset styles when value is present
-                    $statusStatic.text(rowDoc.status)
-                        .css({
-                            color: "",
-                            "font-weight": ""
-                        });
-                }
+
+                // Set placeholder text when status is empty
+                $statusStatic.text("Please Fill Value")
+                    .css({
+                        color: "red",
+                        "font-weight": "bold"
+                    });
+            } else {
+                // Remove placeholder text and reset styles when value is present
+                $statusStatic.text(rowDoc.status)
+                    .css({
+                        color: "",
+                        "font-weight": ""
+                    });
+            }
+
+            if (canModify && rowDoc?.approval_status !== "Approved") {
+                $row.css("border", "2px solid red");
+
+
 
                 exceptionMessages.push(
                     `Row ${rowDoc?.idx}: Approval status change is allowed for this user in ${frappe.utils.to_title_case(tableName)} table.`
@@ -85,8 +88,8 @@ function make_border_red_for_user_eligible_for_approval_process(frm) {
                 </h3>
                 <ul style="margin: 0; padding-left: 20px;">
                     ${exceptionMessages
-                        .map((msg) => `<li>${frappe.utils.escape_html(msg)}</li>`)
-                        .join("")}
+                .map((msg) => `<li>${frappe.utils.escape_html(msg)}</li>`)
+                .join("")}
                 </ul>
             </div>
         `;
