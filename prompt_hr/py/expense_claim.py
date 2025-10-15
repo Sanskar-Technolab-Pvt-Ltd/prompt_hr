@@ -37,7 +37,8 @@ def before_save(doc, method):
     Validates expenses against budget limits and checks for mandatory attachments.
     """
     if doc.expenses:
-        validate_attachments_compulsion(doc)
+        if doc.is_new() or doc.workflow_state == "Draft":
+            validate_attachments_compulsion(doc)
         validate_number_of_days(doc)
         get_expense_claim_exception(doc)
         validate_expenses_entry(doc)
@@ -1102,13 +1103,15 @@ def _process_food_lodging_expense(
         employee_limit = employee_budget_row.get(employee_limit_field, 0)
 
         if (not exp.custom_attachments) and employee_limit !=0:
-            frappe.throw(
-                f"Row #{exp.get('idx')}: Attachment is required as the expense exceeds limits."
-            )
+            if doc.is_new() or doc.workflow_state == "Draft":
+                frappe.throw(
+                    f"Row #{exp.get('idx')}: Attachment is required as the expense exceeds limits."
+                )
 
         if employee_limit != 0:
-            exp.custom_is_exception = 1
-            exp.custom_max_limit = round(max_limit,2)
+            if doc.is_new() or doc.workflow_state == "Draft":
+                exp.custom_is_exception = 1
+                exp.custom_max_limit = round(max_limit,2)
 
 @frappe.whitelist()
 def get_employees_by_role(doctype, txt, searchfield, start, page_len, filters):
@@ -1386,12 +1389,20 @@ def _process_local_commute_expense(
     # Flag as exception if any limit is exceeded
     if exceeded_daily or exceeded_monthly:
         if (not exp.custom_attachments):
-            frappe.throw(
-                f"Row #{exp.get('idx')}: Attachment is required as the expense exceeds limits."
-            )
+            throw_error = True
+            if exceeded_monthly:
+                if doc.is_new() or doc.workflow_state == "Draft":
+                    throw_error = True
+                else:
+                    throw_error = False
 
-        exp.custom_is_exception = 1
-        exp.custom_max_limit = round(max_limit,2)
+            if throw_error:        
+                frappe.throw(
+                    f"Row #{exp.get('idx')}: Attachment is required as the expense exceeds limits."
+                )
+        if exceeded_daily or (exceeded_monthly and doc.is_new() and doc.workflow_state == "Draft"):
+            exp.custom_is_exception = 1
+            exp.custom_max_limit = round(max_limit,2)
 
 
 def validate_attachments_compulsion(doc):
