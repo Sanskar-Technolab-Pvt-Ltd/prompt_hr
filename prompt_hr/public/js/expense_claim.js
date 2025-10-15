@@ -81,13 +81,16 @@ frappe.ui.form.on('Expense Claim', {
 
         // ! IF "REJECT" ACTION, PROCEED IMMEDIATELY
         if (frm.selected_workflow_action === "Send For Approval" || frm.selected_workflow_action === "Submit") {                        
-            console.log(">>> Workflow action is 'Reject' – proceeding without dialog.");
             return Promise.resolve();
         }
         if (frm.selected_workflow_action === "Reject" && (frm.doc.custom_reason_for_rejection || "").length < 1) {
-                return reason_for_rejection_dialog(frm)
+            console.log(">>> Workflow action is 'Reject' – proceeding without dialog.");
+            return reason_for_rejection_dialog(frm)
         }
         
+        if (frm.selected_workflow_action === "Escalate" && (frm.doc.custom_reason_for_escalation || "").length < 1) {
+            return reason_for_escalation_dialog(frm)
+        }
 
         frappe.dom.unfreeze();  // ! ENSURE UI IS UNFROZEN
         console.log(">>> Workflow action:", frm.selected_workflow_action);
@@ -603,6 +606,32 @@ function reason_for_rejection_dialog(frm) {
         })
     });
 }
+
+
+function reason_for_escalation_dialog(frm) {
+    return new Promise((resolve, reject) => {
+        frappe.dom.unfreeze()
+        
+        frappe.prompt({
+            label: 'Reason for Escalation',
+            fieldname: 'reason_for_escalation',
+            fieldtype: 'Small Text',
+            reqd: 1
+        }, (values) => {
+            if (values.reason_for_escalation) {
+                frm.set_value("custom_reason_for_escalation", values.reason_for_escalation)
+                // frm.set_value("approval_status", "Rejected")
+                frm.save().then(() => {
+                    resolve();
+                }).catch(reject);						
+            }
+            else {
+                reject()
+            }
+        })
+    });
+}
+
 
 // ? FETCH COMMUTE DATA AND BIND EVENTS
 function fetch_commute_data(frm) {
