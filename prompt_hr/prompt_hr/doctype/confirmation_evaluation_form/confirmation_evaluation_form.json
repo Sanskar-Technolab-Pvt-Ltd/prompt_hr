@@ -12,13 +12,18 @@
   "department",
   "designation",
   "company",
+  "pending_approval_at",
   "column_break_dbio",
   "business_unit",
   "reporting_manager",
   "evaluation_date",
   "hod",
   "evaluation_details_section",
+  "ratings_description",
   "table_txep",
+  "mention_strengths_of_employee",
+  "mention_areas_of_improvement",
+  "recommend_trainings_if_any",
   "reporting_head_status_section",
   "rh_rating_added",
   "confirmed_by_rh",
@@ -291,12 +296,45 @@
    "fieldname": "reason_for_termination_by_dh",
    "fieldtype": "Small Text",
    "label": "Reason for Termination"
+  },
+  {
+   "fieldname": "pending_approval_at",
+   "fieldtype": "Link",
+   "label": "Pending Approval At",
+   "options": "Employee",
+   "read_only": 1
+  },
+  {
+   "fieldname": "mention_strengths_of_employee",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Mention Strengths of Employee",
+   "reqd": 1
+  },
+  {
+   "fieldname": "mention_areas_of_improvement",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Mention Areas of Improvement ",
+   "reqd": 1
+  },
+  {
+   "fieldname": "recommend_trainings_if_any",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Recommend Trainings If Any",
+   "reqd": 1
+  },
+  {
+   "fieldname": "ratings_description",
+   "fieldtype": "Heading",
+   "label": "<h5> 1- Below Average, 2- Average, 3- Satisfactory, 4- Very Good, 5- Excellent </h5>"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-07 18:51:30.936245",
+ "modified": "2025-10-15 18:44:57.602677",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Confirmation Evaluation Form",

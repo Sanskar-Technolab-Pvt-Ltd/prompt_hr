@@ -91,7 +91,13 @@ class ProbationFeedbackForm(Document):
     
 							except Exception as e:
 								frappe.log_error("error_while_sending_mail", frappe.get_traceback())
-			
+	
+	def on_update(self):
+		print(f"\n\n ON UPDATE CALLED \n\n")
+		if self.docstatus == 0:
+			self.db_set("pending_approval_at", self.reporting_manager)
+		elif self.docstatus == 1:
+			self.db_set("pending_approval_at", "")
 
 #* THIS METHOD IS CALLED UNDER frappe.call IN probation_feedback_form.js
 # !NOT IN USE. USED IN probation_feedback_form.js BUT THERE CODE IS COMMENTED

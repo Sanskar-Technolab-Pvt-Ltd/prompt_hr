@@ -5,7 +5,7 @@ import frappe
 from frappe.utils import today, add_days, add_to_date, getdate
 from frappe.model.document import Document
 from prompt_hr.utils import get_next_date, convert_month_to_days
-from prompt_hr.py.utils import send_notification_email
+from prompt_hr.py.utils import send_notification_email, check_user_is_reporting_manager
 
 class ConfirmationEvaluationForm(Document):
 	
@@ -98,3 +98,38 @@ class ConfirmationEvaluationForm(Document):
     
 		except Exception as e:
 			frappe.log_error("error_while_sending_confirmation_form_creation_mails", frappe.get_traceback())
+
+	def on_update(self):
+		
+		if self.workflow_state == "Pending":
+			self.db_set("pending_approval_at", self.reporting_manager)
+		elif self.workflow_state == "Submitted by RM":
+			self.db_set("pending_approval_at", self.hod)
+		elif self.workflow_state == "Submitted by DH" and self.pending_approval_at:
+			self.db_set("pending_approval_at", "")
+		
+
+	@frappe.whitelist()
+	def is_probation_feedback_rating_added(self):
+		user =  frappe.session.user
+		reporting_manager = self.reporting_manager or (frappe.db.get_value("Employee", self.employee, "reports_to") or None)
+		hod = self.hod or None
+		is_reporting_head = False
+
+
+		if reporting_manager:
+			is_reporting_head = True if user == frappe.db.get_value("Employee", reporting_manager, "user_id") else False
+			if is_reporting_head:
+				first_probation_feedback = frappe.db.get_value("Employee", self.employee, "custom_first_probation_feedback")
+				second_probation_feedback = frappe.db.get_value("Employee", self.employee, "custom_second_probation_feedback")
+
+				if first_probation_feedback and second_probation_feedback:
+					ratings_added_in_first_form = 1 if frappe.db.get_value("Probation Feedback Form", first_probation_feedback, "docstatus") else 0
+					ratings_added_in_second_form = 1 if frappe.db.get_value("Probation Feedback Form", second_probation_feedback, "docstatus") else 0
+    
+					if not ratings_added_in_first_form and not ratings_added_in_second_form:
+						frappe.throw("Please add ratings in 30 Days and 60 Days probation feedback form and <b>Submit</b> before submitting this form.")
+					elif not ratings_added_in_first_form:
+						frappe.throw("Please add ratings in 30 Days probation feedback form and <b>Submit</b> before submitting this form.")
+					elif not ratings_added_in_second_form:
+						frappe.throw("Please add ratings in 60 Days probation feedback form and <b>Submit</b> before submitting this form.")

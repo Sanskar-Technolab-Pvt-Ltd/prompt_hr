@@ -33,6 +33,10 @@ frappe.ui.form.on("Confirmation Evaluation Form", {
                     if (user_employee_name === reporting_manager) {
                         console.log("User is Reporting Manager");
                         frm.fields_dict.table_txep.grid.update_docfield_property('rh_rating', 'read_only', 0);
+                        frm.fields_dict.table_txep.grid.update_docfield_property('mention_strengths_of_employee', 'read_only', 0);
+                        frm.fields_dict.table_txep.grid.update_docfield_property('mention_areas_of_improvement', 'read_only', 0);
+                        frm.fields_dict.table_txep.grid.update_docfield_property('recommend_trainings_if_any', 'read_only', 0);
+
                         frm.fields_dict.table_txep.grid.update_docfield_property('dh_rating', 'read_only', 1);
                         frm.fields_dict.table_txep.grid.update_docfield_property('remarks_if_any', 'read_only', 1);
 
@@ -50,8 +54,12 @@ frappe.ui.form.on("Confirmation Evaluation Form", {
                     } else if (user_employee_name === head_of_department) {
                         console.log("User is Head of Department");
                         frm.fields_dict.table_txep.grid.update_docfield_property('dh_rating', 'read_only', 0);
-                        frm.fields_dict.table_txep.grid.update_docfield_property('rh_rating', 'read_only', 1);
                         frm.fields_dict.table_txep.grid.update_docfield_property('remarks_if_any', 'read_only', 0);
+
+                        frm.fields_dict.table_txep.grid.update_docfield_property('mention_strengths_of_employee', 'read_only', 1);
+                        frm.fields_dict.table_txep.grid.update_docfield_property('mention_areas_of_improvement', 'read_only', 1);
+                        frm.fields_dict.table_txep.grid.update_docfield_property('recommend_trainings_if_any', 'read_only', 1);
+                        frm.fields_dict.table_txep.grid.update_docfield_property('rh_rating', 'read_only', 1);
 
                         frm.set_df_property("department_head_status_section", "hidden", 0)
                         
@@ -67,6 +75,9 @@ frappe.ui.form.on("Confirmation Evaluation Form", {
                         frm.fields_dict.table_txep.grid.update_docfield_property('rh_rating', 'read_only', 1);
                         frm.fields_dict.table_txep.grid.update_docfield_property('dh_rating', 'read_only', 1);
                         frm.fields_dict.table_txep.grid.update_docfield_property('remarks_if_any', 'read_only', 1);
+                        frm.fields_dict.table_txep.grid.update_docfield_property('recommend_trainings_if_any', 'read_only', 1);
+                        frm.fields_dict.table_txep.grid.update_docfield_property('mention_strengths_of_employee', 'read_only', 1);
+                        frm.fields_dict.table_txep.grid.update_docfield_property('mention_areas_of_improvement', 'read_only', 1);
                         
                         frm.set_df_property("reporting_head_status_section", "hidden", 0)
                         frm.set_df_property("department_head_status_section", "hidden", 0)
@@ -84,7 +95,9 @@ frappe.ui.form.on("Confirmation Evaluation Form", {
                         frm.fields_dict.table_txep.grid.update_docfield_property('rh_rating', 'read_only', 1);
                         frm.fields_dict.table_txep.grid.update_docfield_property('dh_rating', 'read_only', 1);
                         frm.fields_dict.table_txep.grid.update_docfield_property('remarks_if_any', 'read_only', 1);
-                        
+                        frm.fields_dict.table_txep.grid.update_docfield_property('mention_strengths_of_employee', 'read_only', 1);
+                        frm.fields_dict.table_txep.grid.update_docfield_property('mention_areas_of_improvement', 'read_only', 1);
+                        frm.fields_dict.table_txep.grid.update_docfield_property('recommend_trainings_if_any', 'read_only', 1);                        
                         frm.set_df_property("reporting_head_status_section", "hidden", 1)
                         frm.set_df_property("department_head_status_section", "hidden", 1)
 

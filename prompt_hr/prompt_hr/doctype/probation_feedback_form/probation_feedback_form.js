@@ -94,8 +94,5 @@ frappe.ui.form.on("Probation Feedback Form", {
         });
 
         frm.refresh_field('probation_feedback_prompt');
-    },
-
-    
-
+    }
 });

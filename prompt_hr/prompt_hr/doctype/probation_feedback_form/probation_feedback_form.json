@@ -12,6 +12,7 @@
   "department",
   "designation",
   "company",
+  "pending_approval_at",
   "column_break_dbio",
   "product_line",
   "business_unit",
@@ -222,12 +223,20 @@
    "fieldtype": "Check",
    "hidden": 1,
    "label": "Added Dotted Manager Feedback"
+  },
+  {
+   "fieldname": "pending_approval_at",
+   "fieldtype": "Link",
+   "label": "Pending Approval At",
+   "options": "Employee",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
+ "is_submittable": 1,
  "links": [],
- "modified": "2025-10-07 16:42:55.613686",
+ "modified": "2025-10-15 17:46:53.323225",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Probation Feedback Form",
