@@ -18,6 +18,7 @@
   "department",
   "work_location",
   "employment_type",
+  "status",
   "relieving_date",
   "section_break_nzqc",
   "it",
@@ -165,12 +166,19 @@
    "in_standard_filter": 1,
    "label": "Employment Type",
    "options": "Employment Type"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Pending\nCompleted",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-15 12:14:25.412208",
+ "modified": "2025-10-16 16:53:44.357427",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "IT Exit Checklist",
