@@ -10,7 +10,6 @@
   "parameters",
   "column_break_kciy",
   "rh_rating",
-  "dh_rating",
   "remarks_if_any"
  ],
  "fields": [
@@ -44,14 +43,6 @@
   },
   {
    "columns": 2,
-   "fieldname": "dh_rating",
-   "fieldtype": "Float",
-   "in_list_view": 1,
-   "label": "DH Rating",
-   "precision": "1"
-  },
-  {
-   "columns": 2,
    "fieldname": "remarks_if_any",
    "fieldtype": "Data",
    "in_list_view": 1,
@@ -62,12 +53,13 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-04-11 16:50:42.177086",
+ "modified": "2025-10-16 15:41:46.721505",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Confirmation Evaluation",
  "owner": "Administrator",
  "permissions": [],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []
