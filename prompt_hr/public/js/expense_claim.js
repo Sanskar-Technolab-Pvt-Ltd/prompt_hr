@@ -32,22 +32,73 @@ frappe.ui.form.on('Expense Claim', {
             }
         });
     },
-	refresh(frm) {
-        if ( !frm.is_new() && frm.doc.workflow_state == "Pending For Approval") {
-            if (!frappe.user_roles.includes("S - HR Director (Global Admin)") && !frappe.user_roles.includes("S - HR L2 Manager") && !frappe.user_roles.includes("System Manager") && !frappe.user_roles.includes("S - Sales Co-ordinator") && !frappe.user_roles.includes("S - Service Coordinator") && !frappe.user_roles.includes("S - HR L5") && !frappe.user_roles.includes("S - HR Supervisor (RM)") && !frappe.user_roles.includes("S - HR L4") && !frappe.user_roles.includes("S - HR L3") && !frappe.user_roles.includes("S - HR L2") && !frappe.user_roles.includes("S - HR L1")) {
-                //? DISABLE FORM ONLY FOR CREATOR
-                if (frappe.session.user === frm.doc.owner) {
-                    frm.disable_form();
+	refresh: async function (frm) {
+        const hr_roles_response = await frappe.call({
+            method: "prompt_hr.py.expense_claim.get_roles_from_hr_settings",
+            args: { role_type: "hr" },
+        });
+        const hr_roles = hr_roles_response?.message || [];
+        const account_roles_response = await frappe.call({
+            method: "prompt_hr.py.expense_claim.get_roles_from_hr_settings",
+            args: { role_type: "account" },
+        });
+        const account_roles = account_roles_response?.message || [];
+        if (!frm.is_new() && frm.doc.workflow_state === "Rejected") {
+            // ? DISABLE FORM IF REJECTED
+            frm.disable_form();
+        }
+        if (!frm.is_new() && !["Draft", "Rejected"].includes(frm.doc.workflow_state)) {
+            const workflow_state = frm.doc.workflow_state;
+            const hr_system_roles = ["System Manager", ...hr_roles];
+            const expense_approver = frm.doc.expense_approver;
+            const escalated_to = frm.doc.custom_escalated_to;
+
+            let allowed_users = [];
+            let allowed_roles = [...hr_system_roles];
+
+            if (workflow_state === "Pending For Approval") {
+                // HR + System + Expense Approver
+                if (expense_approver) allowed_users.push(expense_approver);
+            }
+            else if (workflow_state === "Escalated") {
+                // HR + System + Escalated To user
+                if (escalated_to) {
+                    const escalated_to_user = (await frappe.db.get_value("Employee", escalated_to, "user_id"))?.message?.user_id;
+                    if (escalated_to_user) allowed_users.push(escalated_to_user);
                 }
             }
-        }
-        // ? SERVICE ENGINEER CANNOT BE ABLE TO ADD ROWS DIRECTLY
-        const roles = frappe.user_roles || [];
-        const is_service_engineer = (roles.includes("S - Service Engineer") || roles.includes("Service Engineer")) && !roles.includes("System Manager");
-        frm.set_df_property("expenses", "cannot_add_rows", is_service_engineer);
+            else if (workflow_state === "Sent to Accounting Team") {
+                // HR + Accounting Roles (assuming stored in accounting_roles)
+                allowed_roles.push(...account_roles);
+            }
 
-		add_view_field_visit_expense_button(frm);
-		fetch_commute_data(frm);
+            const current_user = frappe.session.user;
+            const has_role = allowed_roles.some(role => frappe.user.has_role(role));
+            const is_allowed_user = allowed_users.includes(current_user);
+
+            if (!has_role && !is_allowed_user && current_user !== "Administrator") {
+                // Disable the form for this user
+                frm.disable_form();
+            }
+        }
+
+
+        const service_roles_response = await frappe.call({
+            method: "prompt_hr.py.expense_claim.get_roles_from_hr_settings",
+            args: { role_type: "service" },
+        });
+        const service_roles = service_roles_response?.message || [];
+
+
+        const sales_roles_response = await frappe.call({
+            method: "prompt_hr.py.expense_claim.get_roles_from_hr_settings",
+            args: { role_type: "sales" },
+        });
+        const sales_roles = sales_roles_response?.message || [];
+
+        frm.set_df_property("expenses", "cannot_add_rows", 1);
+
+        fetch_commute_data(frm);
 		set_local_commute_monthly_expense(frm);
         set_travel_request_details(frm)
 		// ? FETCH GENDER OF THE CURRENT EMPLOYEE
@@ -67,9 +118,9 @@ frappe.ui.form.on('Expense Claim', {
             });
         }
         if (frm.is_new() || frm.doc.workflow_state == "Draft") {
-            add_view_field_visit_expense_button(frm);
-            getTourVisitExpenseDialog(frm);
-            claim_extra_expenses(frm)
+            add_view_field_visit_expense_button(frm, service_roles, hr_roles);
+            getTourVisitExpenseDialog(frm, sales_roles, hr_roles);
+            claim_extra_expenses(frm, service_roles, sales_roles, hr_roles);
         }
     },
     after_save: function(frm) {  
@@ -86,10 +137,6 @@ frappe.ui.form.on('Expense Claim', {
         if (frm.selected_workflow_action === "Reject" && (frm.doc.custom_reason_for_rejection || "").length < 1) {
             console.log(">>> Workflow action is 'Reject' – proceeding without dialog.");
             return reason_for_rejection_dialog(frm)
-        }
-        
-        if (frm.selected_workflow_action === "Escalate" && (frm.doc.custom_reason_for_escalation || "").length < 1) {
-            return reason_for_escalation_dialog(frm)
         }
 
         frappe.dom.unfreeze();  // ! ENSURE UI IS UNFROZEN
@@ -151,8 +198,8 @@ function make_border_red_for_is_exception_records(frm) {
                 // COLLECT EXCEPTION MESSAGE WITH ROW NUMBER
                 exceptionMessages.push(
                     `Row ${rowDoc?.idx}: ${rowDoc?.expense_type
-                    } allowance limit has been crossed by ${(rowDoc?.amount - rowDoc?.custom_max_limit
-                ).toFixed(2)}`
+                    } allowance limit is ${(rowDoc?.custom_max_limit
+                ).toFixed(2)} and claimed amount is ${(rowDoc?.amount).toFixed(2)}.`
                 );
             } else {
                 // COLLECT EXCEPTION MESSAGE WITH ROW NUMBER
@@ -167,7 +214,7 @@ function make_border_red_for_is_exception_records(frm) {
             
             // COLLECT EXCEPTION MESSAGE WITH ROW NUMBER
             exceptionMessages.push(
-                `Row ${rowDoc?.idx}: No Field Visit and Service Call details found.`
+                `Row ${rowDoc?.idx}: No Tour Visit and Service Call details found.`
             );
         }
         
@@ -193,7 +240,7 @@ function make_border_red_for_is_exception_records(frm) {
         }
     }
 }
-function claim_extra_expenses(frm) {
+function claim_extra_expenses(frm, service_roles = [], sales_roles = [], hr_roles = []) {
     //? ADD EXTRA EXPENSES BUTTON
     frm.add_custom_button(__('Claim Extra Expenses'), function () {
         // ! THROW MESSAGE IF EMPLOYEE IS NOT SELECTED
@@ -205,10 +252,7 @@ function claim_extra_expenses(frm) {
             });
             return;
         }
-        const service_roles = ["S - Service Engineer", "Service Engineer", "S - Service Director"];
-        const all_perm_roles = ["S - HR L5", "S - HR L4", "S - HR L3", "S - HR L2", "S - HR L1", "S - HR L2 Manager", "S - HR Supervisor (RM)", "System Manager", "S - HR Director (Global Admin)"]
-        const sales_roles = ["S - Sales Director", "S - Sales Manager", "S - Sales Supervisor", "S - Sales Executive"];
-
+        const all_perm_roles = ["System Manager", ...hr_roles];
 
         let userRoles = frappe.user_roles || [];
 
@@ -243,8 +287,18 @@ function claim_extra_expenses(frm) {
         } else if (hasRole(service_roles)) {
             defaultVisit = "Field Visit";
             readOnlyField = true;
+            if (hasRole(sales_roles)) {
+                readOnlyField = false;
+            }
         } else if (hasRole(sales_roles)) {
             defaultVisit = "Tour Visit";
+            readOnlyField = true;
+            if (hasRole(service_roles)) {
+                readOnlyField = false;
+            }
+        } else {
+            defaultVisit = "General Purpose";
+            expense_type_reqd = 0
             readOnlyField = true;
         }
 
@@ -443,6 +497,8 @@ function claim_extra_expenses(frm) {
                 if (values.visit_type == "General Purpose") {
                     for (let i = 0; i < values.number_of_row; i++) {
                         let new_expense = {
+                            custom_field_visit_and_service_call_details: "NA",
+                            custom_tour_visit_details: "NA",
                         }
                         frm.add_child("expenses", new_expense);
                     }
@@ -848,9 +904,10 @@ function set_local_commute_monthly_expense(frm) {
 
 
 //? ADDS "VIEW FIELD VISIT EXPENSES" BUTTON IF USER HAS SPECIFIC ROLE
-function add_view_field_visit_expense_button(frm) {
+function add_view_field_visit_expense_button(frm, service_roles = [], hr_roles = []) {
     // ? DEFINE ALLOWED ROLES FOR BUTTON VISIBILITY
-    const allowed_roles = ['Service Engineer', 'S - HR Director (Global Admin)', "S - Service Engineer", "System Manager", "S - HR L5", "S - HR L4", "S - HR L3", "S - HR L2", "S - HR L1", "S - HR L2 Manager", "S - HR Supervisor (RM)"];
+
+    const allowed_roles = [...hr_roles, ...service_roles, "System Manager"];
 
     // ? CHECK IF CURRENT USER HAS ANY OF THE ALLOWED ROLES
     let can_show = 0;
@@ -875,7 +932,7 @@ function add_view_field_visit_expense_button(frm) {
             expense_claim_name = frm.doc.name
         }
         //? CHECK IF CURRENT USER IS HR USER OR HR MANAGER
-        const can_edit_employee = frappe.user.has_role('S - HR Director (Global Admin)') || frappe.user.has_role("System Manager");
+        const can_edit_employee = hr_roles.some(role => frappe.user.has_role(role)) || frappe.user.has_role("System Manager") || frappe.session.user == "Administrator";
         //? CREATE DIALOG TO ENTER FIELD VISIT DETAILS
         const dialog = new frappe.ui.Dialog({
             title: 'Field Visit Details',
@@ -887,6 +944,7 @@ function add_view_field_visit_expense_button(frm) {
                     options: 'Employee',
                     reqd: 1,
                     default: employee,
+                    read_only: !can_edit_employee,
                     hidden: !is_new,
                     onchange: function () {
                         if (dialog.get_value("employee")) {
@@ -1004,8 +1062,10 @@ function add_view_field_visit_expense_button(frm) {
 }
 
 // ? FUNCTION FOR BUTTON TO ADD TOUR VISIT EXPENSE - MODIFIED TO FEED DATA INTO CURRENT FORM
-function getTourVisitExpenseDialog(frm) {
-    const allowed_roles = ['S - HR Director (Global Admin)', "System Manager", "S - HR L5", "S - HR L4", "S - HR L3", "S - HR L2", "S - HR L1", "S - HR L2 Manager", "S - HR Supervisor (RM)", "S - Sales Director", "S - Sales Manager", "S - Sales Supervisor", "S - Sales Executive"];
+function getTourVisitExpenseDialog(frm, sales_roles = [], hr_roles = []) {
+    const hr_role = ["System Manager", ...hr_roles]
+
+    const allowed_roles = [...hr_role, ...sales_roles];
     const user_roles = frappe.user_roles;
 
     const has_access = user_roles.some(role => allowed_roles.includes(role));
@@ -1019,11 +1079,11 @@ function getTourVisitExpenseDialog(frm) {
             expense_claim_name = frm.doc.name;
         }
 
-        const is_hr = user_roles.includes('S - HR Director (Global Admin)') || user_roles.includes('S - HR Supervisor (RM)') || user_roles.includes('S - HR L2 Manager');
-        const is_sales = user_roles.includes('Sales User') || user_roles.includes('Sales Manager');
+        const is_hr = hr_role.some(role => user_roles.includes(role));
+        const is_sales = user_roles.some(role => sales_roles.includes(role));
 
         //? CHECK IF CURRENT USER CAN EDIT EMPLOYEE FIELD
-        const can_edit_employee = frappe.user.has_role('S - HR Director (Global Admin)') || frappe.user.has_role('S - HR Supervisor (RM)') || frappe.user.has_role('S - HR L2 Manager');
+        const can_edit_employee = is_hr;
 
         // ? GET DEFAULT EMPLOYEE FOR SALES USERS
         let default_employee = employee;
@@ -1486,6 +1546,12 @@ function handleWorkflowTransition(frm) {
                             console.log(">>> get_query called for Employee – no filter.");
                             return {};
                         }
+                    },
+                    {
+                        label: "Reason For Escalation",
+                        fieldname: "reason_for_escalation",
+                        fieldtype: "Small Text",
+                        reqd: 1,
                     }
                 ];
             
@@ -1504,7 +1570,8 @@ function handleWorkflowTransition(frm) {
                             args: {
                                 employee: values.employee,
                                 doctype: cur_frm.doctype,
-                                docname: cur_frm.docname
+                                docname: cur_frm.docname,
+                                reason_for_escalation: values.reason_for_escalation || ""
                             },
                             callback: function (r) {
                                 console.log("<<< API response:", r);

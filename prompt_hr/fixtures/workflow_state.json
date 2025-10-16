@@ -3,29 +3,38 @@
   "docstatus": 0,
   "doctype": "Workflow State",
   "icon": "",
+  "modified": "2025-10-16 11:07:16.134800",
+  "name": "Booked",
+  "style": "Success",
+  "workflow_state_name": "Booked"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
   "modified": "2025-04-02 13:13:46.339926",
   "name": "Filled",
   "style": "Info",
   "workflow_state_name": "Filled"
  },
  {
-    "docstatus": 0,
-    "doctype": "Workflow State",
-    "icon": "",
-    "modified": "2025-08-31 19:34:36.218684",
-    "name": "Send For Approval",
-    "style": "Primary",
-    "workflow_state_name": "Send For Approval"
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-08-31 19:34:36.218684",
+  "name": "Send For Approval",
+  "style": "Primary",
+  "workflow_state_name": "Send For Approval"
  },
-    {
-    "docstatus": 0,
-    "doctype": "Workflow State",
-    "icon": "",
-    "modified": "2025-08-31 19:34:40.026168",
-    "name": "Pending For Approval",
-    "style": "Primary",
-    "workflow_state_name": "Pending For Approval"
-    },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-08-31 19:34:40.026168",
+  "name": "Pending For Approval",
+  "style": "Primary",
+  "workflow_state_name": "Pending For Approval"
+ },
  {
   "docstatus": 0,
   "doctype": "Workflow State",

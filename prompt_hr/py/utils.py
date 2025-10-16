@@ -1002,7 +1002,7 @@ def get_colored_events(doctype, start, end, field_map, filters=None, fields=None
 
 # ! PROMPT_HR.PY.UTILS.SHARE_DOC_WITH_EMPLOYEE
 @frappe.whitelist()
-def share_doc_with_employee(employee, doctype, docname):
+def share_doc_with_employee(employee, doctype, docname, reason_for_escalation=None):
     """
     API TO SHARE A DOCUMENT WITH THE USER LINKED TO THE GIVEN EMPLOYEE.
     GRANTS FULL PERMISSIONS: READ, WRITE, SUBMIT, SHARE.
@@ -1026,6 +1026,18 @@ def share_doc_with_employee(employee, doctype, docname):
         submit=1,
         share=1,
     )
+
+    # ! SET ESCALATED TO FIELDS
+    try:
+        if doctype == "Expense Claim":
+            frappe.db.set_value(doctype, docname, "custom_escalated_to", employee)
+            if reason_for_escalation:
+                frappe.db.set_value(doctype, docname, "custom_reason_for_escalation", reason_for_escalation)
+    except Exception as e:
+        frappe.log_error(
+            f"Error setting custom_escalated_to",
+            frappe.get_traceback()
+        )
 
     return {
         "status": "success",

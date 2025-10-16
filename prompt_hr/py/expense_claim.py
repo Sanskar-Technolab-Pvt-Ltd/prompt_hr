@@ -3123,3 +3123,37 @@ def send_mail_to_accounting_team(doctype, docname):
     except Exception as e:
         frappe.log_error("Unexpected error in send_mail_to_accounting_team", str(e))
         return {"status": "error", "message": "An error occurred while sending emails."}
+
+
+@frappe.whitelist()
+def get_roles_from_hr_settings(role_type: str):
+    """
+    #! FETCH ROLES CONFIGURED IN HR SETTINGS BASED ON ROLE TYPE
+    #? role_type CAN BE "sales" OR "service OR "hr"
+    """
+    try:
+        # ! MAP ROLE TYPE TO FIELDNAME
+        field_map = {
+            "sales": "custom_sales_roles_for_expense_claims",
+            "service": "custom_service_roles_for_expense_claims",
+            "hr": "custom_hr_roles_for_permission",
+            "account": "custom_accounting_roles_for_expense_claims"
+        }
+
+        fieldname = field_map.get(role_type.lower())
+        if not fieldname:
+            frappe.msgprint("⚠️ Invalid role type. Please use 'sales' or 'service' or 'hr' or 'accounting'.")
+            return []
+
+        # ? FETCH VALUE FROM HR SETTINGS
+        roles_str = frappe.db.get_single_value("HR Settings", fieldname)
+        if not roles_str:
+            return []
+
+        # ! SPLIT AND STRIP ROLES INTO LIST
+        roles = [role.strip() for role in roles_str.split(",") if role.strip()]
+        return roles
+
+    except Exception as e:
+        frappe.log_error("Error fetching roles from HR Settings", str(e))
+        return []
