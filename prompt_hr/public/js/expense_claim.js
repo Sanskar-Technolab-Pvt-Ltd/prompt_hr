@@ -142,7 +142,7 @@ frappe.ui.form.on('Expense Claim', {
         frappe.dom.unfreeze();  // ! ENSURE UI IS UNFROZEN
         console.log(">>> Workflow action:", frm.selected_workflow_action);
 
-        handleWorkflowTransition(frm)
+        return handleWorkflowTransition(frm)
         .then(() => console.log("Workflow action completed successfully."))
         .catch(() => console.log("Workflow action failed."));
     },
