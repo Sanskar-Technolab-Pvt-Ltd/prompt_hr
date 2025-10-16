@@ -78,29 +78,5 @@
   "modified": "2025-04-11 18:30:21.755810",
   "name": "CONF-EVAL-PARAM-00010",
   "parameter": "Rate Overall Performance"
- },
- {
-  "category": "Behavioural Skills",
-  "docstatus": 0,
-  "doctype": "Confirmation Evaluation Parameter",
-  "modified": "2025-04-11 18:30:36.240028",
-  "name": "CONF-EVAL-PARAM-00011",
-  "parameter": "Mention Strengths of Employee"
- },
- {
-  "category": "Behavioural Skills",
-  "docstatus": 0,
-  "doctype": "Confirmation Evaluation Parameter",
-  "modified": "2025-04-11 18:30:50.908670",
-  "name": "CONF-EVAL-PARAM-00012",
-  "parameter": "Mention areas of improvement "
- },
- {
-  "category": "Behavioural Skills",
-  "docstatus": 0,
-  "doctype": "Confirmation Evaluation Parameter",
-  "modified": "2025-04-11 18:31:01.711906",
-  "name": "CONF-EVAL-PARAM-00013",
-  "parameter": "Recommend trainings, if any"
  }
 ]

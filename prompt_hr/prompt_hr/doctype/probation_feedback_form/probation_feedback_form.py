@@ -53,8 +53,8 @@ class ProbationFeedbackForm(Document):
 				
 	
 
-	def before_save(self):
-
+	def before_submit(self):
+			print(f"\n\n  before submit \n\n")
 			probation_for = None
 			if self.probation_feedback_for == "30 Days":
 				probation_for = "First"
@@ -79,6 +79,8 @@ class ProbationFeedbackForm(Document):
 				if is_reporting_head:
 					if any(row.rating in ["", None, 0.0, 0] for row in self.probation_feedback_prompt):            
 						frappe.throw("Please provide appropriate ratings")
+					elif not self.any_major_areas_of_improvement:
+						frappe.throw("Please fill <b>'Any Major Areas of Improvement'</b> field")
 					else:						    
 						hr_user_list = frappe.db.get_all("Has Role", filters={"role": ["in", ["S - HR Director (Global Admin)", "S - HR L1"]], "parenttype": "User", "parent": ["not in", [user, "Administrator"]]}, fields=["parent"], pluck="parent")
 

@@ -151,14 +151,5 @@
   "name": "PROB-QUE-17",
   "probation_feedback_for": "60 days",
   "question": "Rate the employee technical skills for their role."
- },
- {
-  "company": "Prompt Equipments PVT LTD",
-  "docstatus": 0,
-  "doctype": "Probation Question",
-  "modified": "2025-04-09 19:31:40.654564",
-  "name": "PROB-QUE-18",
-  "probation_feedback_for": "60 Days",
-  "question": "Any major areas of improvement"
  }
 ]

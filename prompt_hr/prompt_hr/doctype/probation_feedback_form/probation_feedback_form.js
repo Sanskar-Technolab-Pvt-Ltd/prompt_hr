@@ -40,19 +40,20 @@ frappe.ui.form.on("Probation Feedback Form", {
                     const user_employee_name = response.message.name;
                     
                     if (user_employee_name === reporting_manager) {
+
                         console.log("User is Reporting Manager");
                         frm.fields_dict.probation_feedback_prompt.grid.update_docfield_property('rating', 'read_only', 0);
-
+                        frm.set_df_property("any_major_areas_of_improvement", "reqd", 1)
+                        frm.set_df_property("recommend_trainings_if_any", "reqd", 1)
+                        
                         fields.forEach(field => {
                             frm.set_df_property(field, "read_only", 1)
                         })
-
-
                         
                     } else if (hr_manager_roles.some(role => frappe.user.has_role(role))) {
                         console.log("hr manager")
                         frm.fields_dict.probation_feedback_prompt.grid.update_docfield_property('rating', 'read_only', 0);
-
+                        frm.page.clear_primary_action();
                         fields.forEach(field => {
                             frm.set_df_property(field, "read_only", 0)
                         })
@@ -60,16 +61,15 @@ frappe.ui.form.on("Probation Feedback Form", {
                     }else {
                         console.log("User is neither Reporting Manager nor Head of Department");
                         frm.fields_dict.probation_feedback_prompt.grid.update_docfield_property('rating', 'read_only', 1);
+                        frm.page.clear_primary_action();
+                        
 
                         fields.forEach(field => {
                             frm.set_df_property(field, "read_only", 1)
                         })
                         
                     }
-                } else {
-                    console.log("sfdsadssdsad")
                 }
-                
             }
         })
         frm.fields_dict['probation_feedback_prompt'].grid.refresh();
@@ -96,3 +96,14 @@ frappe.ui.form.on("Probation Feedback Form", {
         frm.refresh_field('probation_feedback_prompt');
     }
 });
+
+
+frappe.ui.form.on("Probation Feedback Prompt", {
+    rating: function (frm, cdt, cdn) { 
+        let row = locals[cdt][cdn];
+
+        if (row.rating < 1 || row.rating > 5) {
+            frappe.throw("Rating must be between 1 and 5.");
+        }
+    }
+})
