@@ -101,9 +101,10 @@ def send_mail_for_updates(doc):
                             recipients=expense_approver)
 
         if reporting_manager_user_id:
-            send_notification("Expense Claim Send For Approval Notification",
-                            {"expense_approver_name": reporting_manager_name, "can_approve": 0},
-                            recipients=reporting_manager_user_id)
+            if not(expense_approver and expense_approver == reporting_manager_user_id):
+                send_notification("Expense Claim Send For Approval Notification",
+                                {"expense_approver_name": reporting_manager_name, "can_approve": 0},
+                                recipients=reporting_manager_user_id)
 
         if employee_id:
             send_notification("Expense Claim Send For Approval Notification",
@@ -118,9 +119,10 @@ def send_mail_for_updates(doc):
                             recipients=expense_approver)
 
         if reporting_manager_user_id:
-            send_notification("Expense Claim Rejection Notification",
-                            {"expense_approver_name": reporting_manager_name, "can_approve": 0},
-                            recipients=reporting_manager_user_id)
+            if not(expense_approver and expense_approver == reporting_manager_user_id):
+                send_notification("Expense Claim Rejection Notification",
+                                {"expense_approver_name": reporting_manager_name, "can_approve": 0},
+                                recipients=reporting_manager_user_id)
 
         if employee_id:
             send_notification("Expense Claim Rejection Notification",
@@ -136,9 +138,10 @@ def send_mail_for_updates(doc):
                             recipients=expense_approver)
 
         if reporting_manager_user_id:
-            send_notification("Expense Claim Escalation Notification",
-                            {"expense_approver_name": reporting_manager_name, "stage": stage},
-                            recipients=reporting_manager_user_id)
+            if not(expense_approver and expense_approver == reporting_manager_user_id):
+                send_notification("Expense Claim Escalation Notification",
+                                {"expense_approver_name": reporting_manager_name, "stage": stage},
+                                recipients=reporting_manager_user_id)
 
         if employee_id:
             send_notification("Expense Claim Escalation Notification",
@@ -170,9 +173,10 @@ def send_mail_for_updates(doc):
                             recipients=expense_approver)
 
         if reporting_manager_user_id:
-            send_notification("Expense Claim Submitted Notification",
-                            {"expense_approver_name": reporting_manager_name},
-                            recipients=reporting_manager_user_id)
+            if not(expense_approver and expense_approver == reporting_manager_user_id):
+                send_notification("Expense Claim Submitted Notification",
+                                {"expense_approver_name": reporting_manager_name},
+                                recipients=reporting_manager_user_id)
 
         if employee_id:
             send_notification("Expense Claim Submitted Notification",
@@ -453,15 +457,14 @@ def update_da_amount_as_per_time(doc):
                 diff_in_hours = time_diff_in_hours(expense.custom_expense_end_time, expense.custom_expense_start_time)
 
                 #? FIND MATCHING TIME SLAB FROM HR SETTINGS
-                for time_range, allowance_multiplier in time_map.items():
-                    from_hours, to_hours = map(float, time_range.split(":"))
-                    if from_hours <= diff_in_hours <= to_hours:
-                        expense.amount = da_amount * allowance_multiplier/100
-                        expense.sanctioned_amount = expense.amount
-                        break
-                else:
-                    expense.amount = da_amount
-                    expense.sanctioned_amount = da_amount
+                if da_amount != 0:
+                    for time_range, allowance_multiplier in time_map.items():
+                        from_hours, to_hours = map(float, time_range.split(":"))
+                        if from_hours <= diff_in_hours <= to_hours:
+                            expense.amount = da_amount * allowance_multiplier/100
+                            expense.sanctioned_amount = expense.amount
+                            break
+
             else:
                 frappe.throw("Start Time and End Time is Mandatory For DA")
 
@@ -2234,7 +2237,7 @@ def build_da_expense_rows(
             already_exists_dates.append(str(date))
             continue
 
-        if amount > 0:
+        if amount > 0 or da_amount == 0:
             #! BASE EXPENSE ROW
             expense_row = {
                 "expense_type": "DA",
