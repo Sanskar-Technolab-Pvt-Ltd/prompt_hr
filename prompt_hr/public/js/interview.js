@@ -46,7 +46,6 @@ frappe.ui.form.on("Interview", {
                 let template_text = frm.doc.custom_template_data
                 let rendered_html = await getTeamsMessageHTML(frm, template_text)
 
-                console.log(rendered_html)
 
                 frappe.call({
                     method: 'prompt_hr.teams.calender_book.teams_calender_book',
@@ -123,10 +122,8 @@ frappe.ui.form.on("Interview", {
                 name: frm.doc.name
             },
             callback: function (r) {
-                console.log("Shared users:", r.message);
                 if (r.message && r.message.some(function (shared_user) {
                     return shared_user.user === frappe.session.user;
-                    console.log("Hidden user:", shared_user.user);
                 })) {
                     // ?  FIRST CHECK IF THE USER EXISTS IN INTERVIEW_DETAILS
                     let current_user = frappe.session.user;
@@ -170,7 +167,7 @@ frappe.ui.form.on("Interview", {
 
                     // ?  CHECK EXTERNAL INTERVIEWERS
                     if (frm.doc.custom_external_interviewers && frm.doc.custom_external_interviewers.length) {
-                        console.log("External Interviewers:", frm.doc.custom_external_interviewers);
+                        
                         frm.doc.custom_external_interviewers.forEach(function (interviewer) {
                             if (interviewer.custom_user) {
                                 if (interviewer.is_confirm === 0) {
@@ -182,7 +179,7 @@ frappe.ui.form.on("Interview", {
                                         callback: function (r) {
                                             if (r.message === current_user) {
                                                 frm.remove_custom_button(__("Notify Interviewer"));
-                                                console.log("External Interviewer:", interviewer.custom_user);
+                                                
                                                 is_external_interviewer_not_confirmed = true;
                                                 showConfirmButton();
                                             }
@@ -196,7 +193,7 @@ frappe.ui.form.on("Interview", {
                                             supplier_name: interviewer.custom_user
                                         },
                                         callback: function (r) {
-                                            console.log(r)
+                                            
                                             if (r.message === current_user) {
                                                 frm.remove_custom_button(__("Notify Interviewer"));
                                             }
@@ -334,7 +331,7 @@ frappe.ui.form.on("Interview", {
             },
             callback: function (r) {
                 if (r.message) {
-                    console.log("Feedback submitted successfully.");
+                   
                     window.location.href = r.message;
                 } else {
                     frappe.call({
@@ -371,7 +368,7 @@ frappe.ui.form.on("Interview", {
         frm.toggle_display("custom_available_interviewers", false);
     },
     custom_send_reminder: function (frm, cdt, cdn) {
-        console.log("Hi")
+    
         frappe.msgprint("Sending Reminder to Interviewers...");
     }
 
@@ -475,7 +472,7 @@ function fetchAvailableInterviewers(frm) {
 
                             let row = frm.add_child("custom_available_interviewers");
                             row.user = interviewer;
-                            console.log("New Interviewer:", row.user);
+                         
                         });
 
                         frm.refresh_field("custom_available_interviewers");
@@ -698,9 +695,9 @@ function update_preview(frm, template_text) {
             .then(applicant_doc => {
                 // Include the full job applicant doc in the context
                 let context = {
-                    ...frm.doc,           // current form doc fields
+                    ...frm.doc,           
                     today_date: frappe.datetime.now_date(),
-                    applicant: applicant_doc // entire Job Applicant document
+                    applicant: applicant_doc
                 };
 
                 render_preview(frm, template_text, context);
@@ -776,17 +773,13 @@ async function getTeamsMessageHTML(frm, template_text) {
     try {
         // If a Job Applicant is linked
         if (frm.doc.job_applicant) {
-            console.log("Fetching Job Applicant data...");
 
             // Wait for the Job Applicant document
             const applicant_doc = await frappe.db.get_doc('Job Applicant', frm.doc.job_applicant);
 
-            // Log the fetched data for debugging
-            console.log("Fetched Applicant Doc:", applicant_doc);
-
             // Add the applicant data to the context
             context.applicant = applicant_doc;
-        }
+        }  
 
         // Render the template with the complete context (whether applicant data was included or not)
         const rendered_html = await frappe.render_template(template_text, context);
