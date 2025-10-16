@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "field:employee",
+ "autoname": "format:{employee}",
  "creation": "2025-04-18 07:18:52.049691",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -9,6 +9,10 @@
   "posting_date",
   "employee",
   "employee_name",
+  "reporting_manager",
+  "work_location",
+  "department",
+  "employment_type",
   "exit_interview",
   "employee_separation",
   "column_break_lhxs",
@@ -25,12 +29,15 @@
   {
    "fieldname": "posting_date",
    "fieldtype": "Date",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Posting Date"
   },
   {
    "fieldname": "employee",
    "fieldtype": "Link",
    "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Employee",
    "options": "Employee",
    "reqd": 1,
@@ -40,6 +47,8 @@
    "fetch_from": "employee.employee_name",
    "fieldname": "employee_name",
    "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Employee Name"
   },
   {
@@ -78,6 +87,7 @@
   {
    "fieldname": "last_date_of_working",
    "fieldtype": "Date",
+   "in_list_view": 1,
    "label": "Last Date of Working"
   },
   {
@@ -103,16 +113,50 @@
    "fieldtype": "Data",
    "label": "Exit Checkliist Notification Date",
    "read_only": 1
+  },
+  {
+   "fetch_from": "employee.reports_to",
+   "fieldname": "reporting_manager",
+   "fieldtype": "Link",
+   "ignore_user_permissions": 1,
+   "in_standard_filter": 1,
+   "label": "Reporting Manager",
+   "options": "Employee"
+  },
+  {
+   "fetch_from": "employee.department",
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Department",
+   "options": "Department"
+  },
+  {
+   "fetch_from": "employee.employment_type",
+   "fieldname": "employment_type",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Employment Type",
+   "options": "Employment Type"
+  },
+  {
+   "fetch_from": "employee.custom_work_location",
+   "fieldname": "work_location",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Work Location",
+   "options": "Address"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-08 18:43:25.354179",
+ "modified": "2025-10-13 16:24:42.147291",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Exit Approval Process",
- "naming_rule": "By fieldname",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {

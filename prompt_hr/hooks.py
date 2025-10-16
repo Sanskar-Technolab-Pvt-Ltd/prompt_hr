@@ -257,6 +257,7 @@ doc_events = {
     "Interview Feedback": {
         "on_submit": "prompt_hr.py.interview_feedback.on_submit",
         "on_update": "prompt_hr.py.interview_feedback.on_update",
+        "before_validate": "prompt_hr.py.interview_feedback.before_validate"
     },
     # "User": {
     #     "after_insert": "prompt_hr.py.welcome_status.after_insert"
@@ -372,7 +373,7 @@ on_logout = "prompt_hr.api.mobile.firebase.clear_token_for_user"
 
 scheduler_events = {
     "cron": {
-        "50 23 * * *": [
+        "30 0 * * *": [
             "prompt_hr.py.employee.update_employee_status_for_prompt_company"
         ],
         "0 20 * * *": [
@@ -541,10 +542,10 @@ fixtures = [
     #     "dt":"Role", "filters": [["name", "in", ["Job Requisition", "Head of Department", "Managing Director", "S - Payroll Accounting", "Travel Desk User", "Reporting Manager", "IT User", "Admin User"]]]
     # },
     # {
-    #     "dt":"Workflow", "filters": [["name", "in", ["Job Requisition","Loan Application", "Compensatory Leave Request", "Leave Application", "Expense Claim", "Travel Request", "Shift Request", "WeekOff Change Request", "Attendance Regularization", "Attendance Request"]]]
+    #     "dt":"Workflow", "filters": [["name", "in", ["Exit Approval Process", "Job Requisition","Loan Application", "Compensatory Leave Request", "Leave Application", "Expense Claim", "Travel Request", "Shift Request", "WeekOff Change Request", "Attendance Regularization", "Attendance Request"]]]
     # },
     # {
-    #     "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Cancelled by Employee", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled", "Confirmed", "Approved by HR", "Rejected by HR", "Approved by BU Head", "Rejected by BU Head", "Extension Approved", "Extension Confirmed", "Extension Rejected", "Extension Requested", "Send For Approval", "Pending For Approval"]]]
+    #     "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Cancelled by Employee", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled", "Confirmed", "Approved by HR", "Rejected by HR", "Approved by BU Head", "Rejected by BU Head", "Extension Approved", "Extension Confirmed", "Extension Rejected", "Extension Requested", "Send For Approval", "Pending For Approval", "Submitted by RM", "Submitted by DH"]]]
     # },
     # {
     #     "dt":"Workflow Action Master", "filters": [["name", "in", ["Confirm", "Send For Approval", "Withdraw"]]]
@@ -567,7 +568,8 @@ fixtures = [
     #             "Employee ESS",
     #             "Leaves",
     #             "Shift & Attendance",
-    #             "HR"
+    #             "HR",
+    #             "Employee Lifecycle",
     #         ]]
     #     }
     # },
@@ -581,6 +583,9 @@ fixtures = [
     #             "Shift Request - Pending Approval",
     #             "WeekOff Change Request - Pending Approval",
     #             "Leave Application - Approved/Rejected by RM",
+    #             "Exit Approval Process - Pending Approval",
+    #             "Exit Approval Process - Approved/Rejected by RM",
+    #             "Exit Checklist - Pending Completion",
     #         ]]
     #     }
     # }

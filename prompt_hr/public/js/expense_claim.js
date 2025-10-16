@@ -32,22 +32,73 @@ frappe.ui.form.on('Expense Claim', {
             }
         });
     },
-	refresh(frm) {
-        if ( !frm.is_new() && frm.doc.workflow_state == "Pending For Approval") {
-            if (!frappe.user_roles.includes("S - HR Director (Global Admin)") && !frappe.user_roles.includes("S - HR L2 Manager") && !frappe.user_roles.includes("System Manager") && !frappe.user_roles.includes("S - Sales Co-ordinator") && !frappe.user_roles.includes("S - Service Coordinator") && !frappe.user_roles.includes("S - HR L5") && !frappe.user_roles.includes("S - HR Supervisor (RM)") && !frappe.user_roles.includes("S - HR L4") && !frappe.user_roles.includes("S - HR L3") && !frappe.user_roles.includes("S - HR L2") && !frappe.user_roles.includes("S - HR L1")) {
-                //? DISABLE FORM ONLY FOR CREATOR
-                if (frappe.session.user === frm.doc.owner) {
-                    frm.disable_form();
+	refresh: async function (frm) {
+        const hr_roles_response = await frappe.call({
+            method: "prompt_hr.py.expense_claim.get_roles_from_hr_settings",
+            args: { role_type: "hr" },
+        });
+        const hr_roles = hr_roles_response?.message || [];
+        const account_roles_response = await frappe.call({
+            method: "prompt_hr.py.expense_claim.get_roles_from_hr_settings",
+            args: { role_type: "account" },
+        });
+        const account_roles = account_roles_response?.message || [];
+        if (!frm.is_new() && frm.doc.workflow_state === "Rejected") {
+            // ? DISABLE FORM IF REJECTED
+            frm.disable_form();
+        }
+        if (!frm.is_new() && !["Draft", "Rejected"].includes(frm.doc.workflow_state)) {
+            const workflow_state = frm.doc.workflow_state;
+            const hr_system_roles = ["System Manager", ...hr_roles];
+            const expense_approver = frm.doc.expense_approver;
+            const escalated_to = frm.doc.custom_escalated_to;
+
+            let allowed_users = [];
+            let allowed_roles = [...hr_system_roles];
+
+            if (workflow_state === "Pending For Approval") {
+                // HR + System + Expense Approver
+                if (expense_approver) allowed_users.push(expense_approver);
+            }
+            else if (workflow_state === "Escalated") {
+                // HR + System + Escalated To user
+                if (escalated_to) {
+                    const escalated_to_user = (await frappe.db.get_value("Employee", escalated_to, "user_id"))?.message?.user_id;
+                    if (escalated_to_user) allowed_users.push(escalated_to_user);
                 }
             }
-        }
-        // ? SERVICE ENGINEER CANNOT BE ABLE TO ADD ROWS DIRECTLY
-        const roles = frappe.user_roles || [];
-        const is_service_engineer = (roles.includes("S - Service Engineer") || roles.includes("Service Engineer")) && !roles.includes("System Manager");
-        frm.set_df_property("expenses", "cannot_add_rows", is_service_engineer);
+            else if (workflow_state === "Sent to Accounting Team") {
+                // HR + Accounting Roles (assuming stored in accounting_roles)
+                allowed_roles.push(...account_roles);
+            }
 
-		add_view_field_visit_expense_button(frm);
-		fetch_commute_data(frm);
+            const current_user = frappe.session.user;
+            const has_role = allowed_roles.some(role => frappe.user.has_role(role));
+            const is_allowed_user = allowed_users.includes(current_user);
+
+            if (!has_role && !is_allowed_user && current_user !== "Administrator") {
+                // Disable the form for this user
+                frm.disable_form();
+            }
+        }
+
+
+        const service_roles_response = await frappe.call({
+            method: "prompt_hr.py.expense_claim.get_roles_from_hr_settings",
+            args: { role_type: "service" },
+        });
+        const service_roles = service_roles_response?.message || [];
+
+
+        const sales_roles_response = await frappe.call({
+            method: "prompt_hr.py.expense_claim.get_roles_from_hr_settings",
+            args: { role_type: "sales" },
+        });
+        const sales_roles = sales_roles_response?.message || [];
+
+        frm.set_df_property("expenses", "cannot_add_rows", 1);
+
+        fetch_commute_data(frm);
 		set_local_commute_monthly_expense(frm);
         set_travel_request_details(frm)
 		// ? FETCH GENDER OF THE CURRENT EMPLOYEE
@@ -67,9 +118,9 @@ frappe.ui.form.on('Expense Claim', {
             });
         }
         if (frm.is_new() || frm.doc.workflow_state == "Draft") {
-            add_view_field_visit_expense_button(frm);
-            getTourVisitExpenseDialog(frm);
-            claim_extra_expenses(frm)
+            add_view_field_visit_expense_button(frm, service_roles, hr_roles);
+            getTourVisitExpenseDialog(frm, sales_roles, hr_roles);
+            claim_extra_expenses(frm, service_roles, sales_roles, hr_roles);
         }
     },
     after_save: function(frm) {  
@@ -80,119 +131,20 @@ frappe.ui.form.on('Expense Claim', {
     before_workflow_action: function (frm) {
 
         // ! IF "REJECT" ACTION, PROCEED IMMEDIATELY
-        if (frm.selected_workflow_action === "Reject" || frm.selected_workflow_action === "Send For Approval" || frm.selected_workflow_action === "Submit") {
-            console.log(">>> Workflow action is 'Reject' – proceeding without dialog.");
+        if (frm.selected_workflow_action === "Send For Approval" || frm.selected_workflow_action === "Submit") {                        
             return Promise.resolve();
+        }
+        if (frm.selected_workflow_action === "Reject" && (frm.doc.custom_reason_for_rejection || "").length < 1) {
+            console.log(">>> Workflow action is 'Reject' – proceeding without dialog.");
+            return reason_for_rejection_dialog(frm)
         }
 
         frappe.dom.unfreeze();  // ! ENSURE UI IS UNFROZEN
         console.log(">>> Workflow action:", frm.selected_workflow_action);
 
-        return new Promise((resolve, reject) => {
-
-            console.log(">>> Fetching transitions for the current document...");
-
-            frappe.workflow.get_transitions(frm.doc).then(transitions => {
-                console.log("<<< Transitions fetched:", transitions);
-
-                const selected_transition = transitions.find(
-                    t => t.action === frm.selected_workflow_action
-                );
-
-                const target_state = selected_transition ? selected_transition.next_state : null;
-                console.log(">>> Selected transition:", selected_transition);
-                console.log(">>> Target workflow state:", target_state);
-
-                let dialog_fields = [];
-
-                if (target_state === "Sent to Accounting Team") {
-                    console.log(">>> Target state is 'Sent to Accounting Team' – filtering Employees by 'Accounts User' role.");
-
-                    dialog_fields = [
-                        {
-                            label: "Role",
-                            fieldname: "role",
-                            fieldtype: "Link",
-                            options: "Role",
-                            reqd: 1,
-                            default: "Accounts User",
-                            read_only: 1
-                        },
-                        {
-                            label: "Employee",
-                            fieldname: "employee",
-                            fieldtype: "Link",
-                            options: "Employee",
-                            reqd: 1,
-                            get_query: function () {
-                                console.log(">>> get_query called for Employee – filter by Accounts User.");
-                                return {
-                                    query: "prompt_hr.py.expense_claim.get_employees_by_role",
-                                    filters: { role: "Accounts User" }
-                                };
-                            }
-                        }
-                    ];
-                } else {
-                    console.log(">>> Target state is NOT 'Sent to Accounting Team' – show all Employees, hide Role field.");
-
-                    dialog_fields = [
-                        {
-                            label: "Employee",
-                            fieldname: "employee",
-                            fieldtype: "Link",
-                            options: "Employee",
-                            reqd: 1,
-                            get_query: function () {
-                                console.log(">>> get_query called for Employee – no filter.");
-                                return {};
-                            }
-                        }
-                    ];
-                }
-
-                let dialog = new frappe.ui.Dialog({
-                    title: __("Confirm {0}", [frm.selected_workflow_action]),
-                    fields: dialog_fields,
-                    primary_action_label: "Send For Approval",
-                    primary_action: function (values) {
-                        console.log(">>> Primary action triggered with values:", values);
-
-                        dialog.hide();
-
-                        console.log(">>> Calling backend API to share document...");
-                        frappe.call({
-                            method: "prompt_hr.py.utils.share_doc_with_employee",
-                            args: {
-                                employee: values.employee,
-                                doctype: cur_frm.doctype,
-                                docname: cur_frm.docname
-                            },
-                            callback: function (r) {
-                                console.log("<<< API response:", r);
-
-                                if (r.message && r.message.status === "success") {
-                                    frappe.msgprint(`Document shared with ${values.employee} successfully.`);
-                                    resolve();
-                                } else {
-                                    frappe.msgprint("Failed to share document.");
-                                    console.log("!!! Document sharing failed, rejecting workflow.");
-                                    reject();
-                                }
-                            },
-                            error: function (err) {
-                                console.error("!!! Error during API call:", err);
-                                frappe.msgprint("Error occurred while sharing document.");
-                                reject();
-                            }
-                        });
-                    }
-                });
-
-                console.log(">>> Showing dialog to user...");
-                dialog.show();
-            });
-        });
+        return handleWorkflowTransition(frm)
+        .then(() => console.log("Workflow action completed successfully."))
+        .catch(() => console.log("Workflow action failed."));
     },
 	employee: (frm) => { 
 		fetch_commute_data(frm); 
@@ -241,12 +193,31 @@ function make_border_red_for_is_exception_records(frm) {
         if (rowDoc?.custom_is_exception) {
             // APPLY RED BORDER IF EXCEPTION
             $row.css("border", "2px solid red");
-    
+
+            if (rowDoc?.custom_max_limit > 0) {
+                // COLLECT EXCEPTION MESSAGE WITH ROW NUMBER
+                exceptionMessages.push(
+                    `Row ${rowDoc?.idx}: ${rowDoc?.expense_type
+                    } allowance limit is ${(rowDoc?.custom_max_limit
+                ).toFixed(2)} and claimed amount is ${(rowDoc?.amount).toFixed(2)}.`
+                );
+            } else {
+                // COLLECT EXCEPTION MESSAGE WITH ROW NUMBER
+                exceptionMessages.push(
+                    `Row ${rowDoc?.idx}: ${rowDoc?.expense_type} allowance limit has been crossed.`
+                );
+            }
+        }
+        if (!rowDoc?.custom_field_visit_and_service_call_details && !rowDoc?.custom_tour_visit_details) {
+            // APPLY RED BORDER IF EXCEPTION
+            $row.css("border", "2px solid red");
+            
             // COLLECT EXCEPTION MESSAGE WITH ROW NUMBER
             exceptionMessages.push(
-                `Row ${rowDoc?.idx}: ${rowDoc?.expense_type} allowance limit has been crossed.`
+                `Row ${rowDoc?.idx}: No Tour Visit and Service Call details found.`
             );
         }
+        
     });
 
     if (exceptionMessages.length > 0) {
@@ -269,7 +240,7 @@ function make_border_red_for_is_exception_records(frm) {
         }
     }
 }
-function claim_extra_expenses(frm) {
+function claim_extra_expenses(frm, service_roles = [], sales_roles = [], hr_roles = []) {
     //? ADD EXTRA EXPENSES BUTTON
     frm.add_custom_button(__('Claim Extra Expenses'), function () {
         // ! THROW MESSAGE IF EMPLOYEE IS NOT SELECTED
@@ -281,10 +252,7 @@ function claim_extra_expenses(frm) {
             });
             return;
         }
-        const service_roles = ["S - Service Engineer", "Service Engineer", "S - Service Director"];
-        const all_perm_roles = ["S - HR L5", "S - HR L4", "S - HR L3", "S - HR L2", "S - HR L1", "S - HR L2 Manager", "S - HR Supervisor (RM)", "System Manager", "S - HR Director (Global Admin)"]
-        const sales_roles = ["S - Sales Director", "S - Sales Manager", "S - Sales Supervisor", "S - Sales Executive"];
-
+        const all_perm_roles = ["System Manager", ...hr_roles];
 
         let userRoles = frappe.user_roles || [];
 
@@ -308,17 +276,29 @@ function claim_extra_expenses(frm) {
         }
 
         let defaultVisit = "";
+        let expense_type_reqd = 1
         let readOnlyField = false;
 
         // LOGIC TO SET DEFAULT AND READONLY
         if (hasRole(all_perm_roles)) {
-            defaultVisit = "Field Visit";
+            defaultVisit = "General Purpose";
+            expense_type_reqd = 0
             readOnlyField = false;
         } else if (hasRole(service_roles)) {
             defaultVisit = "Field Visit";
             readOnlyField = true;
+            if (hasRole(sales_roles)) {
+                readOnlyField = false;
+            }
         } else if (hasRole(sales_roles)) {
             defaultVisit = "Tour Visit";
+            readOnlyField = true;
+            if (hasRole(service_roles)) {
+                readOnlyField = false;
+            }
+        } else {
+            defaultVisit = "General Purpose";
+            expense_type_reqd = 0
             readOnlyField = true;
         }
 
@@ -330,7 +310,7 @@ function claim_extra_expenses(frm) {
                     label: 'Visit Type',
                     fieldname: 'visit_type',
                     fieldtype: 'Select',
-                    options: "\nField Visit\nTour Visit",
+                    options: "\nGeneral Purpose\nField Visit\nTour Visit",
                     default: defaultVisit,
                     reqd: 1,
                     read_only: readOnlyField,
@@ -343,9 +323,52 @@ function claim_extra_expenses(frm) {
                     fieldname: 'expense_type',
                     fieldtype: 'Select',
                     options: "DA\nNon DA",
-                    reqd: 1,
+                    reqd: expense_type_reqd,
+                    hidden: !expense_type_reqd,
                     onchange: function () {
                         toggleExpenseFields(dialog);
+                    }
+                },
+
+                {
+                    label: "Add Without Field Visit and Service Call",
+                    fieldname: "add_without_fv_sc",
+                    fieldtype: "Check",
+                    hidden: 1,
+                    onchange: function () {
+                        const isRequired = !dialog.get_value("add_without_fv_sc");
+                        dialog.set_df_property("field_visit", "reqd", isRequired);
+                        dialog.set_df_property("service_call", "reqd", isRequired);
+                        dialog.set_df_property("field_visit", "hidden", !isRequired);
+                        dialog.set_df_property("service_call", "hidden", !isRequired);
+                        dialog.set_df_property("customer", "hidden", isRequired);
+                        dialog.set_df_property("customer", "reqd", !isRequired);
+                        dialog.set_df_property("from_date", "reqd", isRequired);
+                        dialog.set_df_property("to_date", "reqd", isRequired);
+                        dialog.set_df_property("from_date", "hidden", !isRequired);
+                        dialog.set_df_property("to_date", "hidden", !isRequired);
+
+                        dialog.fields_dict.field_visit.refresh();
+                        dialog.fields_dict.service_call.refresh();
+                    }
+                },
+                {
+                    label: "Add Without Tour Visits",
+                    fieldname: "add_without_tv",
+                    fieldtype: "Check",
+                    hidden: 1,
+                    onchange: function () {
+                        const isRequired = !dialog.get_value("add_without_tv");
+                        dialog.set_df_property("tour_visit", "reqd", isRequired);
+                        dialog.set_df_property("tour_visit", "hidden", !isRequired);
+                        dialog.set_df_property("customer", "hidden", isRequired);
+                        dialog.set_df_property("customer", "reqd", !isRequired);
+                        dialog.set_df_property("from_date", "reqd", isRequired);
+                        dialog.set_df_property("to_date", "reqd", isRequired);
+                        dialog.set_df_property("from_date", "hidden", !isRequired);
+                        dialog.set_df_property("to_date", "hidden", !isRequired);
+                        dialog.fields_dict.field_visit.refresh();
+                        dialog.fields_dict.service_call.refresh();
                     }
                 },
 
@@ -355,24 +378,36 @@ function claim_extra_expenses(frm) {
                     fieldname: 'from_date',
                     fieldtype: 'Date',
                     hidden: 1,
+                    onchange: function () {
+                        validate_dates_debounced(dialog)
+                    }
                 },
                 {
                     label: 'From Time',
                     fieldname: 'from_time',
                     fieldtype: 'Time',
-                    hidden: 1
+                    hidden: 1,
+                    onchange: function () {
+                        validate_dates_debounced(dialog)
+                    }
                 },
                 {
                     label: 'To Date',
                     fieldname: 'to_date',
                     fieldtype: 'Date',
                     hidden: 1,
+                    onchange: function () {
+                        validate_dates_debounced(dialog)
+                    }
                 },
                 {
                     label: 'To Time',
                     fieldname: 'to_time',
                     fieldtype: 'Time',
-                    hidden: 1
+                    hidden: 1,
+                    onchange: function () {
+                        validate_dates_debounced(dialog)
+                    }
                 },
 
                 {
@@ -449,49 +484,8 @@ function claim_extra_expenses(frm) {
                     default: 1,
                     min: 1,
                     max: 4,
-                    hidden: 1
+                    hidden: expense_type_reqd
                 },
-                {
-                    label: "Add Without Field Visit and Service Call",
-                    fieldname: "add_without_fv_sc",
-                    fieldtype: "Check",
-                    hidden: 1,
-                    onchange: function () {
-                        const isRequired = !dialog.get_value("add_without_fv_sc");
-                        dialog.set_df_property("field_visit", "reqd", isRequired);
-                        dialog.set_df_property("service_call", "reqd", isRequired);
-                        dialog.set_df_property("field_visit", "hidden", !isRequired);
-                        dialog.set_df_property("service_call", "hidden", !isRequired);
-                        dialog.set_df_property("customer", "hidden", isRequired);
-                        dialog.set_df_property("customer", "reqd", !isRequired);
-                        dialog.set_df_property("from_date", "reqd", isRequired);
-                        dialog.set_df_property("to_date", "reqd", isRequired);
-                        dialog.set_df_property("from_date", "hidden", !isRequired);
-                        dialog.set_df_property("to_date", "hidden", !isRequired);
-
-                        dialog.fields_dict.field_visit.refresh();
-                        dialog.fields_dict.service_call.refresh();
-                    }
-                },
-                {
-                    label: "Add Without Tour Visits",
-                    fieldname: "add_without_tv",
-                    fieldtype: "Check",
-                    hidden: 1,
-                    onchange: function () {
-                        const isRequired = !dialog.get_value("add_without_tv");
-                        dialog.set_df_property("tour_visit", "reqd", isRequired);
-                        dialog.set_df_property("tour_visit", "hidden", !isRequired);
-                        dialog.set_df_property("customer", "hidden", isRequired);
-                        dialog.set_df_property("customer", "reqd", !isRequired);
-                        dialog.set_df_property("from_date", "reqd", isRequired);
-                        dialog.set_df_property("to_date", "reqd", isRequired);
-                        dialog.set_df_property("from_date", "hidden", !isRequired);
-                        dialog.set_df_property("to_date", "hidden", !isRequired);
-                        dialog.fields_dict.field_visit.refresh();
-                        dialog.fields_dict.service_call.refresh();
-                    }
-                }
             ],
             primary_action_label: "ADD EXPENSE",
             primary_action(values) {
@@ -500,7 +494,19 @@ function claim_extra_expenses(frm) {
                     return;
                 }
 
-                if ((values.add_without_fv_sc || values.add_without_tv) && values.expense_type == "Non DA"){
+                if (values.visit_type == "General Purpose") {
+                    for (let i = 0; i < values.number_of_row; i++) {
+                        let new_expense = {
+                            custom_field_visit_and_service_call_details: "NA",
+                            custom_tour_visit_details: "NA",
+                        }
+                        frm.add_child("expenses", new_expense);
+                    }
+                    frm.refresh_field("expenses");
+                    dialog.hide();
+                }
+
+                else if ((values.add_without_fv_sc || values.add_without_tv) && values.expense_type == "Non DA"){
                     let customers = values.customer;
                     let customer_list = Array.isArray(customers) ? customers.join(", ") : customers;
                     for (let i = 0; i < values.number_of_row; i++) {
@@ -532,6 +538,8 @@ function claim_extra_expenses(frm) {
                     callback: function (r) {
                         if (!r.exc && r.message) {
                             const expense = {
+                                expense_date: values.from_date,
+                                custom_expense_end_date: values.to_date,
                                 custom_field_visits: r.message.custom_field_visit,
                                 custom_service_calls: r.message.custom_service_call,
                                 custom_field_visit_and_service_call_details: r.message.custom_field_visit_and_service_call_details,
@@ -560,6 +568,8 @@ function claim_extra_expenses(frm) {
                                 const expense = {
                                     custom_tour_visits: r.message.custom_tour_visits,
                                     custom_tour_visit_details: r.message.custom_tour_visit_details,
+                                    expense_date: values.from_date,
+                                    custom_expense_end_date: values.to_date,
                                 };
                                 for (let i = 0; i < values.number_of_row; i++) {
                                     frm.add_child("expenses", expense);
@@ -585,31 +595,39 @@ function claim_extra_expenses(frm) {
                     dialog.set_df_property(f, "hidden", 1);
                     dialog.set_df_property(f, "reqd", 0);
                 });
-        
-            if (expenseType === "DA") {
-                // SHOW + REQUIRE DA FIELDS
-                ["from_date", "from_time", "to_date", "to_time", "customer"].forEach(f => {
-                    dialog.set_df_property(f, "hidden", 0);
-                    dialog.set_df_property(f, "reqd", 1);
-                });
-            } else if (expenseType === "Non DA") {
-                if (visit_type === "Field Visit") {
-                    ["field_visit", "from_date", "to_date", "service_call", "number_of_row", "add_without_fv_sc"].forEach(f => {
+            if (visit_type === "General Purpose") {
+                dialog.set_df_property("expense_type", "reqd", 0)
+                dialog.set_df_property("expense_type", "hidden", 1)
+                dialog.set_df_property("number_of_row", "hidden", 0)
+            }
+            else {
+                dialog.set_df_property("expense_type", "hidden", 0)
+                dialog.set_df_property("expense_type", "reqd", 1)
+                if (expenseType === "DA") {
+                    // SHOW + REQUIRE DA FIELDS
+                    ["from_date", "from_time", "to_date", "to_time", "customer"].forEach(f => {
                         dialog.set_df_property(f, "hidden", 0);
-                    });
-                    ["field_visit", "service_call", "from_date", "to_date",].forEach(f => {
                         dialog.set_df_property(f, "reqd", 1);
                     });
-                    dialog.set_value("add_without_fv_sc", 0);
-                } else if (visit_type === "Tour Visit") {
+                } else if (expenseType === "Non DA") {
+                    if (visit_type === "Field Visit") {
+                        ["field_visit", "from_date", "to_date", "service_call", "number_of_row", "add_without_fv_sc"].forEach(f => {
+                            dialog.set_df_property(f, "hidden", 0);
+                        });
+                        ["field_visit", "service_call", "from_date", "to_date",].forEach(f => {
+                            dialog.set_df_property(f, "reqd", 1);
+                        });
+                        dialog.set_value("add_without_fv_sc", 0);
+                    } else if (visit_type === "Tour Visit") {
 
-                    ["tour_visit","number_of_row", "add_without_tv", "from_date", "to_date"].forEach(f => {
-                        dialog.set_df_property(f, "hidden", 0);
-                    });
-                        dialog.set_df_property("tour_visit", "reqd", 1);
-                        dialog.set_df_property("from_date", "reqd", 1);
-                        dialog.set_df_property("to_date", "reqd", 1);
-                        dialog.set_value("add_without_tv", 0);
+                        ["tour_visit","number_of_row", "add_without_tv", "from_date", "to_date"].forEach(f => {
+                            dialog.set_df_property(f, "hidden", 0);
+                        });
+                            dialog.set_df_property("tour_visit", "reqd", 1);
+                            dialog.set_df_property("from_date", "reqd", 1);
+                            dialog.set_df_property("to_date", "reqd", 1);
+                            dialog.set_value("add_without_tv", 0);
+                    }
                 }
             }
         
@@ -617,6 +635,31 @@ function claim_extra_expenses(frm) {
         }
 
         dialog.show();
+    });
+}
+
+
+function reason_for_rejection_dialog(frm) {
+    return new Promise((resolve, reject) => {
+        frappe.dom.unfreeze()
+        
+        frappe.prompt({
+            label: 'Reason for rejection',
+            fieldname: 'reason_for_rejection',
+            fieldtype: 'Small Text',
+            reqd: 1
+        }, (values) => {
+            if (values.reason_for_rejection) {
+                frm.set_value("custom_reason_for_rejection", values.reason_for_rejection)
+                frm.set_value("approval_status", "Rejected")
+                frm.save().then(() => {
+                    resolve();
+                }).catch(reject);						
+            }
+            else {
+                reject()
+            }
+        })
     });
 }
 
@@ -836,9 +879,10 @@ function set_local_commute_monthly_expense(frm) {
 
 
 //? ADDS "VIEW FIELD VISIT EXPENSES" BUTTON IF USER HAS SPECIFIC ROLE
-function add_view_field_visit_expense_button(frm) {
+function add_view_field_visit_expense_button(frm, service_roles = [], hr_roles = []) {
     // ? DEFINE ALLOWED ROLES FOR BUTTON VISIBILITY
-    const allowed_roles = ['Service Engineer', 'S - HR Director (Global Admin)', "S - Service Engineer", "System Manager", "S - HR L5", "S - HR L4", "S - HR L3", "S - HR L2", "S - HR L1", "S - HR L2 Manager", "S - HR Supervisor (RM)"];
+
+    const allowed_roles = [...hr_roles, ...service_roles, "System Manager"];
 
     // ? CHECK IF CURRENT USER HAS ANY OF THE ALLOWED ROLES
     let can_show = 0;
@@ -863,7 +907,7 @@ function add_view_field_visit_expense_button(frm) {
             expense_claim_name = frm.doc.name
         }
         //? CHECK IF CURRENT USER IS HR USER OR HR MANAGER
-        const can_edit_employee = frappe.user.has_role('S - HR Director (Global Admin)') || frappe.user.has_role("System Manager");
+        const can_edit_employee = hr_roles.some(role => frappe.user.has_role(role)) || frappe.user.has_role("System Manager") || frappe.session.user == "Administrator";
         //? CREATE DIALOG TO ENTER FIELD VISIT DETAILS
         const dialog = new frappe.ui.Dialog({
             title: 'Field Visit Details',
@@ -875,6 +919,7 @@ function add_view_field_visit_expense_button(frm) {
                     options: 'Employee',
                     reqd: 1,
                     default: employee,
+                    read_only: !can_edit_employee,
                     hidden: !is_new,
                     onchange: function () {
                         if (dialog.get_value("employee")) {
@@ -902,22 +947,23 @@ function add_view_field_visit_expense_button(frm) {
                     label: 'From Date',
                     fieldname: 'from_date',
                     fieldtype: 'Date',
-                    reqd: 1
+                    reqd: 1,
+                    onchange: function() {
+                        validate_dates_debounced(dialog)
+                    }
                 },
                 {
                     label: 'To Date',
                     fieldname: 'to_date',
                     fieldtype: 'Date',
-                    reqd: 1
+                    reqd: 1,
+                    onchange: function() {
+                        validate_dates_debounced(dialog)
+                    }
                 }
             ],
             primary_action_label: 'Fetch Expense Claims',
             primary_action(values) {
-                // ? VALIDATE DATE RANGE
-                if (values.from_date > values.to_date) {
-                    frappe.throw(__('From Date cannot be after To Date.'));
-                    return;
-                }
 
                 frappe.call({
                     method: 'prompt_hr.py.expense_claim.get_date_wise_da_hours',
@@ -991,8 +1037,10 @@ function add_view_field_visit_expense_button(frm) {
 }
 
 // ? FUNCTION FOR BUTTON TO ADD TOUR VISIT EXPENSE - MODIFIED TO FEED DATA INTO CURRENT FORM
-function getTourVisitExpenseDialog(frm) {
-    const allowed_roles = ['S - HR Director (Global Admin)', "System Manager", "S - HR L5", "S - HR L4", "S - HR L3", "S - HR L2", "S - HR L1", "S - HR L2 Manager", "S - HR Supervisor (RM)", "S - Sales Director", "S - Sales Manager", "S - Sales Supervisor", "S - Sales Executive"];
+function getTourVisitExpenseDialog(frm, sales_roles = [], hr_roles = []) {
+    const hr_role = ["System Manager", ...hr_roles]
+
+    const allowed_roles = [...hr_role, ...sales_roles];
     const user_roles = frappe.user_roles;
 
     const has_access = user_roles.some(role => allowed_roles.includes(role));
@@ -1006,11 +1054,11 @@ function getTourVisitExpenseDialog(frm) {
             expense_claim_name = frm.doc.name;
         }
 
-        const is_hr = user_roles.includes('S - HR Director (Global Admin)') || user_roles.includes('S - HR Supervisor (RM)') || user_roles.includes('S - HR L2 Manager');
-        const is_sales = user_roles.includes('Sales User') || user_roles.includes('Sales Manager');
+        const is_hr = hr_role.some(role => user_roles.includes(role));
+        const is_sales = user_roles.some(role => sales_roles.includes(role));
 
         //? CHECK IF CURRENT USER CAN EDIT EMPLOYEE FIELD
-        const can_edit_employee = frappe.user.has_role('S - HR Director (Global Admin)') || frappe.user.has_role('S - HR Supervisor (RM)') || frappe.user.has_role('S - HR L2 Manager');
+        const can_edit_employee = is_hr;
 
         // ? GET DEFAULT EMPLOYEE FOR SALES USERS
         let default_employee = employee;
@@ -1070,13 +1118,19 @@ function getTourVisitExpenseDialog(frm) {
                         label: 'From Date',
                         fieldname: 'from_date',
                         fieldtype: 'Date',
-                        reqd: 1
+                        reqd: 1,
+                        onchange: function() {
+                            validate_dates_debounced(dialog)
+                        }
                     },
                     {
                         label: 'To Date',
                         fieldname: 'to_date',
                         fieldtype: 'Date',
-                        reqd: 1
+                        reqd: 1,
+                        onchange: function() {
+                            validate_dates_debounced(dialog)
+                        }
                     }
                 ],
                 primary_action_label: 'Fetch Tour Visit Expenses',
@@ -1354,5 +1408,170 @@ function set_travel_request_details(frm) {
             frappe.msgprint("Error fetching travel request details.");
             console.error(err);
         }
+    });
+}
+
+function validate_dates(dialog) {
+    const from_date = dialog.get_value("from_date");
+    const to_date = dialog.get_value("to_date");
+    const from_time = dialog.get_value("from_time");
+    const to_time = dialog.get_value("to_time");
+
+    // ! VALIDATE THAT START DATE IS NOT GREATER THAN END DATE
+    if (from_date && to_date && frappe.datetime.str_to_obj(from_date) > frappe.datetime.str_to_obj(to_date)) {
+        dialog.set_value("from_date", "");
+        dialog.set_value("to_date", "");
+        frappe.throw(__("From Date cannot be after To Date"));
+    }
+
+    if (from_date && frappe.datetime.str_to_obj(from_date) > frappe.datetime.str_to_obj(frappe.datetime.get_today())) {
+        dialog.set_value("from_date", "");
+        frappe.throw(__("From Date cannot be a future date"));
+    }
+
+    if (to_date && frappe.datetime.str_to_obj(to_date) > frappe.datetime.str_to_obj(frappe.datetime.get_today())) {
+        dialog.set_value("to_date", "");
+        frappe.throw(__("To Date cannot be a future date"));
+    }
+    
+
+
+    // ! VALIDATE THAT COMBINED FROM DATETIME IS NOT GREATER THAN TO DATETIME
+    if (from_date && to_date && from_time && to_time) {
+        const from_datetime_str = `${from_date} ${from_time}`;
+        const to_datetime_str = `${to_date} ${to_time}`;
+
+        const from_datetime = frappe.datetime.str_to_obj(from_datetime_str);
+        const to_datetime = frappe.datetime.str_to_obj(to_datetime_str);
+
+        if (from_datetime > to_datetime) {
+            dialog.set_value("from_time", "");
+            dialog.set_value("to_time", "");
+            frappe.throw(__("From Date & Time cannot be after To Date & Time"));
+        }
+    }
+}
+
+
+// Debounce helper function
+function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+}
+
+// Wrap the validate_dates function with debounce of 300 ms (adjust as needed)
+const validate_dates_debounced = debounce(validate_dates, 300);
+
+
+function handleWorkflowTransition(frm) {
+    return new Promise((resolve, reject) => {
+
+        console.log(">>> Fetching transitions for the current document...");
+
+        frappe.workflow.get_transitions(frm.doc).then(transitions => {
+            console.log("<<< Transitions fetched:", transitions);
+
+            const selected_transition = transitions.find(
+                t => t.action === frm.selected_workflow_action
+            );
+
+            const target_state = selected_transition ? selected_transition.next_state : null;
+            console.log(">>> Selected transition:", selected_transition);
+            console.log(">>> Target workflow state:", target_state);
+
+            let dialog_fields = [];
+
+            if (target_state === "Sent to Accounting Team") {
+                frappe.call({
+                    method: "prompt_hr.py.expense_claim.send_mail_to_accounting_team",
+                    args: {
+                        doctype: cur_frm.doctype,
+                        docname: cur_frm.docname
+                    },
+                    callback: function (r) {
+                        if (r.message && r.message.status === "success") {
+                            frappe.msgprint(`Document Mailed To Accounting Team successfully.`);
+                            resolve();
+                        } else {
+                            frappe.msgprint("Failed to share document.");
+                            reject();
+                        }
+                    },
+                    error: function (err) {
+                        console.error("!!! Error during API call:", err);
+                        frappe.msgprint("Error occurred while emailing document.");
+                        reject();
+                    }
+                });
+            
+            } else {
+                console.log(">>> Target state is NOT 'Sent to Accounting Team' – show all Employees, hide Role field.");
+
+                dialog_fields = [
+                    {
+                        label: "Employee",
+                        fieldname: "employee",
+                        fieldtype: "Link",
+                        options: "Employee",
+                        reqd: 1,
+                        get_query: function () {
+                            console.log(">>> get_query called for Employee – no filter.");
+                            return {};
+                        }
+                    },
+                    {
+                        label: "Reason For Escalation",
+                        fieldname: "reason_for_escalation",
+                        fieldtype: "Small Text",
+                        reqd: 1,
+                    }
+                ];
+            
+                let dialog = new frappe.ui.Dialog({
+                    title: __("Confirm {0}", [frm.selected_workflow_action]),
+                    fields: dialog_fields,
+                    primary_action_label: "Send For Approval",
+                    primary_action: function (values) {
+                        console.log(">>> Primary action triggered with values:", values);
+
+                        dialog.hide();
+
+                        console.log(">>> Calling backend API to share document...");
+                        frappe.call({
+                            method: "prompt_hr.py.utils.share_doc_with_employee",
+                            args: {
+                                employee: values.employee,
+                                doctype: cur_frm.doctype,
+                                docname: cur_frm.docname,
+                                reason_for_escalation: values.reason_for_escalation || ""
+                            },
+                            callback: function (r) {
+                                console.log("<<< API response:", r);
+
+                                if (r.message && r.message.status === "success") {
+                                    frappe.msgprint(`Document shared with ${values.employee} successfully.`);
+                                    resolve();
+                                } else {
+                                    frappe.msgprint("Failed to share document.");
+                                    console.log("!!! Document sharing failed, rejecting workflow.");
+                                    reject();
+                                }
+                            },
+                            error: function (err) {
+                                console.error("!!! Error during API call:", err);
+                                frappe.msgprint("Error occurred while sharing document.");
+                                reject();
+                            }
+                        });
+                    }
+                });
+
+                console.log(">>> Showing dialog to user...");
+                dialog.show();
+            }
+        });
     });
 }

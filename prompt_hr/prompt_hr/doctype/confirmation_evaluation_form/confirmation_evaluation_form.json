@@ -12,13 +12,18 @@
   "department",
   "designation",
   "company",
+  "pending_approval_at",
   "column_break_dbio",
   "business_unit",
   "reporting_manager",
   "evaluation_date",
   "hod",
   "evaluation_details_section",
+  "ratings_description",
   "table_txep",
+  "mention_strengths_of_employee",
+  "mention_areas_of_improvement",
+  "recommend_trainings_if_any",
   "reporting_head_status_section",
   "rh_rating_added",
   "confirmed_by_rh",
@@ -220,23 +225,25 @@
    "fieldtype": "Column Break"
   },
   {
-   "depends_on": "eval: doc.further_to_by_rh === \"Extend\";",
+   "depends_on": "eval: doc.confirmed_by_rh === \"No\" && doc.further_to_by_rh === \"Extend\";",
    "fieldname": "extension_period_by_rh",
    "fieldtype": "Int",
    "label": "Extension Period (in Days)",
-   "mandatory_depends_on": "eval: doc.further_to_by_rh === \"Extend\";"
+   "mandatory_depends_on": "eval: doc.confirmed_by_rh === \"No\" && doc.further_to_by_rh === \"Extend\";"
   },
   {
-   "depends_on": "eval: doc.further_to_by_rh === \"Terminate\";",
+   "depends_on": "eval: doc.confirmed_by_rh === \"No\" && doc.further_to_by_rh === \"Terminate\";",
    "fieldname": "reason_for_termination_by_rh",
    "fieldtype": "Small Text",
-   "label": "Reason for Termination"
+   "label": "Reason for Termination",
+   "mandatory_depends_on": "eval: doc.confirmed_by_rh === \"No\" && doc.further_to_by_rh === \"Terminate\";"
   },
   {
-   "depends_on": "eval: doc.further_to_by_rh === \"Extend\";",
+   "depends_on": "eval: doc.confirmed_by_rh === \"No\" && doc.further_to_by_rh === \"Extend\";",
    "fieldname": "reason_for_extension_by_rh",
    "fieldtype": "Small Text",
-   "label": "Reason for Extension"
+   "label": "Reason for Extension",
+   "mandatory_depends_on": "eval: doc.confirmed_by_rh === \"No\" && doc.further_to_by_rh === \"Extend\";"
   },
   {
    "fieldname": "confirmed_by_rh",
@@ -249,6 +256,7 @@
    "fieldname": "further_to_by_rh",
    "fieldtype": "Select",
    "label": "Further to",
+   "mandatory_depends_on": "eval: doc.confirmed_by_rh === \"No\";",
    "options": "\nExtend\nTerminate"
   },
   {
@@ -267,6 +275,7 @@
    "fieldname": "further_to_by_dh",
    "fieldtype": "Select",
    "label": "Further to",
+   "mandatory_depends_on": "eval: doc.confirmed_by_dh === \"No\";",
    "options": "\nExtend\nTerminate"
   },
   {
@@ -274,29 +283,58 @@
    "fieldtype": "Column Break"
   },
   {
-   "depends_on": "eval: doc.further_to_by_dh === \"Extend\";",
+   "depends_on": "eval: doc.confirmed_by_dh === \"No\" && doc.further_to_by_dh === \"Extend\";",
    "fieldname": "reason_for_extension_by_dh",
    "fieldtype": "Small Text",
-   "label": "Reason for Extension"
+   "label": "Reason for Extension",
+   "mandatory_depends_on": "eval: doc.confirmed_by_dh === \"No\" && doc.further_to_by_dh === \"Extend\";"
   },
   {
-   "depends_on": "eval: doc.further_to_by_dh === \"Extend\";",
+   "depends_on": "eval: doc.confirmed_by_dh === \"No\" && doc.further_to_by_dh === \"Extend\";",
    "fieldname": "extension_period_by_dh",
    "fieldtype": "Int",
    "label": "Extension Period (in Days)",
-   "mandatory_depends_on": "eval: doc.further_to_by_dh === \"Extend\";"
+   "mandatory_depends_on": "eval: doc.confirmed_by_dh === \"No\" && doc.further_to_by_dh === \"Extend\";"
   },
   {
-   "depends_on": "eval: doc.further_to_by_dh === \"Terminate\";",
+   "depends_on": "eval: doc.confirmed_by_dh === \"No\" && doc.further_to_by_dh === \"Terminate\";",
    "fieldname": "reason_for_termination_by_dh",
    "fieldtype": "Small Text",
-   "label": "Reason for Termination"
+   "label": "Reason for Termination",
+   "mandatory_depends_on": "eval: doc.confirmed_by_dh === \"No\" && doc.further_to_by_dh === \"Terminate\";"
+  },
+  {
+   "fieldname": "pending_approval_at",
+   "fieldtype": "Link",
+   "label": "Pending Approval At",
+   "options": "Employee",
+   "read_only": 1
+  },
+  {
+   "fieldname": "mention_strengths_of_employee",
+   "fieldtype": "Small Text",
+   "label": "Mention Strengths of Employee"
+  },
+  {
+   "fieldname": "mention_areas_of_improvement",
+   "fieldtype": "Small Text",
+   "label": "Mention Areas of Improvement "
+  },
+  {
+   "fieldname": "recommend_trainings_if_any",
+   "fieldtype": "Small Text",
+   "label": "Recommend Trainings If Any"
+  },
+  {
+   "fieldname": "ratings_description",
+   "fieldtype": "Heading",
+   "label": "<h5> 1- Below Average, 2- Average, 3- Satisfactory, 4- Very Good, 5- Excellent </h5>"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-07 18:51:30.936245",
+ "modified": "2025-10-16 12:53:39.356278",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Confirmation Evaluation Form",

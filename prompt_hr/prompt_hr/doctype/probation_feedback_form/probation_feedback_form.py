@@ -53,8 +53,8 @@ class ProbationFeedbackForm(Document):
 				
 	
 
-	def before_save(self):
-
+	def before_submit(self):
+			print(f"\n\n  before submit \n\n")
 			probation_for = None
 			if self.probation_feedback_for == "30 Days":
 				probation_for = "First"
@@ -79,6 +79,8 @@ class ProbationFeedbackForm(Document):
 				if is_reporting_head:
 					if any(row.rating in ["", None, 0.0, 0] for row in self.probation_feedback_prompt):            
 						frappe.throw("Please provide appropriate ratings")
+					elif not self.any_major_areas_of_improvement:
+						frappe.throw("Please fill <b>'Any Major Areas of Improvement'</b> field")
 					else:						    
 						hr_user_list = frappe.db.get_all("Has Role", filters={"role": ["in", ["S - HR Director (Global Admin)", "S - HR L1"]], "parenttype": "User", "parent": ["not in", [user, "Administrator"]]}, fields=["parent"], pluck="parent")
 
@@ -91,7 +93,13 @@ class ProbationFeedbackForm(Document):
     
 							except Exception as e:
 								frappe.log_error("error_while_sending_mail", frappe.get_traceback())
-			
+	
+	def on_update(self):
+		print(f"\n\n ON UPDATE CALLED \n\n")
+		if self.docstatus == 0:
+			self.db_set("pending_approval_at", self.reporting_manager)
+		elif self.docstatus == 1:
+			self.db_set("pending_approval_at", "")
 
 #* THIS METHOD IS CALLED UNDER frappe.call IN probation_feedback_form.js
 # !NOT IN USE. USED IN probation_feedback_form.js BUT THERE CODE IS COMMENTED

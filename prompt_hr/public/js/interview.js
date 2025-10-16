@@ -2,12 +2,37 @@ const original_add_custom_buttons = frappe.ui.form.handlers.Interview?.add_custo
 const original_submit_feedback = frappe.ui.form.handlers.Interview?.submit_feedback;
 frappe.ui.form.off("Interview", "submit_feedback")
 frappe.ui.form.on("Interview", {
+    custom_template: function (frm) {
+        if (!frm.doc.custom_template) return;
+
+        frappe.db.get_doc('Email Template', frm.doc.custom_template)
+            .then(template => {
+                // 1. Show raw Jinja template in main editor
+                frm.set_value('custom_template_data', template.response);
+
+                // 2. Render immediately for preview
+                update_preview(frm, template.response);
+            })
+            .catch(err => {
+                frappe.msgprint('Failed to fetch Email Template.');
+            });
+    },
+
     refresh: function (frm) {
+        if (frm.doc.custom_template_data) {
+            update_preview(frm, frm.doc.custom_template_data);
+        }
+
+        frm.fields.forEach(field => {
+            if (field.df.fieldtype === "Section Break" && field.df.collapsible) {
+                field.collapse(false);  // ? OPEN BY DEFAULT
+            }
+        });
         if (!frm.is_new()) {
-            let button_label = frm.doc.custom_teams_calender_book 
-            ? "Revise Teams Calendar" 
-            : "Book Teams Calendar";
-            frm.add_custom_button(__(button_label), function() {
+            let button_label = frm.doc.custom_teams_calender_book
+                ? "Revise Teams Calendar"
+                : "Book Teams Calendar";
+            frm.add_custom_button(__(button_label), async function () {
                 if (frm.is_dirty()) {
                     frappe.msgprint({
                         title: __("Unsaved Changes"),
@@ -17,13 +42,19 @@ frappe.ui.form.on("Interview", {
                     return;
                 }
 
+
+                let template_text = frm.doc.custom_template_data
+                let rendered_html = await getTeamsMessageHTML(frm, template_text)
+
+
                 frappe.call({
                     method: 'prompt_hr.teams.calender_book.teams_calender_book',
                     args: {
-                        docname: frm.doc.name
+                        docname: frm.doc.name,
+                        rendered_html: rendered_html
                     },
-                    
-                    callback: function(r) {
+
+                    callback: function (r) {
                         if (r.message) {
                             frappe.msgprint({
                                 title: __("Meeting Scheduled"),
@@ -40,10 +71,10 @@ frappe.ui.form.on("Interview", {
                         frm.reload_doc()
                         frm.refresh_field("custom_teams_calender_book");
                     },
-                    freeze: true,  
+                    freeze: true,
                     freeze_message: "Please Wait, We are Scheduling Microsoft Teams meeting...",
                 });
-            }); 
+            });
         }
 
         // ?  FETCH AVAILABLE INTERVIEWERS ON REFRESH
@@ -91,10 +122,8 @@ frappe.ui.form.on("Interview", {
                 name: frm.doc.name
             },
             callback: function (r) {
-                console.log("Shared users:", r.message);
                 if (r.message && r.message.some(function (shared_user) {
                     return shared_user.user === frappe.session.user;
-                    console.log("Hidden user:", shared_user.user);
                 })) {
                     // ?  FIRST CHECK IF THE USER EXISTS IN INTERVIEW_DETAILS
                     let current_user = frappe.session.user;
@@ -102,7 +131,7 @@ frappe.ui.form.on("Interview", {
                     let is_external_interviewer_not_confirmed = false;
                     // ?  CHECK INTERNAL INTERVIEWERS
                     if (frm.doc.interview_details && frm.doc.interview_details.length) {
-                        frm.doc.interview_details.forEach(function(interviewer) {
+                        frm.doc.interview_details.forEach(function (interviewer) {
                             if (interviewer.custom_interviewer_employee) {
                                 if (interviewer.custom_is_confirm === 0) {
                                     frappe.call({
@@ -138,19 +167,19 @@ frappe.ui.form.on("Interview", {
 
                     // ?  CHECK EXTERNAL INTERVIEWERS
                     if (frm.doc.custom_external_interviewers && frm.doc.custom_external_interviewers.length) {
-                        console.log("External Interviewers:", frm.doc.custom_external_interviewers);
+                        
                         frm.doc.custom_external_interviewers.forEach(function (interviewer) {
-                            if (interviewer.user) {
+                            if (interviewer.custom_user) {
                                 if (interviewer.is_confirm === 0) {
                                     frappe.call({
                                         method: "prompt_hr.py.interview_availability.get_supplier_custom_user",
                                         args: {
-                                            supplier_name: interviewer.user
+                                            supplier_name: interviewer.custom_user
                                         },
                                         callback: function (r) {
                                             if (r.message === current_user) {
                                                 frm.remove_custom_button(__("Notify Interviewer"));
-                                                console.log("External Interviewer:", interviewer.user);
+                                                
                                                 is_external_interviewer_not_confirmed = true;
                                                 showConfirmButton();
                                             }
@@ -161,10 +190,10 @@ frappe.ui.form.on("Interview", {
                                     frappe.call({
                                         method: "prompt_hr.py.interview_availability.get_supplier_custom_user",
                                         args: {
-                                            supplier_name: interviewer.user
+                                            supplier_name: interviewer.custom_user
                                         },
                                         callback: function (r) {
-                                            console.log(r)
+                                            
                                             if (r.message === current_user) {
                                                 frm.remove_custom_button(__("Notify Interviewer"));
                                             }
@@ -263,10 +292,10 @@ frappe.ui.form.on("Interview", {
         // ?  CHECK EXTERNAL INTERVIEWERS
         let allow_external = false;
         for (const ext of frm.doc.custom_external_interviewers || []) {
-            if (ext.user) {
+            if (ext.custom_user) {
                 const r = await frappe.call({
                     method: "prompt_hr.py.interview_availability.get_supplier_custom_user",
-                    args: { supplier_name: ext.user },
+                    args: { supplier_name: ext.custom_user },
                 });
                 if (r?.message === frappe.session.user) {
                     allow_external = true;
@@ -302,7 +331,7 @@ frappe.ui.form.on("Interview", {
             },
             callback: function (r) {
                 if (r.message) {
-                    console.log("Feedback submitted successfully.");
+                   
                     window.location.href = r.message;
                 } else {
                     frappe.call({
@@ -331,13 +360,80 @@ frappe.ui.form.on("Interview", {
         updateInterviewerAvailability(frm)
     },
     after_save: function (frm) {
+        if (frm.doc.custom_template_data) {
+            update_preview(frm, frm.doc.custom_template_data);
+        }
 
         // ? HIDE THE AVAILABLE INTERVIEWERS FIELD AFTER SAVING
         frm.toggle_display("custom_available_interviewers", false);
+    },
+    custom_send_reminder: function (frm, cdt, cdn) {
+    
+        frappe.msgprint("Sending Reminder to Interviewers...");
+    }
+
+});
+
+frappe.ui.form.on("Interview Detail", {
+    custom_send_reminder: function (frm, cdt, cdn) {
+        let child = locals[cdt][cdn];
+        if (frm.doc.docstatus !== 1) {
+            frappe.throw("Only Reminder Send For Submitted Interview");
+            return
+        }
+
+        if (!child.custom_interviewer_employee) {
+            frappe.throw("Please Select Interviewer Employee");
+            return
+        }
+
+        frappe.call({
+            method: "prompt_hr.py.interview.send_interview_reminder_to_interviewer",
+            args: {
+                interviewer_employee: child.custom_interviewer_employee,
+                interview_name: frm.doc.name,
+                job_applicant: frm.doc.job_applicant,
+                interview_round: frm.doc.interview_round,
+            },
+            callback: function (r) {
+                if (r.message) {
+                    frappe.msgprint(r.message);
+                }
+            }
+        });
     }
 });
 
+frappe.ui.form.on("External Interviewer", {
+    send_reminder: function (frm, cdt, cdn) {
+        let child = locals[cdt][cdn];
+        if (frm.doc.docstatus !== 1) {
+            frappe.throw("Only Reminder Send For Submitted Interview");
+            return
+        }
 
+        if (!child.custom_user) {
+            frappe.throw("Please Select Interviewer Employee");
+            return
+        }
+
+        frappe.call({
+            method: "prompt_hr.py.interview.send_interview_reminder_to_interviewer",
+            args: {
+                interviewer_employee: child.custom_user,
+                interview_name: frm.doc.name,
+                job_applicant: frm.doc.job_applicant,
+                interview_round: frm.doc.interview_round,
+                external: 1
+            },
+            callback: function (r) {
+                if (r.message) {
+                    frappe.msgprint(r.message);
+                }
+            }
+        });
+    }
+});
 
 // ? FUNCTION TO FETCH AVAILABLE INTERVIEWERS AND UPDATE ONLY NEW ONES
 function fetchAvailableInterviewers(frm) {
@@ -376,7 +472,7 @@ function fetchAvailableInterviewers(frm) {
 
                             let row = frm.add_child("custom_available_interviewers");
                             row.user = interviewer;
-                            console.log("New Interviewer:", row.user);
+                         
                         });
 
                         frm.refresh_field("custom_available_interviewers");
@@ -589,4 +685,111 @@ function createInviteButton(frm) {
 
         dialog.show();
     });
+}
+
+
+function update_preview(frm, template_text) {
+    // If a Job Applicant is linked
+    if (frm.doc.job_applicant) {
+        frappe.db.get_doc('Job Applicant', frm.doc.job_applicant)
+            .then(applicant_doc => {
+                // Include the full job applicant doc in the context
+                let context = {
+                    ...frm.doc,           
+                    today_date: frappe.datetime.now_date(),
+                    applicant: applicant_doc
+                };
+
+                render_preview(frm, template_text, context);
+            })
+            .catch(err => {
+                frappe.msgprint('Failed to fetch Job Applicant data.');
+                // fallback context without applicant
+                let context = {
+                    ...frm.doc,
+                    today_date: frappe.datetime.now_date()
+                };
+                render_preview(frm, template_text, context);
+            });
+    } else {
+        // context without applicant if not linked
+        let context = {
+            ...frm.doc,
+            today_date: frappe.datetime.now_date()
+        };
+        render_preview(frm, template_text, context);
+    }
+}
+
+// function to render preview
+function render_preview(frm, template_text, context) {
+    let rendered_html = frappe.render_template(template_text, context);
+
+    let preview_html = `
+        <div style="
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+            overflow: hidden;
+            margin-top: 10px;
+            font-family: 'Arial', sans-serif;
+        ">
+            <!-- Header -->
+            <div style="
+                background-color: #3b82f6;
+                color: white;
+                padding: 10px 15px;
+                font-weight: 600;
+                font-size: 14px;
+            ">
+                📩 Preview
+            </div>
+
+            <!-- Content -->
+            <div style="
+                padding: 15px;
+                background-color: #f9fafb;
+                color: #111827;
+                font-size: 14px;
+                line-height: 1.5;
+            ">
+                ${rendered_html}
+            </div>
+        </div>
+    `;
+
+    frm.set_df_property('custom_template_preview', 'options', preview_html);
+    frm.set_df_property('custom_template_preview', 'read_only', 1);
+}
+
+
+async function getTeamsMessageHTML(frm, template_text) {
+    // Initialize the context
+    let context = {
+        ...frm.doc,
+        today_date: frappe.datetime.now_date()
+    };
+
+    try {
+        // If a Job Applicant is linked
+        if (frm.doc.job_applicant) {
+
+            // Wait for the Job Applicant document
+            const applicant_doc = await frappe.db.get_doc('Job Applicant', frm.doc.job_applicant);
+
+            // Add the applicant data to the context
+            context.applicant = applicant_doc;
+        }  
+
+        // Render the template with the complete context (whether applicant data was included or not)
+        const rendered_html = await frappe.render_template(template_text, context);
+
+        // Return the rendered HTML
+        return rendered_html;
+    } catch (err) {
+        // Handle errors such as failed fetch or template rendering issues
+        console.error("Error occurred:", err);
+        frappe.msgprint('Failed to fetch Job Applicant data or render template.');
+        return '';  // Return empty string or some fallback if error occurs
+    }
 }

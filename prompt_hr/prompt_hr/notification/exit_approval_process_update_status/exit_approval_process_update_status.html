@@ -1,0 +1,17 @@
+<p>
+    The exit approval process for employee <b>{{ doc.employee }}</b> has been <b>{{ doc.workflow_state }}</b>
+</p>
+
+<p><b>Process Summary:</b></p>
+
+<ul>
+    <li><b>Employee:</b> {{ doc.employee }}</li>
+    <li><b>Last Working Date:</b> {{ frappe.utils.format_date(doc.last_date_of_working, "dd-MM-yyyy") }}</li>
+    <li><b>Workflow State:</b> {{ doc.workflow_state }}</li>
+    <li>
+        <b>View Process:</b>
+        {% set exit_link = frappe.utils.get_url() ~ '/app/exit-approval-process/' ~ doc.name %}
+        <a href="{{ exit_link }}" target="_blank">Click here</a>
+    </li>
+</ul>
+

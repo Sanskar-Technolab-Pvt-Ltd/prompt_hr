@@ -4,11 +4,34 @@
 frappe.ui.form.on('Exit Approval Process', {
     refresh: function(frm) {
         if (frm.doc.resignation_approval == "Approved") {
-            // ? ADD THE "RAISE EXIT CHECKLIST" BUTTON
-            add_raise_exit_checklist_button(frm);
 
-            // ? ADD THE "RAISE EXIT INTERVIEW QUESTIONNAIRE" BUTTON
-            add_raise_exit_interview_button(frm);
+            // ? BUTTON ONLY VISIBLE TO HR ROLES
+            user = frappe.session.user
+            const allowed_roles = [
+                "S - HR Leave Approval",
+                "S - HR leave Report",
+                "S - HR L6",
+                "S - HR L5",
+                "S - HR L4",
+                "S - HR L3",
+                "S - HR L2",
+                "S - HR L1",
+                "S - HR Director (Global Admin)",
+                "S - HR L2 Manager",
+                "S - HR Supervisor (RM)",
+                "System Manager"
+            ];
+
+            // Check if user has any allowed role
+            const can_show_button = frappe.user_roles.some(role => allowed_roles.includes(role));
+
+            if (can_show_button || user == "Administrator") {
+                // ? ADD THE "RAISE EXIT CHECKLIST" BUTTON
+                add_raise_exit_checklist_button(frm);
+
+                // ? ADD THE "RAISE EXIT INTERVIEW QUESTIONNAIRE" BUTTON
+                add_raise_exit_interview_button(frm);
+            }
         }
 
         // ? HIDE MARKS AND MARKS OUT OF FIELD OF THE CHILD TABLE
@@ -31,7 +54,7 @@ function update_last_date_of_working(frm) {
     if (frm.doc.posting_date && frm.doc.notice_period_days) {
         const posting_date = frappe.datetime.str_to_obj(frm.doc.posting_date);
         const new_date = frappe.datetime.add_days(posting_date, frm.doc.notice_period_days);
-        frm.set_value("last_date_of_working", frappe.datetime.obj_to_str(new_date));
+        frm.set_value("last_date_of_working", frappe.datetime.obj_to_str(new_date), null, true);
     }
 }
 
@@ -41,7 +64,7 @@ function update_notice_period_days(frm) {
         const posting_date = frappe.datetime.str_to_obj(frm.doc.posting_date);
         const end_date = frappe.datetime.str_to_obj(frm.doc.last_date_of_working);
         const diff = frappe.datetime.get_diff(end_date, posting_date);
-        frm.set_value("notice_period_days", diff);
+        frm.set_value("notice_period_days", diff, null, true);
     }
 }
 

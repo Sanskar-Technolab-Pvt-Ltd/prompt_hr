@@ -16,23 +16,23 @@ def send_interview_schedule_notification(name, applicant_name):
     for interviewer in interviewers:
         if interviewer.custom_interviewer_employee:
             try:
-                if not interviewer.custom_is_confirm:
-                    employee = frappe.get_doc("Employee", interviewer.custom_interviewer_employee)
-                    if employee.user_id:
-                        user_email = frappe.db.get_value("User", employee.user_id, "email")
-                        # Grant read permission to this user for Interview
-                        frappe.share.add(doc.doctype, doc.name, employee.user_id, read=1)
+                # if not interviewer.custom_is_confirm:
+                employee = frappe.get_doc("Employee", interviewer.custom_interviewer_employee)
+                if employee.user_id:
+                    user_email = frappe.db.get_value("User", employee.user_id, "email")
+                    # Grant read permission to this user for Interview
+                    frappe.share.add(doc.doctype, doc.name, employee.user_id, read=1)
                         
-                        if user_email:
-                            frappe.sendmail(
-                                recipients=[user_email],
-                                message = frappe.render_template(notification.message, {"doc": doc,"interviewer": interviewer.custom_interviewer_name}),
-                                subject = frappe.render_template(notification.subject, {"doc": doc}),
-                                reference_doctype=doc.doctype,
-                                reference_name=doc.name,
-                                # now=True
-                        )
-                    interviewer.reload()
+                    if user_email:
+                        frappe.sendmail(
+                            recipients=[user_email],
+                            message = frappe.render_template(notification.message, {"doc": doc,"interviewer": interviewer.custom_interviewer_name}),
+                            subject = frappe.render_template(notification.subject, {"doc": doc}),
+                            reference_doctype=doc.doctype,
+                            reference_name=doc.name,
+                            # now=True
+                    )
+                interviewer.reload()
 
             except Exception as e:
                 frappe.log_error(f"Failed to send internal email: {e}", "Interview Notification Error")
@@ -41,13 +41,13 @@ def send_interview_schedule_notification(name, applicant_name):
     external_interviewers = frappe.get_all(
         "External Interviewer",
         filters={"parent": doc.name},
-        fields=["user", "user_name", "is_confirm","name"]
+        fields=["custom_user", "user_name", "is_confirm","name"]
     )
 
     for interviewer in external_interviewers:
-        if interviewer.user:
+        if interviewer.custom_user:
             try:
-                supplier = frappe.get_doc("Supplier", interviewer.user)
+                supplier = frappe.get_doc("Supplier", interviewer.custom_user)
                 if supplier.custom_user:
                     if not interviewer.is_confirm:
                         user_email = frappe.db.get_value("User", supplier.custom_user, "email")
@@ -117,12 +117,12 @@ def send_notification_to_hr_manager(name, company, user):
         external_interviewers = frappe.get_all(
             "External Interviewer",
             filters={"parent": doc.name},
-            fields=["user", "user_name", "is_confirm","name"]
+            fields=["custom_user", "user_name", "is_confirm","name"]
         )
         external_interviewer = None
         for interviewer in external_interviewers:
-            print("Checking External Interviewer:", user_doc,frappe.get_doc("Supplier", interviewer.user).custom_user)
-            if frappe.get_doc("Supplier", interviewer.user).custom_user == user_doc.name:
+            print("Checking External Interviewer:", user_doc,frappe.get_doc("Supplier", interviewer.custom_user).custom_user)
+            if frappe.get_doc("Supplier", interviewer.custom_user).custom_user == user_doc.name:
                 external_interviewer = interviewer  
                 break
         if external_interviewer:
@@ -161,8 +161,8 @@ def on_update(doc, method):
 
     # Get current external interviewers (Supplier user links)
     current_external = {
-        d.user for d in doc.get("custom_external_interviewers", [])
-        if d.user
+        d.custom_user for d in doc.get("custom_external_interviewers", [])
+        if d.custom_user
     }
 
     # Handle previous interviewers if update (not insert)
@@ -174,8 +174,8 @@ def on_update(doc, method):
             if d.custom_interviewer_employee
         }
         prev_external = {
-            d.user for d in prev_doc.get("custom_external_interviewers", [])
-            if d.user
+            d.custom_user for d in prev_doc.get("custom_external_interviewers", [])
+            if d.custom_user
         }
 
     removed_internal = prev_internal - current_internal

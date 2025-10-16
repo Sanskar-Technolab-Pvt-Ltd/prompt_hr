@@ -161,17 +161,17 @@ def probation_feedback_for_prompt():
                                 employee_doc.save(ignore_permissions=True)
                                 frappe.db.commit()
                             else:
-                                remarks_added = frappe.db.exists(
-                                    "Probation Feedback Prompt",
-                                    {
-                                        "parenttype": "Probation Feedback Form",
-                                        "parent": first_feedback_form_id,
-                                        "rating": ["not in", ["0", ""]],
-                                    },
-                                    "name",
-                                )
+                                # remarks_added = frappe.db.exists(
+                                #     "Probation Feedback Prompt",
+                                #     {
+                                #         "parenttype": "Probation Feedback Form",
+                                #         "parent": first_feedback_form_id,
+                                #         "rating": ["not in", ["0", ""]],
+                                #     },
+                                #     "name",
+                                # )
 
-                                if not remarks_added:
+                                if not frappe.db.get_value("Probation Feedback Form", first_feedback_form_id, "docstatus"):
                                     reporting_manager_emp_id = (
                                         frappe.db.get_value(
                                             "Probation Feedback Form",
@@ -281,15 +281,15 @@ def probation_feedback_for_prompt():
                                 frappe.db.commit()
                             elif second_feedback_form_id:
 
-                                remarks_added = frappe.db.exists(
-                                    "Probation Feedback Prompt",
-                                    {
-                                        "parenttype": "Probation Feedback Form",
-                                        "parent": second_feedback_form_id,
-                                        "rating": ["not in", ["0", ""]],
-                                    },
-                                )
-                                if not remarks_added:
+                                # remarks_added = frappe.db.exists(
+                                #     "Probation Feedback Prompt",
+                                #     {
+                                #         "parenttype": "Probation Feedback Form",
+                                #         "parent": second_feedback_form_id,
+                                #         "rating": ["not in", ["0", ""]],
+                                #     },
+                                # )
+                                if not frappe.db.get_value("Probation Feedback Form", second_feedback_form_id, "docstatus"):
                                     reporting_manager_emp_id = (
                                         frappe.db.get_value(
                                             "Probation Feedback Form",
@@ -943,11 +943,12 @@ def check_cff_ratings_and_send_emails(confirmation_form):
     )
 
     ratings = ["Yes", "No"]
-    rh_rating_added = 1 if confirmation_eval_form_doc.get("confirmed_by_rh") in ratings else 0
-    dh_rating_added = 1 if confirmation_eval_form_doc.get("confirmed_by_dh") in ratings else 0
+    rh_rating_added = 1 if confirmation_eval_form_doc.get("workflow_state") == "Submitted by RM" else 0
+    dh_rating_added = 1 if confirmation_eval_form_doc.get("workflow_state") == "Submitted by DH" else 0
 
     context = {
     "doc": confirmation_eval_form_doc,
+    "workflow_state": confirmation_eval_form_doc.get("workflow_state"),
     "doctype": "Confirmation Evaluation Form",
     "docname": confirmation_eval_form_doc.name,
     }
@@ -998,7 +999,7 @@ def check_cff_ratings_and_send_emails(confirmation_form):
                     now=True,
                 )
 
-    elif rh_rating_added and not dh_rating_added:
+    elif not dh_rating_added:
 
         head_of_department = (
             confirmation_eval_form_doc.hod
@@ -2629,9 +2630,11 @@ def process_exit_approvals():
             )
 
             # ? PROCESS CHECKLIST IF DUE AND NOT YET CREATED
+            checklist_date_str = r.custom_exit_questionnaire_notification_date
+            exit_checklist_date = datetime.strptime(checklist_date_str, "%d-%m-%Y").strftime("%Y-%m-%d")
             checklist_due = (
-                r.custom_exit_checklist_notification_date
-                and getdate(r.custom_exit_checklist_notification_date) <= today_date
+                exit_checklist_date
+                and getdate(exit_checklist_date) <= today_date
                 and not r.employee_separation
             )
             if checklist_due:
@@ -2640,9 +2643,11 @@ def process_exit_approvals():
                 print(f"  ✔ Checklist Result: {result.get('message')}")
 
             # ? PROCESS EXIT INTERVIEW IF DUE AND NOT YET CREATED
+            exit_date_str = r.custom_exit_questionnaire_notification_date
+            exit_questionnaire_date = datetime.strptime(exit_date_str, "%d-%m-%Y").strftime("%Y-%m-%d")
             interview_due = (
-                r.custom_exit_questionnaire_notification_date
-                and getdate(r.custom_exit_questionnaire_notification_date) <= today_date
+                exit_questionnaire_date
+                and getdate(exit_questionnaire_date) <= today_date
                 and not r.exit_interview
             )
             if interview_due:

@@ -6,20 +6,17 @@ frappe.ui.form.on("Job Opening", {
 
         // ? FUNCTION TO APPLY FILTER ON JOB REQUISITION WITH STATUS == "FINAL APPROVAL"
         applyJobRequisitionFilter(frm)
-        frm.events.make_dashboard(frm);
+        if (!frm.is_new()) {
+            frm.events.make_dashboard(frm);
+        }
         const current_user = frappe.session.user;
         let hide_notify_buttons = false;
-        let show_confirm_button = false;
         // Check if current user is an internal recruiter
         (frm.doc.custom_internal_recruiter || []).forEach(rec => {
-            if (rec.user) {
-                frappe.db.get_value("Employee", rec.user, "user_id", function (r) {
+            if (rec.custom_user) {
+                frappe.db.get_value("Employee", rec.custom_user, "user_id", function (r) {
                     if (r.user_id === current_user) {
                         hide_notify_buttons = true;
-                        if (!rec.is_confirm) {
-                            show_confirm_button = true;
-                        }
-                        
                     }
                 });
             }
@@ -27,18 +24,15 @@ frappe.ui.form.on("Job Opening", {
 
         // Check if current user is an external recruiter
         (frm.doc.custom_external_recruiter || []).forEach(rec => {
-            if (rec.user) {
+            if (rec.custom_user) {
                 frappe.call({
                     method: "prompt_hr.py.interview_availability.get_supplier_custom_user",
                     args: {
-                        supplier_name: rec.user
+                        supplier_name: rec.custom_user
                     },
                     callback: function (r) {
                         if (r.message === current_user) {
                             hide_notify_buttons = true;
-                            if (!rec.is_confirm) {
-                                show_confirm_button = true;
-                            }
                         }
                     }
                 });
@@ -47,8 +41,8 @@ frappe.ui.form.on("Job Opening", {
 
         // Check if current user is an internal interviewer
         (frm.doc.custom_internal_interviewers || []).forEach(rec => {
-            if (rec.user) {
-                frappe.db.get_value("Employee", rec.user, "user_id", function (r) {
+            if (rec.custom_user) {
+                frappe.db.get_value("Employee", rec.custom_user, "user_id", function (r) {
                     if (r.user_id === current_user) {
                         hide_notify_buttons = true;
                     }
@@ -58,11 +52,11 @@ frappe.ui.form.on("Job Opening", {
 
         // Check if current user is an external interviewer
         (frm.doc.custom_external_interviewers || []).forEach(rec => {
-            if (rec.user) {
+            if (rec.custom_user) {
                 frappe.call({
                     method: "prompt_hr.py.interview_availability.get_supplier_custom_user",
                     args: {
-                        supplier_name: rec.user
+                        supplier_name: rec.custom_user
                     },
                     callback: function (r) {
                         if (r.message === current_user) {
@@ -110,26 +104,6 @@ frappe.ui.form.on("Job Opening", {
                 }, __("Notify"));
             }
 
-            if (show_confirm_button) {
-                frm.add_custom_button(__("Confirm"), function() {
-                    frappe.dom.freeze(__('Confirming Your Availability...'));
-                    frappe.call({
-                        method: "prompt_hr.py.job_opening.send_notification_to_hr_manager",
-                        args: {
-                            name: frm.doc.name,
-                            company: frm.doc.company,
-                            user: frappe.session.user
-                        },
-                        callback: function(res) {
-                            frappe.msgprint(res.message || __("Your availability has been confirmed."));
-                            frm.reload_doc();
-                        },
-                        always: function () {
-                            frappe.dom.unfreeze();
-                        }
-                    });
-                }).removeClass('btn-default').addClass('btn btn-primary btn-sm primary-action');
-            }
         }, 100);
     },
 
@@ -237,27 +211,40 @@ function fetchReferralBonusPolicy(frm) {
 function handleInternalJobPosting(frm) {
     if (frm.doc.custom_job_opening_type === "Internal") {
         frm.add_custom_button(__('Release for Internal Application'), () => {
-            frappe.call({
-                method: "prompt_hr.py.job_opening.send_job_opening_notification",
-                args: {
-                    company: frm.doc.company,
-                    due_date: frm.doc.custom_due_date_for_applying_job,
-                    min_tenure_in_company: frm.doc.custom_minimum_tenure_in_company_in_months,
-                    min_tenure_in_current_role: frm.doc.custom_minimum_tenure_in_current_role_in_months,
-                    allowed_department: (frm.doc.custom_can_refer_from_department_internal).map(item => item.department),
-                    allowed_location: (frm.doc.custom_can_refer_from_work_location_internal).map(item => item.work_location),
-                    allowed_grade: (frm.doc.custom_can_refer_from_grade_internal).map(item => item.grade),
-                    notification_name: "Internal Job Opening Email",
-                    job_opening: frm.doc.name,
-                    source: "Internal Application"
+
+            frappe.confirm(
+                'Are you sure you want to send the internal job opening notification?',
+                () => {
+                    //? YES clicked - send email
+                    frappe.call({
+                        method: "prompt_hr.py.job_opening.send_job_opening_notification",
+                        args: {
+                            company: frm.doc.company,
+                            due_date: frm.doc.custom_due_date_for_applying_job,
+                            min_tenure_in_company: frm.doc.custom_minimum_tenure_in_company_in_months,
+                            min_tenure_in_current_role: frm.doc.custom_minimum_tenure_in_current_role_in_months,
+                            allowed_department: (frm.doc.custom_can_refer_from_department_internal || []).map(item => item.department),
+                            allowed_location: (frm.doc.custom_can_refer_from_work_location_internal || []).map(item => item.work_location),
+                            allowed_grade: (frm.doc.custom_can_refer_from_grade_internal || []).map(item => item.grade),
+                            notification_name: "Internal Job Opening Email",
+                            job_opening: frm.doc.name,
+                            source: "Internal Application"
+                        },
+                        callback: (res) => {
+                            frappe.msgprint(`${res.message?.length || 0} eligible employees have been notified.`);
+                        }
+                    });
                 },
-                callback: (res) => {
-                    frappe.msgprint(`${res.message?.length || 0} eligible employees have been notified.`);
+                () => {
+                    //?  NO clicked - do nothing
+                    frappe.show_alert({message: 'Notification cancelled', indicator: 'orange'});
                 }
-            });
+            );
+
         });
     }
 }
+
 
 // ? EMPLOYEE REFERRAL
 function handleEmployeeReferral(frm) {

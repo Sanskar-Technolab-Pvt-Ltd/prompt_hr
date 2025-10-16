@@ -7,7 +7,13 @@
  "engine": "InnoDB",
  "field_order": [
   "clearance_item",
-  "table_name"
+  "table_name",
+  "role_allowed_to_modify_approval_status",
+  "role_allowed_to_modify_status",
+  "user_allowed_to_modify_approval_status",
+  "user_allowed_to_modify_status",
+  "approval_status_to_be_filled_by_reporting_manager",
+  "status_to_be_filled_by_reporting_manager"
  ],
  "fields": [
   {
@@ -19,14 +25,58 @@
   {
    "fieldname": "table_name",
    "fieldtype": "Select",
+   "in_list_view": 1,
    "label": "Table Name",
-   "options": "\nit\nengineering"
+   "options": "\nit\nengineering",
+   "reqd": 1
+  },
+  {
+   "fieldname": "role_allowed_to_modify_approval_status",
+   "fieldtype": "Link",
+   "label": "Role Allowed to Modify Approval Status",
+   "mandatory_depends_on": "eval: !(doc.user_allowed_to_modify_approval_status || doc.approval_status_to_be_filled_by_reporting_manager)",
+   "options": "Role"
+  },
+  {
+   "fieldname": "user_allowed_to_modify_approval_status",
+   "fieldtype": "Link",
+   "label": "User Allowed to Modify Approval Status",
+   "mandatory_depends_on": "eval: !(doc.role_allowed_to_modify_approval_status || doc.approval_status_to_be_filled_by_reporting_manager)",
+   "options": "User"
+  },
+  {
+   "fieldname": "role_allowed_to_modify_status",
+   "fieldtype": "Link",
+   "label": "Role Allowed to Modify Status",
+   "mandatory_depends_on": "eval: !(doc.user_allowed_to_modify_status || doc.status_to_be_filled_by_reporting_manager)",
+   "options": "Role"
+  },
+  {
+   "default": "0",
+   "fieldname": "approval_status_to_be_filled_by_reporting_manager",
+   "fieldtype": "Check",
+   "label": "Approval Status To Be Filled By Reporting Manager",
+   "mandatory_depends_on": "eval: !(doc.role_allowed_to_modify_approval_status || doc.user_allowed_to_modify_approval_status )"
+  },
+  {
+   "fieldname": "user_allowed_to_modify_status",
+   "fieldtype": "Link",
+   "label": "User Allowed to Modify Status",
+   "mandatory_depends_on": "eval: !(doc.role_allowed_to_modify_status || doc.status_to_be_filled_by_reporting_manager)",
+   "options": "User"
+  },
+  {
+   "default": "0",
+   "fieldname": "status_to_be_filled_by_reporting_manager",
+   "fieldtype": "Check",
+   "label": "Status To Be Filled By Reporting Manager",
+   "mandatory_depends_on": "eval: !(doc.role_allowed_to_modify_status || doc.user_allowed_to_modify_status )"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-22 15:36:16.109561",
+ "modified": "2025-10-15 10:47:07.290061",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Exit Clearance Item",

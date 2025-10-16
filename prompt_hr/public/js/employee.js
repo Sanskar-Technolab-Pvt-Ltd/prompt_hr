@@ -600,7 +600,7 @@ function createEmployeeResignationButton(frm) {
         // ? FETCH RESIGNATION QUESTIONS FROM BACKEND
         frappe.call({
             method: "prompt_hr.py.employee.get_raise_resignation_questions",
-            args: { "company": frm.doc.company },
+            args: { "company": frm.doc.company, "employee":frm.doc.name },
             callback: function (res) {
                 if (res.message && res.message.length > 0) {
                     const questions = res.message;
@@ -666,7 +666,35 @@ function createEmployeeResignationButton(frm) {
                         return field;
                     });
 
+                    // ? BUTTON ONLY VISIBLE TO HR ROLES
+                    user = frappe.session.user
+                    const allowed_roles = [
+                        "S - HR Leave Approval",
+                        "S - HR leave Report",
+                        "S - HR L6",
+                        "S - HR L5",
+                        "S - HR L4",
+                        "S - HR L3",
+                        "S - HR L2",
+                        "S - HR L1",
+                        "S - HR Director (Global Admin)",
+                        "S - HR L2 Manager",
+                        "S - HR Supervisor (RM)",
+                        "System Manager"
+                    ];
 
+                    // Check if user has any allowed role
+                    const can_show_button = frappe.user_roles.some(role => allowed_roles.includes(role));
+
+                    if (can_show_button || user == "Administrator") {
+                        let field = {
+                            "label": "Resignation Date",
+                            "fieldname": "resignation_date",
+                            "fieldtype": "Date",
+                            "default": frappe.datetime.nowdate()
+                        }
+                        fields.push(field)
+                    }
                     // ? CREATE RESIGNATION DIALOG
                     const dialog = new frappe.ui.Dialog({
                         title: __('Resignation Details'),
@@ -699,6 +727,7 @@ function createEmployeeResignationButton(frm) {
                                     employee: frm.doc.name,
                                     user_response: answers,
                                     notice_number_of_days: frm.doc.notice_number_of_days,
+                                    resignation_date: values.resignation_date || frappe.datetime.nowdate()
                                 },
                                 callback: function (r) {
                                     if (r.message) {
@@ -724,7 +753,7 @@ function createEmployeeResignationButton(frm) {
 
 
                 } else {
-                    frappe.msgprint(__('No resignation questions found.'));
+                    frappe.msgprint(__('No resignation questions found or Resignation is already in process.'));
                 }
             }
         });

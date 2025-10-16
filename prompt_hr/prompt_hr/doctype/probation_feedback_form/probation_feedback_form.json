@@ -12,6 +12,7 @@
   "department",
   "designation",
   "company",
+  "pending_approval_at",
   "column_break_dbio",
   "product_line",
   "business_unit",
@@ -22,6 +23,8 @@
   "amended_from",
   "probation_evaluation_section",
   "probation_feedback_prompt",
+  "any_major_areas_of_improvement",
+  "recommend_trainings_if_any",
   "probation_feedback_indifoss",
   "added_dotted_manager_feedback",
   "confirmation_details_section",
@@ -222,12 +225,31 @@
    "fieldtype": "Check",
    "hidden": 1,
    "label": "Added Dotted Manager Feedback"
+  },
+  {
+   "fieldname": "pending_approval_at",
+   "fieldtype": "Link",
+   "label": "Pending Approval At",
+   "options": "Employee",
+   "read_only": 1
+  },
+  {
+   "fieldname": "any_major_areas_of_improvement",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Any Major Areas of Improvement"
+  },
+  {
+   "fieldname": "recommend_trainings_if_any",
+   "fieldtype": "Small Text",
+   "label": "Recommend Trainings If Any"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
+ "is_submittable": 1,
  "links": [],
- "modified": "2025-10-07 16:42:55.613686",
+ "modified": "2025-10-16 19:44:50.443442",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Probation Feedback Form",

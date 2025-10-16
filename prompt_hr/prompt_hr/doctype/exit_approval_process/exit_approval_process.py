@@ -4,6 +4,7 @@
 import frappe
 from frappe.model.document import Document
 from frappe import _
+from datetime import datetime
 from frappe.utils import nowdate, today, add_days, getdate, formatdate
 from prompt_hr.py.utils import (
     send_notification_email,
@@ -19,12 +20,14 @@ class ExitApprovalProcess(Document):
     def before_save(self):
         # ? SET EXIT QUESTIONNAIRE AND EXIT CHECKLIST DATES
         exit_questionnaire_days = frappe.db.get_value("HR Settings", None, "custom_days_before_exit_questionnaire_prompt") or 0
-        exit_questionnaire_date = add_days(self.last_date_of_working, -(int(exit_questionnaire_days)+1))
-        self.custom_exit_questionnaire_notification_date  = exit_questionnaire_date
+        if self.last_date_of_working:
+            exit_questionnaire_date = add_days(self.last_date_of_working, -(int(exit_questionnaire_days)+1))
+            self.custom_exit_questionnaire_notification_date  = formatdate(exit_questionnaire_date)
 
         exit_checklist_days = frappe.db.get_value("HR Settings", None, "custom_days_before_exit_checklist_prompt") or 0
-        exit_checklist_date = add_days(self.last_date_of_working, -(int(exit_checklist_days)+1))
-        self.custom_exit_checklist_notification_date = exit_checklist_date
+        if self.last_date_of_working:
+            exit_checklist_date = add_days(self.last_date_of_working, -(int(exit_checklist_days)+1))
+            self.custom_exit_checklist_notification_date = formatdate(exit_checklist_date)
     
         # ? VALIDATE APPROVAL STATUS
         validate_approval_status(self)
@@ -43,13 +46,84 @@ class ExitApprovalProcess(Document):
                     self.last_date_of_working,
                 )
 
+                if getdate(self.last_date_of_working) < getdate(today()):
+                    frappe.db.set_value(
+                        "Employee",
+                        self.employee,
+                        "status",
+                        "Left",
+                    )
+
+                    try:
+                        user_id = frappe.db.get_value("Employee", self.employee, "user_id")
+                        if user_id:
+                            if user_id != "Administrator":
+                                frappe.db.set_value("User", user_id, "enabled", 0)
+
+                    except Exception as e:
+                        frappe.log_error("Error in Making User Disable", str(e))
+
+        if self.workflow_state == "Approved by Reporting Manager" and self.has_value_changed("workflow_state"):
+            try:
+                #! DEFINE HR ROLES THAT SHOULD RECEIVE WORKFLOW UPDATES
+                hr_roles = [
+                    "S - HR Leave Approval",
+                    "S - HR Leave Report",
+                    "S - HR L6",
+                    "S - HR L5",
+                    "S - HR L4",
+                    "S - HR L3",
+                    "S - HR L2",
+                    "S - HR L1",
+                    "S - HR Director (Global Admin)",
+                    "S - HR L2 Manager",
+                    "S - HR Supervisor (RM)",
+                ]
+
+                recipients = set()
+
+                #! ADD EMPLOYEE USER ID AS RECIPIENT (FOR SELF-STATUS AWARENESS)
+                employee_user_id = frappe.db.get_value("Employee", self.employee, "user_id")
+                if employee_user_id:
+                    recipients.add(employee_user_id)
+
+                #! ADD ALL USERS WHO HAVE HR ROLES
+                all_hr_role_users = frappe.get_all(
+                    "Has Role",
+                    filters={"role": ["in", hr_roles], "parenttype": "User"},
+                    fields=["parent"]
+                )
+
+                for user in all_hr_role_users:
+                    if user.parent not in ["Administrator", "Guest"]:
+                        recipients.add(user.parent)
+
+                recipients = list(recipients)
+
+                if recipients:
+                    # Send generic update notification
+                    send_notification_email(
+                        recipients=recipients,
+                        notification_name="Exit Approval Process Update Status",
+                        doctype="Exit Approval Process",
+                        docname=self.name,
+                        send_link=False,
+                        fallback_subject=f"Exit Approval Process: {self.workflow_state} - {self.employee}",
+                        fallback_message=f"<p>Dear Team,<br> An Exit Approval Process has been {self.workflow_state}.</p>",
+                        send_header_greeting = True,
+                    )
+
+            except Exception as e:
+                frappe.log_error("Sending Mail to HR in Exit Approval Process", str(e))
+
 
 # ? RAISE EXIT CHECKLIST OR SCHEDULE IT
 @frappe.whitelist()
 def raise_exit_checklist(employee, company, exit_approval_process):
     doc = frappe.get_doc("Exit Approval Process", exit_approval_process)
     today_date = getdate(today())
-    notif_date = doc.custom_exit_checklist_notification_date
+    date_str = doc.custom_exit_checklist_notification_date
+    notif_date = datetime.strptime(date_str, "%d-%m-%Y").strftime("%Y-%m-%d")
 
     # ? SKIP IF FUTURE
     if getdate(notif_date) > today_date:
@@ -105,6 +179,10 @@ def create_employee_separation(employee, company, exit_approval_process):
             fields=["*"],
         )
         for act in activities:
+            try:
+                act.custom_is_raised = 1
+            except:
+                frappe.log_error("In Setting custom_is_raised field")
             doc.append("activities", act)
 
         # ? SET EMPLOYEE REPORTING MANAGER AS A USER IN SEPARATION ACTIVITY FIRST RECORD
@@ -143,7 +221,8 @@ def raise_exit_interview(employee, company, exit_approval_process):
         }
     doc = frappe.get_doc("Exit Approval Process", exit_approval_process)
     today_date = getdate(today())
-    notif_date = doc.custom_exit_questionnaire_notification_date
+    date_str = doc.custom_exit_questionnaire_notification_date
+    notif_date = datetime.strptime(date_str, "%d-%m-%Y").strftime("%Y-%m-%d")
 
     if getdate(notif_date) > today_date:
         return {
@@ -194,16 +273,20 @@ def create_exit_interview(employee, company, exit_approval_process):
     )
     doc.insert(ignore_permissions=True)
     frappe.db.commit()
-
+    message = f"Exit Interview created"
     # ? SEND EMAIL + LINK TO EXIT APPROVAL
-    send_exit_interview_notification(employee, doc.name)
+    try:
+        send_exit_interview_notification(employee, doc.name)
+        message += " and email sent"
+    except Exception as e:
+        message += " and Error while Sending Email"
     frappe.db.set_value(
         "Exit Approval Process", exit_approval_process, "exit_interview", doc.name
     )
 
     return {
         "status": "success",
-        "message": _("Exit Interview created and email sent."),
+        "message": message,
     }
 
 

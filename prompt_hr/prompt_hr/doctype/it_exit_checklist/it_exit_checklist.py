@@ -19,10 +19,22 @@ class ITExitChecklist(Document):
 
         #? RETURN IF NO IT OR ENGINEERING CHILD TABLE RECORDS
         if not self.it and not self.engineering:
+            self.status = "Pending"
             return
 
-        #? RETURN IF DOCUMENT IS NEW
+        #? IF DOCUMENT IS NEW
         if self.is_new():
+            is_completed = 1
+            for record in (self.it or []) + (self.engineering or []):
+                if record.approval_status != "Approved" or not record.status:
+                    is_completed = 0
+                    break
+
+            if is_completed:
+                self.status = "Completed"
+            else:
+                self.status = "Pending"
+
             return
 
         #? FETCH PREVIOUS RECORDS FROM DATABASE
@@ -48,6 +60,8 @@ class ITExitChecklist(Document):
         else:
             user = frappe.session.user
 
+        is_completed = 1
+
         #? LOOP THROUGH IT CHILD TABLE AND TRACK STATUS CHANGES
         for record in (self.it or []) + (self.engineering or []):
             if record.name in prev_dict:
@@ -63,6 +77,15 @@ class ITExitChecklist(Document):
                         record.approval_status_history += f"\n{history_entry}"
                     else:
                         record.approval_status_history = history_entry
+
+            if record.approval_status != "Approved" or not record.status:
+                is_completed = 0
+                
+
+        if is_completed:
+            self.status = "Completed"
+        else:
+            self.status = "Pending"
 
     # ? FUNCTION TO GET STATUS FOR EACH CHILD TABLE USING PER-TABLE STATUS RULES
     def get_clearance_status_map(self):

@@ -57,7 +57,7 @@ def custom_get_applicable_interviewers(interview: str) -> List[str]:
     external_interviewers = frappe.get_all(
         "External Interviewer",
         filters={"parent": interview},
-        fields=["user", "user_name", "is_confirm", "name"]
+        fields=["custom_user", "user_name", "is_confirm", "name"]
     )
     users = []
     for interviewer in interviewers:
@@ -68,8 +68,8 @@ def custom_get_applicable_interviewers(interview: str) -> List[str]:
                 if user and user.enabled and user.name not in users:
                     users.append(user.name)
     for interviewer in external_interviewers:
-        if interviewer.get("user"):
-            supplier = frappe.get_doc("Supplier", interviewer.user)
+        if interviewer.get("custom_user"):
+            supplier = frappe.get_doc("Supplier", interviewer.custom_user)
             if supplier.custom_user:
                 user = frappe.get_doc("User", supplier.custom_user)
                 if user and user.enabled and user.name not in users:
