@@ -373,7 +373,7 @@ on_logout = "prompt_hr.api.mobile.firebase.clear_token_for_user"
 
 scheduler_events = {
     "cron": {
-        "50 23 * * *": [
+        "30 0 * * *": [
             "prompt_hr.py.employee.update_employee_status_for_prompt_company"
         ],
         "0 20 * * *": [
@@ -585,6 +585,7 @@ fixtures = [
     #             "Leave Application - Approved/Rejected by RM",
     #             "Exit Approval Process - Pending Approval",
     #             "Exit Approval Process - Approved/Rejected by RM",
+    #             "Exit Checklist - Pending Completion",
     #         ]]
     #     }
     # }

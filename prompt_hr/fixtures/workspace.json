@@ -508,7 +508,7 @@
  },
  {
   "charts": [],
-  "content": "[{\"id\":\"_lWGnWLEHA\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Employee ESS</span>\",\"col\":12}},{\"id\":\"hdo6jo7ibI\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><i>Welcome to Your Employee Self Service Portal</i><b></b></span>\",\"col\":12}},{\"id\":\"D8zDUosuJo\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"2Ju8KgbQQ1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"My Profile\",\"col\":3}},{\"id\":\"ZHXU7IS1sm\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Leave Calendar\",\"col\":3}},{\"id\":\"FVDedLfA8b\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Attendance Calendar\",\"col\":3}},{\"id\":\"PcjcPavO_L\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Organization Policies\",\"col\":3}},{\"id\":\"ysDv0nutnh\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"ywVMoAC5S1\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Leave Application - Pending Approval\",\"col\":4}},{\"id\":\"C4n6SarIrx\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Attendance Regularization - Pending Approval\",\"col\":4}},{\"id\":\"MRgkXQnmRv\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Attendance Request - Pending Approval\",\"col\":4}},{\"id\":\"8zGuGRZSZh\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Shift Request - Pending Approval\",\"col\":4}},{\"id\":\"B3zX6hokO3\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"WeekOff Change Request - Pending Approval\",\"col\":4}},{\"id\":\"eGZmNyrsob\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Exit Approval Process - Pending Approval\",\"col\":4}},{\"id\":\"KL7BEZMNvX\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"HtaOE1KiNk\",\"type\":\"card\",\"data\":{\"card_name\":\"Attendance\",\"col\":4}},{\"id\":\"EnaIoMoh87\",\"type\":\"card\",\"data\":{\"card_name\":\"Leave\",\"col\":4}}]",
+  "content": "[{\"id\":\"_lWGnWLEHA\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Employee ESS</span>\",\"col\":12}},{\"id\":\"hdo6jo7ibI\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><i>Welcome to Your Employee Self Service Portal</i><b></b></span>\",\"col\":12}},{\"id\":\"D8zDUosuJo\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"2Ju8KgbQQ1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"My Profile\",\"col\":3}},{\"id\":\"ZHXU7IS1sm\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Leave Calendar\",\"col\":3}},{\"id\":\"FVDedLfA8b\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Attendance Calendar\",\"col\":3}},{\"id\":\"PcjcPavO_L\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Organization Policies\",\"col\":3}},{\"id\":\"ysDv0nutnh\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"ywVMoAC5S1\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Leave Application - Pending Approval\",\"col\":4}},{\"id\":\"C4n6SarIrx\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Attendance Regularization - Pending Approval\",\"col\":4}},{\"id\":\"MRgkXQnmRv\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Attendance Request - Pending Approval\",\"col\":4}},{\"id\":\"8zGuGRZSZh\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Shift Request - Pending Approval\",\"col\":4}},{\"id\":\"B3zX6hokO3\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"WeekOff Change Request - Pending Approval\",\"col\":4}},{\"id\":\"eGZmNyrsob\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Exit Approval Process - Pending Approval\",\"col\":4}},{\"id\":\"dijND8_I_q\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Exit Checklist - Pending Completion\",\"col\":4}},{\"id\":\"KL7BEZMNvX\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"HtaOE1KiNk\",\"type\":\"card\",\"data\":{\"card_name\":\"Attendance\",\"col\":4}},{\"id\":\"EnaIoMoh87\",\"type\":\"card\",\"data\":{\"card_name\":\"Leave\",\"col\":4}}]",
   "custom_blocks": [],
   "docstatus": 0,
   "doctype": "Workspace",
@@ -736,10 +736,17 @@
     "type": "Link"
    }
   ],
-  "modified": "2025-10-10 17:34:03.881066",
+  "modified": "2025-10-16 16:44:10.066243",
   "module": null,
   "name": "Employee ESS",
   "number_cards": [
+   {
+    "label": "Exit Checklist - Pending Completion",
+    "number_card_name": "Exit Checklist - Pending Completion",
+    "parent": "Employee ESS",
+    "parentfield": "number_cards",
+    "parenttype": "Workspace"
+   },
    {
     "label": "Exit Approval Process - Pending Approval",
     "number_card_name": "Exit Approval Process - Pending Approval",

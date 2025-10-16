@@ -20,12 +20,14 @@ class ExitApprovalProcess(Document):
     def before_save(self):
         # ? SET EXIT QUESTIONNAIRE AND EXIT CHECKLIST DATES
         exit_questionnaire_days = frappe.db.get_value("HR Settings", None, "custom_days_before_exit_questionnaire_prompt") or 0
-        exit_questionnaire_date = add_days(self.last_date_of_working, -(int(exit_questionnaire_days)+1))
-        self.custom_exit_questionnaire_notification_date  = formatdate(exit_questionnaire_date)
+        if self.last_date_of_working:
+            exit_questionnaire_date = add_days(self.last_date_of_working, -(int(exit_questionnaire_days)+1))
+            self.custom_exit_questionnaire_notification_date  = formatdate(exit_questionnaire_date)
 
         exit_checklist_days = frappe.db.get_value("HR Settings", None, "custom_days_before_exit_checklist_prompt") or 0
-        exit_checklist_date = add_days(self.last_date_of_working, -(int(exit_checklist_days)+1))
-        self.custom_exit_checklist_notification_date = formatdate(exit_checklist_date)
+        if self.last_date_of_working:
+            exit_checklist_date = add_days(self.last_date_of_working, -(int(exit_checklist_days)+1))
+            self.custom_exit_checklist_notification_date = formatdate(exit_checklist_date)
     
         # ? VALIDATE APPROVAL STATUS
         validate_approval_status(self)
@@ -43,6 +45,23 @@ class ExitApprovalProcess(Document):
                     "relieving_date",
                     self.last_date_of_working,
                 )
+
+                if getdate(self.last_date_of_working) < getdate(today()):
+                    frappe.db.set_value(
+                        "Employee",
+                        self.employee,
+                        "status",
+                        "Left",
+                    )
+
+                    try:
+                        user_id = frappe.db.get_value("Employee", self.employee, "user_id")
+                        if user_id:
+                            if user_id != "Administrator":
+                                frappe.db.set_value("User", user_id, "enabled", 0)
+
+                    except Exception as e:
+                        frappe.log_error("Error in Making User Disable", str(e))
 
         if self.workflow_state == "Approved by Reporting Manager" and self.has_value_changed("workflow_state"):
             try:
