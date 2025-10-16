@@ -1,6 +1,6 @@
 import frappe
 from frappe import throw
-from frappe.utils import getdate, nowdate, add_years, add_to_date, month_diff, get_last_day
+from frappe.utils import getdate, nowdate, add_years, add_to_date, month_diff, get_last_day, add_days
 from frappe.utils.pdf import get_pdf
 from frappe.www.printview import get_print_format
 from prompt_hr.api.main import notify_signatory_on_email
@@ -1648,12 +1648,12 @@ def update_employee_status_for_company(company_abbr: str):
             fields=["name", "relieving_date"],
         )
         today = getdate()
-
+        prev_day_date = getdate(add_days(today, -1))
         for employee in employees:
             relieving_date = getdate(employee.relieving_date)
 
-            # Update status if relieving date is today
-            if today == relieving_date:
+            # Update status if relieving date is prev_day_date
+            if prev_day_date == relieving_date:
                 employee_doc = frappe.get_doc("Employee", employee.name)
                 employee_doc.db_set("status", "Left")
 
