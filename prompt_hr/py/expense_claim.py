@@ -164,8 +164,13 @@ def send_mail_for_updates(doc):
             last_shared_user = last_shared[0].user
             shared_employee_name = frappe.db.get_value("Employee", {"user_id": last_shared_user}, "employee_name")
             if shared_employee_name:
-                send_notification("Expense Claim Escalation Notification",
+                if doc.workflow_state == "Escalated":
+                    send_notification("Expense Claim Escalation Notification",
                                 {"expense_approver_name": shared_employee_name, "can_approve": 1, "stage": stage},
+                                recipients=last_shared_user)
+                else:
+                    send_notification("Expense Claim Escalation Notification",
+                                {"expense_approver_name": shared_employee_name, "can_approve": 0, "stage": stage},
                                 recipients=last_shared_user)
 
     elif doc.workflow_state == "Expense Claim Submitted":
@@ -3100,7 +3105,6 @@ def send_mail_to_accounting_team(doctype, docname):
                         employee_user_id,
                         reporting_manager_user_id,
                         expense_approver_user_id,
-                        last_shared_user_id
                     ):
                         users_to_notify.add(user_email)
             except Exception as e:
