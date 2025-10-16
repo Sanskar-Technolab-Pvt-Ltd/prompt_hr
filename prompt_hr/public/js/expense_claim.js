@@ -664,31 +664,6 @@ function reason_for_rejection_dialog(frm) {
 }
 
 
-function reason_for_escalation_dialog(frm) {
-    return new Promise((resolve, reject) => {
-        frappe.dom.unfreeze()
-        
-        frappe.prompt({
-            label: 'Reason for Escalation',
-            fieldname: 'reason_for_escalation',
-            fieldtype: 'Small Text',
-            reqd: 1
-        }, (values) => {
-            if (values.reason_for_escalation) {
-                frm.set_value("custom_reason_for_escalation", values.reason_for_escalation)
-                // frm.set_value("approval_status", "Rejected")
-                frm.save().then(() => {
-                    resolve();
-                }).catch(reject);						
-            }
-            else {
-                reject()
-            }
-        })
-    });
-}
-
-
 // ? FETCH COMMUTE DATA AND BIND EVENTS
 function fetch_commute_data(frm) {
 	const { employee, company } = frm.doc;
