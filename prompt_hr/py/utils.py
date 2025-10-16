@@ -1025,7 +1025,6 @@ def share_doc_with_employee(employee, doctype, docname, reason_for_escalation=No
         write=1,
         submit=1,
         share=1,
-        notify=1
     )
 
     # ! SET ESCALATED TO FIELDS

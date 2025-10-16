@@ -107,9 +107,10 @@ def send_mail_for_updates(doc):
                                 recipients=reporting_manager_user_id)
 
         if employee_id:
-            send_notification("Expense Claim Send For Approval Notification",
-                            {"expense_approver_name": employee_name, "can_approve": 0},
-                            recipients=employee_id)
+            if not(expense_approver and expense_approver == employee_id):
+                send_notification("Expense Claim Send For Approval Notification",
+                                {"expense_approver_name": employee_name, "can_approve": 0},
+                                recipients=employee_id)
 
     elif doc.workflow_state == "Rejected":
         if expense_approver:
@@ -125,9 +126,10 @@ def send_mail_for_updates(doc):
                                 recipients=reporting_manager_user_id)
 
         if employee_id:
-            send_notification("Expense Claim Rejection Notification",
-                            {"expense_approver_name": employee_name, "can_approve": 0},
-                            recipients=employee_id)
+            if not(expense_approver and expense_approver == employee_id):
+                send_notification("Expense Claim Rejection Notification",
+                                {"expense_approver_name": employee_name, "can_approve": 0},
+                                recipients=employee_id)
 
     elif doc.workflow_state in ("Escalated", "Sent to Accounting Team"):
         stage = doc.workflow_state
@@ -144,9 +146,10 @@ def send_mail_for_updates(doc):
                                 recipients=reporting_manager_user_id)
 
         if employee_id:
-            send_notification("Expense Claim Escalation Notification",
-                            {"stage": stage},
-                            recipients=employee_id)
+            if not(expense_approver and expense_approver == employee_id):
+                send_notification("Expense Claim Escalation Notification",
+                                {"stage": stage},
+                                recipients=employee_id)
 
         # For last shared user
         last_shared = frappe.get_all(
@@ -179,8 +182,9 @@ def send_mail_for_updates(doc):
                                 recipients=reporting_manager_user_id)
 
         if employee_id:
-            send_notification("Expense Claim Submitted Notification",
-                            recipients=employee_id)
+            if not(expense_approver and expense_approver == employee_id):
+                send_notification("Expense Claim Submitted Notification",
+                                recipients=employee_id)
 
 
 def validate_number_of_days(doc):
