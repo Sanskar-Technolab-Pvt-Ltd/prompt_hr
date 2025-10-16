@@ -19,6 +19,7 @@ class ITExitChecklist(Document):
 
         #? RETURN IF NO IT OR ENGINEERING CHILD TABLE RECORDS
         if not self.it and not self.engineering:
+            self.status = "Pending"
             return
 
         #? IF DOCUMENT IS NEW
@@ -33,6 +34,8 @@ class ITExitChecklist(Document):
                 self.status = "Completed"
             else:
                 self.status = "Pending"
+
+            return
 
         #? FETCH PREVIOUS RECORDS FROM DATABASE
         prev_records = frappe.get_all(
