@@ -21,9 +21,18 @@ class ITExitChecklist(Document):
         if not self.it and not self.engineering:
             return
 
-        #? RETURN IF DOCUMENT IS NEW
+        #? IF DOCUMENT IS NEW
         if self.is_new():
-            return
+            is_completed = 1
+            for record in (self.it or []) + (self.engineering or []):
+                if record.approval_status != "Approved" or not record.status:
+                    is_completed = 0
+                    break
+
+            if is_completed:
+                self.status = "Completed"
+            else:
+                self.status = "Pending"
 
         #? FETCH PREVIOUS RECORDS FROM DATABASE
         prev_records = frappe.get_all(
