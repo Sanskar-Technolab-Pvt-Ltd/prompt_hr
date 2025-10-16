@@ -17,12 +17,10 @@ def on_update(doc, method):
     ]
     
     if doc.workflow_state in workflow_states_to_handle:
-        print("\n\nworkflow state",doc.workflow_state)
         # Trigger email notification and document sharing
         after_workflow_action(doc)
         
     if doc.has_value_changed('workflow_state'):
-        print("\n\nfirst condition is true")
         send_workflow_notification(doc)
 
 def before_save(doc, method):
@@ -69,8 +67,7 @@ def get_eligible_travel_modes(employee, company):
 def after_workflow_action(doc):
    
     # if doc.workflow_state == "Approved by Reporting Manager":
-    print("\n\nFunction is calling.....")
-    
+   
     share_map = {
         "Pending": get_reporting_manager,
         "Approved by Reporting Manager": get_travel_desk_users,
@@ -83,12 +80,10 @@ def after_workflow_action(doc):
     }
     # Get all users with role 'Travel Desk User'
     share_func = share_map.get(doc.workflow_state)
-    print("\n\nshare function",share_func)
     if not share_func:
         return
 
     users_to_share = share_func(doc)
-    print("\n\nUser to share",users_to_share)
     if not users_to_share:
         return
 
@@ -96,15 +91,12 @@ def after_workflow_action(doc):
     if isinstance(users_to_share, str):
         users_to_share = [users_to_share]
 
-    print("\n\ndoctype is shared with this users",users_to_share)
     for user in users_to_share:
         # Skip invalid users
         if user in ["All", "Administrator", "ADMIN"]:
-            print("\n\nif condition true for user")
             continue
         
         try:
-            print("Inside try block")
             # Share the document with the user
             frappe.share.add_docshare(
                 doctype=doc.doctype,
@@ -124,7 +116,6 @@ def send_workflow_notification(doc):
     """Send email based on workflow state transition"""
     workflow_state = doc.workflow_state
     
-    print("\n\nWorkflow state",workflow_state)
     # Map workflow states to email templates
     email_template_map = {
         "Pending": "Travel Request - Pending Approval",
@@ -184,7 +175,6 @@ def send_email_with_template(doc, template_name):
     recipients = config.get("recipients", [])
     cc = config.get("cc", [])
     
-    print("\n\nemail id is added in CC",cc)
     if not recipients:
         return
     
@@ -222,7 +212,6 @@ def get_reporting_manager(doc):
         if reports_to:
             manager_user_id = frappe.db.get_value('Employee', reports_to, 'user_id')
             if manager_user_id:
-                print("\n\nManager user id",manager_user_id)
                 return manager_user_id
             else:
                 return ""
@@ -237,7 +226,6 @@ def get_bu_head(doc):
             if bu_head:
                 bu_id = frappe.db.get_value('Employee',bu_head,'user_id')
                 if bu_id:
-                    print("\n\nBU id",bu_id)
                     return bu_id
     
 def get_employee_id(doc):
@@ -253,7 +241,6 @@ def get_travel_desk_users(doc):
         filters={'role': 'Travel Desk User', 'parenttype': 'User'},
         fields=['parent']
     )
-    print("\n\nTravel Desk Users",travel_desk_users)
     return [user.parent for user in travel_desk_users] 
 
 def get_accounts_team_users(doc):
