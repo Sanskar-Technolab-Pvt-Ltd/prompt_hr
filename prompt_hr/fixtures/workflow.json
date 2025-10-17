@@ -1959,7 +1959,7 @@
   "doctype": "Workflow",
   "document_type": "Travel Request",
   "is_active": 1,
-  "modified": "2025-10-13 11:47:50.010445",
+  "modified": "2025-10-17 14:35:43.185162",
   "name": "Travel Request",
   "override_status": 0,
   "send_email_alert": 0,
@@ -2096,7 +2096,7 @@
   "transitions": [
    {
     "action": "Approve",
-    "allow_self_approval": 1,
+    "allow_self_approval": 0,
     "allowed": "S - Employee",
     "condition": "frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Employee\", doc.employee, \"reports_to\"), \"user_id\") or \"Administrator\"",
     "next_state": "Approved by Reporting Manager",
@@ -2109,7 +2109,7 @@
    },
    {
     "action": "Reject",
-    "allow_self_approval": 1,
+    "allow_self_approval": 0,
     "allowed": "S - Employee",
     "condition": "frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Employee\", doc.employee, \"reports_to\"), \"user_id\") or \"Administrator\"",
     "next_state": "Rejected by Reporting Manager",
@@ -2122,7 +2122,7 @@
    },
    {
     "action": "Escalate",
-    "allow_self_approval": 1,
+    "allow_self_approval": 0,
     "allowed": "Travel Desk User",
     "condition": null,
     "next_state": "Escalated",
@@ -2135,7 +2135,7 @@
    },
    {
     "action": "Approve",
-    "allow_self_approval": 1,
+    "allow_self_approval": 0,
     "allowed": "Employee",
     "condition": "frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Business Unit\", frappe.db.get_value(\"Employee\", doc.employee, \"custom_business_unit\"), \"business_unit_head\"), \"user_id\")",
     "next_state": "Approved by BU Head",
@@ -2148,7 +2148,7 @@
    },
    {
     "action": "Send to Accounts Team",
-    "allow_self_approval": 1,
+    "allow_self_approval": 0,
     "allowed": "Travel Desk User",
     "condition": null,
     "next_state": "Sent to Accounting Team",
@@ -2161,7 +2161,7 @@
    },
    {
     "action": "Book",
-    "allow_self_approval": 1,
+    "allow_self_approval": 0,
     "allowed": "Travel Desk User",
     "condition": null,
     "next_state": "Booked",
@@ -2174,7 +2174,7 @@
    },
    {
     "action": "Reject",
-    "allow_self_approval": 1,
+    "allow_self_approval": 0,
     "allowed": "Employee",
     "condition": "frappe.session.user == frappe.db.get_value(\"Employee\", frappe.db.get_value(\"Business Unit\", frappe.db.get_value(\"Employee\", doc.employee, \"custom_business_unit\"), \"business_unit_head\"), \"user_id\")",
     "next_state": "Rejected by BU Head",
@@ -2187,7 +2187,7 @@
    },
    {
     "action": "Book",
-    "allow_self_approval": 1,
+    "allow_self_approval": 0,
     "allowed": "Travel Desk User",
     "condition": null,
     "next_state": "Booked",
@@ -2200,7 +2200,7 @@
    },
    {
     "action": "Send to Accounts Team",
-    "allow_self_approval": 1,
+    "allow_self_approval": 0,
     "allowed": "Travel Desk User",
     "condition": null,
     "next_state": "Sent to Accounting Team",
@@ -2213,7 +2213,7 @@
    },
    {
     "action": "Send to Accounts Team",
-    "allow_self_approval": 1,
+    "allow_self_approval": 0,
     "allowed": "Travel Desk User",
     "condition": null,
     "next_state": "Sent to Accounting Team",
