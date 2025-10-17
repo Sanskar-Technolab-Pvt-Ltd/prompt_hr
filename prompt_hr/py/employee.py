@@ -2599,7 +2599,7 @@ def rename_selected_employees(employee_list, max_minutes=30):
 
     # ? ENQUEUE BACKGROUND JOB
     enqueue(
-        "prompt_hr.employee.rename_selected_employees_background",
+        "prompt_hr.py.employee.rename_selected_employees_background",
         employee_list=employee_list,
         queue="long",
         timeout=max_minutes * 60,
