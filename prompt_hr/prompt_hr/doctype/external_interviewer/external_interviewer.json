@@ -13,7 +13,7 @@
  ],
  "fields": [
   {
-   "fetch_from": "user.supplier_name",
+   "fetch_from": "custom_user.supplier_name",
    "fieldname": "user_name",
    "fieldtype": "Data",
    "in_list_view": 1,
@@ -30,7 +30,7 @@
    "fieldname": "send_reminder",
    "fieldtype": "Button",
    "in_list_view": 1,
-   "label": "Send Reminder"
+   "label": "Feedback Reminder"
   },
   {
    "fieldname": "custom_user",
@@ -45,7 +45,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-10-14 16:32:58.596927",
+ "modified": "2025-10-17 13:59:46.051489",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "External Interviewer",
