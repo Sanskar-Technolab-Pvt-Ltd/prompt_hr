@@ -20,6 +20,7 @@
   {
    "fieldname": "custom_user",
    "fieldtype": "Link",
+   "ignore_user_permissions": 1,
    "in_list_view": 1,
    "label": "Interviewer",
    "options": "Employee"
@@ -29,7 +30,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-10-17 13:59:33.658149",
+ "modified": "2025-10-17 14:39:53.542948",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Internal Interviewer",
