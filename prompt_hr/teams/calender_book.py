@@ -1,6 +1,7 @@
 import frappe
 import requests
 import json
+from html import unescape
 from datetime import datetime
 from prompt_hr.teams.utils import format_date_time_erpnext_to_teams
 from prompt_hr.prompt_hr.doctype.teams_settings.teams_settings import generate_teams_token
@@ -9,7 +10,7 @@ from prompt_hr.teams.create_meeting import create_meeting_link
 
 
 @frappe.whitelist()
-def teams_calender_book(docname):
+def teams_calender_book(docname, rendered_html):
     """
     Create calender book in teams and outlooks and send email to all attendees
     """
@@ -21,7 +22,11 @@ def teams_calender_book(docname):
         start_time = date_time.get('start_time')
         end_time = date_time.get('end_time')
         token = generate_teams_token()
-        
+        # template_content = unescape(interview_doc.custom_template_preview)
+        # template_content = frappe.db.get_value("Interview", docname, "custom_template_preview")
+        rendered_html = rendered_html   
+
+        print("\n\ntemplate data",rendered_html)
         join_url = ""
         is_face_to_face = interview_doc.custom_mode == "Face to Face Interview"
 
@@ -45,22 +50,27 @@ def teams_calender_book(docname):
 
         readable_date_time = f"{formatted_date} - {interview_doc.from_time} to {interview_doc.to_time} (IST)"
         
-        html_content = f""" 
-        <div style='font-family:Segoe UI, sans-serif; font-size:14px; color:#333;'>
-            <p>Dear Participant,</p>
-            <p>You are invited for an interview. Please find the details below:</p>
-            <table style='margin-top:10px; margin-bottom:10px; padding:10px; background-color:#f3f6f9; border:1px solid #d1dce5; border-radius:5px;'>
-                <tr>
-                    <td style='padding:8px 0;margin-right:0px'> <strong>Meeting</strong></td>
-                    <td style='padding:8px 0;'>:  {subject}</td>
-                </tr>
-                <tr>
-                    <td style='padding:8px 0;'> <strong>Date & Time</strong></td>
-                    <td style='padding:8px 0;'>:  {readable_date_time}</td>
-                </tr>
-            </table>
-        """
+        html_content = ""
+        # html_content = f""" 
+        # <div style='font-family:Segoe UI, sans-serif; font-size:14px; color:#333;'>
+        #     <p>Dear Participant,</p>
+        #     <p>You are invited for an interview. Please find the details below:</p>
+        #     <table style='margin-top:10px; margin-bottom:10px; padding:10px; background-color:#f3f6f9; border:1px solid #d1dce5; border-radius:5px;'>
+        #         <tr>
+        #             <td style='padding:8px 0;margin-right:0px'> <strong>Meeting</strong></td>
+        #             <td style='padding:8px 0;'>:  {subject}</td>
+        #         </tr>
+        #         <tr>
+        #             <td style='padding:8px 0;'> <strong>Date & Time</strong></td>
+        #             <td style='padding:8px 0;'>:  {readable_date_time}</td>
+        #         </tr>
+        #     </table>
+        # """
 
+        if rendered_html:
+            html_content += f"{rendered_html}"
+
+        print("\n\nHtml Content 1st",html_content)
         # Add the Join Link if not Face-to-Face
         if not is_face_to_face:
             html_content += f"""
@@ -72,18 +82,21 @@ def teams_calender_book(docname):
             </p>
             """
             
-        if interview_doc.custom_work_location_address:
-            html_content += f"<p>Address : {interview_doc.custom_work_location_address}</p>"
-
-        if interview_doc.custom_description:
-            html_content += f"<p>{interview_doc.custom_description}</p>"
+       
             
-        html_content += f"""
-            <p>We look forward to your participation.</p>
-            <p>Best regards,<br/>Prompt</p>
-        </div>
-        """
+        # if interview_doc.custom_work_location_address:
+        #     html_content += f"<p>Address : {interview_doc.custom_work_location_address}</p>"
+
+        # if interview_doc.custom_description:
+        #     html_content += f"<p>{interview_doc.custom_description}</p>"
+            
+        # html_content += f"""
+        #     <p>We look forward to your participation.</p>
+        #     <p>Best regards,<br/>Prompt</p>
+        # </div>
+        # """
                 
+        
         attendees = []
 
         # 1. Add Applicant
