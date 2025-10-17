@@ -22,6 +22,14 @@ class ITExitChecklist(Document):
             self.status = "Pending"
             return
 
+        for record in (self.it or []) + (self.engineering or []):
+            if record.no_response_to_be_filled_in_status:
+                record.status = "Input"
+                record.response = "Not Applicable"
+            
+            if record.no_response_to_be_filled_in_approval_status:
+                record.approval_status = "Approved"
+
         #? IF DOCUMENT IS NEW
         if self.is_new():
             is_completed = 1

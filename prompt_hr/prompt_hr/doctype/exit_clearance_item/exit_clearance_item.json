@@ -7,13 +7,16 @@
  "engine": "InnoDB",
  "field_order": [
   "clearance_item",
-  "table_name",
   "role_allowed_to_modify_approval_status",
-  "role_allowed_to_modify_status",
   "user_allowed_to_modify_approval_status",
-  "user_allowed_to_modify_status",
   "approval_status_to_be_filled_by_reporting_manager",
-  "status_to_be_filled_by_reporting_manager"
+  "no_response_to_be_filled_in_approval_status",
+  "column_break_dxvp",
+  "table_name",
+  "role_allowed_to_modify_status",
+  "user_allowed_to_modify_status",
+  "status_to_be_filled_by_reporting_manager",
+  "no_response_to_be_filled_in_status"
  ],
  "fields": [
   {
@@ -34,21 +37,21 @@
    "fieldname": "role_allowed_to_modify_approval_status",
    "fieldtype": "Link",
    "label": "Role Allowed to Modify Approval Status",
-   "mandatory_depends_on": "eval: !(doc.user_allowed_to_modify_approval_status || doc.approval_status_to_be_filled_by_reporting_manager)",
+   "mandatory_depends_on": "eval: !(doc.user_allowed_to_modify_approval_status || doc.approval_status_to_be_filled_by_reporting_manager || doc.no_response_to_be_filled_in_approval_status)",
    "options": "Role"
   },
   {
    "fieldname": "user_allowed_to_modify_approval_status",
    "fieldtype": "Link",
    "label": "User Allowed to Modify Approval Status",
-   "mandatory_depends_on": "eval: !(doc.role_allowed_to_modify_approval_status || doc.approval_status_to_be_filled_by_reporting_manager)",
+   "mandatory_depends_on": "eval: !(doc.role_allowed_to_modify_approval_status || doc.approval_status_to_be_filled_by_reporting_manager || doc.no_response_to_be_filled_in_approval_status)",
    "options": "User"
   },
   {
    "fieldname": "role_allowed_to_modify_status",
    "fieldtype": "Link",
    "label": "Role Allowed to Modify Status",
-   "mandatory_depends_on": "eval: !(doc.user_allowed_to_modify_status || doc.status_to_be_filled_by_reporting_manager)",
+   "mandatory_depends_on": "eval: !(doc.user_allowed_to_modify_status || doc.status_to_be_filled_by_reporting_manager || doc.no_response_to_be_filled_in_status)",
    "options": "Role"
   },
   {
@@ -56,13 +59,13 @@
    "fieldname": "approval_status_to_be_filled_by_reporting_manager",
    "fieldtype": "Check",
    "label": "Approval Status To Be Filled By Reporting Manager",
-   "mandatory_depends_on": "eval: !(doc.role_allowed_to_modify_approval_status || doc.user_allowed_to_modify_approval_status )"
+   "mandatory_depends_on": "eval: !(doc.role_allowed_to_modify_approval_status || doc.user_allowed_to_modify_approval_status || doc.no_response_to_be_filled_in_approval_status)"
   },
   {
    "fieldname": "user_allowed_to_modify_status",
    "fieldtype": "Link",
    "label": "User Allowed to Modify Status",
-   "mandatory_depends_on": "eval: !(doc.role_allowed_to_modify_status || doc.status_to_be_filled_by_reporting_manager)",
+   "mandatory_depends_on": "eval: !(doc.role_allowed_to_modify_status || doc.status_to_be_filled_by_reporting_manager || doc.no_response_to_be_filled_in_status)",
    "options": "User"
   },
   {
@@ -70,13 +73,31 @@
    "fieldname": "status_to_be_filled_by_reporting_manager",
    "fieldtype": "Check",
    "label": "Status To Be Filled By Reporting Manager",
-   "mandatory_depends_on": "eval: !(doc.role_allowed_to_modify_status || doc.user_allowed_to_modify_status )"
+   "mandatory_depends_on": "eval: !(doc.role_allowed_to_modify_status || doc.user_allowed_to_modify_status || doc.no_response_to_be_filled_in_status)"
+  },
+  {
+   "default": "0",
+   "fieldname": "no_response_to_be_filled_in_status",
+   "fieldtype": "Check",
+   "label": "No Response To Be Filled in Status",
+   "mandatory_depends_on": "eval: !(doc.role_allowed_to_modify_status || doc.user_allowed_to_modify_status || doc.status_to_be_filled_by_reporting_manager)"
+  },
+  {
+   "default": "0",
+   "fieldname": "no_response_to_be_filled_in_approval_status",
+   "fieldtype": "Check",
+   "label": "No Response To Be Filled in Approval Status",
+   "mandatory_depends_on": "eval: !(doc.role_allowed_to_modify_approval_status || doc.user_allowed_to_modify_approval_status || doc.approval_status_to_be_filled_by_reporting_manager)"
+  },
+  {
+   "fieldname": "column_break_dxvp",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-15 10:47:07.290061",
+ "modified": "2025-10-17 16:30:40.980503",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Exit Clearance Item",
