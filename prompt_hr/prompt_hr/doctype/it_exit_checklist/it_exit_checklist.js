@@ -171,24 +171,17 @@ async function set_approval_status_and_status_readonly(frm) {
             const { canModifyApproval, canModifyStatus, approval_by, status_by } = await checkUserEligibility(frm, rowDoc, tableName);
 
             // Set readonly on docfield (affects form view)  
-            row.docfields.forEach(df => {
-                if (df.fieldname === 'approval_status') {
-                    if ( rowDoc?.no_response_to_be_filled_in_approval_status) {
-                        df.read_only = 1;
-                    }
-                    else {
-                        df.read_only = !canModifyApproval ? 1 : 0;
-                    }
-                }
-                if (df.fieldname === 'status') {
-                    if ( rowDoc?.no_response_to_be_filled_in_status) {
-                        df.read_only = 1;
-                    }
-                    else {
-                        df.read_only = !canModifyStatus ? 1 : 0;
-                    }
-                }
-            });
+            if (rowDoc?.no_response_to_be_filled_in_approval_status) {
+                frm.set_df_property(tableName, "read_only", 1, rowDoc?.doctype, "approval_status", rowDoc?.name);
+            } else {
+                frm.set_df_property(tableName, "read_only", !canModifyApproval ? 1 : 0, rowDoc?.doctype, "approval_status", rowDoc?.name);
+            }
+
+            if (rowDoc?.no_response_to_be_filled_in_status) {
+                frm.set_df_property(tableName, "read_only", 1, rowDoc?.doctype, "status", rowDoc?.name);
+            } else {
+                frm.set_df_property(tableName, "read_only", !canModifyStatus ? 1 : 0, rowDoc?.doctype, "status", rowDoc?.name);
+            }
 
             // Refresh grid form if open  
             if (row.grid_form) {
