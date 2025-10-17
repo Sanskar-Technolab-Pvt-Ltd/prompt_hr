@@ -197,7 +197,6 @@ def send_email_with_template(doc, template_name):
             expose_recipients="header"
         )
         
-        frappe.msgprint(f"Email sent successfully to {(recipients)}")
         
     except Exception as e:
         frappe.log_error(
