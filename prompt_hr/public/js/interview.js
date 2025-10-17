@@ -377,10 +377,6 @@ frappe.ui.form.on("Interview", {
 frappe.ui.form.on("Interview Detail", {
     custom_send_reminder: function (frm, cdt, cdn) {
         let child = locals[cdt][cdn];
-        if (frm.doc.docstatus !== 1) {
-            frappe.throw("Only Reminder Send For Submitted Interview");
-            return
-        }
 
         if (!child.custom_interviewer_employee) {
             frappe.throw("Please Select Interviewer Employee");
@@ -407,10 +403,6 @@ frappe.ui.form.on("Interview Detail", {
 frappe.ui.form.on("External Interviewer", {
     send_reminder: function (frm, cdt, cdn) {
         let child = locals[cdt][cdn];
-        if (frm.doc.docstatus !== 1) {
-            frappe.throw("Only Reminder Send For Submitted Interview");
-            return
-        }
 
         if (!child.custom_user) {
             frappe.throw("Please Select Interviewer Employee");
