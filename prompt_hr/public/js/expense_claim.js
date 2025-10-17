@@ -1516,6 +1516,7 @@ function handleWorkflowTransition(frm) {
                         fieldname: "employee",
                         fieldtype: "Link",
                         options: "Employee",
+                        ignore_user_permissions: true,
                         reqd: 1,
                         get_query: function () {
                             console.log(">>> get_query called for Employee – no filter.");

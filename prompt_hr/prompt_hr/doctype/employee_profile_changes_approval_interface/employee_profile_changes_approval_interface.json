@@ -23,18 +23,21 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Field Name",
+   "read_only": 1,
    "reqd": 1
   },
   {
    "fieldname": "old_value",
    "fieldtype": "Data",
-   "label": "Old Value"
+   "label": "Old Value",
+   "read_only": 1
   },
   {
    "fieldname": "new_value",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "New Value"
+   "label": "New Value",
+   "read_only": 1
   },
   {
    "fieldname": "employee",
@@ -42,6 +45,7 @@
    "in_list_view": 1,
    "label": "Employee",
    "options": "Employee",
+   "read_only": 1,
    "reqd": 1
   },
   {
@@ -50,6 +54,7 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Employee Name",
+   "read_only": 1,
    "reqd": 1
   },
   {
@@ -60,18 +65,21 @@
    "fieldname": "approval_status",
    "fieldtype": "Select",
    "label": "Approval Status",
-   "options": "Pending\nApproved\nRejected"
+   "options": "Pending\nApproved\nRejected",
+   "read_only": 1
   },
   {
    "fieldname": "date_of_changes_made",
    "fieldtype": "Date",
    "label": "Date of Changes Made",
+   "read_only": 1,
    "reqd": 1
   },
   {
    "fieldname": "changes_applicable_date",
    "fieldtype": "Date",
-   "label": "Changes Applicable Date"
+   "label": "Changes Applicable Date",
+   "read_only": 1
   },
   {
    "fieldname": "reason_for_rejection",
@@ -83,7 +91,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-11 17:26:47.573097",
+ "modified": "2025-10-17 12:24:00.691812",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Profile Changes Approval Interface",
