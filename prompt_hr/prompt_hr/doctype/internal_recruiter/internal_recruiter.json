@@ -33,6 +33,7 @@
   {
    "fieldname": "custom_user",
    "fieldtype": "Link",
+   "ignore_user_permissions": 1,
    "in_list_view": 1,
    "label": "Recruiter",
    "options": "Employee"
@@ -42,7 +43,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-10-17 13:59:11.732948",
+ "modified": "2025-10-17 14:39:16.696816",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Internal Recruiter",
