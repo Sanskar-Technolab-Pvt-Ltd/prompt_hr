@@ -2584,15 +2584,27 @@ def rename_selected_employees(employee_list, max_minutes=30):
     Enqueue the rename job in the background.
 
     Args:
-        employee_list (list): List of Employee IDs to process
+        employee_list (list | str): List of Employee IDs to process (can be JSON string)
         max_minutes (int): Max minutes the background job can run
     """
+    import json
+    from frappe.utils.background_jobs import enqueue
+
+    # ? PARSE IF STRING
+    if isinstance(employee_list, str):
+        try:
+            employee_list = json.loads(employee_list)
+        except Exception:
+            frappe.throw("Invalid employee list format. Must be a valid JSON array.")
+
+    # ? ENQUEUE BACKGROUND JOB
     enqueue(
         "prompt_hr.employee.rename_selected_employees_background",
         employee_list=employee_list,
         queue="long",
         timeout=max_minutes * 60,
     )
+
     return f"Rename job enqueued for {len(employee_list)} employees."
 
 
