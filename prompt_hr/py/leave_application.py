@@ -208,8 +208,37 @@ def validate(doc, method=None):
         if allowed_days:
             if doc.from_date < add_days(today(), -(allowed_days-1)):
                 frappe.throw(_("You cannot apply leave for more than {0} days in the past.").format(allowed_days))
-                
-    
+
+    validate_festival_leave_condition(doc)
+
+
+def validate_festival_leave_condition(doc):
+    """
+    #? VALIDATE FESTIVAL LEAVE RULES
+    Ensures that half-day leaves are not allowed for festival leave types,
+    unless the leave is rejected or cancelled.
+    """
+
+    #! STEP 1: CHECK IF LEAVE TYPE IS SET
+    if not doc.leave_type:
+        return
+
+    #! STEP 2: FETCH WHETHER THE SELECTED LEAVE TYPE IS MARKED AS FESTIVAL LEAVE
+    is_festival_leave = frappe.db.get_value(
+        "Leave Type",
+        doc.leave_type,
+        "custom_is_festival_leave"
+    ) or 0
+
+    #? IF THE LEAVE IS MARKED AS FESTIVAL LEAVE
+    if is_festival_leave:
+        #? CHECK IF HALF-DAY OPTION IS SELECTED
+        if doc.half_day:
+            #? ALLOW HALF-DAY ONLY IF LEAVE IS REJECTED OR CANCELLED
+            if doc.workflow_state not in ["Rejected", "Cancelled", "Cancelled by Employee"] and doc.status not in ['Rejected', "Cancelled"]:
+                #! THROW VALIDATION ERROR
+                frappe.throw("Half Day Leave is not allowed for Festival Leave.")
+
 
 import frappe
 from frappe.utils import getdate, add_days
