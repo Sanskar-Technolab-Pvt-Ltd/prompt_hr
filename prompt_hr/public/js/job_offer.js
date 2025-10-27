@@ -78,9 +78,9 @@ function add_release_offer_button(frm) {
 
 function viewCandidatePortalButton(frm) {
     frm.add_custom_button('View Candidate Portal', function() {
-        const email = frm.doc.applicant_email
+        const applicant = frm.doc.job_applicant
         const offer_name = frm.doc.name
-        frappe.db.get_value("Candidate Portal", { applicant_email: email, job_offer:offer_name}, "name")
+        frappe.db.get_value("Candidate Portal", { applicant_email: applicant, job_offer:offer_name}, "name")
         .then(r => {
             if (r.message && r.message.name) {
                 frappe.set_route("Form", "Candidate Portal", r.message.name);

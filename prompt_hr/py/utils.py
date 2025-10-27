@@ -269,6 +269,7 @@ def invite_for_document_collection(
                 "applicant_name",
                 "designation",
                 "custom_company",
+                "name",
             ],
             as_dict=True,
         )
@@ -279,9 +280,32 @@ def invite_for_document_collection(
         existing = frappe.db.exists(
             "Candidate Portal",
             {
-                "applicant_email": job_applicant.email_id,
+                "applicant_email": job_applicant.name,
             },
         )
+
+        job_applicant_doc = frappe.get_doc("Job Applicant", job_applicant.name)
+        existing_required_docs_job_applicant = {d.required_document for d in job_applicant_doc.custom_documents}
+        if documents:
+            new_docs_seen_job_applicant = set()
+            for doc in documents:
+                req_doc = doc.get("required_document")
+                if (
+                    req_doc
+                    and req_doc not in existing_required_docs_job_applicant
+                    and req_doc not in new_docs_seen_job_applicant
+                ):
+                    job_applicant_doc.append(
+                        "custom_documents",
+                        {
+                            "required_document": req_doc,
+                            "document_collection_stage": doc.get(
+                                "document_collection_stage"
+                            ),
+                        },
+                    )
+                    new_docs_seen_job_applicant.add(req_doc)
+            job_applicant_doc.save(ignore_permissions=True)
 
         if existing:
             invitation = frappe.get_doc("Candidate Portal", existing)
@@ -333,7 +357,7 @@ def invite_for_document_collection(
             invitation = frappe.new_doc("Candidate Portal")
             invitation.update(
                 {
-                    "applicant_email": job_applicant.email_id,
+                    "applicant_email": job_applicant.name,
                     "phone_number": job_applicant.phone_number,
                     "applicant_name": job_applicant.applicant_name,
                     "applied_for_designation": job_applicant.designation,
