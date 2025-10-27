@@ -99,11 +99,11 @@ def sync_candidate_portal_from_job_offer(job_offer):
             frappe.throw("Email ID not found for Job Applicant.")
 
         # ! CREATE OR UPDATE CANDIDATE PORTAL
-        portal_name = frappe.db.get_value("Candidate Portal", {"applicant_email": email}, "name")
+        portal_name = frappe.db.get_value("Candidate Portal", {"applicant_email": job_offer.get("job_applicant")}, "name")
         portal = frappe.get_doc("Candidate Portal", portal_name) if portal_name else frappe.new_doc("Candidate Portal")
 
         portal.update({
-            "applicant_email": email,
+            "applicant_email": job_offer.get("job_applicant"),
             "job_offer": job_offer.get("name"),
             "offer_date": job_offer.get("offer_date"),
             "expected_date_of_joining": job_offer.get("custom_expected_date_of_joining"),
@@ -201,7 +201,7 @@ def ensure_candidate_portal_exists(job_offer_doc):
             if email:
                 portal_name = frappe.db.get_value(
                     "Candidate Portal", 
-                    {"applicant_email": email, "job_offer": job_offer_doc.name}, 
+                    {"applicant_email": job_offer_doc.job_applicant, "job_offer": job_offer_doc.name}, 
                     "name"
                 )
                 
