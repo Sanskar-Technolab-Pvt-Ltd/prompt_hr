@@ -1,16 +1,75 @@
-<p>Dear {{ interviewer or "Interviewer" }},
-<br>
-You have been scheduled for an interview session:
-<br>
-<b>Interview:</b> {{ doc.name }}<br>
-<b>Date:</b> {{ frappe.utils.format_date(doc.scheduled_on) }}<br>
-<b>Time:</b> {{ doc.from_time }} to {{ doc.to_time }}<br><br></p>
+<div style="font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f9fafb; padding: 30px; color: #333; line-height: 1.6;">
+  <div style="max-width: 650px; margin: 0 auto; background: #ffffff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 30px;">
+    
+    <!-- HEADER -->
+    <h2 style="color: #1a73e8; text-align: center; margin-bottom: 10px;">
+      Interview Invitation
+    </h2>
+    <p style="text-align: center; color: #555; font-size: 15px; margin-top: 0;">
+      Dear <b>{{ interviewer or "Interviewer" }}</b>,
+    </p>
 
-<p>Please confirm your availability for this session.</p>
+    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
 
-<p><a href="{{ frappe.utils.get_url() }}/app/interview/{{ doc.name }}">
-    Click here to view the interview details and Confirm Your Availability
-</a></p>
+    <!-- MAIN BODY -->
+    <p style="font-size: 15px;">
+      You have been scheduled for an interview session. Please find the details below:
+    </p>
 
-<p><br><br>Regards,<br>
-HR Team</p>
+    <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+      <tr>
+        <td style="padding: 8px; font-weight: bold; width: 30%;">Interview:</td>
+        <td style="padding: 8px;">{{ doc.name }}</td>
+      </tr>
+      <tr style="background-color: #f7f9fc;">
+        <td style="padding: 8px; font-weight: bold;">Date:</td>
+        <td style="padding: 8px;">{{ frappe.utils.format_date(doc.scheduled_on) }}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; font-weight: bold;">Time:</td>
+<td style="padding: 8px;">
+  {{ frappe.utils.format_time(doc.from_time, 'HH:mm') }} – {{ frappe.utils.format_time(doc.to_time, 'HH:mm') }}
+  <span style="color: #1a73e8; font-weight: bold; margin-left: 4px;">
+    (24-Hour Time Format)
+  </span>
+</td>
+
+      </tr>
+    </table>
+
+    <p style="margin-top: 25px; font-size: 15px;">
+      Kindly confirm your availability for this interview session by clicking the button below:
+    </p>
+
+    <!-- CTA BUTTON -->
+    <div style="text-align: center; margin: 25px 0;">
+      <a href="{{ frappe.utils.get_url() }}/app/interview/{{ doc.name }}" 
+         style="background-color: #1a73e8; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; display: inline-block;">
+         ✅ Confirm Availability
+      </a>
+    </div>
+
+    {% if feedback_name %}
+    <!-- FEEDBACK SECTION -->
+    <div style="margin-top: 35px; background-color: #f7f9fc; border-radius: 10px; padding: 20px; text-align: center; border: 1px solid #e3e6ea;">
+      <h3 style="color: #1a73e8; margin-bottom: 10px;">📝 Interview Feedback</h3>
+      <p style="color: #555; font-size: 14px; margin-bottom: 18px;">
+        After reviewing the candidate’s interview, you can share your feedback using the linked below.
+      </p>
+      <a href="{{ frappe.utils.get_url() }}/app/interview-feedback/{{ feedback_name }}"
+         style="background-color: #34a853; color: #ffffff; text-decoration: none; padding: 10px 22px; border-radius: 6px; font-weight: bold; display: inline-block;">
+         ✏️ Submit Feedback
+      </a>
+    </div>
+    {% endif %}
+
+    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+
+    <!-- FOOTER -->
+    <p style="font-size: 14px; color: #666; text-align: left;">
+      Best Regards,<br>
+      <strong>HR Team</strong><br>
+    </p>
+
+  </div>
+</div>

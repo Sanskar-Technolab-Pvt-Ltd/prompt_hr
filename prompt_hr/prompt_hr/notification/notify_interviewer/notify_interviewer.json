@@ -10,10 +10,10 @@
  "event": "Custom",
  "idx": 0,
  "is_standard": 1,
- "message": "<p>Dear {{ interviewer or \"Interviewer\" }},\n<br>\nYou have been scheduled for an interview session:\n<br>\n<b>Interview:</b> {{ doc.name }}<br>\n<b>Date:</b> {{ frappe.utils.format_date(doc.scheduled_on) }}<br>\n<b>Time:</b> {{ doc.from_time }} to {{ doc.to_time }}<br><br></p>\n\n<p>Please confirm your availability for this session.</p>\n\n<p><a href=\"{{ frappe.utils.get_url() }}/app/interview/{{ doc.name }}\">\n    Click here to view the interview details and Confirm Your Availability\n</a></p>\n\n<p><br><br>Regards,<br>\nHR Team</p>\n",
+ "message": "<div style=\"font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f9fafb; padding: 30px; color: #333; line-height: 1.6;\">\n  <div style=\"max-width: 650px; margin: 0 auto; background: #ffffff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 30px;\">\n    \n    <!-- HEADER -->\n    <h2 style=\"color: #1a73e8; text-align: center; margin-bottom: 10px;\">\n      Interview Invitation\n    </h2>\n    <p style=\"text-align: center; color: #555; font-size: 15px; margin-top: 0;\">\n      Dear <b>{{ interviewer or \"Interviewer\" }}</b>,\n    </p>\n\n    <hr style=\"border: none; border-top: 1px solid #eee; margin: 20px 0;\">\n\n    <!-- MAIN BODY -->\n    <p style=\"font-size: 15px;\">\n      You have been scheduled for an interview session. Please find the details below:\n    </p>\n\n    <table style=\"width: 100%; border-collapse: collapse; margin-top: 10px;\">\n      <tr>\n        <td style=\"padding: 8px; font-weight: bold; width: 30%;\">Interview:</td>\n        <td style=\"padding: 8px;\">{{ doc.name }}</td>\n      </tr>\n      <tr style=\"background-color: #f7f9fc;\">\n        <td style=\"padding: 8px; font-weight: bold;\">Date:</td>\n        <td style=\"padding: 8px;\">{{ frappe.utils.format_date(doc.scheduled_on) }}</td>\n      </tr>\n      <tr>\n        <td style=\"padding: 8px; font-weight: bold;\">Time:</td>\n<td style=\"padding: 8px;\">\n  {{ frappe.utils.format_time(doc.from_time, 'HH:mm') }} \u2013 {{ frappe.utils.format_time(doc.to_time, 'HH:mm') }}\n  <span style=\"color: #1a73e8; font-weight: bold; margin-left: 4px;\">\n    (24-Hour Time Format)\n  </span>\n</td>\n\n      </tr>\n    </table>\n\n    <p style=\"margin-top: 25px; font-size: 15px;\">\n      Kindly confirm your availability for this interview session by clicking the button below:\n    </p>\n\n    <!-- CTA BUTTON -->\n    <div style=\"text-align: center; margin: 25px 0;\">\n      <a href=\"{{ frappe.utils.get_url() }}/app/interview/{{ doc.name }}\" \n         style=\"background-color: #1a73e8; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; display: inline-block;\">\n         \u2705 Confirm Availability\n      </a>\n    </div>\n\n    {% if feedback_name %}\n    <!-- FEEDBACK SECTION -->\n    <div style=\"margin-top: 35px; background-color: #f7f9fc; border-radius: 10px; padding: 20px; text-align: center; border: 1px solid #e3e6ea;\">\n      <h3 style=\"color: #1a73e8; margin-bottom: 10px;\">\ud83d\udcdd Interview Feedback</h3>\n      <p style=\"color: #555; font-size: 14px; margin-bottom: 18px;\">\n        After reviewing the candidate\u2019s interview, you can share your feedback using the linked below.\n      </p>\n      <a href=\"{{ frappe.utils.get_url() }}/app/interview-feedback/{{ feedback_name }}\"\n         style=\"background-color: #34a853; color: #ffffff; text-decoration: none; padding: 10px 22px; border-radius: 6px; font-weight: bold; display: inline-block;\">\n         \u270f\ufe0f Submit Feedback\n      </a>\n    </div>\n    {% endif %}\n\n    <hr style=\"border: none; border-top: 1px solid #eee; margin: 30px 0;\">\n\n    <!-- FOOTER -->\n    <p style=\"font-size: 14px; color: #666; text-align: left;\">\n      Best Regards,<br>\n      <strong>HR Team</strong><br>\n    </p>\n\n  </div>\n</div>\n",
  "message_type": "HTML",
  "method": "send_interview_schedule_notification",
- "modified": "2025-04-23 10:28:05.968438",
+ "modified": "2025-10-27 11:56:30.587223",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Notify Interviewer",
@@ -24,8 +24,8 @@
  ],
  "send_system_notification": 1,
  "send_to_all_assignees": 0,
- "sender": "Prompt HR",
- "sender_email": "bansi@sanskartechnolab.com",
+ "sender": "",
+ "sender_email": "",
  "set_property_after_alert": "",
  "subject": "Interview Availability Request - {{doc.name}}"
 }

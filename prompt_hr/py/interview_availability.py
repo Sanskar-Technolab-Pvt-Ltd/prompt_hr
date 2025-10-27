@@ -17,7 +17,7 @@ def send_interview_schedule_notification(name, applicant_name):
     )
     notification = frappe.get_doc("Notification", "Notify Interviewer")
     for interviewer in interviewers:
-        if interviewer.custom_interviewer_employee:
+        if interviewer.custom_interviewer_employee and not interviewer.custom_is_confirm:
             try:
                 # if not interviewer.custom_is_confirm:
                 employee = frappe.get_doc("Employee", interviewer.custom_interviewer_employee)
@@ -27,13 +27,16 @@ def send_interview_schedule_notification(name, applicant_name):
                     frappe.share.add(doc.doctype, doc.name, employee.user_id, read=1)
                         
                     if user_email:
+                        interview_feedback = frappe.db.get_value("Interview Feedback", {
+                            "interview": doc.name,
+                            "interviewer": employee.user_id
+                        })
                         frappe.sendmail(
                             recipients=[user_email],
-                            message = frappe.render_template(notification.message, {"doc": doc,"interviewer": interviewer.custom_interviewer_name}),
+                            message = frappe.render_template(notification.message, {"doc": doc,"interviewer": interviewer.custom_interviewer_name, "feedback_name": interview_feedback}),
                             subject = frappe.render_template(notification.subject, {"doc": doc}),
                             reference_doctype=doc.doctype,
                             reference_name=doc.name,
-                            # now=True
                     )
                     sent_count += 1
                 interviewer.reload()
