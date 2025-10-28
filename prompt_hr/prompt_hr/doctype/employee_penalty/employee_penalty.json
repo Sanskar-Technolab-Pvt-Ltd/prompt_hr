@@ -64,7 +64,6 @@
   {
    "fieldname": "deduct_earned_leave",
    "fieldtype": "Float",
-   "in_list_view": 1,
    "label": "Deduct Earned Leave",
    "precision": "1"
   },
@@ -72,7 +71,6 @@
    "description": "These unpaid leaves will be deducted from salary slip",
    "fieldname": "deduct_leave_without_pay",
    "fieldtype": "Float",
-   "in_list_view": 1,
    "label": "Deduct Leave without pay",
    "precision": "1"
   },
@@ -177,7 +175,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-09-30 12:56:20.398556",
+ "modified": "2025-10-28 13:30:46.089362",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Penalty",
