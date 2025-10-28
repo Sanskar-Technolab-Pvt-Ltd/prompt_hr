@@ -102,13 +102,20 @@ def teams_calender_book(docname, rendered_html):
         # 1. Add Applicant
         
         if interview_doc:
-            attendees.append({
-                "emailAddress": {
-                    "address": interview_doc.job_applicant,
-                    "name": interview_doc.custom_applicant_name if interview_doc.custom_applicant_name else interview_doc.job_applicant
-                },
-                "type": "required"
-            })
+            if interview_doc.job_applicant:
+                applicant_email = frappe.db.get_value("Job Applicant", interview_doc.job_applicant, "email_id")
+
+            else:
+                applicant_email = None
+
+            if applicant_email:
+                attendees.append({
+                    "emailAddress": {
+                        "address": applicant_email,
+                        "name": interview_doc.custom_applicant_name if interview_doc.custom_applicant_name else interview_doc.job_applicant
+                    },
+                    "type": "required"
+                })
 
         # 2. Add Internal Interviewers (interview_details child table)
         
