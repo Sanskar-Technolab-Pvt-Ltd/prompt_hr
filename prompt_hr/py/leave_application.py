@@ -235,7 +235,7 @@ def validate_festival_leave_condition(doc):
         #? CHECK IF HALF-DAY OPTION IS SELECTED
         if doc.half_day:
             #? ALLOW HALF-DAY ONLY IF LEAVE IS REJECTED OR CANCELLED
-            if doc.workflow_state not in ["Rejected", "Cancelled", "Cancelled by Employee"] and doc.status not in ['Rejected', "Cancelled"]:
+            if doc.workflow_state not in ["Rejected", "Cancelled", "Cancelled by Employee"] and doc.status not in ['Rejected']:
                 #! THROW VALIDATION ERROR
                 frappe.throw("Half Day Leave is not allowed for Festival Leave.")
 
