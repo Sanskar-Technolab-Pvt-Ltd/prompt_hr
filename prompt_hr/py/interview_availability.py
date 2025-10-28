@@ -52,7 +52,7 @@ def send_interview_schedule_notification(name, applicant_name):
     )
 
     for interviewer in external_interviewers:
-        if interviewer.custom_user:
+        if interviewer.custom_user and not interviewer.is_confirm:
             try:
                 supplier = frappe.get_doc("Supplier", interviewer.custom_user)
                 if supplier.custom_user:
