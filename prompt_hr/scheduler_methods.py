@@ -836,7 +836,7 @@ def create_confirmation_evaluation_form_for_prompt():
 
         frappe.log_error("create_confirmation_evaluation_form_for_prompt_start", "Scheduler Started")
         create_cff_before_days = frappe.db.get_single_value("HR Settings", "custom_release_confirmation_form") or 15
-        
+        create_backdated_confirm = frappe.db.get_single_value("HR Settings", "custom_enable_back_dated_confirmation_for_prompt")
         
         
         employees_list = frappe.db.get_all("Employee",{"status": "Active", "custom_probation_status": "In Probation"}, ["name", "custom_probation_period", "custom_probation_end_date", "date_of_joining"])
@@ -867,7 +867,8 @@ def create_confirmation_evaluation_form_for_prompt():
                     
                     frappe.log_error(f"info_confirmation_evaluation_form_for_prompt_end_{employee_id.get('name')}", f"days remaining {days_remaining}")
                     
-                    if 0 <= days_remaining <= create_cff_before_days:
+                    
+                    if 0 <= days_remaining <= create_cff_before_days or (days_remaining < 0 and create_backdated_confirm):
                         
                         employee_doc = frappe.get_doc("Employee", employee_id.get("name"))
                         employee_name = employee_id.get("name")
