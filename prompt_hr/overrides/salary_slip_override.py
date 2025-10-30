@@ -493,13 +493,16 @@ class CustomSalarySlip(SalarySlip):
             for row in self.get("earnings"):
                 if row.get("name") in self._change_components:
                     row.amount = self._change_components[row.get("name")]
-
+                    self.default_data[row.abbr] = flt(row.amount)
+                    self.data[row.abbr] = flt(row.amount)
 
         # ? APPLY CHANGES FOR ADHOC COMPONETS
         if self._adhoc_component:
             for row in self.get("earnings"):
                 if row.get("abbr") in self._adhoc_component:
                     row.amount = self._adhoc_component[row.get("abbr")]
+                    self.default_data[row.abbr] = flt(row.amount)
+                    self.data[row.abbr] = flt(row.amount)
 
         changes_component_abbr_list = []
         if self._salary_structure_doc and (self._change_components or adhoc_component_list):
@@ -510,7 +513,7 @@ class CustomSalarySlip(SalarySlip):
             )
             if adhoc_component_list:
                 changes_component_abbr_list.extend(adhoc_component_list)
-            
+
         self.evaluate_and_update_structure_formula("earnings", changes_component_abbr_list)
 
         #! UPDATE REMAINING SUB-PERIOD DETAILS
@@ -538,12 +541,16 @@ class CustomSalarySlip(SalarySlip):
             for row in self.get("deductions"):
                 if row.get("name") in self._change_components:
                     row.amount = self._change_components[row.get("name")]
+                    self.default_data[row.abbr] = flt(row.amount)
+                    self.data[row.abbr] = flt(row.amount)
 
         # ? APPLY CHANGES FOR ADHOC COMPONETS
         if self._adhoc_component:
             for row in self.get("deductions"):
                 if row.get("abbr") in self._adhoc_component:
                     row.amount = self._adhoc_component[row.get("abbr")]
+                    self.default_data[row.abbr] = flt(row.amount)
+                    self.data[row.abbr] = flt(row.amount)
 
         # Evaluate deduction structure formula
         self.evaluate_and_update_structure_formula("deductions", changes_component_abbr_list)
@@ -582,20 +589,20 @@ class CustomSalarySlip(SalarySlip):
     
 
     def evaluate_and_update_structure_formula(self, section_name, changes_component_abbr_list):
-        data, default_data = self.get_data_for_eval()
+        # Option 2: Using JSON pretty print (gives a cleaner JSON-like format)
         for struct_row in self._salary_structure_doc.get(section_name):
             #! EVALUATE STRUCTURE FORMULA LOGIC (UNCHANGED FROM DEFAULT)
             if struct_row.get("abbr") not in changes_component_abbr_list:
-                amount = self.eval_condition_and_formula(struct_row, data)
+                amount = self.eval_condition_and_formula(struct_row, self.data)
                 if struct_row.statistical_component:
-                    default_data[struct_row.abbr] = flt(amount)
+                    self.default_data[struct_row.abbr] = flt(amount)
                     if struct_row.depends_on_payment_days:
                         payment_days_amount = (
                             flt(amount) * flt(self.payment_days) / cint(self.total_working_days)
                             if self.total_working_days
                             else 0
                         )
-                        data[struct_row.abbr] = flt(payment_days_amount, struct_row.precision("amount"))
+                        self.data[struct_row.abbr] = flt(payment_days_amount, struct_row.precision("amount"))
                 else:
                     remove_if_zero_valued = frappe.get_cached_value(
                         "Salary Component", struct_row.salary_component, "remove_if_zero_valued"
@@ -605,14 +612,14 @@ class CustomSalarySlip(SalarySlip):
                     if (
                         amount
                         or (struct_row.amount_based_on_formula and amount is not None)
-                        or (not remove_if_zero_valued and amount is not None and not data[struct_row.abbr])
+                        or (not remove_if_zero_valued and amount is not None and not self.data[struct_row.abbr])
                     ):
-                        default_amount = self.eval_condition_and_formula(struct_row, default_data)
+                        default_amount = self.eval_condition_and_formula(struct_row, self.default_data)
                         self.update_component_row(
                             struct_row,
                             amount,
                             section_name,
-                            data=data,
+                            data=self.data,
                             default_amount=default_amount,
                             remove_if_zero_valued=remove_if_zero_valued,
                         )
