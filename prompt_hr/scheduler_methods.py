@@ -75,23 +75,34 @@ def probation_feedback_for_prompt():
                         "Employee", employee.get("name"), "date_of_joining"
                     )
 
+                    first_pf_not_linked_to_emp = False
+                    second_pf_not_linked_to_emp = False
+                    
                     first_feedback_form_id = (
                         frappe.db.get_value(
                             "Employee",
                             employee.get("name"),
                             "custom_first_probation_feedback",
-                        )
-                        or None
+                        ) or None
                     )
                     second_feedback_form_id = (
                         frappe.db.get_value(
                             "Employee",
                             employee.get("name"),
                             "custom_second_probation_feedback",
-                        )
-                        or None
+                        ) or None
                     )
-
+                    
+                    
+                    if frappe.db.exists("Probation Feedback Form", {"employee": employee.get("name"), "probation_feedback_for": "30 Days"}) and not first_feedback_form_id:
+                        first_pf_not_linked_to_emp = True
+                        first_feedback_form_id = frappe.db.get_value("Probation Feedback Form", {"employee": employee.get("name"), "probation_feedback_for": "30 Days"}, "name")
+                    
+                    if frappe.db.exists("Probation Feedback Form", {"employee": employee.get("name"), "probation_feedback_for": "60 Days"}) and not second_feedback_form_id:
+                        second_pf_not_linked_to_emp = True
+                        second_feedback_form_id = frappe.db.get_value("Probation Feedback Form", {"employee": employee.get("name"), "probation_feedback_for": "60 Days"}, "name")
+                        
+                    
                     create_only_one = (
                         True
                         if not first_feedback_form_id
@@ -158,7 +169,7 @@ def probation_feedback_for_prompt():
                                 employee_doc.custom_first_probation_feedback = (
                                     first_probation_form.name
                                 )
-                                employee_doc.save(ignore_permissions=True)
+                                employee_doc.save(ignore_permissions=True, ignore_mandatory=True)
                                 frappe.db.commit()
                             else:
                                 # remarks_added = frappe.db.exists(
@@ -170,7 +181,8 @@ def probation_feedback_for_prompt():
                                 #     },
                                 #     "name",
                                 # )
-
+                                if first_pf_not_linked_to_emp:
+                                    frappe.db.set_value("Employee", employee.get("name"), "custom_first_probation_feedback", first_feedback_form_id)
                                 if not frappe.db.get_value("Probation Feedback Form", first_feedback_form_id, "docstatus"):
                                     reporting_manager_emp_id = (
                                         frappe.db.get_value(
@@ -276,11 +288,11 @@ def probation_feedback_for_prompt():
                                 employee_doc.custom_second_probation_feedback = (
                                     second_probation_form.name
                                 )
-                                employee_doc.save(ignore_permissions=True)
+                                employee_doc.save(ignore_permissions=True, ignore_mandatory=True)
 
                                 frappe.db.commit()
                             elif second_feedback_form_id:
-
+                                
                                 # remarks_added = frappe.db.exists(
                                 #     "Probation Feedback Prompt",
                                 #     {
@@ -289,6 +301,10 @@ def probation_feedback_for_prompt():
                                 #         "rating": ["not in", ["0", ""]],
                                 #     },
                                 # )
+                                
+                                if second_pf_not_linked_to_emp:
+                                    frappe.db.set_value("Employee", employee.get("name"), "custom_second_probation_feedback", second_feedback_form_id)
+                                    
                                 if not frappe.db.get_value("Probation Feedback Form", second_feedback_form_id, "docstatus"):
                                     reporting_manager_emp_id = (
                                         frappe.db.get_value(
@@ -826,6 +842,7 @@ def create_confirmation_evaluation_form_for_prompt():
         employees_list = frappe.db.get_all("Employee",{"status": "Active", "custom_probation_status": "In Probation"}, ["name", "custom_probation_period", "custom_probation_end_date", "date_of_joining"])
 
         if employees_list:
+            frappe.log_error("create_confirmation_evaluation_form_employee_list", employees_list)
             for employee_id in employees_list:
                 
                 probation_days = employee_id.get("custom_probation_period")
@@ -833,17 +850,17 @@ def create_confirmation_evaluation_form_for_prompt():
                                 
                 extended_period = result[0] if result else 0
                                                 
-                if probation_days:
                 
-                    probation_end_date = employee_id.get("custom_probation_end_date")
-                    joining_date = employee_id.get("date_of_joining")
+                probation_end_date = employee_id.get("custom_probation_end_date")
+                if probation_end_date:
+                    # joining_date = employee_id.get("date_of_joining")
                     
-                    if not probation_end_date:
-                        if extended_period:
+                    # if not probation_end_date and probation_days:
+                    #     if extended_period:
                             
-                            probation_end_date = getdate(add_to_date(joining_date, days=probation_days + extended_period))
-                        else:
-                            probation_end_date = getdate(add_to_date(joining_date, days=probation_days))
+                    #         probation_end_date = getdate(add_to_date(joining_date, days=probation_days + extended_period))
+                    #     else:
+                    #         probation_end_date = getdate(add_to_date(joining_date, days=probation_days))
 
                     today_date = getdate()
                     days_remaining = (probation_end_date - today_date).days
@@ -889,7 +906,7 @@ def create_confirmation_evaluation_form_for_prompt():
                             if not first_confirmation_form:
                                 confirmation_doc = create_evaluation()
                                 employee_doc.custom_confirmation_evaluation_form = confirmation_doc.name
-                                employee_doc.save(ignore_permissions=True)
+                                employee_doc.save(ignore_permissions=True, ignore_mandatory=True)
                                 frappe.db.commit()
                             
                             else:
@@ -916,7 +933,7 @@ def create_confirmation_evaluation_form_for_prompt():
                                         else:
                                             confirmation_doc = create_evaluation()
                                             create_confirmation.confirmation_evaluation_form = confirmation_doc.name
-                                            employee_doc.save(ignore_permissions=True)
+                                            employee_doc.save(ignore_permissions=True, ignore_mandatory=True)
                                             frappe.db.commit()                                                                                                
                                 
                         except Exception as e:
