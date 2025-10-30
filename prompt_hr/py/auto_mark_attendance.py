@@ -503,9 +503,15 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
     create_penalty = 0
     late_entry_with_grace_period = 0
     
+    attendance_request = frappe.db.get_all("Attendance Request", {"docstatus":1, "custom_status":"Approved", "employee": employee_data.get("name"), "from_date": ["<=", mark_attendance_date], "to_date":[">=", mark_attendance_date]}, ["name", "reason"], limit=1)
+    
+    attendance_type = None
+    if attendance_request:
+            attendance_type = attendance_request[0].get("reason")
+    
+    holiday_or_weekoff = is_holiday_or_weekoff(employee_data.get("name"), mark_attendance_date)
     
     if not in_type_emp_checkin and not out_type_emp_checkin and not regularize_attendance:
-        holiday_or_weekoff = is_holiday_or_weekoff(employee_data.get("name"), mark_attendance_date)
         
         if not holiday_or_weekoff.get("is_holiday") and not holiday_or_weekoff.get("is_weekoff"):
             if indifoss:
@@ -591,12 +597,24 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
         
         if prompt and is_overtime_applicable:
             
-            if is_half_day:
-                ot_duration = overtime_duration(out_datetime, shift_end_datetime, is_half_day = 1)
+            if holiday_or_weekoff.get("is_holiday") or holiday_or_weekoff.get("is_weekoff"):
+                ot_duration = final_working_hours
+                                
+            elif attendance_request:
+                if attendance_type == "On Duty":                    
+                    if is_half_day:
+                        ot_duration = overtime_duration(out_datetime, shift_end_datetime, is_half_day = 1)
+                    else:
+                        ot_duration = overtime_duration(out_datetime, shift_end_time)
+                else:
+                    ot_duration = 0.0
             else:
-                ot_duration = overtime_duration(out_datetime, shift_end_time)
-            
-            print(f"\n\n OT DURATION  {employee_data.get('name')} {ot_duration}\n\n")
+                if is_half_day:
+                    ot_duration = overtime_duration(out_datetime, shift_end_datetime, is_half_day = 1)
+                else:
+                    ot_duration = overtime_duration(out_datetime, shift_end_time)
+                    
+            print(f"\n\n OT DURATION  {employee_data.get('name')} {ot_duration}\n\n and final working hours {final_working_hours} \n\n")
             frappe.log_error(f"OT DURATION {employee_data.get('name')}", f"\n\n OT DURATION  {employee_data.get('name')} {ot_duration}\n\n")    
         
         if not is_half_day:
@@ -633,11 +651,7 @@ def attendance(employee_data, mark_attendance_date, str_mark_attendance_date, da
             
     
     
-    attendance_request = frappe.db.get_all("Attendance Request", {"docstatus":1, "custom_status":"Approved", "employee": employee_data.get("name"), "from_date": ["<=", mark_attendance_date], "to_date":[">=", mark_attendance_date]}, ["name", "reason"], limit=1)
     
-    attendance_type = None
-    if attendance_request:
-            attendance_type = attendance_request[0].get("reason")
     
     penalty_id = None
 
@@ -782,14 +796,25 @@ def calculate_work_hours():
 def overtime_duration(employee_out_time, shift_end_time, is_half_day=0):
     """ Method to calculate overtime duration
     """
+    print(f"\n\n employee_out_time {employee_out_time} shift_end_time {shift_end_time} is_half_day {is_half_day}\n\n \n\n")
+    
     
     overtime_details = frappe.db.get_all("Overtime Details", {"parenttype": "HR Settings"}, ["from_time", "to_time", "final_time"])
+    
     if not is_half_day:
         shift_end_time = get_datetime(employee_out_time.date()) + shift_end_time
     
-    overtime = employee_out_time - shift_end_time
+    print(f"\n\n employee_out_time {employee_out_time} shift_end_time {shift_end_time} \n\n")
     
-    overtime_float_value = round(overtime.total_seconds() / 3600, 2)
+    overtime = employee_out_time - shift_end_time
+    print(f"\n\n overtime {overtime}\n\n")
+    
+    hours = overtime.seconds // 3600
+    minutes = (overtime.seconds % 3600) // 60
+    overtime_float_value = float(f"{hours}.{minutes:02d}")
+    
+    # overtime_float_value = round(overtime.total_seconds() / 3600, 2)
+    print(f"\n\n overtime {overtime_float_value}\n\n")
     
     final_overtime = 0.0
     
