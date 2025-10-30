@@ -1265,16 +1265,15 @@ def create_exit_approval_process(user_response, employee, notice_number_of_days=
             enable_exit_emails = 0
 
         if enable_exit_emails:
-            send_notification_email(
-                doctype="Exit Approval Process",
-                docname=exit_approval_process.name,
-                recipients=(
+            if hr_managers or reporting_manager_email:
+                if reporting_manager_email:
                     hr_managers.append(reporting_manager_email)
-                    if reporting_manager_email
-                    else hr_managers
-                ),
-                notification_name="Employee Exit Process Creation Notification",
-            )
+                send_notification_email(
+                    doctype="Exit Approval Process",
+                    docname=exit_approval_process.name,
+                    recipients=hr_managers,
+                    notification_name="Employee Exit Process Creation Notification",
+                )
 
         return "Resignation process initiated successfully."
 
