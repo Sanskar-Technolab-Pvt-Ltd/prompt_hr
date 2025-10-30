@@ -1171,3 +1171,57 @@ def get_employee_email(employee=None):
 
     #! FALLBACK (NO EMAIL FOUND)
     return None
+
+# ? TO GET ROLES FROM HR SETTINGS COMMA SEPARTED FIELD
+def get_roles_from_hr_settings_by_module(role_type_field):
+    """
+    #! FETCH CONFIGURED ROLES FROM HR SETTINGS BASED ON MODULE TYPE
+    """
+    try:
+        if not role_type_field:
+            return []
+
+        # ? FETCH ROLES STRING FROM HR SETTINGS
+        roles_value = frappe.db.get_single_value("HR Settings", role_type_field)
+        if not roles_value:
+            return []
+
+        # ! CONVERT COMMA-SEPARATED STRING TO CLEAN LIST
+        roles_list = [role.strip() for role in roles_value.split(",") if role.strip()]
+        return roles_list
+
+    except Exception as error:
+        frappe.log_error("Error Fetching Roles from HR Settings", str(error))
+        return []
+
+# ? TO FETCH ALL EMAIL IDS FOR GIVEN ROLES
+def get_email_ids_for_roles(roles):
+    """
+    #! FETCH VALID USER EMAIL IDS FOR ALL GIVEN ROLES
+    #? roles: LIST OF ROLE NAMES (E.G. ["HR Manager", "Accounts User"])
+    """
+    try:
+        if not roles:
+            return []
+
+        recipients = set()
+        
+        # ? FETCH ALL ACTIVE USERS WHO HAVE ANY OF THE GIVEN ROLES
+        user_role_links = frappe.get_all(
+            "Has Role",
+            filters={"role": ["in", roles], "parenttype": "User"},
+            fields=["parent"]
+        )
+
+        for user in user_role_links:
+            if user.parent not in ["Administrator", "Guest"]:
+                recipients.add(user.parent)
+
+        recipients = list(recipients)
+
+        # ! RETURN CLEANED LIST OF EMAILS
+        return recipients
+
+    except Exception as error:
+        frappe.log_error("Error Fetching Email IDs for Roles", str(error))
+        return []
