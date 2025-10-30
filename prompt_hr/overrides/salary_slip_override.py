@@ -589,7 +589,6 @@ class CustomSalarySlip(SalarySlip):
     
 
     def evaluate_and_update_structure_formula(self, section_name, changes_component_abbr_list):
-        # Option 2: Using JSON pretty print (gives a cleaner JSON-like format)
         for struct_row in self._salary_structure_doc.get(section_name):
             #! EVALUATE STRUCTURE FORMULA LOGIC (UNCHANGED FROM DEFAULT)
             if struct_row.get("abbr") not in changes_component_abbr_list:
