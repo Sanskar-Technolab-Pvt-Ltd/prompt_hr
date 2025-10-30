@@ -152,14 +152,21 @@ def send_pending_action_email_for_exit(row, checklist_name, company):
         if not recipients:
             frappe.throw("No valid recipients found for checklist email.")
 
-        send_notification_email(
-            recipients=recipients,
-            notification_name=notification_name,
-            doctype=doc_type,
-            docname=doc_name,
-            button_label="View Checklist",
-            send_header_greeting=True,
-        )
+        try:
+            enable_exit_emails = frappe.db.get_single_value("HR Settings", "custom_enable_exit_mails") or 0
+        except Exception as e:
+            frappe.log_error(message=str(e), title="Error fetching HR Settings - custom_enable_exit_mails")
+            enable_exit_emails = 0
+
+        if enable_exit_emails:
+            send_notification_email(
+                recipients=recipients,
+                notification_name=notification_name,
+                doctype=doc_type,
+                docname=doc_name,
+                button_label="View Checklist",
+                send_header_greeting=True,
+            )
 
         frappe.msgprint("Checklist notification sent.")
 

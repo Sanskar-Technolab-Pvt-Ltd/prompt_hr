@@ -29,6 +29,7 @@ function add_invite_for_exit_interview_button(frm) {
             args: {
                 employee: frm.doc.employee,
                 exit_interview_name: frm.doc.name,
+                send_from_button: 1
             },
             callback: function (r) {
                 if (r.message) {
