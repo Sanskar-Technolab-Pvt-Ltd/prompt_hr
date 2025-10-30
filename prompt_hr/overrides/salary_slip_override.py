@@ -38,8 +38,9 @@ class CustomSalarySlip(SalarySlip):
         self.set_salary_structure_assignment()
 
         # ? ONLY CALCULATE NET PAY WHEN THE SALARY SLIP IS NEW.
+        
+        self.verify_duplicate_component_entry()
         self.calculate_net_pay()
-
         self.compute_year_to_date()
         self.compute_month_to_date()
         self.compute_component_wise_year_to_date()
@@ -428,7 +429,7 @@ class CustomSalarySlip(SalarySlip):
             old_doc = frappe.get_doc(self.doctype, self.name)
 
             #! FUNCTION TO POPULATE CHANGED COMPONENTS (COMMON FOR EARNINGS & DEDUCTIONS)
-            def detect_changes(child_table):
+            def detect_changes(child_table, old_doc):
                 #? STEP 1: TEMPORARY STORAGE FOR MODIFIED ABBRs
                 modified_abbrs = set()
 
@@ -447,8 +448,9 @@ class CustomSalarySlip(SalarySlip):
                         #? MARK CHANGED ROW AND TRACK ABBR
                         if old_value != new_value and old_row.get("abbr") == row.get("abbr") and not old_row.get('custom_is_manually_modified'):
                             self._change_components[row.name] = row.get("amount")
-                            row.custom_is_manually_modified = 1
-                            modified_abbrs.add(row.get("abbr"))
+                            if old_doc.leave_without_pay == self.get("leave_without_pay"):
+                                row.custom_is_manually_modified = 1
+                                modified_abbrs.add(row.get("abbr"))
 
                 #! STEP 3: SECOND LOOP — MARK ALL ROWS WITH SAME ABBR
                 if modified_abbrs:
@@ -457,8 +459,8 @@ class CustomSalarySlip(SalarySlip):
                             row.custom_is_manually_modified = 1
                             self._change_components[row.name] = row.get("amount")
 
-            detect_changes("earnings")
-            detect_changes("deductions")
+            detect_changes("earnings", old_doc)
+            detect_changes("deductions", old_doc)
 
         elif self.is_new() and add_adhoc_component and adhoc_component_list:
             #! FUNCTION TO POPULATE CHANGED COMPONENTS (COMMON FOR EARNINGS & DEDUCTIONS)
@@ -632,3 +634,55 @@ class CustomSalarySlip(SalarySlip):
                 total += amount
 
         return total
+    
+    def verify_duplicate_component_entry(self):
+        """
+        #! FUNCTION TO DETECT AND MERGE DUPLICATE COMPONENT ENTRIES
+        #? SCANS BOTH 'earnings' AND 'deductions' TABLES.
+        #? MERGES AMOUNTS OF DUPLICATES AND DISPLAYS A MESSAGE.
+        """
+
+        for table in ["earnings", "deductions"]:
+            rows = self.get(table)
+            if not rows:
+                continue
+
+            abbr_map = {}
+            duplicates_found = []
+
+            #! STEP 1: GROUP BY ABBR
+            for row in rows:
+                abbr = row.get("abbr")
+                if not abbr:
+                    continue
+
+                if abbr not in abbr_map:
+                    abbr_map[abbr] = [row]
+                else:
+                    abbr_map[abbr].append(row)
+
+            #! STEP 2: MERGE DUPLICATES
+            for abbr, row_list in abbr_map.items():
+                if len(row_list) > 1:
+                    #? SUM ALL AMOUNTS
+                    total_amount = sum(flt(r.amount) for r in row_list)
+                    #? KEEP FIRST ROW
+                    main_row = row_list[0]
+                    main_row.amount = total_amount
+                    main_row.custom_is_manually_modified = 1
+                    #? DELETE DUPLICATE ROWS
+                    for dup_row in row_list[1:]:
+                        self.remove(dup_row)
+
+                    duplicates_found.append(f"Component - {row.salary_component} (merged {len(row_list)} rows)")
+
+            #! STEP 3: DISPLAY MESSAGE
+            if duplicates_found:
+                frappe.msgprint(
+                    msg=(
+                        f"<b>Duplicate Components Merged in {table.title()}:</b><br>"
+                        + "<br>".join(duplicates_found)
+                    ),
+                    title="Duplicate Components Found",
+                    indicator="blue",
+                )
