@@ -1,6 +1,8 @@
 import frappe
 import json
-from prompt_hr.py.utils import get_hr_managers_by_company, send_notification_email
+from prompt_hr.py.utils import get_hr_managers_by_company, send_notification_email, get_roles_from_hr_settings_by_module, get_email_ids_for_roles
+
+
 
 
 def get_context(context):
@@ -94,14 +96,22 @@ def save_response(employee, response):
     doc.save(ignore_permissions=True)
     frappe.db.commit()
 
-    # ? NOTIFY HR MANAGERS
-    hr_managers = get_hr_managers_by_company(doc.company)
-    send_notification_email(
-        doctype="Exit Interview",
-        docname=doc.name,
-        recipients=hr_managers,
-        notification_name="Exit Questionnaire Form Submission"
-    )
+    # ? NOTIFY HR MANAGERS IF EXIT EMAILS IS ENABLE FROM HR SETTINGS
+    try:
+        enable_exit_emails = frappe.db.get_single_value("HR Settings", "custom_enable_exit_mails") or 0
+    except Exception as e:
+        frappe.log_error(message=str(e), title="Error fetching HR Settings - custom_enable_exit_mails")
+        enable_exit_emails = 0
+
+    if enable_exit_emails:
+        hr_roles = get_roles_from_hr_settings_by_module("custom_hr_roles_for_exit")
+        hr_managers = get_email_ids_for_roles(hr_roles)
+        send_notification_email(
+            doctype="Exit Interview",
+            docname=doc.name,
+            recipients=hr_managers,
+            notification_name="Exit Questionnaire Form Submission"
+        )
 
     return {"status": "success", "message": "Responses saved successfully."}
 
