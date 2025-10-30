@@ -4,6 +4,7 @@ frappe.ui.form.on("Travel Request", {
 	refresh: function (frm) {
 		add_query_filter_to_existing_rows(frm);
 		allow_traveldesk_user_to_update_travel_request(frm);
+		allow_edit_booking_table_to_traveldesk_user(frm);
 	},
 	employee: function (frm) {
 		add_query_filter_to_existing_rows(frm);
@@ -16,35 +17,65 @@ frappe.ui.form.on("Travel Request", {
 		
 	},
 	before_workflow_action: function(frm) {
-		frappe.dom.unfreeze();
+	frappe.dom.unfreeze();
 
-		return new Promise((resolve, reject) => {
-			try {
-				//? Check if the action is Escalate
-				if (frm.selected_workflow_action === "Escalate") {
-					//? Make escalation_reason required
-					frm.set_df_property('custom_escalation_reason', 'reqd', 1);
+	return new Promise((resolve, reject) => {
+		try {
+			//? Check if the action is Escalate
+			if (frm.selected_workflow_action === "Escalate") {
 
-					//? Check if user has filled the escalation reason
-					if (!frm.doc.custom_escalation_reason) {
-						frappe.msgprint(__('Please fill Escalation Reason before escalating'));
-						reject(); //? Stop workflow
-						return;
-					}
-
-					resolve(); //? Allow workflow to proceed
-				} else {
-					//? Reset field to non-mandatory if not escalating
-					frm.set_df_property('custom_escalation_reason', 'reqd', 0);
-					resolve(); //? Allow workflow to proceed
+				//? Check user role - only Travel Desk User can edit
+				if (!frappe.user.has_role("Travel Desk User")) {
+					reject(); //? Stop workflow
+					return;
 				}
-			} catch (e) {
-				//? Handle unexpected errors
-				frappe.msgprint(__('An error occurred'));
-				reject();
+
+				//? Make the escalation reason field required
+				frm.set_df_property('custom_escalation_reason', 'reqd', 1);
+
+				//? Make the field editable only for Travel Desk User
+				frm.set_df_property('custom_escalation_reason', 'read_only', 0);
+
+				if (!frm.doc.custom_escalation_reason){
+					//? Scroll to the field and focus cursor inside textarea
+					setTimeout(() => {
+						let fieldEl = $('[data-fieldname="custom_escalation_reason"] textarea');
+						if (fieldEl.length) {
+							$('html, body').animate({
+								scrollTop: fieldEl.offset().top - 100
+							}, 300);
+							fieldEl.focus();
+						}
+					}, 300);
+				}
+				
+
+				// ? Check if user has filled the escalation reason
+				if (!frm.doc.custom_escalation_reason) {
+					frappe.msgprint(__('Please fill Escalation Reason before escalating.'));
+					reject(); //? Stop workflow
+					return;
+				}
+
+				resolve(); //? Allow workflow to proceed
+			} else {
+				//? If not escalating, remove required and make read-only again
+				frm.set_df_property('custom_escalation_reason', 'reqd', 0);
+
+				//? If not travel desk user → field stays readonly
+				if (!frappe.user.has_role("Travel Desk User")) {
+					frm.set_df_property('custom_escalation_reason', 'read_only', 1);
+				}
+				resolve(); //? Allow workflow to proceed
 			}
-		});
-	},
+		} catch (e) {
+			frappe.msgprint(__('An unexpected error occurred.'));
+			console.error(e);
+			reject();
+		}
+	});
+},
+
 	// after_workflow_action: function(frm){
 	// 	 if (frm.doc.workflow_state === "Approved by Reporting Manager") {
 	// 		console.log("Function is calling")
@@ -69,6 +100,25 @@ frappe.ui.form.on("Travel Itinerary", {
 		add_query_filter_to_existing_rows(frm);
 	}
 });
+
+function allow_edit_booking_table_to_traveldesk_user(frm){
+	//?  CONTROL CHILD TABLE PERMISSIONS
+		if (!frappe.user.has_role("Travel Desk User")) {
+			//? Make the child table read-only
+			frm.set_df_property('custom_booking_details', 'read_only', 1);
+
+			//? Hide Add Row and Remove Row buttons
+			frm.fields_dict.custom_booking_details.grid.wrapper.find('.grid-add-row').hide();
+			frm.fields_dict.custom_booking_details.grid.wrapper.find('.grid-remove-rows').hide();
+			frm.set_df_property('custom_escalation_reason','read_only',1)
+		} else {
+			//? Allow editing for Travel Desk User
+			frm.set_df_property('custom_booking_details', 'read_only', 0);
+			frm.fields_dict.custom_booking_details.grid.wrapper.find('.grid-add-row').show();
+			frm.fields_dict.custom_booking_details.grid.wrapper.find('.grid-remove-rows').show();
+			frm.set_df_property('custom_escalation_reason','read_only',0)
+		}
+}
 
 function allow_traveldesk_user_to_update_travel_request(frm){
 	if(!frm.is_new()){

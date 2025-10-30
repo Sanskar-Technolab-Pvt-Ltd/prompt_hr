@@ -19,7 +19,7 @@ from datetime import timedelta, datetime, date
 from dateutil import relativedelta
 from frappe import _
 import re
-from prompt_hr.py.utils import get_prompt_company_name, get_indifoss_company_name
+from prompt_hr.py.utils import get_prompt_company_name, get_indifoss_company_name, get_roles_from_hr_settings_by_module, get_email_ids_for_roles
 
 
 # ? FUNCTION TO CREATE WELCOME PAGE RECORD FOR GIVEN USER
@@ -1252,22 +1252,29 @@ def create_exit_approval_process(user_response, employee, notice_number_of_days=
         exit_approval_process.save(ignore_permissions=True)
         frappe.db.commit()
 
-        hr_managers = get_hr_managers_by_company(exit_approval_process.company)
+        hr_roles = get_roles_from_hr_settings_by_module("custom_hr_roles_for_exit")
+        hr_managers = get_email_ids_for_roles(hr_roles)
         reporting_manager = frappe.db.get_value("Employee", employee, "reports_to")
         reporting_manager_email = frappe.db.get_value(
             "Employee", reporting_manager, "user_id"
         )
+        try:
+            enable_exit_emails = frappe.db.get_single_value("HR Settings", "custom_enable_exit_mails") or 0
+        except Exception as e:
+            frappe.log_error(message=str(e), title="Error fetching HR Settings - custom_enable_exit_mails")
+            enable_exit_emails = 0
 
-        send_notification_email(
-            doctype="Exit Approval Process",
-            docname=exit_approval_process.name,
-            recipients=(
-                hr_managers.append(reporting_manager_email)
-                if reporting_manager_email
-                else hr_managers
-            ),
-            notification_name="Employee Exit Process Creation Notification",
-        )
+        if enable_exit_emails:
+            if hr_managers or reporting_manager_email:
+                if reporting_manager_email:
+                    hr_managers.append(reporting_manager_email)
+                send_notification_email(
+                    doctype="Exit Approval Process",
+                    docname=exit_approval_process.name,
+                    recipients=hr_managers,
+                    notification_name="Employee Exit Process Creation Notification",
+                )
+
         return "Resignation process initiated successfully."
 
     except Exception as e:
@@ -2584,15 +2591,27 @@ def rename_selected_employees(employee_list, max_minutes=30):
     Enqueue the rename job in the background.
 
     Args:
-        employee_list (list): List of Employee IDs to process
+        employee_list (list | str): List of Employee IDs to process (can be JSON string)
         max_minutes (int): Max minutes the background job can run
     """
+    import json
+    from frappe.utils.background_jobs import enqueue
+
+    # ? PARSE IF STRING
+    if isinstance(employee_list, str):
+        try:
+            employee_list = json.loads(employee_list)
+        except Exception:
+            frappe.throw("Invalid employee list format. Must be a valid JSON array.")
+
+    # ? ENQUEUE BACKGROUND JOB
     enqueue(
-        "prompt_hr.employee.rename_selected_employees_background",
+        "prompt_hr.py.employee.rename_selected_employees_background",
         employee_list=employee_list,
         queue="long",
         timeout=max_minutes * 60,
     )
+
     return f"Rename job enqueued for {len(employee_list)} employees."
 
 

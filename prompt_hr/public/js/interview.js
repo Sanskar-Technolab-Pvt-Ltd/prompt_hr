@@ -139,9 +139,13 @@ frappe.ui.form.on("Interview", {
                                         args: {
                                             employee_id: interviewer.custom_interviewer_employee
                                         },
-                                        callback: function (r) {
+                                        callback: async function (r) {
                                             if (r.message === current_user) {
-                                                frm.remove_custom_button(__("Notify Interviewer"));
+                                                if (!await is_hr_user_or_owner(current_user, frm)) {
+                                                    // ? HIDE THE "NOTIFY INTERVIEWER" BUTTON FOR NON-HR/NON-OWNER USERS
+                                                    // ? ONLY FOR INTERNAL INTERVIEWERS WHO NOT YET CONFIRMED
+                                                    frm.remove_custom_button(__("Notify Interviewer"));
+                                                }
                                                 showConfirmButton();
                                                 is_internal_interviewer_not_confirmed = true;
                                             }
@@ -154,9 +158,13 @@ frappe.ui.form.on("Interview", {
                                         args: {
                                             employee_id: interviewer.custom_interviewer_employee
                                         },
-                                        callback: function (r) {
+                                        callback: async function (r) {
                                             if (r.message === current_user) {
-                                                frm.remove_custom_button(__("Notify Interviewer"));
+                                                if (!await is_hr_user_or_owner(current_user, frm)) {
+                                                    // ? HIDE THE "NOTIFY INTERVIEWER" BUTTON FOR NON-HR/NON-OWNER USERS
+                                                    // ? ONLY FOR INTERNAL INTERVIEWERS WHO HAVE ALREADY CONFIRMED
+                                                    frm.remove_custom_button(__("Notify Interviewer"));
+                                                }
                                             }
                                         }
                                     });
@@ -176,9 +184,13 @@ frappe.ui.form.on("Interview", {
                                         args: {
                                             supplier_name: interviewer.custom_user
                                         },
-                                        callback: function (r) {
+                                        callback: async function (r) {
                                             if (r.message === current_user) {
-                                                frm.remove_custom_button(__("Notify Interviewer"));
+                                                if (!await is_hr_user_or_owner(current_user, frm)) {
+                                                    // ? HIDE THE "NOTIFY INTERVIEWER" BUTTON FOR NON-HR/NON-OWNER USERS
+                                                    // ? ONLY FOR EXTERNAL INTERVIEWERS WHO NOT YET CONFIRMED
+                                                    frm.remove_custom_button(__("Notify Interviewer"));
+                                                }
                                                 
                                                 is_external_interviewer_not_confirmed = true;
                                                 showConfirmButton();
@@ -192,10 +204,14 @@ frappe.ui.form.on("Interview", {
                                         args: {
                                             supplier_name: interviewer.custom_user
                                         },
-                                        callback: function (r) {
+                                        callback: async function (r) {
                                             
                                             if (r.message === current_user) {
-                                                frm.remove_custom_button(__("Notify Interviewer"));
+                                                if (!await is_hr_user_or_owner(current_user, frm)) {
+                                                    // ? HIDE THE "NOTIFY INTERVIEWER" BUTTON FOR NON-HR/NON-OWNER USERS
+                                                    // ? ONLY FOR EXTERNAL INTERVIEWERS WHO HAVE ALREADY CONFIRMED
+                                                    frm.remove_custom_button(__("Notify Interviewer"));
+                                                }
                                             }
                                         }
                                     });
@@ -253,25 +269,32 @@ frappe.ui.form.on("Interview", {
         });
     },
     add_custom_buttons: async function (frm) {
-        // ?  CALL THE ORIGINAL FUNCTION IF IT EXISTS
-        if (typeof original_add_custom_buttons === "function") {
-            await original_add_custom_buttons(frm);
-        }
 
         // ?  SKIP IF DOC IS CANCELED OR NOT SAVED
         if (frm.doc.docstatus === 2 || frm.doc.__islocal) return;
-
+        
+        if (frm.doc.status === "Pending") {
+			frm.add_custom_button(
+				__("Reschedule Interview"),
+				function () {
+					frm.events.show_reschedule_dialog(frm);
+					frm.refresh();
+				},
+				__("Actions"),
+			);
+		}
         // ?  CHECK IF FEEDBACK ALREADY SUBMITTED
-        const has_submitted_feedback = await frappe.db.get_value(
+        const res = await frappe.db.get_value(
             "Interview Feedback",
             {
                 interviewer: frappe.session.user,
                 interview: frm.doc.name,
-                docstatus: ["!=", 2],
+                docstatus: 1,
             },
             "name"
-        )?.message?.name;
+        );
 
+        const has_submitted_feedback = res?.message?.name;
         if (has_submitted_feedback) return;
 
         // ?  CHECK INTERNAL INTERVIEWERS
@@ -304,22 +327,21 @@ frappe.ui.form.on("Interview", {
             }
         }
         if (allow_internal || allow_external) {
-            // ?  ENABLE "SUBMIT FEEDBACK" BUTTONS
-            frappe.after_ajax(() => {
-                setTimeout(() => {
-                    $('button').filter(function () {
-                        return $(this).text().trim() === "Submit Feedback";
-                    }).each(function () {
-                        $(this)
-                            .prop("disabled", false)
-                            .removeAttr("title")
-                            .removeAttr("data-original-title")
-                            .tooltip('dispose');
-                    });
-                }, 100);
-            });
+            frm.page.set_primary_action(__("Submit Feedback"), () => {
+				frm.trigger("submit_feedback");
+			});
         }
+        else {
+			const button = frm.add_custom_button(__("Submit Feedback"), () => {
+				frm.trigger("submit_feedback");
+			});
+			button
+				.prop("disabled", true)
+				.attr("title", __("Only interviewers can submit feedback"))
+				.tooltip({ delay: { show: 600, hide: 100 }, trigger: "hover" });
+		}
     },
+
     submit_feedback: async function (frm) {
         frappe.call({
             method: "prompt_hr.py.interview_availability.submit_feedback",
@@ -377,10 +399,6 @@ frappe.ui.form.on("Interview", {
 frappe.ui.form.on("Interview Detail", {
     custom_send_reminder: function (frm, cdt, cdn) {
         let child = locals[cdt][cdn];
-        if (frm.doc.docstatus !== 1) {
-            frappe.throw("Only Reminder Send For Submitted Interview");
-            return
-        }
 
         if (!child.custom_interviewer_employee) {
             frappe.throw("Please Select Interviewer Employee");
@@ -407,10 +425,6 @@ frappe.ui.form.on("Interview Detail", {
 frappe.ui.form.on("External Interviewer", {
     send_reminder: function (frm, cdt, cdn) {
         let child = locals[cdt][cdn];
-        if (frm.doc.docstatus !== 1) {
-            frappe.throw("Only Reminder Send For Submitted Interview");
-            return
-        }
 
         if (!child.custom_user) {
             frappe.throw("Please Select Interviewer Employee");
@@ -792,4 +806,31 @@ async function getTeamsMessageHTML(frm, template_text) {
         frappe.msgprint('Failed to fetch Job Applicant data or render template.');
         return '';  // Return empty string or some fallback if error occurs
     }
+}
+
+// ! FUNCTION: CHECK IF THE CURRENT USER IS EITHER HR, OWNER, OR ADMINISTRATOR
+async function is_hr_user_or_owner(current_user, frm) {
+
+    // ? IF CURRENT USER IS THE DOCUMENT OWNER OR ADMINISTRATOR, ALLOW IMMEDIATELY
+    if (current_user === frm.doc.owner || current_user === "Administrator") {
+        return true;
+    }
+
+    // ! FETCH HR ROLES FROM BACKEND (DEFINED IN HR SETTINGS)
+    const hr_roles_response = await frappe.call({
+        method: "prompt_hr.py.expense_claim.get_roles_from_hr_settings",
+        args: { role_type: "hr" },
+    });
+
+    // ? EXTRACT HR ROLES FROM RESPONSE OR USE EMPTY ARRAY IF NONE FOUND
+    const hr_roles = hr_roles_response?.message || [];
+
+    // ! DEFINE ALLOWED ROLES (INCLUDE SYSTEM MANAGER + HR ROLES)
+    const allowed_roles = ["System Manager", ...hr_roles];
+
+    // ? GET CURRENT USER'S ROLES FROM SESSION
+    const user_roles = frappe.user_roles || [];
+
+    // ? CHECK IF USER HAS ANY ROLE THAT MATCHES ALLOWED ROLES
+    return user_roles.some(role => allowed_roles.includes(role));
 }

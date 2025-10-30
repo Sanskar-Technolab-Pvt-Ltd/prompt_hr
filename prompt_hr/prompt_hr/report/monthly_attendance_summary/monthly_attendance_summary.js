@@ -108,7 +108,53 @@ frappe.query_reports["Monthly Attendance Summary"] = {
                 });
             },
             __("Pending Requests")
-        );
+		);
+		
+
+		const legend_text = `
+			<div id="attendance-legend" style="margin-top: 8px; margin-left: 13px; display: flex; gap: 18px; align-items: center; flex-wrap: wrap;">
+				
+				<span style="display:flex; align-items:center; gap:6px;">
+				<b> P = Present </b>
+				<!-- <span style="width:10px; height:10px; background:#6AA84F; border-radius:50%; display:inline-block;"></span> -->
+				</span>
+				
+				<span style="display:flex; align-items:center; gap:6px;">
+					<!-- <span style="width:10px; height:10px; background:#FFA500; border-radius:50%; display:inline-block;"></span> -->
+					<b> HD = Half Day </b>
+				</span>
+
+				<span style="display:flex; align-items:center; gap:6px;">
+					<!-- <span style="width:10px; height:10px; background:#CCCC00; border-radius:50%; display:inline-block;"></span> -->
+					<b> H = Holiday </b>
+				</span>
+
+				<span style="display:flex; align-items:center; gap:6px;">
+					<!-- <span style="width:10px; height:10px; background:#9999FF; border-radius:50%; display:inline-block;"></span> -->
+					<b> WO = WeekOff </b>
+				</span>
+
+				<span style="display:flex; align-items:center; gap:6px;">
+					<!-- <span style="width:10px; height:10px; background:#E06666; border-radius:50%; display:inline-block;"></span> -->
+					<b> A = Absent </b>
+				</span>
+
+				<span style="display:flex; align-items:center; gap:6px;">
+					<!-- <span style="width:10px; height:10px; background:#6D9EEB; border-radius:50%; display:inline-block;"></span> -->
+					<b> M = Mispunch </b>
+				</span>
+
+			</div>
+		`;
+
+		setTimeout(() => {
+			// Avoid duplicate insertion on refresh
+			if (!$("#attendance-legend").length) {
+				$(legend_text).insertAfter($(".chart-wrapper"));
+			}
+		}, 500);
+
+
 		return frappe.call({
 			method: "hrms.hr.report.monthly_attendance_sheet.monthly_attendance_sheet.get_attendance_years",
 			callback: function (r) {
@@ -130,7 +176,7 @@ frappe.query_reports["Monthly Attendance Summary"] = {
 		}
 
 		if (!summarized_view) {
-			if ((group_by && column.colIndex > 3) || (!group_by && column.colIndex > 2)) {
+			if ((group_by && column.colIndex > 7) || (!group_by && column.colIndex > 6)) {
 				// if (value == "P" || value == "WFH")
 				// 	value = "<span style='color:green'>" + value + "</span>";
 				// else if (value == "A") value = "<span style='color:red'>" + value + "</span>";
@@ -142,7 +188,7 @@ frappe.query_reports["Monthly Attendance Summary"] = {
 					value = "<span style='color:red'>" + value + "</span>";
 				else if (value.startsWith("HD"))
 					value = "<span style='color:orange'>" + value + "</span>";
-				else if (value.startsWith("L"))
+				else if (value.startsWith("L") && !value.startsWith("LWP"))
 					value = "<span style='color:#318AD8'>" + value + "</span>";
 			}
 		}

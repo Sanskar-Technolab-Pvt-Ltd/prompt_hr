@@ -2,6 +2,8 @@
 # For license information, please see license.txt
 
 import frappe
+from itertools import groupby
+
 from frappe import _
 from frappe.query_builder.functions import Extract
 from frappe.utils import cstr, cint, getdate
@@ -12,7 +14,6 @@ from hrms.hr.report.monthly_attendance_sheet.monthly_attendance_sheet import (
     get_attendance_map,
     get_columns,
     get_chart_data,
-    get_employee_related_details,
     get_holiday_map,
     get_total_days_in_month,
     get_holiday_status,
@@ -21,6 +22,7 @@ from hrms.hr.report.monthly_attendance_sheet.monthly_attendance_sheet import (
     set_defaults_for_summarized_view,
     get_attendance_summary_and_days,
 )
+    # get_employee_related_details,
 
 Filters = frappe._dict
 
@@ -33,6 +35,7 @@ def get_status_map():
 		"On Leave": "L",
 		"Holiday": "H",
 		"Weekly Off": "WO",
+		"Mispunch": "M",
 	}
 	leave_types = frappe.get_all("Leave Type", fields=["leave_type_name", "custom_leave_type_abbr"])
 	for leave_type in leave_types:
@@ -64,9 +67,17 @@ def execute(filters: Filters | None = None) -> tuple:
 
 	columns = get_columns(filters)
 	
+	columns = [c for c in columns if c.get("fieldname") != "shift"]	
+
+	columns.insert(2, {"label": _("Employment Type"), "fieldname": "employment_type", "fieldtype": "Link", "options": "Employment Type"})
+	columns.insert(3, {"label": _("Work Location"), "fieldname": "work_location", "fieldtype": "Link", "options": "Address"})
+	columns.insert(4, {"label": _("Relieving Date"), "fieldname": "relieving_date", "fieldtype": "Date"})
+	columns.insert(5, {"label": _("Reporting EmpCode"), "fieldname": "reporting_empcode", "fieldtype": "Link", "options": "Employee"})
+	columns.insert(6, {"label": _("Reporting Manager Name"), "fieldname": "reporting_manager_name", "fieldtype": "Data"})
+	
 	# ? ADD MORE COLUMNS FOR SUMMARIZED VIEW
 	if filters.summarized_view:
-		columns.insert(2, 
+		columns.insert(7, 
 			{
 					"label": _("Total Working Days"),
 					"fieldname": "total_working_days",
@@ -74,15 +85,39 @@ def execute(filters: Filters | None = None) -> tuple:
 					"width": 150,
 			},
 		)
-		columns.insert(3, 
+		columns.insert(8, 
 			{
-					"label": _("Total LOP Days"),
+					"label": _("Total Paid Leaves"),
+					"fieldname": "total_paid_leaves",
+					"fieldtype": "Float",
+					"width": 150,
+			},
+		)
+		columns.insert(9, 
+			{
+					"label": _("Total LOP Leaves"),
 					"fieldname": "total_lop_days",
 					"fieldtype": "Float",
 					"width": 150,
 			},
 		)
-		columns.insert(4, 
+		columns.insert(10, 
+			{
+					"label": _("Total Penalized Paid Leaves"),
+					"fieldname": "total_penalized_paid_leaves",
+					"fieldtype": "Float",
+					"width": 150,
+			},
+		)
+		columns.insert(11, 
+					{
+							"label": _("Total Penalized LOP"),
+							"fieldname": "total_penalized_lop",
+							"fieldtype": "Float",
+							"width": 150,
+					},
+				)
+		columns.insert(12, 
 			{
 					"label": _("Total Payment Days"),
 					"fieldname": "total_payment_days",
@@ -91,7 +126,7 @@ def execute(filters: Filters | None = None) -> tuple:
 			},
 		)
 	else:
-		columns.append(
+		columns.append( 
 			{
 					"label": _("Total Working Days"),
 					"fieldname": "total_working_days",
@@ -101,8 +136,32 @@ def execute(filters: Filters | None = None) -> tuple:
 		)
 		columns.append(
 			{
-					"label": _("Total LOP Days"),
+					"label": _("Total Paid Leaves"),
+					"fieldname": "total_paid_leaves",
+					"fieldtype": "Float",
+					"width": 150,
+			},
+		)
+		columns.append(
+			{
+					"label": _("Total LOP Leaves"),
 					"fieldname": "total_lop_days",
+					"fieldtype": "Float",
+					"width": 150,
+			},
+		)
+		columns.append(
+			{
+					"label": _("Total Penalized Paid Leaves"),
+					"fieldname": "total_penalized_paid_leaves",
+					"fieldtype": "Float",
+					"width": 150,
+			},
+		)
+		columns.append( 
+			{
+					"label": _("Total Penalized LOP"),
+					"fieldname": "total_penalized_lop",
 					"fieldtype": "Float",
 					"width": 150,
 			},
@@ -115,7 +174,10 @@ def execute(filters: Filters | None = None) -> tuple:
 					"width": 150,
 			},
 		)
-	# * Apply width increase: 50 for all, 100 for 'employee'
+	
+	
+
+ # * Apply width increase: 50 for all, 100 for 'employee'
 	columns = increase_column_widths(
 		columns,
 		default_increment=50,
@@ -195,6 +257,65 @@ def get_data(filters: Filters, attendance_map: dict) -> list[dict]:
 	return data
 
 
+def get_employee_related_details(filters: Filters) -> tuple[dict, list]:
+	"""Returns
+	1. nested dict for employee details
+	2. list of values for the group by filter
+	# """
+	Employee = frappe.qb.DocType("Employee")
+	query = (
+		frappe.qb.from_(Employee)
+		.select(
+			Employee.name,
+			Employee.employee_name,
+			Employee.designation,
+			Employee.grade,
+			Employee.department,
+			Employee.branch,
+			Employee.company,
+			Employee.holiday_list,
+			Employee.employment_type,
+			Employee.custom_work_location,
+			Employee.relieving_date,
+			Employee.reports_to,
+
+		)
+		.where(Employee.company.isin(filters.companies))
+	)
+
+	if filters.employee:
+		query = query.where(Employee.name == filters.employee)
+
+	group_by = filters.group_by
+	if group_by:
+		group_by = group_by.lower()
+		query = query.orderby(group_by)
+
+	employee_details = query.run(as_dict=True)
+	
+	group_by_param_values = []
+	emp_map = {}
+
+	if group_by:
+		group_key = lambda d: "" if d[group_by] is None else d[group_by]  # noqa
+		for parameter, employees in groupby(sorted(employee_details, key=group_key), key=group_key):
+			group_by_param_values.append(parameter)
+			emp_map.setdefault(parameter, frappe._dict())
+
+			for emp in employees:
+				if emp.reports_to:					
+					emp['reporting_manager_name'] = frappe.db.get_value("Employee", emp.reports_to, "employee_name")
+
+				emp_map[parameter][emp.name] = emp
+	else:
+		for emp in employee_details:
+			if emp.reports_to:				
+				emp['reporting_manager_name'] = frappe.db.get_value("Employee", emp.reports_to, "employee_name")
+			emp_map[emp.name] = emp
+
+	return emp_map, group_by_param_values
+
+
 def get_attendance_records(filters: Filters) -> list[dict]:
 	Attendance = frappe.qb.DocType("Attendance")
 	query = (
@@ -224,7 +345,6 @@ def get_attendance_records(filters: Filters) -> list[dict]:
 def get_attendance_status_for_detailed_view(
 	employee: str, filters: Filters, employee_attendance: dict, holidays: list
 ) -> list[dict]:
-	print(f"\n\n EMPLOYEE {employee} \n\n")
 	# ? CALCULATE TOTAL DAYS IN THE SELECTED MONTH
 	total_days = get_total_days_in_month(filters)
 	row = {}
@@ -232,7 +352,10 @@ def get_attendance_status_for_detailed_view(
 
 	# ? INITIALIZE WORKING DAYS, LOSS OF PAY (LOP) DAYS, AND PAYMENT DAYS
 	total_working_days = 0
+	total_paid_leaves = 0
 	total_lop_days = 0
+	total_penalized_paid_leaves = 0
+	total_penalized_lop = 0
 	total_payment_days = 0
 	year = cint(filters.year)
 	month = cint(filters.month)
@@ -257,7 +380,7 @@ def get_attendance_status_for_detailed_view(
 	# ? FETCH ATTENDANCE RECORDS FOR EMPLOYEE IN THE SPECIFIED MONTH
 	attendance_record = frappe.get_all(
 		"Attendance",
-		fields=["name", "leave_type", "status"],
+		fields=["name", "leave_type", "status", "custom_employee_penalty_id"],
 		filters={
 			"employee": employee,
 			"company": filters.company,
@@ -276,6 +399,25 @@ def get_attendance_status_for_detailed_view(
 						total_lop_days += 0.5  # * ADD HALF DAY FOR HALF-DAY LEAVE
 					else:
 						total_lop_days += 1  # * ADD FULL DAY FOR FULL-DAY LEAVE
+				else:
+					if record.status == "Half Day":
+						total_paid_leaves += 0.5  # * ADD HALF DAY FOR HALF-DAY LEAVE
+					else:
+						total_paid_leaves += 1  # * ADD FULL DAY FOR FULL-DAY LEAVE
+
+			if record.custom_employee_penalty_id:
+				frappe.log_error("report", "this condadasdfsz")
+				if not frappe.db.get_value("Employee Penalty", record.custom_employee_penalty_id, "is_leave_balance_restore"):
+					emp_leave_penalty_details = frappe.db.get_all("Employee Leave Penalty Details", {"parenttype": "Employee Penalty", "parent": record.custom_employee_penalty_id}, ["leave_type", "leave_amount"])
+
+					if emp_leave_penalty_details:
+						for leave_type in emp_leave_penalty_details:
+							lt = frappe.get_doc("Leave Type", leave_type.get('leave_type'))
+							if lt.is_lwp:
+									total_penalized_lop += leave_type.get('leave_amount')
+							else:
+									total_penalized_paid_leaves += leave_type.get('leave_amount')
+
 	
 	# ? BUILD DAILY STATUS MAP USING ABBREVIATIONS
 	month = int(filters.get("month"))
@@ -288,29 +430,67 @@ def get_attendance_status_for_detailed_view(
 		
 		attendance_exists = frappe.db.exists("Attendance", {"employee": employee, "attendance_date": generated_date})
 		leave_type_abb = None
-		if attendance_exists:
-			attendance_det = frappe.db.get_value("Attendance", {"employee": employee, "attendance_date": generated_date}, ["name", "custom_employee_penalty_id"], as_dict=True)
-			if attendance_det and attendance_det.get("custom_employee_penalty_id"):
-				emp_leave_penalty_details = frappe.db.get_all("Employee Leave Penalty Details", {"parenttype": "Employee Penalty", "parent": attendance_det.get("custom_employee_penalty_id")}, "leave_type")
+		hd_leave_type = None
+		attendance_reg_abbr = None
 
-				if emp_leave_penalty_details:
-					for leave_type in emp_leave_penalty_details:
-						lt_abbr = frappe.db.get_value("Leave Type", leave_type.get('leave_type'), "custom_leave_type_abbr")
-						if lt_abbr:
-							if leave_type_abb:
-								leave_type_abb += f", {lt_abbr}"
-							else:
-								leave_type_abb = lt_abbr
-    
+		if frappe.db.exists("Attendance Regularization", {"employee": employee, "regularization_date": generated_date, "status": "Pending"}):
+			attendance_reg_abbr = "(REG-PENDING)"
+
+		if attendance_exists:
+			attendance_det = frappe.db.get_value("Attendance", {"employee": employee, "attendance_date": generated_date}, ["name", "custom_employee_penalty_id", "status", "leave_type"], as_dict=True)
+	
+
+			
+			if attendance_det: 
+				if attendance_det.status == "Half Day" and attendance_det.leave_type:
+					lt_abbr = frappe.db.get_value("Leave Type", attendance_det.leave_type, "custom_leave_type_abbr")
+					if lt_abbr:
+						hd_leave_type = lt_abbr
+				
+				if attendance_det.get("custom_employee_penalty_id"):
+					emp_leave_penalty_details = frappe.db.get_all("Employee Leave Penalty Details", {"parenttype": "Employee Penalty", "parent": attendance_det.get("custom_employee_penalty_id")}, "leave_type")
+
+					
+					if emp_leave_penalty_details:
+						for leave_type in emp_leave_penalty_details:
+							lt_abbr = frappe.db.get_value("Leave Type", leave_type.get('leave_type'), "custom_leave_type_abbr")
+							if lt_abbr:
+								if leave_type_abb:
+									leave_type_abb += f", {lt_abbr}"
+								else:
+									leave_type_abb = lt_abbr
+
 		status = employee_attendance.get(day)
 		if status is None and holidays:
 			status = get_holiday_status(day, holidays)
 		abbr = status_map.get(status, "")
 
+		final_abbr = abbr
+		if hd_leave_type:
+			final_abbr = final_abbr + f"-{hd_leave_type}"
 		if leave_type_abb:
-			final_abbr = f"{abbr}(PE-{leave_type_abb})"
-		else:
-			final_abbr = abbr
+			final_abbr = final_abbr + f"(PE-{leave_type_abb})"
+		if attendance_reg_abbr:
+			final_abbr = final_abbr + attendance_reg_abbr
+
+		# if leave_type_abb:
+		# 	if hd_leave_type and attendance_reg_abbr:
+		# 		final_abbr = f"{abbr}-{hd_leave_type}(PE-{leave_type_abb}){attendance_reg_abbr}"
+		# 	elif hd_leave_type:
+		# 		final_abbr = f"{abbr}-{hd_leave_type}(PE-{leave_type_abb})"
+		# 	elif attendance_reg_abbr:
+		# 		final_abbr = f"{abbr}(PE-{leave_type_abb}){attendance_reg_abbr}"
+		# 	else:
+		# 		final_abbr = f"{abbr}(PE-{leave_type_abb})"
+		# elif hd_leave_type:
+		# 	if attendance_reg_abbr:
+		# 		final_abbr = f"{abbr}-{hd_leave_type}{attendance_reg_abbr}"
+		# 	else:
+		# 		final_abbr = f"{abbr}-{hd_leave_type}"
+		# elif attendance_reg_abbr:
+		# 	final_abbr = f"{abbr}{attendance_reg_abbr}"
+		# else:
+		# 	final_abbr = abbr
 
 		row[cstr(day)] = final_abbr
 	
@@ -340,7 +520,10 @@ def get_attendance_status_for_detailed_view(
 
 	# * FINAL SUMMARY FIELDS
 	row["total_working_days"] =  total_working_days
+	row["total_paid_leaves"] = total_paid_leaves
 	row["total_lop_days"] = total_lop_days
+	row["total_penalized_paid_leaves"] = total_penalized_paid_leaves
+	row["total_penalized_lop"] = total_penalized_lop
 	row["total_payment_days"] = total_payment_days
 
 	return [row]
@@ -349,7 +532,6 @@ def get_rows(employee_details: dict, filters: Filters, holiday_map: dict, attend
 	records = []
 	default_holiday_list = frappe.get_cached_value("Company", filters.company, "default_holiday_list")
 
-	print(f"\n\n EMPLOYEE DETAILS{filters.get('month')} {filters.get('year')}\n\n")
 	for employee, details in employee_details.items():
 		emp_holiday_list = details.holiday_list or default_holiday_list
 		holidays = holiday_map.get(emp_holiday_list)
@@ -378,7 +560,7 @@ def get_rows(employee_details: dict, filters: Filters, holiday_map: dict, attend
 				employee, filters, employee_attendance, holidays
 			)
 			# set employee details in the first row
-			attendance_for_employee[0].update({"employee": employee, "employee_name": details.employee_name})
+			attendance_for_employee[0].update({"employee": employee, "employee_name": details.employee_name, "employment_type": details.employment_type, "work_location": details.custom_work_location, "relieving_date": details.relieving_date, "reporting_empcode": details.reports_to, "reporting_manager_name": details.reporting_manager_name})
 
 			records.extend(attendance_for_employee)
 

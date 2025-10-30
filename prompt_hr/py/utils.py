@@ -269,6 +269,7 @@ def invite_for_document_collection(
                 "applicant_name",
                 "designation",
                 "custom_company",
+                "name",
             ],
             as_dict=True,
         )
@@ -279,9 +280,32 @@ def invite_for_document_collection(
         existing = frappe.db.exists(
             "Candidate Portal",
             {
-                "applicant_email": job_applicant.email_id,
+                "applicant_email": job_applicant.name,
             },
         )
+
+        job_applicant_doc = frappe.get_doc("Job Applicant", job_applicant.name)
+        existing_required_docs_job_applicant = {d.required_document for d in job_applicant_doc.custom_documents}
+        if documents:
+            new_docs_seen_job_applicant = set()
+            for doc in documents:
+                req_doc = doc.get("required_document")
+                if (
+                    req_doc
+                    and req_doc not in existing_required_docs_job_applicant
+                    and req_doc not in new_docs_seen_job_applicant
+                ):
+                    job_applicant_doc.append(
+                        "custom_documents",
+                        {
+                            "required_document": req_doc,
+                            "document_collection_stage": doc.get(
+                                "document_collection_stage"
+                            ),
+                        },
+                    )
+                    new_docs_seen_job_applicant.add(req_doc)
+            job_applicant_doc.save(ignore_permissions=True)
 
         if existing:
             invitation = frappe.get_doc("Candidate Portal", existing)
@@ -333,7 +357,7 @@ def invite_for_document_collection(
             invitation = frappe.new_doc("Candidate Portal")
             invitation.update(
                 {
-                    "applicant_email": job_applicant.email_id,
+                    "applicant_email": job_applicant.name,
                     "phone_number": job_applicant.phone_number,
                     "applicant_name": job_applicant.applicant_name,
                     "applied_for_designation": job_applicant.designation,
@@ -1147,3 +1171,57 @@ def get_employee_email(employee=None):
 
     #! FALLBACK (NO EMAIL FOUND)
     return None
+
+# ? TO GET ROLES FROM HR SETTINGS COMMA SEPARTED FIELD
+def get_roles_from_hr_settings_by_module(role_type_field):
+    """
+    #! FETCH CONFIGURED ROLES FROM HR SETTINGS BASED ON MODULE TYPE
+    """
+    try:
+        if not role_type_field:
+            return []
+
+        # ? FETCH ROLES STRING FROM HR SETTINGS
+        roles_value = frappe.db.get_single_value("HR Settings", role_type_field)
+        if not roles_value:
+            return []
+
+        # ! CONVERT COMMA-SEPARATED STRING TO CLEAN LIST
+        roles_list = [role.strip() for role in roles_value.split(",") if role.strip()]
+        return roles_list
+
+    except Exception as error:
+        frappe.log_error("Error Fetching Roles from HR Settings", str(error))
+        return []
+
+# ? TO FETCH ALL EMAIL IDS FOR GIVEN ROLES
+def get_email_ids_for_roles(roles):
+    """
+    #! FETCH VALID USER EMAIL IDS FOR ALL GIVEN ROLES
+    #? roles: LIST OF ROLE NAMES (E.G. ["HR Manager", "Accounts User"])
+    """
+    try:
+        if not roles:
+            return []
+
+        recipients = set()
+        
+        # ? FETCH ALL ACTIVE USERS WHO HAVE ANY OF THE GIVEN ROLES
+        user_role_links = frappe.get_all(
+            "Has Role",
+            filters={"role": ["in", roles], "parenttype": "User"},
+            fields=["parent"]
+        )
+
+        for user in user_role_links:
+            if user.parent not in ["Administrator", "Guest"]:
+                recipients.add(user.parent)
+
+        recipients = list(recipients)
+
+        # ! RETURN CLEANED LIST OF EMAILS
+        return recipients
+
+    except Exception as error:
+        frappe.log_error("Error Fetching Email IDs for Roles", str(error))
+        return []

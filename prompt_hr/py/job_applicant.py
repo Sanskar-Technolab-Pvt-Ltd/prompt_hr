@@ -152,32 +152,7 @@ def before_insert(doc, method=None):
         )
         if job_applicants:
             doc.custom_already_exists = len(job_applicants)
-    
-    if doc.custom_company:
-        # ? SET THE JOINING DOCUMENT CHECKLIST IF FOUND
-        joining_document_checklist = frappe.get_all(
-            "Joining Document Checklist", 
-            filters={"company": doc.custom_company}, 
-            fields=["name"]
-        )
-        
-        if joining_document_checklist:
-            doc.custom_joining_document_checklist = joining_document_checklist[0].name
 
-        # ? FETCH REQUIRED DOCUMENTS
-        documents_records = frappe.get_all(
-            "Required Document Applicant", 
-            filters={"company": doc.custom_company}, 
-            fields=["name","required_document", "document_collection_stage"]
-        )
-
-        if documents_records:
-            for record in documents_records:
-                doc.append("custom_documents", {
-                    "required_document": record.name,
-                    "collection_stage": record.document_collection_stage
-                })
-                frappe.db.commit()
 
 @frappe.whitelist()
 def send_rejection_notification(job_applicant):

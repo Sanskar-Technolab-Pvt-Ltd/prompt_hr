@@ -11,6 +11,8 @@ from prompt_hr.py.utils import (
     get_hr_managers_by_company,
     get_prompt_company_name,
     get_indifoss_company_name,
+    get_roles_from_hr_settings_by_module,
+    get_email_ids_for_roles
 )
 
 
@@ -65,20 +67,10 @@ class ExitApprovalProcess(Document):
 
         if self.workflow_state == "Approved by Reporting Manager" and self.has_value_changed("workflow_state"):
             try:
+                enable_exit_emails = frappe.db.get_single_value("HR Settings", "custom_enable_exit_mails") or 0
                 #! DEFINE HR ROLES THAT SHOULD RECEIVE WORKFLOW UPDATES
-                hr_roles = [
-                    "S - HR Leave Approval",
-                    "S - HR Leave Report",
-                    "S - HR L6",
-                    "S - HR L5",
-                    "S - HR L4",
-                    "S - HR L3",
-                    "S - HR L2",
-                    "S - HR L1",
-                    "S - HR Director (Global Admin)",
-                    "S - HR L2 Manager",
-                    "S - HR Supervisor (RM)",
-                ]
+                
+                hr_roles = get_roles_from_hr_settings_by_module("custom_hr_roles_for_exit")
 
                 recipients = set()
 
@@ -87,31 +79,24 @@ class ExitApprovalProcess(Document):
                 if employee_user_id:
                     recipients.add(employee_user_id)
 
-                #! ADD ALL USERS WHO HAVE HR ROLES
-                all_hr_role_users = frappe.get_all(
-                    "Has Role",
-                    filters={"role": ["in", hr_roles], "parenttype": "User"},
-                    fields=["parent"]
-                )
-
-                for user in all_hr_role_users:
-                    if user.parent not in ["Administrator", "Guest"]:
-                        recipients.add(user.parent)
-
+                #! GET ALL USERS WHO HAVE HR ROLES
+                all_hr_emails = get_email_ids_for_roles(hr_roles)
+                recipients.update(all_hr_emails)
                 recipients = list(recipients)
 
                 if recipients:
                     # Send generic update notification
-                    send_notification_email(
-                        recipients=recipients,
-                        notification_name="Exit Approval Process Update Status",
-                        doctype="Exit Approval Process",
-                        docname=self.name,
-                        send_link=False,
-                        fallback_subject=f"Exit Approval Process: {self.workflow_state} - {self.employee}",
-                        fallback_message=f"<p>Dear Team,<br> An Exit Approval Process has been {self.workflow_state}.</p>",
-                        send_header_greeting = True,
-                    )
+                    if enable_exit_emails:
+                        send_notification_email(
+                            recipients=recipients,
+                            notification_name="Exit Approval Process Update Status",
+                            doctype="Exit Approval Process",
+                            docname=self.name,
+                            send_link=False,
+                            fallback_subject=f"Exit Approval Process: {self.workflow_state} - {self.employee}",
+                            fallback_message=f"<p>Dear Team,<br> An Exit Approval Process has been {self.workflow_state}.</p>",
+                            send_header_greeting = True,
+                        )
 
             except Exception as e:
                 frappe.log_error("Sending Mail to HR in Exit Approval Process", str(e))
@@ -292,7 +277,13 @@ def create_exit_interview(employee, company, exit_approval_process):
 
 # ? SEND EXIT INTERVIEW EMAIL
 @frappe.whitelist()
-def send_exit_interview_notification(employee, exit_interview_name=None):
+def send_exit_interview_notification(employee, exit_interview_name=None, send_from_button=0):
+    try:
+        enable_exit_emails = frappe.db.get_single_value("HR Settings", "custom_enable_exit_mails") or 0
+    except Exception as e:
+        frappe.log_error(message=str(e), title="Error fetching HR Settings - custom_enable_exit_mails")
+        enable_exit_emails = 0
+
     user_id = frappe.db.get_value("Employee", employee, "user_id")
     if not user_id:
         frappe.throw(_("Employee does not have a User ID."))
@@ -302,14 +293,17 @@ def send_exit_interview_notification(employee, exit_interview_name=None):
             "Exit Interview", {"employee": employee}
         )
 
-    send_notification_email(
-        doctype="Exit Interview",
-        docname=exit_interview_name,
-        recipients=[user_id],
-        notification_name="Exit Questionnaire Mail To Employee",
-        button_link=frappe.utils.get_url()
-        + "/login?redirect-to=/exit-questionnaire/new#login",
-    )
+    # ? SEND EMAILS ONLY IF IT IS CALLED FROM BUTTON OR EXIT MAIL ENABLE IN HR SETTINGS
+    if send_from_button or enable_exit_emails:
+        send_notification_email(
+            doctype="Exit Interview",
+            docname=exit_interview_name,
+            recipients=[user_id],
+            notification_name="Exit Questionnaire Mail To Employee",
+            button_link=frappe.utils.get_url()
+            + "/login?redirect-to=/exit-questionnaire/new#login",
+        )
+
     return {"status": "success", "message": _("Exit Interview email sent.")}
 
 # ? FUNCTION TO VALIDATE APPROVAL STATUS

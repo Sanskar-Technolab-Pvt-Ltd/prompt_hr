@@ -2,12 +2,18 @@
 
 frappe.ui.form.on('Job Offer', {
     // ? MAIN ENTRY POINT — EXECUTES ON FORM REFRESH
-    refresh: function (frm) {
-        const is_candidate = frappe.session.user === "candidate@sanskartechnolab.com";
-
+    refresh: async function (frm) {
+        const is_candidate = frappe.session.user === "candidate@promptdairytech.com";
+        const hr_roles_response = await frappe.call({
+            method: "prompt_hr.py.expense_claim.get_roles_from_hr_settings",
+            args: { role_type: "hr" },
+        });
+        const hr_roles = hr_roles_response?.message || [];
+        const hr_system_roles = ["System Manager", ...hr_roles];
         if (is_candidate) {
             handle_candidate_access(frm);
-        } else if (frappe.user_roles.includes("S - HR Director (Global Admin)")) {
+        } else if (hr_system_roles || frappe.session.user == "Administrator") {
+            // ? SHOW RELEASE JOB OFFER BUTTON ONLY TO HR ROLES
             add_release_offer_button(frm);
         }
 
@@ -19,6 +25,8 @@ frappe.ui.form.on('Job Offer', {
 
         // ? ADD ACCEPT CHANGES BUTTON
         acceptChangesButton(frm);
+
+        viewCandidatePortalButton(frm)
 
         // ? ADD RELEASE LOI LETTER BUTTON
         frm.add_custom_button(__("Release LOI Letter"), function () {
@@ -74,6 +82,20 @@ function add_release_offer_button(frm) {
     }, 'Offer Actions');
 }
 
+function viewCandidatePortalButton(frm) {
+    frm.add_custom_button('View Candidate Portal', function() {
+        const applicant = frm.doc.job_applicant
+        const offer_name = frm.doc.name
+        frappe.db.get_value("Candidate Portal", { applicant_email: applicant, job_offer:offer_name}, "name")
+        .then(r => {
+            if (r.message && r.message.name) {
+                frappe.set_route("Form", "Candidate Portal", r.message.name);
+            } else {
+                frappe.msgprint("No Candidate Portal Found.");
+            }
+        });
+    })
+}
 
 // ? FUNCTION TO ADD UPDATE CANDIDATE PORTAL BUTTON
 function updateCandidatePortal(frm) {

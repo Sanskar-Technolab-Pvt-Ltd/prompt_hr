@@ -262,7 +262,7 @@ class CustomLeaveApplication(LeaveApplication):
                 if (
                     self.custom_half_day_time
                     and d.custom_half_day_time
-                    and self.custom_half_day_time.lower() == d.custom_half_day_time.lower()
+                    and (self.custom_half_day_time.lower() == d.custom_half_day_time.lower() or not d.half_day_date)
                 ):
                     #! THROW ERROR IF SAME HALF-DAY TIME ALREADY APPLIED
                     self.throw_overlap_error(d)

@@ -1,10 +1,14 @@
 import frappe
 from frappe import _
-from frappe.utils import ceil, flt, formatdate
+import json
+from frappe.utils import ceil, flt, formatdate, cint
 from hrms.hr.utils import validate_active_employee
 from hrms.payroll.doctype.salary_slip.salary_slip import SalarySlip
 from hrms.payroll.doctype.salary_slip.salary_slip_loan_utils import (
 	set_loan_repayment,
+)
+from hrms.payroll.doctype.payroll_period.payroll_period import (
+	get_period_factor,
 )
 
 # ? CustomSalarySlip enhances SalarySlip by including:
@@ -34,8 +38,9 @@ class CustomSalarySlip(SalarySlip):
         self.set_salary_structure_assignment()
 
         # ? ONLY CALCULATE NET PAY WHEN THE SALARY SLIP IS NEW.
+        
+        self.verify_duplicate_component_entry()
         self.calculate_net_pay()
-
         self.compute_year_to_date()
         self.compute_month_to_date()
         self.compute_component_wise_year_to_date()
@@ -170,6 +175,7 @@ class CustomSalarySlip(SalarySlip):
             salary_structure = frappe.get_doc("Salary Structure", self.salary_structure)
             # ? IF CUSTOM ADHOC SALARY DETAILS PRESENT ADD IT TO SALARY SLIP
             if payroll_entry.custom_adhoc_salary_details:
+                adhoc_component_list = []
                 for entry in payroll_entry.custom_adhoc_salary_details or []:
                     # * Only process entries for the current employee
                     if entry.employee == self.employee:
@@ -190,8 +196,14 @@ class CustomSalarySlip(SalarySlip):
                             if row.salary_component == entry.salary_component:
                                 slip_row = row
                                 break
+                        
+                        if slip_row and structure_row:
+                            # * Case 1: Exists in both structure and slip → update amount
+                            slip_row.amount = flt(slip_row.amount) + flt(entry.amount)
+                            slip_row.custom_is_manually_modified = 1
+                            adhoc_component_list.append(slip_row.abbr)
 
-                        if slip_row and not structure_row:
+                        elif slip_row and not structure_row:
                             # * Case 2: Manually added (not in structure) → skip
                             continue
 
@@ -200,11 +212,14 @@ class CustomSalarySlip(SalarySlip):
                             self.append(comp_type, {
                                 "salary_component": entry.salary_component,
                                 "amount": flt(entry.amount),
-                                "salary_component_abbr": component.salary_component_abbr or ""
+                                "abbr": component.salary_component_abbr or "",
+                                "custom_is_manually_modified": 1
                             })
+                            if component.salary_component_abbr:
+                                adhoc_component_list.append(component.salary_component_abbr)
 
                 # * Update gross pay and totals
-                self.calculate_net_pay()
+                self.calculate_net_pay(add_adhoc_component = True, adhoc_component_list= adhoc_component_list)
                 self.compute_year_to_date()
                 self.compute_month_to_date()
                 self.compute_component_wise_year_to_date()
@@ -284,7 +299,7 @@ class CustomSalarySlip(SalarySlip):
                 if earning.is_flexible_benefit:
                     flexi_benefits += amount
                 else:
-                    taxable_earnings += amount - (additional_amount or 0)
+                    taxable_earnings += (amount or 0) - (additional_amount or 0)
                     additional_income += (additional_amount or 0)
 
                     if additional_amount and earning.is_recurring_additional_salary:
@@ -313,7 +328,7 @@ class CustomSalarySlip(SalarySlip):
                     if based_on_payment_days:
                         amount, additional_amount = self.get_amount_based_on_payment_days(ded)
 
-                    taxable_earnings -= flt(amount - (additional_amount or 0))
+                    taxable_earnings -= flt((amount or 0) - (additional_amount or 0))
                     additional_income -= (additional_amount or 0)
                     amount_exempted_from_income_tax += flt(amount - (additional_amount or 0))
 
@@ -403,4 +418,271 @@ class CustomSalarySlip(SalarySlip):
                         "pending_leaves": flt(leave_values.get("leaves_pending_approval")),
                         "available_leaves": flt(leave_values.get("remaining_leaves")),
                     },
+                )
+
+    def calculate_net_pay(self, skip_tax_breakup_computation: bool = False, add_adhoc_component=False, adhoc_component_list = []):
+        #! RESET THE CHANGE TRACKER FOR COMPONENTS
+        self._change_components = {}
+        self._adhoc_component = {}
+        #? COMPARE OLD VS NEW DOCUMENT TO DETECT CHANGED COMPONENTS
+        if not self.is_new():
+            old_doc = frappe.get_doc(self.doctype, self.name)
+
+            #! FUNCTION TO POPULATE CHANGED COMPONENTS (COMMON FOR EARNINGS & DEDUCTIONS)
+            def detect_changes(child_table, old_doc):
+                #? STEP 1: TEMPORARY STORAGE FOR MODIFIED ABBRs
+                modified_abbrs = set()
+
+                #! STEP 2: INITIAL LOOP — DETECT CHANGES
+                for row in self.get(child_table):
+                    if row.custom_is_manually_modified:
+                        self._change_components[row.name] = row.get("amount")
+                        modified_abbrs.add(row.get("abbr"))
+                        continue
+
+                    old_row = next((r for r in old_doc.get(child_table) if r.name == row.name), None)
+                    if old_row:
+                        old_value = old_row.get("amount")
+                        new_value = row.get("amount")
+
+                        #? MARK CHANGED ROW AND TRACK ABBR
+                        if old_value != new_value and old_row.get("abbr") == row.get("abbr") and not old_row.get('custom_is_manually_modified'):
+                            self._change_components[row.name] = row.get("amount")
+                            if old_doc.leave_without_pay == self.get("leave_without_pay"):
+                                row.custom_is_manually_modified = 1
+                                modified_abbrs.add(row.get("abbr"))
+
+                #! STEP 3: SECOND LOOP — MARK ALL ROWS WITH SAME ABBR
+                if modified_abbrs:
+                    for row in self.get(child_table):
+                        if row.get("abbr") in modified_abbrs and not row.custom_is_manually_modified:
+                            row.custom_is_manually_modified = 1
+                            self._change_components[row.name] = row.get("amount")
+
+            detect_changes("earnings", old_doc)
+            detect_changes("deductions", old_doc)
+
+        elif self.is_new() and add_adhoc_component and adhoc_component_list:
+            #! FUNCTION TO POPULATE CHANGED COMPONENTS (COMMON FOR EARNINGS & DEDUCTIONS)
+            def add_adhoc_component_changes(child_table):
+                #? STEP 1: TEMPORARY STORAGE FOR MODIFIED ABBRs
+                modified_abbrs = set()
+                #! STEP 2: INITIAL LOOP — DETECT CHANGES
+                for row in self.get(child_table):
+                    if row.custom_is_manually_modified:
+                        self._adhoc_component[row.abbr] = row.get("amount")
+                        modified_abbrs.add(row.get("abbr"))
+                        continue
+
+            add_adhoc_component_changes("earnings")
+            add_adhoc_component_changes("deductions")
+
+
+        #! FUNCTION TO SET GROSS PAY AND BASE GROSS PAY
+        def set_gross_pay_and_base_gross_pay():
+            self.gross_pay = self.get_component_totals("earnings", depends_on_payment_days=1)
+            self.base_gross_pay = flt(
+                flt(self.gross_pay) * flt(self.exchange_rate),
+                self.precision("base_gross_pay"),
+            )
+
+        #! START CALCULATIONS
+        if self.salary_structure:
+            self.calculate_component_amounts("earnings")
+
+        #? APPLY CHANGES FOR EARNINGS COMPONENTS
+        if self._change_components:
+            for row in self.get("earnings"):
+                if row.get("name") in self._change_components:
+                    row.amount = self._change_components[row.get("name")]
+                    self.default_data[row.abbr] = flt(row.amount)
+                    self.data[row.abbr] = flt(row.amount)
+
+        # ? APPLY CHANGES FOR ADHOC COMPONETS
+        if self._adhoc_component:
+            for row in self.get("earnings"):
+                if row.get("abbr") in self._adhoc_component:
+                    row.amount = self._adhoc_component[row.get("abbr")]
+                    self.default_data[row.abbr] = flt(row.amount)
+                    self.data[row.abbr] = flt(row.amount)
+
+        changes_component_abbr_list = []
+        if self._salary_structure_doc and (self._change_components or adhoc_component_list):
+            changes_component_abbr_list = frappe.get_all(
+                "Salary Detail",
+                filters={"parent": self.name, "name": ["in", self._change_components]},
+                pluck="abbr",
+            )
+            if adhoc_component_list:
+                changes_component_abbr_list.extend(adhoc_component_list)
+
+        self.evaluate_and_update_structure_formula("earnings", changes_component_abbr_list)
+
+        #! UPDATE REMAINING SUB-PERIOD DETAILS
+        if self.payroll_period:
+            self.remaining_sub_periods = get_period_factor(
+                self.employee,
+                self.start_date,
+                self.end_date,
+                self.payroll_frequency,
+                self.payroll_period,
+                joining_date=self.joining_date,
+                relieving_date=self.relieving_date,
+            )[1]
+
+        #! FINAL GROSS CALCULATION
+        set_gross_pay_and_base_gross_pay()
+
+        #! DEDUCTION CALCULATION
+        if self.salary_structure:
+            self.calculate_component_amounts("deductions")
+
+
+        #? APPLY CHANGES FOR DEDUCTION COMPONENTS
+        if self._change_components:
+            for row in self.get("deductions"):
+                if row.get("name") in self._change_components:
+                    row.amount = self._change_components[row.get("name")]
+                    self.default_data[row.abbr] = flt(row.amount)
+                    self.data[row.abbr] = flt(row.amount)
+
+        # ? APPLY CHANGES FOR ADHOC COMPONETS
+        if self._adhoc_component:
+            for row in self.get("deductions"):
+                if row.get("abbr") in self._adhoc_component:
+                    row.amount = self._adhoc_component[row.get("abbr")]
+                    self.default_data[row.abbr] = flt(row.amount)
+                    self.data[row.abbr] = flt(row.amount)
+
+        # Evaluate deduction structure formula
+        self.evaluate_and_update_structure_formula("deductions", changes_component_abbr_list)
+
+        #! FINAL STEPS (UNCHANGED DEFAULT LOGIC)
+        set_loan_repayment(self)
+        self.set_precision_for_component_amounts()
+        self.set_net_pay()
+
+        if not skip_tax_breakup_computation:
+            self.compute_income_tax_breakup()
+
+
+    def get_data_for_eval(self):
+        """Returns data for evaluating formula"""
+        data = frappe._dict()
+        employee = frappe.get_cached_doc("Employee", self.employee).as_dict()
+
+        if not hasattr(self, "_salary_structure_assignment"):
+            self.set_salary_structure_assignment()
+
+        data.update(self._salary_structure_assignment)
+        data.update(self.as_dict())
+        data.update(employee)
+        data.update(self.get_component_abbr_map())
+
+        # Shallow copy of data to store default amounts (without payment days) for tax calculation
+        default_data = data.copy()
+
+        for key in ("earnings", "deductions"):
+            for d in self.get(key):
+                default_data[d.abbr] += d.default_amount or 0
+                data[d.abbr] += d.amount or 0
+
+        return data, default_data
+    
+
+    def evaluate_and_update_structure_formula(self, section_name, changes_component_abbr_list):
+        for struct_row in self._salary_structure_doc.get(section_name):
+            #! EVALUATE STRUCTURE FORMULA LOGIC (UNCHANGED FROM DEFAULT)
+            if struct_row.get("abbr") not in changes_component_abbr_list:
+                amount = self.eval_condition_and_formula(struct_row, self.data)
+                if struct_row.statistical_component:
+                    self.default_data[struct_row.abbr] = flt(amount)
+                    if struct_row.depends_on_payment_days:
+                        payment_days_amount = (
+                            flt(amount) * flt(self.payment_days) / cint(self.total_working_days)
+                            if self.total_working_days
+                            else 0
+                        )
+                        self.data[struct_row.abbr] = flt(payment_days_amount, struct_row.precision("amount"))
+                else:
+                    remove_if_zero_valued = frappe.get_cached_value(
+                        "Salary Component", struct_row.salary_component, "remove_if_zero_valued"
+                    )
+
+                    default_amount = 0
+                    if (
+                        amount
+                        or (struct_row.amount_based_on_formula and amount is not None)
+                        or (not remove_if_zero_valued and amount is not None and not self.data[struct_row.abbr])
+                    ):
+                        default_amount = self.eval_condition_and_formula(struct_row, self.default_data)
+                        self.update_component_row(
+                            struct_row,
+                            amount,
+                            section_name,
+                            data=self.data,
+                            default_amount=default_amount,
+                            remove_if_zero_valued=remove_if_zero_valued,
+                        )
+
+    def get_component_totals(self, component_type, depends_on_payment_days=0):
+        total = 0.0
+
+        for d in self.get(component_type):
+            if not d.do_not_include_in_total and not d.statistical_component:
+                amount = flt(d.amount, d.precision("amount"))   
+                total += amount
+
+        return total
+    
+    def verify_duplicate_component_entry(self):
+        """
+        #! FUNCTION TO DETECT AND MERGE DUPLICATE COMPONENT ENTRIES
+        #? SCANS BOTH 'earnings' AND 'deductions' TABLES.
+        #? MERGES AMOUNTS OF DUPLICATES AND DISPLAYS A MESSAGE.
+        """
+
+        for table in ["earnings", "deductions"]:
+            rows = self.get(table)
+            if not rows:
+                continue
+
+            abbr_map = {}
+            duplicates_found = []
+
+            #! STEP 1: GROUP BY ABBR
+            for row in rows:
+                abbr = row.get("abbr")
+                if not abbr:
+                    continue
+
+                if abbr not in abbr_map:
+                    abbr_map[abbr] = [row]
+                else:
+                    abbr_map[abbr].append(row)
+
+            #! STEP 2: MERGE DUPLICATES
+            for abbr, row_list in abbr_map.items():
+                if len(row_list) > 1:
+                    #? SUM ALL AMOUNTS
+                    total_amount = sum(flt(r.amount) for r in row_list)
+                    #? KEEP FIRST ROW
+                    main_row = row_list[0]
+                    main_row.amount = total_amount
+                    main_row.custom_is_manually_modified = 1
+                    #? DELETE DUPLICATE ROWS
+                    for dup_row in row_list[1:]:
+                        self.remove(dup_row)
+
+                    duplicates_found.append(f"Component - {row.salary_component} (merged {len(row_list)} rows)")
+
+            #! STEP 3: DISPLAY MESSAGE
+            if duplicates_found:
+                frappe.msgprint(
+                    msg=(
+                        f"<b>Duplicate Components Merged in {table.title()}:</b><br>"
+                        + "<br>".join(duplicates_found)
+                    ),
+                    title="Duplicate Components Found",
+                    indicator="blue",
                 )

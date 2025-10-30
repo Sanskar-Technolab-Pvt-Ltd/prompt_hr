@@ -6,6 +6,9 @@ def send_interview_schedule_notification(name, applicant_name):
     if not doc:
         frappe.throw("Interview document not found.")
 
+    # Track number of notifications sent
+    sent_count = 0
+    
     # Internal Interviewers
     interviewers = frappe.get_all(
         "Interview Detail",
@@ -14,7 +17,7 @@ def send_interview_schedule_notification(name, applicant_name):
     )
     notification = frappe.get_doc("Notification", "Notify Interviewer")
     for interviewer in interviewers:
-        if interviewer.custom_interviewer_employee:
+        if interviewer.custom_interviewer_employee and not interviewer.custom_is_confirm:
             try:
                 # if not interviewer.custom_is_confirm:
                 employee = frappe.get_doc("Employee", interviewer.custom_interviewer_employee)
@@ -24,14 +27,18 @@ def send_interview_schedule_notification(name, applicant_name):
                     frappe.share.add(doc.doctype, doc.name, employee.user_id, read=1)
                         
                     if user_email:
+                        interview_feedback = frappe.db.get_value("Interview Feedback", {
+                            "interview": doc.name,
+                            "interviewer": employee.user_id
+                        })
                         frappe.sendmail(
                             recipients=[user_email],
-                            message = frappe.render_template(notification.message, {"doc": doc,"interviewer": interviewer.custom_interviewer_name}),
+                            message = frappe.render_template(notification.message, {"doc": doc,"interviewer": interviewer.custom_interviewer_name, "feedback_name": interview_feedback}),
                             subject = frappe.render_template(notification.subject, {"doc": doc}),
                             reference_doctype=doc.doctype,
                             reference_name=doc.name,
-                            # now=True
                     )
+                    sent_count += 1
                 interviewer.reload()
 
             except Exception as e:
@@ -45,7 +52,7 @@ def send_interview_schedule_notification(name, applicant_name):
     )
 
     for interviewer in external_interviewers:
-        if interviewer.custom_user:
+        if interviewer.custom_user and not interviewer.is_confirm:
             try:
                 supplier = frappe.get_doc("Supplier", interviewer.custom_user)
                 if supplier.custom_user:
@@ -61,11 +68,13 @@ def send_interview_schedule_notification(name, applicant_name):
                                 reference_name=doc.name,
                                 # now=True
                             )
+                            sent_count += 1
                         interviewer.reload()
             except Exception as e:
                 frappe.log_error(f"Failed to send external email: {e}", "Interview Notification Error")
 
-    return "Notification sent to interviewers successfully."
+    if sent_count > 0:
+        return "Notification sent to interviewers successfully."
 
 @frappe.whitelist()
 def send_notification_to_hr_manager(name, company, user):

@@ -58,7 +58,33 @@ async function checkUserEligibility(frm, rowDoc, tableName) {
         rowDoc?.user_allowed_to_modify_status === user ||
         hasApprovalRoleStatus || is_hr || user === "Administrator" || hasRMStatus;
 
-    return { canModifyApproval, canModifyStatus };
+    let approval_by = "";
+    if (rowDoc?.user_allowed_to_modify_approval_status === user) {
+        approval_by = "direct_user";
+    } else if (hasApprovalRole) {
+        approval_by = "approval_role";
+    } else if (is_hr) {
+        approval_by = "is_hr";
+    } else if (user === "Administrator") {
+        approval_by = "admin";
+    } else if (hasRMApproval) {
+        approval_by = "reporting_manager";
+    }
+
+    let status_by = "";
+    if (rowDoc?.user_allowed_to_modify_status === user) {
+        status_by = "direct_user";
+    } else if (hasApprovalRoleStatus) {
+        status_by = "status_role";
+    } else if (is_hr) {
+        status_by = "is_hr";
+    } else if (user === "Administrator") {
+        status_by = "admin";
+    } else if (hasRMStatus) {
+        status_by = "reporting_manager";
+    }
+
+    return { canModifyApproval, canModifyStatus, approval_by, status_by };
 }
 
 async function make_border_red_for_user_eligible_for_approval_process(frm) {
@@ -77,17 +103,19 @@ async function make_border_red_for_user_eligible_for_approval_process(frm) {
             const $row = $(row.row);
             $row.css("border", "");
 
-            const { canModifyApproval, canModifyStatus } = await checkUserEligibility(frm, rowDoc, tableName);
+            const { canModifyApproval, canModifyStatus, approval_by, status_by } = await checkUserEligibility(frm, rowDoc, tableName);
 
             // Handle status field placeholder  
             const $statusStatic = $row.find("div[data-fieldname='status'] .static-area");
             if (!rowDoc?.status && canModifyStatus) {
-                $statusStatic.text("Please Fill Value")
-                    .css({
-                        color: "red",
-                        "font-weight": "bold",
-                        "font-style": "italic"
-                    });
+                if (status_by !== "is_hr" && status_by !== "Administrator") {
+                    $statusStatic.text("Please Fill Value")
+                        .css({
+                            color: "red",
+                            "font-weight": "bold",
+                            "font-style": "italic"
+                        });
+                }
             } else {
                 $statusStatic.text(rowDoc?.status || "")
                     .css({
@@ -100,12 +128,14 @@ async function make_border_red_for_user_eligible_for_approval_process(frm) {
             // Handle approval_status field placeholder  
             const $approvalStatic = $row.find("div[data-fieldname='approval_status'] .static-area");
             if (rowDoc?.approval_status === "Pending" && canModifyApproval) {
-                $approvalStatic.text("Action Required")
-                    .css({
-                        color: "red",
-                        "font-weight": "bold",
-                        "font-style": "italic"
-                    });
+                if (approval_by !== "is_hr" && approval_by !== "Administrator") {
+                    $approvalStatic.text("Action Required")
+                        .css({
+                            color: "red",
+                            "font-weight": "bold",
+                            "font-style": "italic"
+                        });
+                    }
             } else {
                 $approvalStatic.text(rowDoc?.approval_status || "")
                     .css({
@@ -117,7 +147,9 @@ async function make_border_red_for_user_eligible_for_approval_process(frm) {
 
             // Add red border for eligible rows  
             if (canModifyApproval && rowDoc?.approval_status !== "Approved") {
-                $row.css("border", "2px solid red");
+                if (approval_by !== "is_hr" && approval_by !== "Administrator") {
+                    $row.css("border", "2px solid red");
+                }
             }
         }
     }
@@ -136,17 +168,20 @@ async function set_approval_status_and_status_readonly(frm) {
             const rowDoc = row?.doc;
             if (!rowDoc) continue;
 
-            const { canModifyApproval, canModifyStatus } = await checkUserEligibility(frm, rowDoc, tableName);
+            const { canModifyApproval, canModifyStatus, approval_by, status_by } = await checkUserEligibility(frm, rowDoc, tableName);
 
             // Set readonly on docfield (affects form view)  
-            row.docfields.forEach(df => {
-                if (df.fieldname === 'approval_status') {
-                    df.read_only = !canModifyApproval ? 1 : 0;
-                }
-                if (df.fieldname === 'status') {
-                    df.read_only = !canModifyStatus ? 1 : 0;
-                }
-            });
+            if (rowDoc?.no_response_to_be_filled_in_approval_status) {
+                frm.set_df_property(tableName, "read_only", 1, rowDoc?.doctype, "approval_status", rowDoc?.name);
+            } else {
+                frm.set_df_property(tableName, "read_only", !canModifyApproval ? 1 : 0, rowDoc?.doctype, "approval_status", rowDoc?.name);
+            }
+
+            if (rowDoc?.no_response_to_be_filled_in_status) {
+                frm.set_df_property(tableName, "read_only", 1, rowDoc?.doctype, "status", rowDoc?.name);
+            } else {
+                frm.set_df_property(tableName, "read_only", !canModifyStatus ? 1 : 0, rowDoc?.doctype, "status", rowDoc?.name);
+            }
 
             // Refresh grid form if open  
             if (row.grid_form) {
@@ -156,7 +191,7 @@ async function set_approval_status_and_status_readonly(frm) {
             // Handle collapsed row (grid view)  
             const $row = $(row.row);
 
-            if (!canModifyApproval) {
+            if (!canModifyApproval || rowDoc?.no_response_to_be_filled_in_approval_status) {
                 $row.find('[data-fieldname="approval_status"]').css({
                     "pointer-events": "none",
                     "opacity": 0.6,
@@ -170,7 +205,7 @@ async function set_approval_status_and_status_readonly(frm) {
                 });
             }
 
-            if (!canModifyStatus) {
+            if (!canModifyStatus || rowDoc?.no_response_to_be_filled_in_status) {
                 $row.find('[data-fieldname="status"]').css({
                     "pointer-events": "none",
                     "opacity": 0.6,

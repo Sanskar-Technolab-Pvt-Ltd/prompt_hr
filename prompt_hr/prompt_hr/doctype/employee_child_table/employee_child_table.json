@@ -13,6 +13,7 @@
   {
    "fieldname": "employee",
    "fieldtype": "Link",
+   "ignore_user_permissions": 1,
    "in_list_view": 1,
    "label": "Employee",
    "options": "Employee"
@@ -21,6 +22,7 @@
    "fetch_from": "employee.employee_name",
    "fieldname": "employee_name",
    "fieldtype": "Data",
+   "ignore_user_permissions": 1,
    "in_list_view": 1,
    "label": "Employee Name"
   }
@@ -29,7 +31,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-10-08 17:07:51.969359",
+ "modified": "2025-10-17 11:49:22.010980",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Child Table",

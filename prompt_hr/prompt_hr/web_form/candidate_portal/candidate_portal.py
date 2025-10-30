@@ -122,6 +122,10 @@ def update_candidate_portal(doc):
         # ? FETCH DOCUMENT OR THROW IF NOT FOUND
         portal_doc = frappe.get_doc("Candidate Portal", doc_name)
 
+        # ? FETCh JOB APPLICANT
+        job_applicant = portal_doc.get("applicant_email")
+        job_applicant_doc = frappe.get_doc("Job Applicant", job_applicant) if job_applicant else None
+
         # ? UPDATE JOB OFFER IF EXISTS
         job_offer = frappe.db.get_value("Candidate Portal", doc_name, "job_offer")
         if job_offer:
@@ -140,6 +144,8 @@ def update_candidate_portal(doc):
             
             # ? RESET EXISTING documents CHILD TABLE
             portal_doc.set("documents", [])
+            if job_applicant_doc:
+                job_applicant_doc.set("custom_documents", [])
             
             # ? APPEND EACH DOCUMENT ENTRY
             for row in documents:
@@ -147,7 +153,10 @@ def update_candidate_portal(doc):
                     row["upload_date"] = frappe.utils.now()
                     row["upload_time"] = frappe.utils.now()
                     row["ip_address_on_document_upload"] = frappe.local.request_ip
+                    row.pop('name', None)
                     portal_doc.append("documents", row)
+                    if job_applicant_doc:
+                        job_applicant_doc.append("custom_documents", row.copy())
 
         # ? UPDATE new_joinee_documents CHILD TABLE
         new_joinee_documents = doc.get("new_joinee_documents")
@@ -179,6 +188,7 @@ def update_candidate_portal(doc):
 
         # ? SAVE DOCUMENT WITH IGNORED PERMISSIONS
         portal_doc.save(ignore_permissions=True)
+        job_applicant_doc.save(ignore_permissions=True)
 
         # ? SEND MAIL TO HR
         try:
