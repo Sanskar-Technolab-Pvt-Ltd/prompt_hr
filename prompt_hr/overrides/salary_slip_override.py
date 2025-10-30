@@ -174,6 +174,7 @@ class CustomSalarySlip(SalarySlip):
             salary_structure = frappe.get_doc("Salary Structure", self.salary_structure)
             # ? IF CUSTOM ADHOC SALARY DETAILS PRESENT ADD IT TO SALARY SLIP
             if payroll_entry.custom_adhoc_salary_details:
+                adhoc_component_list = []
                 for entry in payroll_entry.custom_adhoc_salary_details or []:
                     # * Only process entries for the current employee
                     if entry.employee == self.employee:
@@ -194,8 +195,14 @@ class CustomSalarySlip(SalarySlip):
                             if row.salary_component == entry.salary_component:
                                 slip_row = row
                                 break
+                        
+                        if slip_row and structure_row:
+                            # * Case 1: Exists in both structure and slip → update amount
+                            slip_row.amount = flt(slip_row.amount) + flt(entry.amount)
+                            slip_row.custom_is_manually_modified = 1
+                            adhoc_component_list.append(slip_row.abbr)
 
-                        if slip_row and not structure_row:
+                        elif slip_row and not structure_row:
                             # * Case 2: Manually added (not in structure) → skip
                             continue
 
@@ -204,11 +211,14 @@ class CustomSalarySlip(SalarySlip):
                             self.append(comp_type, {
                                 "salary_component": entry.salary_component,
                                 "amount": flt(entry.amount),
-                                "abbr": component.salary_component_abbr or ""
+                                "abbr": component.salary_component_abbr or "",
+                                "custom_is_manually_modified": 1
                             })
+                            if component.salary_component_abbr:
+                                adhoc_component_list.append(component.salary_component_abbr)
 
                 # * Update gross pay and totals
-                self.calculate_net_pay(add_adhoc_component = True)
+                self.calculate_net_pay(add_adhoc_component = True, adhoc_component_list= adhoc_component_list)
                 self.compute_year_to_date()
                 self.compute_month_to_date()
                 self.compute_component_wise_year_to_date()
@@ -409,10 +419,10 @@ class CustomSalarySlip(SalarySlip):
                     },
                 )
 
-    def calculate_net_pay(self, skip_tax_breakup_computation: bool = False, add_adhoc_component=False):
+    def calculate_net_pay(self, skip_tax_breakup_computation: bool = False, add_adhoc_component=False, adhoc_component_list = []):
         #! RESET THE CHANGE TRACKER FOR COMPONENTS
         self._change_components = {}
-
+        self._adhoc_component = {}
         #? COMPARE OLD VS NEW DOCUMENT TO DETECT CHANGED COMPONENTS
         if not self.is_new():
             old_doc = frappe.get_doc(self.doctype, self.name)
@@ -435,7 +445,7 @@ class CustomSalarySlip(SalarySlip):
                         new_value = row.get("amount")
 
                         #? MARK CHANGED ROW AND TRACK ABBR
-                        if old_value != new_value and old_row.get("abbr") == row.get("abbr"):
+                        if old_value != new_value and old_row.get("abbr") == row.get("abbr") and not old_row.get('custom_is_manually_modified'):
                             self._change_components[row.name] = row.get("amount")
                             row.custom_is_manually_modified = 1
                             modified_abbrs.add(row.get("abbr"))
@@ -449,6 +459,22 @@ class CustomSalarySlip(SalarySlip):
 
             detect_changes("earnings")
             detect_changes("deductions")
+
+        elif self.is_new() and add_adhoc_component and adhoc_component_list:
+            #! FUNCTION TO POPULATE CHANGED COMPONENTS (COMMON FOR EARNINGS & DEDUCTIONS)
+            def add_adhoc_component_changes(child_table):
+                #? STEP 1: TEMPORARY STORAGE FOR MODIFIED ABBRs
+                modified_abbrs = set()
+                #! STEP 2: INITIAL LOOP — DETECT CHANGES
+                for row in self.get(child_table):
+                    if row.custom_is_manually_modified:
+                        self._adhoc_component[row.abbr] = row.get("amount")
+                        modified_abbrs.add(row.get("abbr"))
+                        continue
+
+            add_adhoc_component_changes("earnings")
+            add_adhoc_component_changes("deductions")
+
 
         #! FUNCTION TO SET GROSS PAY AND BASE GROSS PAY
         def set_gross_pay_and_base_gross_pay():
@@ -468,13 +494,22 @@ class CustomSalarySlip(SalarySlip):
                 if row.get("name") in self._change_components:
                     row.amount = self._change_components[row.get("name")]
 
+
+        # ? APPLY CHANGES FOR ADHOC COMPONETS
+        if self._adhoc_component:
+            for row in self.get("earnings"):
+                if row.get("abbr") in self._adhoc_component:
+                    row.amount = self._adhoc_component[row.get("abbr")]
+
         changes_component_abbr_list = []
-        if self._salary_structure_doc and (self._change_components or add_adhoc_component):
+        if self._salary_structure_doc and (self._change_components or adhoc_component_list):
             changes_component_abbr_list = frappe.get_all(
                 "Salary Detail",
                 filters={"parent": self.name, "name": ["in", self._change_components]},
                 pluck="abbr",
             )
+            if adhoc_component_list:
+                changes_component_abbr_list.extend(adhoc_component_list)
             
         self.evaluate_and_update_structure_formula("earnings", changes_component_abbr_list)
 
@@ -504,7 +539,12 @@ class CustomSalarySlip(SalarySlip):
                 if row.get("name") in self._change_components:
                     row.amount = self._change_components[row.get("name")]
 
-        
+        # ? APPLY CHANGES FOR ADHOC COMPONETS
+        if self._adhoc_component:
+            for row in self.get("deductions"):
+                if row.get("abbr") in self._adhoc_component:
+                    row.amount = self._adhoc_component[row.get("abbr")]
+
         # Evaluate deduction structure formula
         self.evaluate_and_update_structure_formula("deductions", changes_component_abbr_list)
 
@@ -542,9 +582,9 @@ class CustomSalarySlip(SalarySlip):
     
 
     def evaluate_and_update_structure_formula(self, section_name, changes_component_abbr_list):
+        data, default_data = self.get_data_for_eval()
         for struct_row in self._salary_structure_doc.get(section_name):
             #! EVALUATE STRUCTURE FORMULA LOGIC (UNCHANGED FROM DEFAULT)
-            data, default_data = self.get_data_for_eval()
             if struct_row.get("abbr") not in changes_component_abbr_list:
                 amount = self.eval_condition_and_formula(struct_row, data)
                 if struct_row.statistical_component:
@@ -558,10 +598,9 @@ class CustomSalarySlip(SalarySlip):
                         data[struct_row.abbr] = flt(payment_days_amount, struct_row.precision("amount"))
                 else:
                     remove_if_zero_valued = frappe.get_cached_value(
-                        "Salary Component",
-                        struct_row.salary_component,
-                        "remove_if_zero_valued",
+                        "Salary Component", struct_row.salary_component, "remove_if_zero_valued"
                     )
+
                     default_amount = 0
                     if (
                         amount
@@ -569,16 +608,14 @@ class CustomSalarySlip(SalarySlip):
                         or (not remove_if_zero_valued and amount is not None and not data[struct_row.abbr])
                     ):
                         default_amount = self.eval_condition_and_formula(struct_row, default_data)
-
-                    row = next((d for d in self.get(section_name) if d.salary_component == struct_row.salary_component), None)
-                    if row:
-                        if struct_row.depends_on_payment_days:
-                            amount = (
-                                flt(amount) * flt(self.payment_days) / cint(self.total_working_days)
-                                if self.total_working_days
-                                else 0
-                            )
-                        row.amount = amount or default_amount or 0
+                        self.update_component_row(
+                            struct_row,
+                            amount,
+                            section_name,
+                            data=data,
+                            default_amount=default_amount,
+                            remove_if_zero_valued=remove_if_zero_valued,
+                        )
 
     def get_component_totals(self, component_type, depends_on_payment_days=0):
         total = 0.0
