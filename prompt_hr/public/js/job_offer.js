@@ -12,7 +12,7 @@ frappe.ui.form.on('Job Offer', {
         const hr_system_roles = ["System Manager", ...hr_roles];
         if (is_candidate) {
             handle_candidate_access(frm);
-        } else if (hr_system_roles || frappe.session.user == "Administrator") {
+        } else if ((hr_system_roles || frappe.session.user == "Administrator") && frm.doc.workflow_state == "Approved") {
             // ? SHOW RELEASE JOB OFFER BUTTON ONLY TO HR ROLES
             add_release_offer_button(frm);
         }
@@ -29,22 +29,24 @@ frappe.ui.form.on('Job Offer', {
         viewCandidatePortalButton(frm)
 
         // ? ADD RELEASE LOI LETTER BUTTON
-        frm.add_custom_button(__("Release LOI Letter"), function () {
-            frappe.dom.freeze(__('Releasing Letter...'));
-            frappe.call({
-                method: "prompt_hr.py.job_offer.send_LOI_letter",
-                args: { name: frm.doc.name },
-                callback: function (r) {
-                    if (r.message) {
-                        frappe.msgprint(r.message);
-                        frm.reload_doc();
+        if (frm.doc.workflow_state == "Approved") {
+            frm.add_custom_button(__("Release LOI Letter"), function () {
+                frappe.dom.freeze(__('Releasing Letter...'));
+                frappe.call({
+                    method: "prompt_hr.py.job_offer.send_LOI_letter",
+                    args: { name: frm.doc.name },
+                    callback: function (r) {
+                        if (r.message) {
+                            frappe.msgprint(r.message);
+                            frm.reload_doc();
+                        }
+                    },
+                    always: function () {
+                        frappe.dom.unfreeze();
                     }
-                },
-                always: function () {
-                    frappe.dom.unfreeze();
-                }
-            });
-        }, 'Offer Actions');
+                });
+            }, 'Offer Actions');
+        }
         
     }
 });

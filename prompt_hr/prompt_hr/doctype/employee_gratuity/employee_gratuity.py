@@ -96,7 +96,7 @@ class EmployeeGratuity(Document):
         #! STEP 1: GET ALL USERS WITH 'Accounts User' ROLE
         role_users = frappe.get_all(
             "Has Role",
-            filters={"role": "S - Payroll Accounting"},
+            filters={"role": "Accounts User"},
             fields=["parent"],
             distinct=True
         )
