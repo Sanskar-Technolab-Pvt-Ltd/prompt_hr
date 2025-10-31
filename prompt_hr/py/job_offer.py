@@ -8,6 +8,9 @@ from prompt_hr.py.utils import create_hash,send_notification_email
 def after_insert(doc, method):
     sync_candidate_portal_from_job_offer(doc)
 
+def on_cancel(doc, method=None):
+    if doc.workflow_state:
+        doc.workflow_state = "Cancelled"
 
 # ? SYNC CANDIDATE RESPONSE FIELDS FROM PORTAL TO JOB OFFER
 @frappe.whitelist()

@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-10-31 12:36:11.178158",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Candidate Portal",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "Dear {{ doc.applicant_name or \"Candidate\"}},<br><br>\n\nYour Candidate Portal has been updated. You can log in and review the latest changes.<br><br>\n\n<b>Details:</b><br>\n- Candidate Name: {{ doc.applicant_name or\"Candidate\" }}<br>\n- Updated On: {{ frappe.utils.format_datetime(doc.modified) }}<br><br>\n\nRegards,<br>\nHR Team\n",
+ "message_type": "HTML",
+ "modified": "2025-10-31 15:01:42.703293",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Candidate Portal Update Notification To Candidate",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "Candidate Portal Updated - {{ doc.applicant_name }}"
+}

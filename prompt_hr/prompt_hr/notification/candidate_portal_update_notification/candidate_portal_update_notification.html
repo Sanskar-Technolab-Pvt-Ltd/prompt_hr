@@ -1,0 +1,12 @@
+Candidate Portal for <b>{{ doc.applicant_name }}</b> has been updated.<br>
+{% set portal_link = frappe.utils.get_url_to_form(doc.doctype, doc.name) %}
+{% if portal_link %}
+    You may review the details using the link below:<br><br>
+    
+    <a href="{{ portal_link }}" target="_blank">
+        View Candidate Portal
+    </a><br><br>
+{% endif %}
+
+Regards,<br>
+HR Team

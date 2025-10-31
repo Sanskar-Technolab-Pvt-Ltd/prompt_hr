@@ -8,7 +8,7 @@ def send_esic_challan_notification(report_name, url):
     users_with_roles = frappe.get_all(
         "Has Role",
         filters={
-            "role": ["in", ["Accounts User", "Accounts Manager"]],
+            "role": ["in", ["S - Payroll Accounting", "Accounts Manager"]],
             "parenttype": "User"
         },
         fields=["parent as user"],

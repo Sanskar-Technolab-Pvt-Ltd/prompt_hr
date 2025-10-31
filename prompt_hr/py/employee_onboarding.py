@@ -131,7 +131,7 @@ def allocate_imprest_amount(doc):
                         row
                         for row in doc.activities
                         if not (
-                            row.get("role") == "Accounts User"
+                            row.get("role") == "S - Payroll Accounting"
                             and row.get("custom_checklist_record") == doc.name
                         )
                     ],
@@ -157,7 +157,7 @@ def add_accounts_user_row_for_imprest_allocation(doc):
                 )
 
             exists = any(
-                row.get("role") == "Accounts User"
+                row.get("role") == "S - Payroll Accounting"
                 and row.get("custom_checklist_record") == doc.name
                 for row in doc.activities
             )
@@ -169,7 +169,7 @@ def add_accounts_user_row_for_imprest_allocation(doc):
                         "activity_name": "Imprest Allocation",
                         "custom_checklist_name": doc.doctype,
                         "custom_checklist_record": doc.name,
-                        "role": "Accounts User",
+                        "role": "S - Payroll Accounting",
                         "duration": 0,
                         "begin_on": 0,
                     },

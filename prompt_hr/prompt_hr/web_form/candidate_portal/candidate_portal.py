@@ -110,6 +110,7 @@ def update_job_offer(
 @frappe.whitelist(allow_guest=True)
 def update_candidate_portal(doc):
     try:
+        frappe.flags.in_web_form = True
         # ? PARSE JSON IF COMING AS STRING
         if isinstance(doc, str):
             doc = frappe.parse_json(doc)
