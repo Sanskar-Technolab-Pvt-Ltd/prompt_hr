@@ -48,6 +48,7 @@
   {
    "fieldname": "employee",
    "fieldtype": "Link",
+   "in_standard_filter": 1,
    "label": "Employee",
    "options": "Employee"
   },
@@ -61,6 +62,7 @@
    "fetch_from": "employee.department",
    "fieldname": "department",
    "fieldtype": "Link",
+   "in_standard_filter": 1,
    "label": "Department",
    "options": "Department"
   },
@@ -68,6 +70,7 @@
    "fetch_from": "employee.designation",
    "fieldname": "designation",
    "fieldtype": "Data",
+   "in_standard_filter": 1,
    "label": "Designation"
   },
   {
@@ -97,6 +100,7 @@
    "fetch_from": "employee.reports_to",
    "fieldname": "reporting_manager",
    "fieldtype": "Link",
+   "in_standard_filter": 1,
    "label": "Reporting Manager",
    "options": "Employee"
   },
@@ -249,7 +253,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-10-16 19:44:50.443442",
+ "modified": "2025-10-31 13:42:13.337482",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Probation Feedback Form",
