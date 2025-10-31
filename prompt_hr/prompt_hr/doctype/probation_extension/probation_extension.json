@@ -53,9 +53,10 @@
   },
   {
    "fieldname": "extended_period",
-   "fieldtype": "Int",
+   "fieldtype": "Select",
    "in_list_view": 1,
-   "label": "Extended Period(In Days)"
+   "label": "Extended Period(In Days)",
+   "options": "\n30 Days\n60 Days\n90 Days"
   },
   {
    "fieldname": "confirmation_evaluation_form",
@@ -69,7 +70,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-10-09 11:46:21.010490",
+ "modified": "2025-10-31 12:58:25.752983",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Probation Extension",

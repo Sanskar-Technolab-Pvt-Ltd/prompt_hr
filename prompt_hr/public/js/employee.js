@@ -313,7 +313,19 @@ frappe.ui.form.on("Probation Extension", {
         let row = locals[cdt][cdn]
 
         if (row.probation_end_date && row.extended_period) {
-            row.extended_date = frappe.datetime.add_days(row.probation_end_date, row.extended_period)
+            extended_days = 0
+            if (row.extended_period == "30 Days") {
+                extended_days = 30;
+            }
+            else if (row.extended_period == "60 Days") {
+                extended_days = 60;
+            }
+            else if (row.extended_period == "90 Days") {
+                extended_days = 90;
+            }
+
+            
+            row.extended_date = frappe.datetime.add_days(row.probation_end_date, extended_days)
             frm.refresh_field("custom_probation_extension_details")
         }
 
@@ -322,11 +334,21 @@ frappe.ui.form.on("Probation Extension", {
         let row = locals[cdt][cdn]
 
         if (row.probation_end_date && row.extended_period) {
-            row.extended_date = frappe.datetime.add_days(row.probation_end_date, row.extended_period)
+            extended_days = 0
+            if (row.extended_period == "30 Days") {
+                extended_days = 30;
+            }
+            else if (row.extended_period == "60 Days") {
+                extended_days = 60;
+            }
+            else if (row.extended_period == "90 Days") {
+                extended_days = 90;
+            }
+            
+            row.extended_date = frappe.datetime.add_days(row.probation_end_date, extended_days)
             frm.refresh_field("custom_probation_extension_details")
         }
     }
-
 })
 
 

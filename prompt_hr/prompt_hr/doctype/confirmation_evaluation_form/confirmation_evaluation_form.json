@@ -227,9 +227,10 @@
   {
    "depends_on": "eval: doc.confirmed_by_rh === \"No\" && doc.further_to_by_rh === \"Extend\";",
    "fieldname": "extension_period_by_rh",
-   "fieldtype": "Int",
+   "fieldtype": "Select",
    "label": "Extension Period (in Days)",
-   "mandatory_depends_on": "eval: doc.confirmed_by_rh === \"No\" && doc.further_to_by_rh === \"Extend\";"
+   "mandatory_depends_on": "eval: doc.confirmed_by_rh === \"No\" && doc.further_to_by_rh === \"Extend\";",
+   "options": "\n30 Days\n60 Days\n90 Days"
   },
   {
    "depends_on": "eval: doc.confirmed_by_rh === \"No\" && doc.further_to_by_rh === \"Terminate\";",
@@ -292,9 +293,10 @@
   {
    "depends_on": "eval: doc.confirmed_by_dh === \"No\" && doc.further_to_by_dh === \"Extend\";",
    "fieldname": "extension_period_by_dh",
-   "fieldtype": "Int",
+   "fieldtype": "Select",
    "label": "Extension Period (in Days)",
-   "mandatory_depends_on": "eval: doc.confirmed_by_dh === \"No\" && doc.further_to_by_dh === \"Extend\";"
+   "mandatory_depends_on": "eval: doc.confirmed_by_dh === \"No\" && doc.further_to_by_dh === \"Extend\";",
+   "options": "\n30 Days\n60 Days\n90 Days"
   },
   {
    "depends_on": "eval: doc.confirmed_by_dh === \"No\" && doc.further_to_by_dh === \"Terminate\";",
@@ -334,7 +336,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-16 12:53:39.356278",
+ "modified": "2025-10-31 12:58:38.099308",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Confirmation Evaluation Form",
