@@ -103,7 +103,6 @@ def attendance_calendar_list(
     limit_start=0,
 ):
     try:
-        employee = "HR-EMP-00001"
         if not employee:
             frappe.throw("Employee is required")
 
