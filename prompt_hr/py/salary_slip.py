@@ -398,7 +398,7 @@ def cancel_loan_repayment_amount(salary_slip_doc, method):
 @frappe.whitelist()
 def send_salary_slip(salary_slip_id, from_date, to_date, company):
     try:
-        account_user_users = frappe.db.get_all("Has Role", {"role": "Accounts User", "parenttype": "User", "parent": ["not in", ["Administrator"]]}, ["parent"])
+        account_user_users = frappe.db.get_all("Has Role", {"role": "S - Payroll Accounting", "parenttype": "User", "parent": ["not in", ["Administrator"]]}, ["parent"])
         if account_user_users:                                                
             account_user_emails = [user.get("parent") for user in account_user_users]
             payroll_entry_link = frappe.utils.get_url_to_form("Salary Slip", salary_slip_id)

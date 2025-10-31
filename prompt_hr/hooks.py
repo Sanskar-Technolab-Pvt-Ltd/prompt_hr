@@ -236,6 +236,7 @@ doc_events = {
         "validate": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
         "after_insert": "prompt_hr.py.job_offer.after_insert",
         "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
+        "on_cancel": "prompt_hr.py.job_offer.on_cancel",
     },
     "Employee": {
         "on_update": "prompt_hr.py.employee.on_update",
@@ -378,6 +379,9 @@ scheduler_events = {
         ],
         "0 20 * * *": [
             "prompt_hr.py.employee.update_employee_status_for_indifoss_company"
+        ],
+        "*/15 * * * *": [
+            "prompt_hr.py.interview.send_interview_feedback_notifications"
         ],
         # "0 8 * * *":[
         #     "prompt_hr.scheduler_methods.send_attendance_issue"
