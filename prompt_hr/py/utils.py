@@ -716,7 +716,7 @@ def get_accounting_team_emails(company):
         valid_emails = [
             e.user_id
             for e in employees
-            if e.user_id and has_role(e.user_id, "S - Payroll Accounting")
+            if e.user_id and has_role(e.user_id, "Accounts User")
         ]
         return valid_emails
     except Exception as e:
