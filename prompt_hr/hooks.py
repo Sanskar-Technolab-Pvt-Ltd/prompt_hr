@@ -590,6 +590,9 @@ fixtures = [
     #             "Exit Approval Process - Pending Approval",
     #             "Exit Approval Process - Approved/Rejected by RM",
     #             "Exit Checklist - Pending Completion",
+    #             "Probation Feedback: 30 Days-Pending",
+    #             "Probation Feedback: 60 Days-Pending",
+    #             "Confirmation Evaluation - Pending"
     #         ]]
     #     }
     # }
