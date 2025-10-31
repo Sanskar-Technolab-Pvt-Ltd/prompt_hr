@@ -1,0 +1,8 @@
+<p>Dear Interviewer,</p>
+<p>The interview for <strong>{{ doc.custom_applicant_name }}</strong> has been <b>rescheduled</b>.</p>
+<ul>
+    <li><b>Date:</b> {{ frappe.utils.formatdate(doc.scheduled_on) }}</li>
+    <li><b>From:</b> {{ frappe.utils.format_time(doc.from_time) }}</li>
+    <li><b>To:</b> {{ frappe.utils.format_time(doc.to_time) }}</li>
+</ul>
+<p>Thank you</p>

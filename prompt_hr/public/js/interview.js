@@ -1,5 +1,5 @@
-const original_add_custom_buttons = frappe.ui.form.handlers.Interview?.add_custom_buttons;
 const original_submit_feedback = frappe.ui.form.handlers.Interview?.submit_feedback;
+frappe.ui.form.off("Interview", "add_custom_buttons")
 frappe.ui.form.off("Interview", "submit_feedback")
 frappe.ui.form.on("Interview", {
     custom_template: function (frm) {
@@ -223,26 +223,37 @@ frappe.ui.form.on("Interview", {
                     }
 
                     function showConfirmButton() {
-                        if (frm) {
+                        if (!frm) return;
 
-                            frm.custom_button_added = true;
-                            frm.add_custom_button(__("Confirm"), function () {
-                                frappe.dom.freeze(__('Confirming Your Availability...'));
-                                frappe.call({
-                                    method: "prompt_hr.py.interview_availability.send_notification_to_hr_manager",
-                                    args: {
-                                        name: frm.doc.name,
-                                        company: frm.doc.custom_company,
-                                        user: frappe.session.user
-                                    },
-                                    callback: function (res) {
-                                        frappe.msgprint(res.message || __("Your availability has been confirmed."));
-                                        // ?  RELOAD THE FORM TO REFLECT CHANGES
-                                        frm.reload_doc();
-                                    }
-                                });
-                            }).removeClass('btn-default').addClass('btn btn-primary btn-sm primary-action');
-                        }
+                        // Prevent adding buttons multiple times
+                        if (frm.custom_button_added) return;
+                        frm.custom_button_added = true;
+
+                        // === Add "Confirm" button under dropdown group "Interviewer Action" ===
+                        frm.add_custom_button(__('Confirm'), function() {
+                            frappe.dom.freeze(__('Confirming Your Availability...'));
+                            frappe.call({
+                                method: "prompt_hr.py.interview_availability.send_notification_to_hr_manager",
+                                args: {
+                                    name: frm.doc.name,
+                                    company: frm.doc.custom_company,
+                                    user: frappe.session.user
+                                },
+                                callback: function(res) {
+                                    frappe.msgprint(res.message || __("Your availability has been confirmed."));
+                                    frm.reload_doc(); // reload form after update
+                                    frappe.dom.unfreeze();
+                                }
+                            });
+                        }, __("Interviewer Action"));  //  dropdown group name
+
+
+                        // === Add "Reschedule Interview" button under same dropdown ===
+                        frm.add_custom_button(__('Reschedule Interview'), function() {
+                            frm.events.interviewer_show_reschedule_dialog(frm);
+                        }, __("Interviewer Action"));  // same group
+
+                        frm.custom_button_added = true;
                     }
                 }
             },
@@ -270,19 +281,47 @@ frappe.ui.form.on("Interview", {
     },
     add_custom_buttons: async function (frm) {
 
-        // ?  SKIP IF DOC IS CANCELED OR NOT SAVED
+        // Skip if document is canceled or not saved
         if (frm.doc.docstatus === 2 || frm.doc.__islocal) return;
+
+        // Get current logged-in user ID
+        const current_user = frappe.session.user;
+
+        // Fetch allowed roles from HR Settings
+        let allowed_roles = [];
+        const hr_settings = await frappe.db.get_doc("HR Settings");
+        if (hr_settings && hr_settings.custom_hr_roles_for_recruitment) {
+            allowed_roles = hr_settings.custom_hr_roles_for_recruitment
+                .split(/\r?\n|,/)
+                .map(role => role.trim())        // remove extra spaces
+                .filter(role => role.length > 0); // remove empty lines
+        }
+
+        // Fetch current user's roles from the server
         
-        if (frm.doc.status === "Pending") {
-			frm.add_custom_button(
-				__("Reschedule Interview"),
-				function () {
-					frm.events.show_reschedule_dialog(frm);
-					frm.refresh();
-				},
-				__("Actions"),
-			);
-		}
+        const user_roles = frappe.user_roles || [];
+
+        // Check if any allowed role matches user's roles
+        let has_access = false;
+        for (let i = 0; i < user_roles.length; i++) {       
+            if (allowed_roles.includes(user_roles[i])) {
+                has_access = true;
+                break;
+            }
+        }
+
+        // Show button only if user has access and interview is pending
+        if (has_access && frm.doc.status === "Pending") {
+            frm.add_custom_button(
+                __("Reschedule Interview"),
+                function () {
+                    frm.events.show_reschedule_dialog(frm);
+                    frm.refresh();
+                },
+                __("Actions")
+            );
+        }
+
         // ?  CHECK IF FEEDBACK ALREADY SUBMITTED
         const res = await frappe.db.get_value(
             "Interview Feedback",
@@ -341,6 +380,59 @@ frappe.ui.form.on("Interview", {
 				.tooltip({ delay: { show: 600, hide: 100 }, trigger: "hover" });
 		}
     },
+
+    interviewer_show_reschedule_dialog: function (frm) {
+        let d = new frappe.ui.Dialog({
+            title: "Reschedule Interview",
+            fields: [
+                {
+                    label: "Schedule On",
+                    fieldname: "scheduled_on",
+                    fieldtype: "Date",
+                    reqd: 1,
+                    default: frm.doc.scheduled_on,
+                },
+                {
+                    label: "From Time",
+                    fieldname: "from_time",
+                    fieldtype: "Time",
+                    reqd: 1,
+                    default: frm.doc.from_time,
+                },
+                {
+                    label: "To Time",
+                    fieldname: "to_time",
+                    fieldtype: "Time",
+                    reqd: 1,
+                    default: frm.doc.to_time,
+                },
+            ],
+            primary_action_label: "Reschedule Request",
+            primary_action(values) {
+                console.log("values",values)
+            // frappe.call directly (since this is your override)
+            frappe.call({
+                method: "prompt_hr.py.interview.interviewer_reschedule_interview",
+                args: {
+                    docname: frm.doc.name,
+                    scheduled_on: values.scheduled_on,
+                    from_time: values.from_time,
+                    to_time: values.to_time,
+                },
+                callback: function (r) {
+                    console.log("response",r)
+                    if (r.message) {
+                        frappe.msgprint(r.message);
+                    }
+                    d.hide();
+                    frm.reload_doc();
+                },
+            });
+            },
+        });
+        d.show();
+    },
+
 
     submit_feedback: async function (frm) {
         frappe.call({
@@ -834,3 +926,4 @@ async function is_hr_user_or_owner(current_user, frm) {
     // ? CHECK IF USER HAS ANY ROLE THAT MATCHES ALLOWED ROLES
     return user_roles.some(role => allowed_roles.includes(role));
 }
+

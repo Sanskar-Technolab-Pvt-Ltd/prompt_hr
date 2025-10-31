@@ -2,6 +2,8 @@
 
 import frappe
 from prompt_hr.py.utils import send_notification_email
+from frappe.utils import formatdate, format_time
+from frappe import _
 
 # ? FUNCTION TO UPDATE EXPECTED SCORE BASED ON INTERVIEW ROUND
 def before_save(doc, method):
@@ -92,3 +94,72 @@ def send_interview_reminder_to_interviewer(interviewer_employee, interview_name,
             title=f"Interview Reminder Failed for {interviewer_employee}"
         )
         return f"Failed to send reminder to {interviewer_employee}. Error: {str(e)}"
+
+@frappe.whitelist()
+def interviewer_reschedule_interview(docname, scheduled_on, from_time, to_time):
+    """Reschedule interview and notify all internal interviewers using Notification DocType."""
+
+    # 1 Fetch Interview document
+    doc = frappe.get_doc("Interview", docname)
+
+    # 2 Get all internal interviewer employees
+    interviewer_employees = [
+        row.custom_interviewer_employee
+        for row in (doc.interview_details or [])
+        if row.custom_interviewer_employee
+    ]
+
+    # 3  Fetch user emails linked to those employees
+    interviewer_emails = []
+    for emp in interviewer_employees:
+        user_id = frappe.db.get_value("Employee", emp, "user_id")
+        if user_id:
+            email = frappe.db.get_value("User", user_id, "email")
+            if email:
+                interviewer_emails.append(email)
+
+    external_emails = []
+
+    for row in (doc.custom_external_interviewers or []):
+        if row.custom_user:
+            # Get email directly from Supplier's custom_user field
+            email = frappe.db.get_value("Supplier", row.custom_user, "custom_user")
+            if email:
+                external_emails.append(email)
+
+    # Combine both lists and remove duplicates
+    all_recipients = list(set(interviewer_emails + external_emails))
+
+    # 4  Remove duplicates
+    interviewer_emails = list(set(interviewer_emails))
+
+    # 5 Update interview schedule
+    doc.scheduled_on = scheduled_on
+    doc.from_time = from_time
+    doc.to_time = to_time
+    # doc.save(ignore_permissions=True)
+    # frappe.db.commit()
+
+    # 6  Send email using Notification (instead of direct sendmail)
+    if all_recipients:
+        try:
+            # 🔸 You must create a Notification in your system with name "Interview Rescheduled Notification"
+            # and set it to be "For Doctype = Interview"
+            # and use Jinja fields like {{ doc.custom_applicant_name }}, {{ doc.scheduled_on }}, etc.
+            notification_name = "Interview Rescheduled Notification"
+
+            notification = frappe.get_doc("Notification", notification_name)
+            subject = frappe.render_template(notification.subject, {"doc": doc})
+            message = frappe.render_template(notification.message, {"doc": doc})
+            
+            frappe.sendmail(
+                recipients=all_recipients,
+                subject=subject,
+                message=message,
+            )
+        except frappe.DoesNotExistError:
+            frappe.log_error("Notification 'Interview Rescheduled Notification' not found.")
+        except Exception as e:
+            frappe.log_error(f"Error sending interview reschedule notification: {str(e)}")
+
+    return _("Interview rescheduled successfully and notification sent to interviewers.")
