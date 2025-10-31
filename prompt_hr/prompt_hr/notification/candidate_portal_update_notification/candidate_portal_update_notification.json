@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-10-31 12:31:47.359441",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Candidate Portal",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "Candidate Portal for <b>{{ doc.applicant_name }}</b> has been updated.<br>\n{% set portal_link = frappe.utils.get_url_to_form(doc.doctype, doc.name) %}\n{% if portal_link %}\n    You may review the details using the link below:<br><br>\n    \n    <a href=\"{{ portal_link }}\" target=\"_blank\">\n        View Candidate Portal\n    </a><br><br>\n{% endif %}\n\nRegards,<br>\nHR Team",
+ "message_type": "HTML",
+ "modified": "2025-10-31 15:01:30.783019",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Candidate Portal Update Notification",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "Candidate Portal Updated - {{ doc.applicant_name }}"
+}

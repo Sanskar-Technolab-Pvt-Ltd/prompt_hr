@@ -19,7 +19,7 @@ def validate_payroll_and_update_linked_payroll_entry(doc):
                 row.fnf_record = doc.name                
         payroll_doc.save(ignore_permissions=True)
     else:
-        account_user_users = frappe.db.get_all("Has Role", {"role": "Accounts User", "parenttype": "User", "parent": ["not in", ["Administrator"]]}, ["parent"])
+        account_user_users = frappe.db.get_all("Has Role", {"role": "S - Payroll Accounting", "parenttype": "User", "parent": ["not in", ["Administrator"]]}, ["parent"])
         if account_user_users:                                                
             account_user_emails = [user.get("parent") for user in account_user_users]
             fnf_link = frappe.utils.get_url_to_form("Full and Final Statement", doc.name)            
@@ -33,7 +33,7 @@ def validate_payroll_and_update_linked_payroll_entry(doc):
 @frappe.whitelist()
 def send_release_fnf_mail(fnf_id):
     try:
-        account_user_users = frappe.db.get_all("Has Role", {"role": "Accounts User", "parenttype": "User", "parent": ["not in", ["Administrator"]]}, ["parent"])
+        account_user_users = frappe.db.get_all("Has Role", {"role": "S - Payroll Accounting", "parenttype": "User", "parent": ["not in", ["Administrator"]]}, ["parent"])
         if account_user_users:           
             account_user_emails = [user.get("parent") for user in account_user_users]                                     
             fnf_link = frappe.utils.get_url_to_form("Full and Final Statement", fnf_id)            

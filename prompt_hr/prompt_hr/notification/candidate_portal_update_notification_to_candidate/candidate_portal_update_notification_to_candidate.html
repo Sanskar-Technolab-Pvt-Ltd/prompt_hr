@@ -1,0 +1,10 @@
+Dear {{ doc.applicant_name or "Candidate"}},<br><br>
+
+Your Candidate Portal has been updated. You can log in and review the latest changes.<br><br>
+
+<b>Details:</b><br>
+- Candidate Name: {{ doc.applicant_name or"Candidate" }}<br>
+- Updated On: {{ frappe.utils.format_datetime(doc.modified) }}<br><br>
+
+Regards,<br>
+HR Team
