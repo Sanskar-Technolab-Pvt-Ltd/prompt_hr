@@ -214,22 +214,27 @@ def update_candidate_portal(doc):
 
 @frappe.whitelist(allow_guest=True)  
 def get_candidate_portal_file_public(doc_name, file_field):  
-    """
+    """  
     Serve private files publicly for Candidate Portal  
     WARNING: This bypasses all permission checks  
     """  
     # Get the Candidate Portal document  
-    portal_doc = frappe.get_doc("Candidate Portal", doc_name)
+    portal_doc = frappe.get_doc("Candidate Portal", doc_name)  
+
     # Get the file URL  
     file_url = portal_doc.get(file_field)  
     if not file_url:  
         frappe.throw("File not found")  
 
+    print(f"Original file_url: {file_url}")  
+
     # Extract relative path if full URL  
     if file_url.startswith(("http://", "https://")):  
         from urllib.parse import urlparse, unquote  
         parsed = urlparse(file_url)  
-        file_url = unquote(parsed.path)  
+        file_url = unquote(parsed.path)  # Decode %20 to spaces, etc.  
+
+    print(f"Decoded file_url: {file_url}")  
 
     # Get file document  
     from frappe.core.doctype.file.utils import find_file_by_url  
@@ -237,8 +242,8 @@ def get_candidate_portal_file_public(doc_name, file_field):
     if not file_doc:  
         frappe.throw("File not found")  
 
-    # Serve file for viewing (not download)  
+    # Serve file directly WITHOUT permission check  
     frappe.local.response.filename = file_doc.file_name  
     frappe.local.response.filecontent = file_doc.get_content()  
-    frappe.local.response.display_content_as = "inline"  # Key change: view instead of download  
+    frappe.local.response.display_content_as = "inline"  # View instead of download  
     frappe.local.response.type = "download"
