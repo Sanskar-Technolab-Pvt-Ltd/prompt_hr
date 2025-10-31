@@ -167,15 +167,33 @@ def attendance_calendar_list(
         # Replace status with label (if exists)
         for att in attendance_list:
             att["status"] = status_map.get(att["status"], att["status"])
+        
+        holiday_list_name = frappe.db.get_value("Employee", employee, "holiday_list")
+        holiday_entries = []
+        if holiday_list_name:
+            holidays = frappe.get_all(
+                "Holiday",
+                filters={
+                    "parent": holiday_list_name,
+                    "holiday_date": ["between", [month_start, month_end]],
+                },
+                fields=["holiday_date"],
+            )
 
-        # ? GET TOTAL COUNT
-        total_names = frappe.get_list(
-            "Attendance",
-            filters=filters,
-            fields=["name"],
-            ignore_permissions=False,
-        )
-        total_count = len(total_names)
+            # Convert holidays to same structure as attendance_list
+            for h in holidays:
+                holiday_entries.append({
+                    "attendance_date": h.holiday_date,
+                    "employee_name": frappe.db.get_value("Employee", employee, "employee_name"),
+                    "employee": employee,
+                    "status": "No Attendance",
+                })
+
+        all_entries = attendance_list + holiday_entries
+
+        all_entries.sort(key=lambda x: x.get("attendance_date"))
+
+        total_count = len(all_entries)
 
     except Exception as e:
         frappe.log_error("Error While Getting Attendance List", str(e))
@@ -190,7 +208,7 @@ def attendance_calendar_list(
         frappe.local.response["message"] = {
             "success": True,
             "message": "Attendance List Loaded Successfully!",
-            "data": attendance_list,
+            "data": all_entries,
             "count": total_count,
         }
 
