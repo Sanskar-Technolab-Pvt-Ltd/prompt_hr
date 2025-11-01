@@ -21,6 +21,7 @@
   "offer_letter",
   "designation",
   "department",
+  "monthly_base_salary",
   "column_break_mlgy",
   "expected_date_of_joining",
   "condition_for_offer_acceptance",
@@ -201,12 +202,19 @@
    "ignore_user_permissions": 1,
    "label": "Phone No",
    "read_only": 1
+  },
+  {
+   "fieldname": "monthly_base_salary",
+   "fieldtype": "Currency",
+   "ignore_user_permissions": 1,
+   "label": "Monthly Base Salary",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-31 19:30:51.309314",
+ "modified": "2025-11-01 11:05:16.921572",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Candidate Portal",

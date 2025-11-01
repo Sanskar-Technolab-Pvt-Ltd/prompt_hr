@@ -83,14 +83,14 @@ def sync_candidate_portal_from_job_offer(job_offer):
             job_offer_fields = frappe.db.get_value(
                 "Job Offer",
                 job_offer,
-                ["name", "job_applicant", "offer_date", "custom_expected_date_of_joining", "status"],
+                ["name", "job_applicant", "offer_date", "custom_expected_date_of_joining", "status","designation","custom_department","custom_location","custom_business_unit","custom_employment_type","custom_employee","custom_employee_name","custom_phone_no","custom_monthly_base_salary"],
                 as_dict=True
             )
             if not job_offer_fields:
                 frappe.throw("Job Offer not found.")
             job_offer = job_offer_fields
-
-        print(">>> Job Offer object:", job_offer)
+        
+        print("\n\n>>> Job Offer object:", job_offer)
 
         # ! CHECK JOB APPLICANT EXISTS
         if not job_offer.get("job_applicant"):
@@ -111,6 +111,15 @@ def sync_candidate_portal_from_job_offer(job_offer):
             "offer_date": job_offer.get("offer_date"),
             "expected_date_of_joining": job_offer.get("custom_expected_date_of_joining"),
             "offer_acceptance": job_offer.get("status"),
+            "designation":job_offer.get("designation"),
+            "department":job_offer.get("custom_department"),
+            "location":job_offer.get("custom_location"),
+            "business_unit":job_offer.get("custom_business_unit"),
+            "employment_type":job_offer.get("custom_employment_type"),
+            "employee":job_offer.get("custom_employee"),
+            "employee_name":job_offer.get("custom_employee_name"),
+            "phone_no":job_offer.get("custom_phone_no"),
+            "monthly_base_salary":job_offer.get("custom_monthly_base_salary")
         })
 
         print(">>> Candidate Portal prepared:", portal.as_dict())
