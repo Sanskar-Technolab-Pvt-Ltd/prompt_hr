@@ -1,0 +1,14 @@
+{% set action_text = "Created" if doc.creation == doc.modified else "Updated" %}
+
+<p>A Job Offer has been <strong>{{ action_text }}</strong> in the system.</p>
+
+<p>
+<strong>Candidate:</strong> {{ doc.applicant_name }}<br>
+<strong>Designation:</strong> {{ doc.designation }}<br>
+<strong>Offer Date:</strong> {{ frappe.format_date(doc.offer_date) }}
+</p>
+
+<p>You can review the Job Offer using the button below:</p>
+
+
+<p>Regards,<br>HR Team</p>

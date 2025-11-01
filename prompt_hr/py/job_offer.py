@@ -1,7 +1,7 @@
 import frappe
 from frappe.utils.print_format import download_pdf
 from frappe.utils.file_manager import save_file
-from prompt_hr.py.utils import create_hash,send_notification_email
+from prompt_hr.py.utils import create_hash,send_notification_email, get_email_ids_for_roles, get_roles_from_hr_settings_by_module
 
 
 # ? SYNC CANDIDATE PORTAL ON JOB OFFER INSERT
@@ -11,6 +11,31 @@ def after_insert(doc, method):
 def on_cancel(doc, method=None):
     if doc.workflow_state:
         doc.workflow_state = "Cancelled"
+
+def on_update(doc, method=None):
+    if doc.workflow_state and doc.workflow_state == "Pending":
+        # Fetch HR roles from HR Settings
+        try:
+            hr_roles = get_roles_from_hr_settings_by_module("custom_hr_roles_for_recruitment")
+            recipients = get_email_ids_for_roles(hr_roles) if hr_roles else []
+        except:
+            recipients = []
+
+        # Send Notification Email
+        try:
+            if recipients:
+                send_notification_email(
+                    notification_name="Job Offer Update Notification",
+                    recipients=recipients,
+                    doctype="Job Offer",
+                    docname=doc.name,
+                    button_label="View Job Offer",
+                    send_link=True,
+                    send_header_greeting=False,
+                )
+        except Exception as e:
+            frappe.log_error(message=str(e), title="Job Offer Update Notification Error")
+
 
 # ? SYNC CANDIDATE RESPONSE FIELDS FROM PORTAL TO JOB OFFER
 @frappe.whitelist()
@@ -111,7 +136,6 @@ def sync_candidate_portal_from_job_offer(job_offer):
             "offer_date": job_offer.get("offer_date"),
             "expected_date_of_joining": job_offer.get("custom_expected_date_of_joining"),
             "offer_acceptance": job_offer.get("status"),
-            "designation":job_offer.get("designation"),
             "department":job_offer.get("custom_department"),
             "location":job_offer.get("custom_location"),
             "business_unit":job_offer.get("custom_business_unit"),

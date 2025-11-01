@@ -237,6 +237,7 @@ doc_events = {
         "after_insert": "prompt_hr.py.job_offer.after_insert",
         "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
         "on_cancel": "prompt_hr.py.job_offer.on_cancel",
+        "on_update": "prompt_hr.py.job_offer.on_update",
     },
     "Employee": {
         "on_update": "prompt_hr.py.employee.on_update",

@@ -1,14 +1,18 @@
 import frappe
-from prompt_hr.py.utils import validate_hash, send_notification_email, get_hr_managers_by_company
+from prompt_hr.py.utils import validate_hash, send_notification_email, get_hr_managers_by_company, get_roles_from_hr_settings_by_module, get_email_ids_for_roles
 import json
 from frappe import _
 from datetime import datetime
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+	from frappe.core.doctype.file.file import File
+
 
 
 def get_context(context):
     # do your magic here
     pass
-
 
 # ! prompt_hr.prompt_hr.web_form.candidate_portal.candidate_portal.validate_candidate_portal_hash
 # ? FUNCTION TO VALIDATE CANDIDATE PORTAL HASH
@@ -193,13 +197,21 @@ def update_candidate_portal(doc):
 
         # ? SEND MAIL TO HR
         try:
-            send_notification_email(
-                notification_name="HR Candidate Web Form Revert Mail",
-                recipients=get_hr_managers_by_company(portal_doc.company),
-                button_label="View Details",
-                doctype="Candidate Portal",
-                docname=portal_doc.name,
-            )
+            recipients = []
+            hr_roles = get_roles_from_hr_settings_by_module("custom_hr_roles_for_recruitment")
+            if hr_roles:
+                recipients = get_email_ids_for_roles(hr_roles)
+        except:
+            recipients = []
+        try:
+            if recipients:
+                send_notification_email(
+                    notification_name="HR Candidate Web Form Revert Mail",
+                    recipients=recipients,
+                    button_label="View Details",
+                    doctype="Candidate Portal",
+                    docname=portal_doc.name,
+                )
         except Exception as email_error:
             # ? LOG EMAIL ERROR BUT DON'T FAIL THE ENTIRE UPDATE
             frappe.log_error(f"Failed to send notification email: {str(email_error)}", "Email Notification Error")
@@ -226,19 +238,15 @@ def get_candidate_portal_file_public(doc_name, file_field):
     if not file_url:  
         frappe.throw("File not found")  
 
-    print(f"Original file_url: {file_url}")  
-
     # Extract relative path if full URL  
     if file_url.startswith(("http://", "https://")):  
         from urllib.parse import urlparse, unquote  
         parsed = urlparse(file_url)  
         file_url = unquote(parsed.path)  # Decode %20 to spaces, etc.  
 
-    print(f"Decoded file_url: {file_url}")  
-
     # Get file document  
     from frappe.core.doctype.file.utils import find_file_by_url  
-    file_doc = find_file_by_url(file_url)  
+    file_doc = find_file_by_url_without_permissions(file_url)  
     if not file_doc:  
         frappe.throw("File not found")  
 
@@ -247,3 +255,19 @@ def get_candidate_portal_file_public(doc_name, file_field):
     frappe.local.response.filecontent = file_doc.get_content()  
     frappe.local.response.display_content_as = "inline"  # View instead of download  
     frappe.local.response.type = "download"
+
+
+def find_file_by_url_without_permissions(path=None, name=None):
+	filters = {"file_url": str(path)}
+	if name:
+		filters["name"] = str(name)
+
+	files = frappe.get_all("File", filters=filters, fields="*")
+
+	# this file might be attached to multiple documents
+	# if the file is accessible from any one of those documents
+	# then it should be downloadable
+	for file_data in files:
+		file: "File" = frappe.get_doc(doctype="File", **file_data)
+		if file:
+			return file
