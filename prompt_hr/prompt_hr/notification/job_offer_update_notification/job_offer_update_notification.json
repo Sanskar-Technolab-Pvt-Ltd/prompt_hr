@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-11-01 10:56:32.864134",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Job Offer",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "{% set action_text = \"Created\" if doc.creation == doc.modified else \"Updated\" %}\n\n<p>A Job Offer has been <strong>{{ action_text }}</strong> in the system.</p>\n\n<p>\n<strong>Candidate:</strong> {{ doc.applicant_name }}<br>\n<strong>Designation:</strong> {{ doc.designation }}<br>\n<strong>Offer Date:</strong> {{ frappe.format_date(doc.offer_date) }}\n</p>\n\n<p>You can review the Job Offer using the button below:</p>\n\n\n<p>Regards,<br>HR Team</p>\n",
+ "message_type": "HTML",
+ "modified": "2025-11-01 12:13:52.493078",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Job Offer Update Notification",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "Job Offer Updates - {{doc.applicant_name}}"
+}

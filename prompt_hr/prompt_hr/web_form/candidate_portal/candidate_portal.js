@@ -73,7 +73,13 @@ frappe.ready(function () {
                         "applied_for_designation",
                         "offer_date",
                         "offer_letter",
-                        "name"
+                        "name",
+                        "department",
+                        "employment_type",
+                        "business_unit",
+                        "employee_name",
+                        "phone_no",
+                        "monthly_base_salary"
                     ]
                 },
                 callback: async function (r) {
@@ -105,7 +111,13 @@ frappe.ready(function () {
                                 "offer_letter",
                                 "job_offer",
                                 "offer_acceptance",
-                                "expected_date_of_joining"
+                                "expected_date_of_joining",
+                                "department",
+                                "employment_type",
+                                "business_unit",
+                                "employee_name",
+                                "phone_no",
+                                "monthly_base_salary"
                             ];
                             console.log("Fields to Hide: ", fieldsToHide);
                             console.log("Child Tables Data: ", child_tables_data);
@@ -142,27 +154,31 @@ frappe.ready(function () {
                             });
                         }
                         // Customize the display of the offer letter field if value exists
-                        const offerLetterValue = data.offer_letter;  
-                        if (offerLetterValue) {  
-                            const $fieldWrapper = $(`[data-fieldname="offer_letter"]`).closest('.frappe-control');  
-                            $fieldWrapper.find('.control-input').hide();  
+                        const offerLetterValue = data.offer_letter;    
+                        if (offerLetterValue) {    
+                            const $fieldWrapper = $(`[data-fieldname="offer_letter"]`).closest('.frappe-control');    
                             
-                            // Create the download URL  
-                            const downloadUrl = `/api/method/prompt_hr.prompt_hr.web_form.candidate_portal.candidate_portal.get_candidate_portal_file_public?doc_name=${window.verifiedDocName}&file_field=offer_letter`;  
+                            // Hide ALL visible parts of the Attach field  
+                            $fieldWrapper.find('.control-input').hide();      // Hide the attach button  
+                            $fieldWrapper.find('.attached-file').hide();      // Hide the file display area  
+                            $fieldWrapper.find('.control-value').hide();      // Hide any value display  
                             
-                            // Add button with click handler  
-                            $fieldWrapper.find('.control-input-wrapper').append(`  
-                                <div class="offer-letter-link" style="margin-top: 10px;">  
-                                    <button class="btn btn-default btn-sm" id="view-offer-letter-btn">  
-                                        <i class="fa fa-file-pdf-o"></i> View Offer Letter  
-                                    </button>  
-                                </div>  
-                            `);  
+                            // Create the download URL    
+                            const downloadUrl = `/api/method/prompt_hr.prompt_hr.web_form.candidate_portal.candidate_portal.get_candidate_portal_file_public?doc_name=${window.verifiedDocName}&file_field=offer_letter`;    
                             
-                            // Attach click handler to open file in new tab  
-                            $('#view-offer-letter-btn').on('click', function() {  
-                                window.open(downloadUrl, '_blank');  
-                            });  
+                            // Add button with click handler    
+                            $fieldWrapper.find('.control-input-wrapper').append(`    
+                                <div class="offer-letter-link" style="margin-top: 10px;">    
+                                    <button class="btn btn-default btn-sm" id="view-offer-letter-btn">    
+                                        <i class="fa fa-file-pdf-o"></i> View Offer Letter    
+                                    </button>    
+                                </div>    
+                            `);    
+                            
+                            // Attach click handler to open file in new tab    
+                            $('#view-offer-letter-btn').on('click', function() {    
+                                window.open(downloadUrl, '_blank');    
+                            });
                         }
                         let idx = 0;
                         // ? SET THE CHILD TABLE DATA

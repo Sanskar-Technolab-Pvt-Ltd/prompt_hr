@@ -1,10 +1,27 @@
-Dear {{ doc.applicant_name or "Candidate"}},<br><br>
+{% set portal_url = frappe.utils.get_url("/candidate-portal/new") %}
 
-Your Candidate Portal has been updated. You can log in and review the latest changes.<br><br>
+<p>Dear {{ doc.applicant_name or "Candidate" }},</p>
 
-<b>Details:</b><br>
-- Candidate Name: {{ doc.applicant_name or"Candidate" }}<br>
-- Updated On: {{ frappe.utils.format_datetime(doc.modified) }}<br><br>
+<p>Your Candidate Portal has been updated. Please log in to review the latest changes.</p>
 
-Regards,<br>
-HR Team
+<p><b>Candidate Portal Link:</b><br>
+<a href="{{ portal_url }}"
+   style="padding:10px 16px; background:#3b82f6; color:white; border-radius:6px;
+          text-decoration:none; display:inline-block; margin:6px 0;">
+   Open Candidate Portal
+</a>
+</p>
+
+<p><b>Important:</b><br>
+The login credentials were <strong>already shared with you in the previous email</strong>.<br>
+Please <strong>refer to that email</strong> for the login ID and password.</p>
+
+<p>To <strong>view or update your details</strong> inside the portal,  
+use the <strong>same phone number and password</strong> that were also provided in the previous mail.</p>
+
+<p><b>Update Summary:</b><br>
+• <strong>Candidate Name:</strong> {{ doc.applicant_name or "Candidate" }}<br>
+• <strong>Updated On:</strong> {{ frappe.utils.format_datetime(doc.modified) }}</p>
+
+<p>Regards,<br>
+HR Team</p>

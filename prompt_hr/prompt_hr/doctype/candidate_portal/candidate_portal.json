@@ -19,7 +19,6 @@
   "offer_date",
   "offer_acceptance",
   "offer_letter",
-  "designation",
   "department",
   "monthly_base_salary",
   "column_break_mlgy",
@@ -133,19 +132,11 @@
    "options": "Company"
   },
   {
-   "fieldname": "designation",
-   "fieldtype": "Link",
-   "ignore_user_permissions": 1,
-   "label": "Designation",
-   "options": "Designation",
-   "read_only": 1
-  },
-  {
+   "fetch_from": "job_offer.custom_department",
    "fieldname": "department",
-   "fieldtype": "Link",
+   "fieldtype": "Data",
    "ignore_user_permissions": 1,
    "label": "Department",
-   "options": "Department",
    "read_only": 1
   },
   {
@@ -157,19 +148,19 @@
    "read_only": 1
   },
   {
+   "fetch_from": "job_offer.custom_business_unit",
    "fieldname": "business_unit",
-   "fieldtype": "Link",
+   "fieldtype": "Data",
    "ignore_user_permissions": 1,
    "label": "Business Unit",
-   "options": "Business Unit",
    "read_only": 1
   },
   {
+   "fetch_from": "job_offer.custom_employment_type",
    "fieldname": "employment_type",
-   "fieldtype": "Link",
+   "fieldtype": "Data",
    "ignore_user_permissions": 1,
    "label": "Employment Type",
-   "options": "Employment Type",
    "read_only": 1
   },
   {
@@ -214,7 +205,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-01 11:05:16.921572",
+ "modified": "2025-11-01 12:09:48.978168",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Candidate Portal",
@@ -235,6 +226,7 @@
   }
  ],
  "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
