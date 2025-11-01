@@ -2,11 +2,46 @@ import frappe
 from frappe.utils.print_format import download_pdf
 from frappe.utils.file_manager import save_file
 from prompt_hr.py.utils import create_hash,send_notification_email, get_email_ids_for_roles, get_roles_from_hr_settings_by_module
+from hrms.payroll.doctype.salary_slip.salary_slip import SalarySlip, _safe_eval, get_salary_component_data
+from frappe.utils import (
+    ceil, floor, flt, cint, get_first_day,
+    get_last_day, getdate, rounded
+)
+from datetime import date
 
 
 # ? SYNC CANDIDATE PORTAL ON JOB OFFER INSERT
 def after_insert(doc, method):
     sync_candidate_portal_from_job_offer(doc)
+
+
+def before_save(doc, method):
+    fields_to_track = [
+        "custom_salary_structure",
+        "custom_monthly_base_salary",
+        "custom_pf_consent",
+        "custom_esi_consent",
+        "custom_nps_consent",
+        "custom_lwf_consent",
+        "custom_meal_card_consent",
+        "custom_attire_card_consent",
+        "custom_fuel_card_consent",
+        "custom_telephone_reimbursement_applicable",
+        "custom_meal_card_amount",
+        "custom_fuel_card_amount",
+        "custom_attire_card_amount",
+        "custom_mobile_internent_card_amount",
+        "custom_total_arrear_payable",
+        "custom_annual_loyalty_bonus",
+        "custom_annual_performance_incentive",
+        "custom_variable",
+        "custom_manual_basic",
+    ]
+
+    if did_change(doc, fields_to_track):
+        set_salary_components_with_amount(doc)
+
+    calculate_gross_pay_and_deductions(doc)
 
 def on_cancel(doc, method=None):
     if doc.workflow_state:
@@ -404,3 +439,226 @@ def send_LOI_letter(name):
     else:
         frappe.throw("No Email found for Employee")
     return "LOI Letter sent Successfully"
+
+
+def set_salary_components_with_amount(doc):
+    if not doc.custom_salary_structure:
+        return
+
+    # * Fetch Salary Structure
+    doc._salary_structure_doc = frappe.get_doc("Salary Structure", doc.custom_salary_structure)
+
+    # * Setup globals for formula evaluation
+    doc.whitelisted_globals = {
+        "int": int,
+        "float": float,
+        "long": int,
+        "round": round,
+        "rounded": rounded,
+        "date": date,
+        "getdate": getdate,
+        "get_first_day": get_first_day,
+        "get_last_day": get_last_day,
+        "ceil": ceil,
+        "floor": floor,
+    }
+
+
+    # Clear previous earnings/deductions
+    doc.custom_earnings = []
+    doc.custom_deductions = []
+    total_gross_pay =0
+    total_deductions = 0
+    # * Prepare data for evaluation
+    doc.data, doc.default_data = get_data_for_eval(doc, doc.custom_total_gross_pay)
+
+    # * Add earnings
+    for row in doc._salary_structure_doc.get("earnings", []):
+        component = create_component_row(doc, row, "earnings")
+        if component:
+            doc.append("custom_earnings", component)
+            doc.data.update({"gross_pay": total_gross_pay})
+            if not component.get("do_not_include_in_total") and not component.get("statistical_component"):
+                total_gross_pay += component.get("amount")
+
+    doc.data.update({"gross_pay": total_gross_pay})
+    # * Add deductions
+    for row in doc._salary_structure_doc.get("deductions", []):
+        component = create_component_row(doc,row, "deductions")
+        if component:
+            doc.append("custom_deductions", component)
+            doc.data.update({"gross_pay": total_gross_pay})
+            if not component.get("do_not_include_in_total") and not component.get("statistical_component"):
+                total_deductions +=component.get("amount")
+
+    doc.custom_total_gross_pay = total_gross_pay
+    doc.custom_total_deductions = total_deductions
+
+
+def create_component_row(doc, struct_row, component_type):
+    """
+    * Build a component row (earning or deduction) from Salary Structure row
+    * Exclude formula, avoid statistical components, apply payment_days logic
+    """
+
+    # ? ONLY ADD ANNEXTURE TYPE EARNING AND DEDUCTIONS COMPONENT
+    is_component_added= 1
+    try:
+        annexure_type = frappe.db.get_value("Salary Component", {"salary_component_abbr":struct_row.abbr}, "custom_annexure_type")
+        if annexure_type in ["Earnings", "Deductions", "Employer Contributions"]:
+            if component_type.lower() != annexure_type.lower():
+                is_component_added = 0
+        else:
+            is_component_added = 0
+
+    except:
+        is_component_added = 1
+
+
+    if not is_component_added:
+        return
+
+    amount = 0
+    try:
+        # Evaluate condition & formula
+        condition = (struct_row.condition or "True").strip()
+        formula = (struct_row.formula or "0").strip().replace("\r", "").replace("\n", "")
+        if _safe_eval(condition, doc.whitelisted_globals, doc.data):
+            amount = flt(
+                _safe_eval(formula, doc.whitelisted_globals, doc.data),
+                struct_row.precision("amount")
+            )
+
+    except Exception as e:
+        frappe.throw(
+            f"Error while evaluating the Salary Structure '{doc.custom_salary_structure}' at row {struct_row.idx}.\n"
+            f"Component: {struct_row.salary_component}\n\n"
+            f"Error: {e}\n\n"
+            f"Hint: Check formula/condition syntax. Only valid Python expressions are allowed."
+        )
+    doc.default_data[struct_row.abbr] = flt(amount)
+    doc.data[struct_row.abbr] = flt(amount)        
+    # Skip statistical components
+    if struct_row.statistical_component:
+        if struct_row.depends_on_payment_days:
+            payment_days_amount = (
+                flt(amount) * flt(doc.data.get("payment_days", 30)) / cint(30)
+            )
+            doc.data[struct_row.abbr] = flt(payment_days_amount, struct_row.precision("amount"))
+    # Skip zero-amount components (based on settings)
+    remove_if_zero = frappe.get_cached_value(
+        "Salary Component", struct_row.salary_component, "remove_if_zero_valued"
+    )
+
+    # ! IF CALCULATED AMOUNT IS ZERO AND NOT BASED ON FORMULA,
+    # ! USE STATIC AMOUNT DEFINED IN THE SALARY COMPONENT
+    if amount == 0 and not struct_row.amount_based_on_formula:
+        amount = struct_row.amount
+    
+    if not (
+        amount
+        or (struct_row.amount_based_on_formula and amount is not None)
+        or (not remove_if_zero and amount is not None)
+    ):
+        return None
+
+    # Compute default_amount with default data
+    try:
+        default_amount = _safe_eval(
+            (struct_row.formula or "0").strip(), doc.whitelisted_globals, doc.default_data
+        )
+    except Exception:
+        default_amount = 0
+    
+    # Return final component row (formula is excluded)
+    if not struct_row.statistical_component and not (remove_if_zero and not amount):
+        return {
+            "salary_component": struct_row.salary_component,
+            "abbr": struct_row.abbr,
+            "amount": flt(amount),
+            "default_amount": flt(default_amount),
+            "depends_on_payment_days": struct_row.depends_on_payment_days,
+            "precision": struct_row.precision("amount"),
+            "statistical_component": struct_row.statistical_component,
+            "remove_if_zero_valued": remove_if_zero,
+            "amount_based_on_formula": struct_row.amount_based_on_formula,
+            "condition": struct_row.condition,
+            "variable_based_on_taxable_salary": struct_row.variable_based_on_taxable_salary,
+            "is_flexible_benefit": struct_row.is_flexible_benefit,
+            "do_not_include_in_total": struct_row.do_not_include_in_total,
+            "is_tax_applicable": struct_row.is_tax_applicable,
+            "formula":formula
+        }
+
+
+def get_data_for_eval(doc, gross_pay=None):
+    # * Create merged dict for salary component evaluation
+    data = frappe._dict()
+    if gross_pay:
+        data.update({"gross_pay":gross_pay})
+
+    # * Merge fields from current document
+    data.update(doc.as_dict())
+    data.update(SalarySlip.get_component_abbr_map(doc))
+
+    if not data.get("base"):
+        data["base"] = doc.custom_monthly_base_salary
+
+    if doc.custom_variable:
+        data["variable"] = doc.custom_variable
+
+    if data.get("custom_meal_card_consesnt"):
+        data["custom_meal_coupons"] = data.get("custom_meal_card_consesnt")
+
+    # Prepare shallow copy for default data
+    default_data = data.copy()
+    # * Populate abbreviations
+    for key in ("earnings", "deductions"):
+        if doc.get(key):
+            for d in doc.get(key):
+                default_data[d.abbr] = d.default_amount or 0
+                data[d.abbr] = d.amount or 0
+
+    # * Set fallback defaults
+    data.setdefault("total_working_days", 30)
+    data.setdefault("leave_without_pay", 0)
+    data.setdefault("custom_lop_days", 0)
+    data.setdefault("custom_total_arrear_payable", 0)
+    data.setdefault("absent_days", 0)
+    data.setdefault("payment_days", 30)
+    data.setdefault("custom_penalty_leave_days", 0)
+    data.setdefault("custom_overtime", 0)
+    return data, default_data
+
+def did_change(doc, fields):
+    if doc.is_new():
+        return True
+
+    old_doc = frappe.get_doc(doc.doctype, doc.name)
+    for field in fields:
+        if doc.get(field) != old_doc.get(field):
+            print(doc.get(field), field)
+            return True
+
+    return False
+
+def calculate_gross_pay_and_deductions(doc):
+    total_gross_pay = 0
+    total_deduction = 0
+
+    if doc.get("custom_earnings"):
+        for d in doc.get("custom_earnings"):
+            if not d.do_not_include_in_total and not d.statistical_component:
+                amount = flt(d.amount)   
+                total_gross_pay += amount
+
+    if doc.get("custom_deductions"):
+        for d in doc.get("custom_deductions"):
+            if not d.do_not_include_in_total and not d.statistical_component:
+                amount = flt(d.amount)   
+                total_deduction += amount
+
+    doc.custom_total_gross_pay = total_gross_pay or 0
+    doc.custom_total_deductions = total_deduction or 0
+
+    doc.custom_net_pay = doc.custom_total_gross_pay - doc.custom_total_deductions

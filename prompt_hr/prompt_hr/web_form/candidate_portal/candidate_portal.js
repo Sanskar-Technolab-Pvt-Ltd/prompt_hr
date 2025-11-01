@@ -85,7 +85,6 @@ frappe.ready(function () {
                 callback: async function (r) {
                     const form_data = r.message.form_data;
                     const child_tables_data = r.message.child_tables_data;
-                    console.log("Form Data: ", r);
 
                     if (Array.isArray(form_data) && form_data.length > 0) {
                         const data = form_data[0];
@@ -103,9 +102,24 @@ frappe.ready(function () {
                                 frappe.web_form.set_value(key, value);
                             }
                         })
+                        let workflow_state = ""
+                        if (data.job_offer) {
+                                try {
+                                    const result = await frappe.call({
+                                        method: "prompt_hr.prompt_hr.web_form.candidate_portal.candidate_portal.get_job_offer_workflow_state",
+                                        args: { job_offer_name: data.job_offer },
+                                        freeze: true,
+                                    });
+
+                                    workflow_state = result.message?.workflow_state || null;
+                                } catch (error) {
+                                    console.error("Error fetching workflow_state:", error);
+                                    workflow_state = null;
+                                }
+                        }
 
                         // ? CONDITIONAL FIELD HIDING BASED ON job_offer
-                        if (!data.job_offer || child_tables_data[1].child_table_data.length > 0) {
+                        if (!data.job_offer || child_tables_data[1].child_table_data.length > 0 || workflow_state !== "Approved") {
                             const fieldsToHide = [
                                 "offer_date",
                                 "offer_letter",
@@ -119,12 +133,10 @@ frappe.ready(function () {
                                 "phone_no",
                                 "monthly_base_salary"
                             ];
-                            console.log("Fields to Hide: ", fieldsToHide);
-                            console.log("Child Tables Data: ", child_tables_data);
+
                             child_tables_data.forEach(child_table_data => {
                                 if (child_table_data.child_table_data.length<1) {
                                 fieldsToHide.push(child_table_data.child_table_fieldname); 
-                                console.log("Child Table Field Name: ", child_table_data.child_table_fieldname);
                                 }
                             });
 
@@ -198,9 +210,11 @@ frappe.ready(function () {
                         });
 
                         // ? BEAUTIFUL TOP "DAYS TO GO" HIGHLIGHT CARD
-                        if (data.expected_date_of_joining) {
-
-                            // Convert dates
+                        if (
+                            data.expected_date_of_joining &&
+                            (data.offer_acceptance == "Accepted" ||
+                            data.offer_acceptance == "Accepted with Condition")
+                        ) {
                             const currentDate = frappe.datetime.str_to_obj(frappe.datetime.get_today());
                             const joinDate = frappe.datetime.str_to_obj(data.expected_date_of_joining);
 
@@ -208,29 +222,56 @@ frappe.ready(function () {
                                 const diffMs = joinDate - currentDate;
                                 const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
-                                // Remove if already added
+                                // Remove existing banner
                                 $(".days-to-go-banner").remove();
 
-                                // Determine banner style based on days
-                                let bgColor = "#e8f0fe";     // Default blue theme
+                                // ✅ If joining date is already passed
+                                if (diffDays < 0) {
+                                    $(".web-form-container").prepend(`
+                                        <div class="days-to-go-banner"
+                                            style="
+                                                background: #ffecec;
+                                                border-left: 6px solid #d93025;
+                                                padding: 15px 20px;
+                                                border-radius: 6px;
+                                                margin-bottom: 20px;
+                                                font-size: 18px;
+                                                font-weight: 600;
+                                                display: flex;
+                                                align-items: center;
+                                                gap: 10px;
+                                            ">
+                                            <span style="font-size: 22px;">⚠️</span>
+                                            <div>
+                                                Expected joining date has <span style="color:#d93025; font-weight:800;">
+                                                    already passed
+                                                </span>.
+                                            </div>
+                                        </div>
+                                    `);
+                                    return; // ✅ Stop further processing
+                                }
+
+                                // ✅ Default banner styles
+                                let bgColor = "#e8f0fe";
                                 let textColor = "#1a73e8";
                                 let emoji = "⏳";
 
                                 if (diffDays <= 3) {
-                                    bgColor = "#fdecea";     // Light red
-                                    textColor = "#d93025";   // Dark red
+                                    bgColor = "#fdecea";
+                                    textColor = "#d93025";
                                     emoji = "⌛";
                                 } else if (diffDays <= 10) {
-                                    bgColor = "#fff8e1";     // Light yellow
-                                    textColor = "#f9a825";   // Gold
+                                    bgColor = "#fff8e1";
+                                    textColor = "#f9a825";
                                     emoji = "⌛";
                                 } else {
                                     bgColor = "#e8f5e9";
                                     textColor = "#1b5e20";
-                                    emoji = "⌛"
+                                    emoji = "⌛";
                                 }
 
-                                // ✅ Insert beautiful banner at the top of the page
+                                // ✅ Normal future date banner
                                 $(".web-form-container").prepend(`
                                     <div class="days-to-go-banner"
                                         style="
@@ -256,6 +297,7 @@ frappe.ready(function () {
                             }
                         }
 
+
                         // ? SHOW OUR CUSTOM UPDATE BUTTON
                         $('#custom-update-btn').show().off('click').on('click', function () {
                             // ? GET CURRENT FORM VALUES
@@ -264,7 +306,6 @@ frappe.ready(function () {
                             // ? INCLUDE THE RECORD NAME
                             formData.name = window.verifiedDocName;
 
-                            console.log(formData)
 
                             // ? MAKE SERVER CALL TO UPDATE RECORD
                             frappe.call({

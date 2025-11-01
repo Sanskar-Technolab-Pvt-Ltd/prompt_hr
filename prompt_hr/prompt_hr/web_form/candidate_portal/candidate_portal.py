@@ -271,3 +271,11 @@ def find_file_by_url_without_permissions(path=None, name=None):
 		file: "File" = frappe.get_doc(doctype="File", **file_data)
 		if file:
 			return file
+
+@frappe.whitelist()
+def get_job_offer_workflow_state(job_offer_name):
+    if not job_offer_name:
+        return {"workflow_state": None}
+
+    workflow_state = frappe.db.get_value("Job Offer", job_offer_name, "workflow_state")
+    return {"workflow_state": workflow_state}
