@@ -51,6 +51,15 @@ def validate_candidate_portal_hash(
                 }
             )
 
+        try:
+            if form_data[0].get("job_offer"):
+                salary_break_up = get_salary_breakup_from_job_offer(form_data[0].get("job_offer"))
+                if salary_break_up:
+                    form_data[0]["salary_break_up"] = salary_break_up
+        except Exception as e:
+            frappe.log_error(frappe.get_traceback(), "Error Getting Salary Breakup")
+            form_data[0]["salary_break_up"] = None
+
         # ? COMBINE THE FORM AND CHILD DATA IN A SINGLE DICT
         data = {"form_data": form_data, "child_tables_data": child_tables_data}
         # ? RETURN THE COMBINED DATA
@@ -279,3 +288,39 @@ def get_job_offer_workflow_state(job_offer_name):
 
     workflow_state = frappe.db.get_value("Job Offer", job_offer_name, "workflow_state")
     return {"workflow_state": workflow_state}
+
+def get_salary_breakup_from_job_offer(job_offer_name):
+    if not job_offer_name:
+        return None
+
+    # ✅ Check if applicant is allowed to see breakup
+    is_breakup_shown_to_employee = frappe.db.get_value(
+        "Job Offer",
+        job_offer_name,
+        "custom_show_salary_breakup_to_applicant"
+    )
+
+    if not is_breakup_shown_to_employee:
+        return None
+
+    # ? Fetch earnings (array of dict)
+    earnings = frappe.get_all(
+        "Salary Detail",
+        filters={"parent": job_offer_name, "parentfield": "custom_earnings"},
+        fields=["salary_component", "amount"],
+        order_by="idx ASC"
+    )
+
+    # ? Fetch deductions (array of dict)
+    deductions = frappe.get_all(
+        "Salary Detail",
+        filters={"parent": job_offer_name, "parentfield": "custom_deductions"},
+        fields=["salary_component", "amount"],
+        order_by="idx ASC"
+    )
+
+
+    return {
+        "earnings": earnings,
+        "deductions": deductions,
+    }
