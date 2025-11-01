@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-10-31 15:30:59.303108",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Job Offer",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "\n{% set action_user = frappe.session.user %}\n{% set employee_name = frappe.db.get_value(\"Employee\", {\"user_id\": action_user}, \"employee_name\") or action_user %}\n\n{% set job_offer_link = frappe.utils.get_url(\"/app/job-offer/\" + doc.name) %}\n\nThe Job Offer <b>{{ doc.name }}</b> for candidate \n<b>{{ doc.applicant_name }}</b> has been \n<b>{{ doc.workflow_state }} by {{employee_name}}</b>.<br><br>\n\nYou can view the Job Offer using the link below:<br>\n<a href=\"{{ job_offer_link }}\" target=\"_blank\">\n    {{ job_offer_link }}\n</a><br><br>\n\nRegards,<br>\nHR Team\n",
+ "message_type": "HTML",
+ "modified": "2025-11-01 18:10:18.569041",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Job Offer Update",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "Job Offer: {{doc.name}} - {{doc.workflow_state}}"
+}

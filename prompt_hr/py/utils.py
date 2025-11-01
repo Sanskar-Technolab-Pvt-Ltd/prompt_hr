@@ -1040,8 +1040,9 @@ def share_doc_with_employee(employee, doctype, docname, reason_for_escalation=No
     if not user_id:
         frappe.throw(_("Selected Employee has no linked User."))
 
+    flags = {"ignore_share_permission": True}
     # ! SHARE THE DOCUMENT WITH THE USER
-    frappe.share.add(
+    frappe.share.add_docshare(
         doctype=doctype,
         name=docname,
         user=user_id,
@@ -1049,6 +1050,7 @@ def share_doc_with_employee(employee, doctype, docname, reason_for_escalation=No
         write=1,
         submit=1,
         share=1,
+        flags=flags
     )
 
     # ! SET ESCALATED TO FIELDS
