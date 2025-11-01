@@ -249,7 +249,7 @@ frappe.ui.form.on("Interview", {
 
 
                         // === Add "Reschedule Interview" button under same dropdown ===
-                        frm.add_custom_button(__('Reschedule Interview'), function() {
+                        frm.add_custom_button(__('Reschedule request'), function() {
                             frm.events.interviewer_show_reschedule_dialog(frm);
                         }, __("Interviewer Action"));  // same group
 

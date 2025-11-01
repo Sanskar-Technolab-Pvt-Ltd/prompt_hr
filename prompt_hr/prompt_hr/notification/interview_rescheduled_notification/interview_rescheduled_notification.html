@@ -1,8 +1,35 @@
-<p>Dear Interviewer,</p>
-<p>The interview for <strong>{{ doc.custom_applicant_name }}</strong> has been <b>rescheduled</b>.</p>
+{% set interviewer_name = frappe.db.get_value("Employee", {"user_id": frappe.session.user}, "employee_name") or frappe.session.user %}
+{% set interview_link = frappe.utils.get_url_to_form("Interview", doc.name) %}
+
+<p>Dear Recruiter,</p>
+
+<p>
+    The interviewer <strong>{{ interviewer_name }}</strong> has requested to <b>reschedule</b> the interview.
+</p>
+
 <ul>
-    <li><b>Date:</b> {{ frappe.utils.formatdate(doc.scheduled_on) }}</li>
-    <li><b>From:</b> {{ frappe.utils.format_time(doc.from_time) }}</li>
-    <li><b>To:</b> {{ frappe.utils.format_time(doc.to_time) }}</li>
+    <li><strong>Candidate:</strong> {{ doc.custom_applicant_name }}</li>
+    <li><strong>Requested Schedule Date:</strong> {{ frappe.utils.formatdate(scheduled_on) }}</li>
+    <li><strong>From:</strong> {{ frappe.utils.format_time(from_time) }}</li>
+    <li><strong>To:</strong> {{ frappe.utils.format_time(to_time) }}</li>
 </ul>
-<p>Thank you</p>
+
+<p style="margin-top: 20px; margin-bottom: 20px;">
+    <a href="{{ interview_link }}" target="_blank"
+       style="
+           background-color: #1677ff;
+           color: white;
+           padding: 10px 18px;
+           border-radius: 6px;
+           text-decoration: none;
+           font-weight: bold;
+           font-size: 14px;
+           display: inline-block;
+       ">
+        Open Interview
+    </a>
+</p>
+
+<p>Please review and update the interview schedule accordingly.</p>
+
+<p>Thank you,<br>Recruitment System</p>
