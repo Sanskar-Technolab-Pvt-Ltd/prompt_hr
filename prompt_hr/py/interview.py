@@ -105,58 +105,42 @@ def interviewer_reschedule_interview(docname, scheduled_on, from_time, to_time):
     # 1 Fetch Interview document
     doc = frappe.get_doc("Interview", docname)
 
-    # 2 Get all internal interviewer employees
-    interviewer_employees = [
-        row.custom_interviewer_employee
-        for row in (doc.interview_details or [])
-        if row.custom_interviewer_employee
-    ]
-
-    # 3  Fetch user emails linked to those employees
-    interviewer_emails = []
-    for emp in interviewer_employees:
-        user_id = frappe.db.get_value("Employee", emp, "user_id")
-        if user_id:
-            email = frappe.db.get_value("User", user_id, "email")
-            if email:
-                interviewer_emails.append(email)
-
-    external_emails = []
-
-    for row in (doc.custom_external_interviewers or []):
-        if row.custom_user:
-            # Get email directly from Supplier's custom_user field
-            email = frappe.db.get_value("Supplier", row.custom_user, "custom_user")
-            if email:
-                external_emails.append(email)
-
-    # Combine both lists and remove duplicates
-    all_recipients = list(set(interviewer_emails + external_emails))
-
-    # 4  Remove duplicates
-    interviewer_emails = list(set(interviewer_emails))
-
-    # 5 Update interview schedule
+    hr_settings = frappe.get_single("HR Settings")
+    role_list = []
+    if hr_settings.custom_hr_roles_for_recruitment:
+        role_list = [r.strip() for r in hr_settings.custom_hr_roles_for_recruitment.split(",") if r.strip()]
+    
+    print("\n\nroles",role_list)
+    users_with_roles = frappe.db.sql_list("""
+        SELECT DISTINCT ur.parent
+        FROM `tabHas Role` ur
+        WHERE ur.role IN (%s)
+    """ % (", ".join(["%s"] * len(role_list))), tuple(role_list))
+    
+    print("\n\nusers with role",users_with_roles)
+    recipients = [  u for u in users_with_roles
+                    if u.lower() != "administrator"
+                    and frappe.db.get_value("User", u, "enabled") == 1
+                ]
+   
+    #Update interview schedule
     doc.scheduled_on = scheduled_on
     doc.from_time = from_time
     doc.to_time = to_time
-    # doc.save(ignore_permissions=True)
-    # frappe.db.commit()
+    
 
-    # 6  Send email using Notification (instead of direct sendmail)
-    if all_recipients:
+    # Send email using Notification (instead of direct sendmail)
+    if recipients:
         try:
-            # 🔸 You must create a Notification in your system with name "Interview Rescheduled Notification"
-            # and set it to be "For Doctype = Interview"
-            # and use Jinja fields like {{ doc.custom_applicant_name }}, {{ doc.scheduled_on }}, etc.
+            
             notification_name = "Interview Rescheduled Notification"
 
             notification = frappe.get_doc("Notification", notification_name)
             subject = frappe.render_template(notification.subject, {"doc": doc})
-            message = frappe.render_template(notification.message, {"doc": doc})
+            message = frappe.render_template(notification.message, {"doc": doc,"scheduled_on":scheduled_on,"from_time":from_time,"to_time":to_time})
             
             frappe.sendmail(
-                recipients=all_recipients,
+                recipients=recipients,
                 subject=subject,
                 message=message,
             )
