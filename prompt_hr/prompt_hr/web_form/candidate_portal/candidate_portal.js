@@ -165,6 +165,47 @@ frappe.ready(function () {
                                 }
                             });
                         }
+
+                        if (workflow_state === "Approved" && data.job_offer) {
+                            const breakup = data.salary_break_up;                            
+                            if (breakup) {
+                                // ✅ Remove existing button and wrapper
+                                $(".salary-breakup-btn-wrapper").remove();
+                                $(".salary-breakup-btn").remove();
+
+                                // ✅ Add button inside form container with proper styling
+                                const buttonHtml = `
+                                    <div class="salary-breakup-btn-wrapper" style="margin: 0 0 24px 0; padding: 0;">
+                                        <button class="btn btn-primary btn-sm salary-breakup-btn" 
+                                                style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                                <line x1="3" y1="9" x2="21" y2="9"></line>
+                                                <line x1="9" y1="21" x2="9" y2="9"></line>
+                                            </svg>
+                                            View Salary Breakup
+                                        </button>
+                                    </div>
+                                `;
+
+                                // ✅ Insert at the beginning of form fields (inside container)
+                                const $target = $(".web-form-container .form-section:first, .web-form-container form:first").first();
+                                if ($target.length) {
+                                    $target.prepend(buttonHtml);
+                                } else {
+                                    // Fallback: try direct container
+                                    $(".web-form-container").prepend(buttonHtml);
+                                }
+
+                                // ✅ On click → open dialog (use event delegation to avoid duplicate handlers)
+                                $(document).off("click", ".salary-breakup-btn").on("click", ".salary-breakup-btn", function (e) {
+                                    e.preventDefault();
+                                    show_salary_breakup_dialog(breakup);
+                                });
+                            }
+                        }
+
+
                         // Customize the display of the offer letter field if value exists
                         const offerLetterValue = data.offer_letter;    
                         if (offerLetterValue) {    
@@ -347,3 +388,136 @@ frappe.ready(function () {
     // ? SHOW DIALOG ON WEB FORM LOAD
     dialog.show();
 });
+
+
+async function show_salary_breakup_dialog(salary_breakup) {
+    if (!salary_breakup || (!salary_breakup.earnings?.length && !salary_breakup.deductions?.length)) {
+        frappe.msgprint("Salary breakup is not available.");
+        return;
+    }
+
+    // ✅ Calculate totals
+    let total_earnings = salary_breakup.earnings.reduce((t, r) => t + (r.amount || 0), 0);
+    let total_deductions = salary_breakup.deductions.reduce((t, r) => t + (r.amount || 0), 0);
+    let net_pay = total_earnings - total_deductions;
+
+    // ✅ Build enhanced earnings table
+    let earnings_html = `
+        <div style="margin-bottom: 32px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+                <div style="width: 4px; height: 24px; background: #10b981; border-radius: 2px;"></div>
+                <h4 style="margin: 0; font-weight: 600; color: #1f2937;">Earnings</h4>
+            </div>
+            <table class="table table-bordered" style="margin: 0; border-radius: 8px; overflow: hidden;">
+                <thead style="background: #f9fafb;">
+                    <tr>
+                        <th style="padding: 12px 16px; font-weight: 600; color: #6b7280; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">Component</th>
+                        <th style="padding: 12px 16px; text-align: right; font-weight: 600; color: #6b7280; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    salary_breakup.earnings.forEach((row, index) => {
+        const bgColor = index % 2 === 0 ? '#ffffff' : '#f9fafb';
+        earnings_html += `
+            <tr style="background: ${bgColor};">
+                <td style="padding: 12px 16px; color: #374151;">${row.salary_component}</td>
+                <td style="padding: 12px 16px; text-align: right; font-weight: 500; color: #10b981;">${format_currency(row.amount)}</td>
+            </tr>
+        `;
+    });
+    
+    earnings_html += `
+                <tr style="background: #ecfdf5; border-top: 2px solid #10b981;">
+                    <td style="padding: 12px 16px; font-weight: 600; color: #065f46;">Total Earnings</td>
+                    <td style="padding: 12px 16px; text-align: right; font-weight: 700; color: #10b981; font-size: 15px;">${format_currency(total_earnings)}</td>
+                </tr>
+            </tbody>
+        </table>
+        </div>
+    `;
+
+    // ✅ Build enhanced deductions table
+    let deductions_html = `
+        <div style="margin-bottom: 32px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+                <div style="width: 4px; height: 24px; background: #ef4444; border-radius: 2px;"></div>
+                <h4 style="margin: 0; font-weight: 600; color: #1f2937;">Deductions</h4>
+            </div>
+            <table class="table table-bordered" style="margin: 0; border-radius: 8px; overflow: hidden;">
+                <thead style="background: #f9fafb;">
+                    <tr>
+                        <th style="padding: 12px 16px; font-weight: 600; color: #6b7280; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">Component</th>
+                        <th style="padding: 12px 16px; text-align: right; font-weight: 600; color: #6b7280; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    salary_breakup.deductions.forEach((row, index) => {
+        const bgColor = index % 2 === 0 ? '#ffffff' : '#f9fafb';
+        deductions_html += `
+            <tr style="background: ${bgColor};">
+                <td style="padding: 12px 16px; color: #374151;">${row.salary_component}</td>
+                <td style="padding: 12px 16px; text-align: right; font-weight: 500; color: #ef4444;">${format_currency(row.amount)}</td>
+            </tr>
+        `;
+    });
+    
+    deductions_html += `
+                <tr style="background: #fef2f2; border-top: 2px solid #ef4444;">
+                    <td style="padding: 12px 16px; font-weight: 600; color: #991b1b;">Total Deductions</td>
+                    <td style="padding: 12px 16px; text-align: right; font-weight: 700; color: #ef4444; font-size: 15px;">${format_currency(total_deductions)}</td>
+                </tr>
+            </tbody>
+        </table>
+        </div>
+    `;
+
+    // ✅ Enhanced summary section
+    let summary_html = `
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                    padding: 24px; border-radius: 12px; color: white;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                <div>
+                    <div style="font-size: 13px; opacity: 0.9; margin-bottom: 4px; font-weight: 500;">Total Earnings</div>
+                    <div style="font-size: 20px; font-weight: 700;">${format_currency(total_earnings)}</div>
+                </div>
+                <div>
+                    <div style="font-size: 13px; opacity: 0.9; margin-bottom: 4px; font-weight: 500;">Total Deductions</div>
+                    <div style="font-size: 20px; font-weight: 700;">${format_currency(total_deductions)}</div>
+                </div>
+                <div style="background: rgba(255, 255, 255, 0.2); 
+                           padding: 16px; border-radius: 8px; 
+                           backdrop-filter: blur(10px);">
+                    <div style="font-size: 13px; opacity: 0.9; margin-bottom: 4px; font-weight: 500;">Net Pay</div>
+                    <div style="font-size: 24px; font-weight: 700;">${format_currency(net_pay)}</div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // ✅ Create dialog with enhanced styling
+    let d = new frappe.ui.Dialog({
+        title: "💰 Salary Breakup Details",
+        size: "large",
+        fields: [
+            { fieldname: "earnings_html", fieldtype: "HTML" },
+            { fieldname: "deductions_html", fieldtype: "HTML" },
+            { fieldname: "summary_html", fieldtype: "HTML" },
+        ]
+    });
+
+    d.fields_dict.earnings_html.$wrapper.html(earnings_html);
+    d.fields_dict.deductions_html.$wrapper.html(deductions_html);
+    d.fields_dict.summary_html.$wrapper.html(summary_html);
+
+    // ✅ Add custom styling to dialog
+    d.$wrapper.find('.modal-content').css({
+        'border-radius': '12px',
+        'box-shadow': '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+    });
+
+    d.show();
+}
