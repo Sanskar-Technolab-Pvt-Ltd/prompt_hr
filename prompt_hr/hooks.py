@@ -200,7 +200,8 @@ override_doctype_class = {
     'Process Loan Interest Accrual': 'prompt_hr.overrides.process_loan_interest_accrual_override.CustomProcessLoanInterestAccrual',
     "Leave Encashment": "prompt_hr.overrides.leave_encashment_override.CustomLeaveEncashment",
     "Leave Application": "prompt_hr.overrides.leave_application_override.CustomLeaveApplication",
-    "Shift Request": "prompt_hr.overrides.shift_request_override.CustomShiftRequest"
+    "Shift Request": "prompt_hr.overrides.shift_request_override.CustomShiftRequest",
+    "Timesheet": "prompt_hr.overrides.timesheet_override.CustomTimesheet"
 }
 
 # Document Events
