@@ -1113,14 +1113,19 @@ def send_probation_extension_letter(name):
 
 # ! prompt_hr.py.employee.get_raise_resignation_questions
 @frappe.whitelist()
-def get_raise_resignation_questions(company, employee):
+def get_raise_resignation_questions(company, employee, type_of_exit):
     try:
 
         if company == get_prompt_company_name().get("company_name"):
             # ? FETCH QUIZ NAME FROM HR SETTINGS FOR PROMPT
-            quiz_name = frappe.db.get_value(
-                "HR Settings", None, "custom_exit_quiz_at_employee_form_for_prompt"
-            )
+            if type_of_exit == "Termination":
+                quiz_name = frappe.db.get_value(
+                "HR Settings", None, "custom_termination_quiz_at_employee_form_for_prompt"
+                )
+            else:
+                quiz_name = frappe.db.get_value(
+                    "HR Settings", None, "custom_exit_quiz_at_employee_form_for_prompt"
+                )
         elif company == get_indifoss_company_name().get("company_name"):
             # ? FETCH QUIZ NAME FROM HR SETTINGS FOR INDIFOSS
             quiz_name = frappe.db.get_value(
@@ -1176,7 +1181,7 @@ import json
 
 @frappe.whitelist()
 def create_resignation_quiz_submission(
-    user_response, employee, notice_number_of_days=None, resignation_date=None
+    user_response, employee, type_of_exit, notice_number_of_days=None, resignation_date=None
 ):
     try:
         # ? PARSE USER RESPONSE FROM JSON STRING
@@ -1184,7 +1189,7 @@ def create_resignation_quiz_submission(
             user_response = json.loads(user_response)
 
         exit_approval = create_exit_approval_process(
-            user_response, employee, notice_number_of_days
+            user_response, employee, type_of_exit, notice_number_of_days
         )
 
         try:
@@ -1203,7 +1208,7 @@ def create_resignation_quiz_submission(
         return {"error": 1, "message": str(e)}
 
 
-def create_exit_approval_process(user_response, employee, notice_number_of_days=None):
+def create_exit_approval_process(user_response, employee, type_of_exit, notice_number_of_days=None):
     try:
         # ? CHECK IF EXIT APPROVAL PROCESS ALREADY EXISTS
         if frappe.db.exists(
@@ -1217,6 +1222,7 @@ def create_exit_approval_process(user_response, employee, notice_number_of_days=
 
         exit_approval_process = frappe.new_doc("Exit Approval Process")
         exit_approval_process.employee = employee
+        exit_approval_process.custom_exit_type = type_of_exit
         exit_approval_process.resignation_approval = "Pending"
         exit_approval_process.posting_date = getdate()
         exit_approval_process.notice_period_days = notice_number_of_days

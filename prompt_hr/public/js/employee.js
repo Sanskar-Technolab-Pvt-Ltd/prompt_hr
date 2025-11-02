@@ -65,7 +65,7 @@ frappe.ui.form.on("Employee", {
             };
         });
         // ? EMPLOYEE RESIGNATION BUTTON AND FUNCTIONALITY
-        createEmployeeResignationButton(frm);
+        createEmployeeActionButtons(frm);
         if (!frm.doc.department) {
             frm.set_query("custom_subdepartment", () => {
                 return {
@@ -615,172 +615,176 @@ function set_state_options(frm, state_field_name, country_field_name) {
     state_field.set_data(frappe.boot.india_state_options || []);
 }
 
-// ? FUNCTION TO CREATE EMPLOYEE RESIGNATION BUTTON AND HANDLE RESIGNATION PROCESS
-function createEmployeeResignationButton(frm) {
+// ? FUNCTION TO CREATE BOTH BUTTONS FOR RESIGNATION & TERMINATION
+function createEmployeeActionButtons(frm) {
     frm.add_custom_button(__("Raise Resignation"), function () {
+        handleEmployeeExitOrTermination(frm, "Resignation");
+    }, __("Actions"));
 
-        // ? FETCH RESIGNATION QUESTIONS FROM BACKEND
-        frappe.call({
-            method: "prompt_hr.py.employee.get_raise_resignation_questions",
-            args: { "company": frm.doc.company, "employee":frm.doc.name },
-            callback: function (res) {
-                if (res.message && res.message.length > 0) {
-                    const questions = res.message;
-
-                    // ? DYNAMICALLY CREATE DIALOG FIELDS BASED ON QUESTIONS
-                    const fields = questions.map(q => {
-                        let field = {
-                            label: q.question_detail || q.question,
-                            fieldname: q.question,   // use LMS Question docname directly
-                            reqd: true
-                        };
-
-                        if (q.type !== "Open Ended" || !q.custom_input_type) {
-                            field.fieldtype = "Data";
-                            return field;
-                        }
-
-                        switch (q.custom_input_type) {
-                            case "Checkbox":
-                                field.fieldtype = "MultiCheck";
-                                field.label = (stripHtml(q.question_detail) || q.question) + " <span style='color:#f1afb0'>*</span>";  // ✅ add red star
-                                field.options = (q.custom_multi_checkselect_options || "")
-                                    .split("\n")
-                                    .map(opt => opt.trim())
-                                    .filter(opt => opt)
-                                    .map(opt => ({ label: opt, value: opt }));
-                                break;
-
-
-
-                            case "Dropdown":
-                                field.fieldtype = "Select";
-                                field.label = (stripHtml(q.question_detail) || q.question);
-                                field.options = (q.custom_multi_checkselect_options || "")
-                                    .split("\n")
-                                    .map(opt => opt.trim())
-                                    .filter(opt => opt)
-                                    .join("\n");
-                                break;
-
-                            case "Yes/No/NA":
-                                field.fieldtype = "Select";
-                                field.label = (stripHtml(q.question_detail) || q.question);
-                                field.options = "Yes\nNo\nNA";
-                                break;
-
-                            case "Date":
-                                field.fieldtype = "Date";
-                                field.label = (stripHtml(q.question_detail) || q.question);
-                                break;
-
-                            case "Single Line Input":
-                                field.fieldtype = "Data";
-                                field.label = (stripHtml(q.question_detail) || q.question);
-                                break;
-
-                            default:
-                                field.fieldtype = "Data";
-                                field.label = (stripHtml(q.question_detail) || q.question);
-                                break;
-                        }
-
-                        return field;
-                    });
-
-                    // ? BUTTON ONLY VISIBLE TO HR ROLES
-                    user = frappe.session.user
-                    const allowed_roles = [
-                        "S - HR Leave Approval",
-                        "S - HR leave Report",
-                        "S - HR L6",
-                        "S - HR L5",
-                        "S - HR L4",
-                        "S - HR L3",
-                        "S - HR L2",
-                        "S - HR L1",
-                        "S - HR Director (Global Admin)",
-                        "S - HR L2 Manager",
-                        "S - HR Supervisor (RM)",
-                        "System Manager"
-                    ];
-
-                    // Check if user has any allowed role
-                    const can_show_button = frappe.user_roles.some(role => allowed_roles.includes(role));
-
-                    if (can_show_button || user == "Administrator") {
-                        let field = {
-                            "label": "Resignation Date",
-                            "fieldname": "resignation_date",
-                            "fieldtype": "Date",
-                            "default": frappe.datetime.nowdate()
-                        }
-                        fields.push(field)
-                    }
-                    // ? CREATE RESIGNATION DIALOG
-                    const dialog = new frappe.ui.Dialog({
-                        title: __('Resignation Details'),
-                        fields: fields,
-                        primary_action_label: __('Submit'),
-
-                        // ? ON SUBMIT, COLLECT RESPONSES AND CALL BACKEND
-                        primary_action(values) {
-                            frappe.dom.freeze(__('Creating Resignation...'));
-
-                            const answers = questions.map(q => {
-                                let answer = values[q.question];
-
-                                if (Array.isArray(answer)) {
-                                    answer = answer.join("\n"); // or "\n" if you want line breaks
-                                }
-
-                                return {
-                                    question_name: q.question,  // LMS Question docname
-                                    question: strip_html(q.question_detail) || q.question,
-                                    answer: answer
-                                };
-                            });
-
-
-                            // ? CREATE RESIGNATION RECORD IN BACKEND
-                            frappe.call({
-                                method: "prompt_hr.py.employee.create_resignation_quiz_submission",
-                                args: {
-                                    employee: frm.doc.name,
-                                    user_response: answers,
-                                    notice_number_of_days: frm.doc.notice_number_of_days,
-                                    resignation_date: values.resignation_date || frappe.datetime.nowdate()
-                                },
-                                callback: function (r) {
-                                    if (r.message) {
-                                        frappe.msgprint(r.message);
-                                        dialog.hide();
-                                    }
-                                },
-                                always: function () {
-                                    frappe.dom.unfreeze();
-                                }
-                            });
-                        }
-
-                    });
-
-                    // ? DISPLAY THE DIALOG
-                    dialog.show();
-                    dialog.$wrapper.find('.frappe-control[data-fieldtype="MultiCheck"] .checkbox').css({
-                        display: "inline-block",
-                        marginRight: "10px",
-                        minWidth: "120px"
-                    });
-
-
-                } else {
-                    frappe.msgprint(__('No resignation questions found or Resignation is already in process.'));
-                }
-            }
-        });
+    frm.add_custom_button(__("Raise Termination"), function () {
+        handleEmployeeExitOrTermination(frm, "Termination");
     }, __("Actions"));
 }
+
+
+// ? FUNCTION TO HANDLE EXIT OR TERMINATION DIALOG CREATION
+function handleEmployeeExitOrTermination(frm, typeOfExit) {
+
+    // ? FETCH QUESTIONS BASED ON TYPE (EXIT OR TERMINATION)
+    frappe.call({
+        method: "prompt_hr.py.employee.get_raise_resignation_questions",
+        args: {
+            company: frm.doc.company,
+            employee: frm.doc.name,
+            type_of_exit: typeOfExit
+        },
+        callback: function (res) {
+            if (res.message && res.message.length > 0) {
+                const questions = res.message;
+
+                // ? DYNAMICALLY BUILD DIALOG FIELDS BASED ON QUESTIONS
+                const fields = questions.map(q => {
+                    let field = {
+                        label: q.question_detail || q.question,
+                        fieldname: q.question,
+                        reqd: true
+                    };
+
+                    if (q.type !== "Open Ended" || !q.custom_input_type) {
+                        field.fieldtype = "Data";
+                        return field;
+                    }
+
+                    switch (q.custom_input_type) {
+                        case "Checkbox":
+                            field.fieldtype = "MultiCheck";
+                            field.label = (stripHtml(q.question_detail) || q.question) + " <span style='color:#f1afb0'>*</span>";
+                            field.options = (q.custom_multi_checkselect_options || "")
+                                .split("\n")
+                                .map(opt => opt.trim())
+                                .filter(opt => opt)
+                                .map(opt => ({ label: opt, value: opt }));
+                            break;
+
+                        case "Dropdown":
+                            field.fieldtype = "Select";
+                            field.options = (q.custom_multi_checkselect_options || "")
+                                .split("\n")
+                                .map(opt => opt.trim())
+                                .filter(opt => opt)
+                                .join("\n");
+                            break;
+
+                        case "Yes/No/NA":
+                            field.fieldtype = "Select";
+                            field.options = "Yes\nNo\nNA";
+                            break;
+
+                        case "Date":
+                            field.fieldtype = "Date";
+                            break;
+
+                        case "Single Line Input":
+                            field.fieldtype = "Data";
+                            break;
+
+                        case "Small Text":
+                            field.fieldtype = "Small Text";
+                            break;
+
+                        default:
+                            field.fieldtype = "Data";
+                    }
+
+                    return field;
+                });
+
+                // ? ADD DATE FIELD (ONLY FOR HR ROLES)
+                const allowed_roles = [
+                    "S - HR Leave Approval", "S - HR leave Report", "S - HR L6",
+                    "S - HR L5", "S - HR L4", "S - HR L3", "S - HR L2", "S - HR L1",
+                    "S - HR Director (Global Admin)", "S - HR L2 Manager",
+                    "S - HR Supervisor (RM)", "System Manager"
+                ];
+
+                const can_show_button = frappe.user_roles.some(role => allowed_roles.includes(role));
+                if (can_show_button || frappe.session.user === "Administrator") {
+                    fields.push({
+                        label: `${typeOfExit} Date`,
+                        fieldname: `${typeOfExit.toLowerCase()}_date`,
+                        fieldtype: "Date",
+                        default: frappe.datetime.nowdate()
+                    });
+                }
+
+                // ? CREATE AND DISPLAY DIALOG
+                const dialog = new frappe.ui.Dialog({
+                    title: __(typeOfExit + ' Details'),
+                    fields: fields,
+                    primary_action_label: __('Submit'),
+
+                    // ? WHEN SUBMIT IS CLICKED
+                    primary_action(values) {
+                        frappe.dom.freeze(__('Processing...'));
+
+                        const answers = questions.map(q => {
+                            let answer = values[q.question];
+                            if (Array.isArray(answer)) {
+                                answer = answer.join("\n");
+                            }
+                            return {
+                                question_name: q.question,
+                                question: strip_html(q.question_detail) || q.question,
+                                answer: answer
+                            };
+                        });
+
+                        // ? CREATE EXIT/TERMINATION RECORD
+                        frappe.call({
+                            method: "prompt_hr.py.employee.create_resignation_quiz_submission",
+                            args: {
+                                employee: frm.doc.name,
+                                user_response: answers,
+                                notice_number_of_days: frm.doc.notice_number_of_days,
+                                resignation_date: values[`${typeOfExit.toLowerCase()}_date`] || frappe.datetime.nowdate(),
+                                type_of_exit: typeOfExit
+                            },
+                            callback: function (r) {
+                                if (r.message) {
+                                    frappe.msgprint(r.message);
+                                    dialog.hide();
+                                }
+                            },
+                            always: function () {
+                                frappe.dom.unfreeze();
+                            }
+                        });
+                    }
+                });
+
+                dialog.show();
+
+                // ? STYLING MULTICHECK OPTIONS
+                dialog.$wrapper.find('.frappe-control[data-fieldtype="MultiCheck"] .checkbox').css({
+                    display: "inline-block",
+                    marginRight: "10px",
+                    minWidth: "120px"
+                });
+
+            } else {
+                frappe.msgprint(__("No " + typeOfExit.toLowerCase() + " questions found or process already initiated."));
+            }
+        }
+    });
+}
+
+// ? STRIP HTML HELPER FUNCTION
+function stripHtml(html) {
+    let tempDiv = document.createElement("div");
+    tempDiv.innerHTML = html;
+    return tempDiv.textContent || tempDiv.innerText || "";
+}
+
 // ? FUNCTION TO ADD A CUSTOM BUTTON ON THE EMPLOYEE FORM
 function addEmployeeDetailsChangesButton(frm) {
     // ? ADD BUTTON TO FORM HEADER
