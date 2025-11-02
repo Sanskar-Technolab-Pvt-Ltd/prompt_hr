@@ -412,5 +412,14 @@
   "name": "Cancelled by Employee",
   "style": "Danger",
   "workflow_state_name": "Cancelled by Employee"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Workflow State",
+  "icon": "",
+  "modified": "2025-11-01 18:12:32.716850",
+  "name": "Requested for Unsubmission",
+  "style": "",
+  "workflow_state_name": "Requested for Unsubmission"
  }
 ]
