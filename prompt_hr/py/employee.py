@@ -1188,19 +1188,43 @@ def create_resignation_quiz_submission(
         if isinstance(user_response, str):
             user_response = json.loads(user_response)
 
+        user = frappe.session.user
+
+        # ? TERMINATION ALLOWED FOR HR ROLES ONLY
+        allowed_roles = [
+            "S - HR Leave Approval", "S - HR leave Report", "S - HR L6",
+            "S - HR L5", "S - HR L4", "S - HR L3", "S - HR L2", "S - HR L1",
+            "S - HR Director (Global Admin)", "S - HR L2 Manager",
+            "S - HR Supervisor (RM)", "System Manager"
+        ]
+
+        if type_of_exit == "Termination" and not (
+            user == "Administrator" or any(role in allowed_roles for role in frappe.get_roles(user))
+        ):
+            frappe.throw("You are not authorized to initiate Termination.")
+
+        # ? CHECK USER PERMISSION FOR TARGET EMPLOYEE
+        if not frappe.has_permission("Employee", ptype="read", user=user, doc=frappe.get_doc("Employee", employee)):
+            frappe.throw("You do not have permission to perform this action for this Employee.")
+
+        # ? CREATE EXIT / TERMINATION APPROVAL PROCESS
         exit_approval = create_exit_approval_process(
             user_response, employee, type_of_exit, notice_number_of_days
         )
 
+        # ? SET EXIT DATE ON EMPLOYEE RECORD
         try:
             if not resignation_date:
                 resignation_date = getdate()
+
             frappe.db.set_value(
                 "Employee", employee, "resignation_letter_date", resignation_date
             )
             frappe.db.commit()
+
         except Exception as e:
             frappe.log_error("Error in Setting Resignation Date", str(e))
+
         return exit_approval
 
     except Exception as e:

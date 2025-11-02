@@ -621,6 +621,20 @@ function createEmployeeActionButtons(frm) {
         handleEmployeeExitOrTermination(frm, "Resignation");
     }, __("Actions"));
 
+    // ? TERMINATION ALLOWED FOR HR ROLES ONLY
+    const allowed_roles = [
+                    "S - HR Leave Approval", "S - HR leave Report", "S - HR L6",
+                    "S - HR L5", "S - HR L4", "S - HR L3", "S - HR L2", "S - HR L1",
+                    "S - HR Director (Global Admin)", "S - HR L2 Manager",
+                    "S - HR Supervisor (RM)", "System Manager"
+                ];
+    
+    const can_show_hr_button =
+            frappe.user_roles.some(role => allowed_roles.includes(role)) ||
+            frappe.session.user === "Administrator"
+    
+    if (!can_show_hr_button) return;
+
     frm.add_custom_button(__("Raise Termination"), function () {
         handleEmployeeExitOrTermination(frm, "Termination");
     }, __("Actions"));
