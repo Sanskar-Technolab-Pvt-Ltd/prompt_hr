@@ -154,7 +154,7 @@ frappe.ui.form.on("Employee", {
 
         // ? AUTO-CLICK "Raise Resignation" BUTTON IF URL PARAMETER IS PRESENT
         raise_resignation_button_auto_click_from_url(frm);
-
+        disable_employee_fields_for_left_employee(frm)
     },
     custom_current_country(frm) {
         set_state_options(frm, "custom_current_state", "custom_current_country");
@@ -1259,4 +1259,39 @@ function set_field_visibility(frm) {
             }
         }
     });
+}
+
+function disable_employee_fields_for_left_employee(frm) {
+    const should_lock = frm.doc.status === "Left" && !frm.is_dirty();
+
+    if (should_lock) {
+        frappe.after_ajax(() => {
+            frm.fields.forEach((field) => {
+                if (field.df.fieldname !== "status") {
+                    frm.set_df_property(field.df.fieldname, "read_only", 1);
+                }
+            });
+            hide_employee_buttons(frm);
+        });
+    }
+}
+
+function hide_employee_buttons(frm) {
+    // ? Hide sidebar actions (Attach, Assign, Share)
+    $(frm.wrapper).find(".form-sidebar").hide();
+
+    // ? Hide top-right buttons (Save, Menu, Print, Refresh)
+    $(frm.wrapper).find(".form-inner-toolbar").hide();
+
+    // ? Hide secondary buttons
+    $(frm.wrapper).find(".btn-default").hide();
+
+    // ✅ Clear toolbar actions
+    frm.page.clear_actions();
+    frm.page.clear_menu();
+
+    // ? Hide custom buttons inserted by scripts
+    $(frm.wrapper)
+        .find(".custom-actions, .custom-btn, .btn-custom")
+        .hide();
 }

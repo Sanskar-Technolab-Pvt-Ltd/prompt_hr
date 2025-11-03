@@ -550,13 +550,13 @@ fixtures = [
     #     "dt":"Role", "filters": [["name", "in", ["Job Requisition", "Head of Department", "Managing Director", "S - Payroll Accounting", "Travel Desk User", "Reporting Manager", "IT User", "Admin User"]]]
     # },
     # {
-    #     "dt":"Workflow", "filters": [["name", "in", ["Exit Approval Process", "Job Requisition","Loan Application", "Compensatory Leave Request", "Leave Application", "Expense Claim", "Travel Request", "Shift Request", "WeekOff Change Request", "Attendance Regularization", "Attendance Request", "Confirmation Evaluation Form", "Employee Profile Changes Approval Interface", "Job Offer", "Time Sheet"]]]
+    #     "dt":"Workflow", "filters": [["name", "in", ["Exit Approval Process", "Job Requisition","Loan Application", "Compensatory Leave Request", "Leave Application", "Expense Claim", "Travel Request", "Shift Request", "WeekOff Change Request", "Attendance Regularization", "Attendance Request", "Confirmation Evaluation Form", "Employee Profile Changes Approval Interface", "Job Offer", "Time Sheet", "Employee Onboarding"]]]
     # },
     # {
     #     "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Cancelled by Employee", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled", "Confirmed", "Approved by HR", "Rejected by HR", "Approved by BU Head", "Rejected by BU Head", "Extension Approved", "Extension Confirmed", "Extension Rejected", "Extension Requested", "Send For Approval", "Pending For Approval", "Submitted by RM", "Submitted by DH", "Requested for Unsubmission"]]]
     # },
     # {
-    #     "dt":"Workflow Action Master", "filters": [["name", "in", ["Confirm", "Send For Approval", "Withdraw", "Request for Unsubmit Timesheet"]]]
+    #     "dt":"Workflow Action Master", "filters": [["name", "in", ["Confirm", "Send For Approval", "Withdraw", "Request for Unsubmit Timesheet", "Mark As Complete"]]]
     # },
     # {
     #     "doctype": "Type of Document",
