@@ -620,19 +620,19 @@ function send_salary_slip(frm) {
         callback: function (res) {
             if (res.message) {
                 if (res.message.is_all_submitted == 1) {
+                    let remaining_employee = [];
+
+                    (frm.doc.custom_salary_withholding_details || []).forEach(row => {
+                        if (row.employee && !row.is_salary_slip_release) {
+                            remaining_employee.push(row.employee);
+                        }
+                    });
+
+                    // ? IF NO remaining employee → do NOT show button
+                    if (!remaining_employee.length) {
+                        return;
+                    }
                     frm.add_custom_button(__('Release Salary Slip'), function () {
-                        hide_field = isEmpty(frm.doc.custom_salary_withholding_details) ? 0:1;
-                        let remaining_employee = [];
-                        if (hide_field) {
-                            (frm.doc.custom_salary_withholding_details || []).forEach(row => {
-                                if (row.employee && !row.is_salary_slip_release) {
-                                    remaining_employee.push(row.employee);
-                                }
-                            });
-                        }
-                        if(isEmpty(remaining_employee)){
-                            hide_field = 0
-                        }
                         let d = new frappe.ui.Dialog({
                             title: 'Select Employees',
                             fields: [
