@@ -12,25 +12,25 @@ frappe.ui.form.on("Timesheet", {
 		};
     },
     refresh(frm) {
-        if (frm.doc.status === "Submitted" || frm.doc.status === "Requested for Unsubmission") {
-            // Disable all fields
-            frm.fields_dict && Object.keys(frm.fields_dict).forEach(fieldname => {
+        // if (frm.doc.status === "Submitted" || frm.doc.status === "Requested for Unsubmission") {
+        //     // Disable all fields
+        //     frm.fields_dict && Object.keys(frm.fields_dict).forEach(fieldname => {
 
-                frm.set_df_property(fieldname, "read_only", 1);
-            });
+        //         frm.set_df_property(fieldname, "read_only", 1);
+        //     });
 
-            frm.fields_dict.timesheet_details?.grid?.df?.fields?.forEach(field => {
-                frm.fields_dict.timesheet_details.grid.set_column_disp(field.fieldname, false);
-            });
+        //     frm.fields_dict.timesheet_details?.grid?.df?.fields?.forEach(field => {
+        //         frm.fields_dict.timesheet_details.grid.set_column_disp(field.fieldname, false);
+        //     });
 
-        } else {
-            frm.fields_dict && Object.keys(frm.fields_dict).forEach(fieldname => {
-                if (!["naming_series", "user", "start_date", "end_date", "employee_name", "department", "total_hours", "total_billable_hours", "base_total_billable_amount", "base_total_billed_amount", "base_total_costing_amount", "total_billed_hours", "total_billable_amount", "total_billed_amount", "total_costing_amount", "per_billed", "sales_invoice", "salary_slip", "status"].includes(fieldname)) {
-                        frm.set_df_property(fieldname, "read_only", 0);
-                }
-            });
+        // } else {
+        //     frm.fields_dict && Object.keys(frm.fields_dict).forEach(fieldname => {
+        //         if (!["naming_series", "user", "start_date", "end_date", "employee_name", "department", "total_hours", "total_billable_hours", "base_total_billable_amount", "base_total_billed_amount", "base_total_costing_amount", "total_billed_hours", "total_billable_amount", "total_billed_amount", "total_costing_amount", "per_billed", "sales_invoice", "salary_slip", "status"].includes(fieldname)) {
+        //                 frm.set_df_property(fieldname, "read_only", 0);
+        //         }
+        //     });
 
-        }
+        // }
 
     },
     // before_workflow_action: async (frm) => {
@@ -140,6 +140,27 @@ frappe.ui.form.on("Timesheet Detail", {
             }
         })
         
+    },
+
+    task: function(frm, cdt, cdn){
+        let row = locals[cdt][cdn]
+        frappe.call({
+                method: "prompt_hr.py.timesheet.set_billing_rate",
+                args: {
+                    doc: frm.doc
+                },
+                callback: function(r){
+                    console.log("res", r)
+
+                    if (r.message && r.message.billing_rate){
+
+                        row.billing_rate = r.message.billing_rate   
+                    }
+
+                    frm.refresh_field("time_logs")
+                }
+        })
+
     },
 
     is_billable: function(frm, cdt, cdn){
