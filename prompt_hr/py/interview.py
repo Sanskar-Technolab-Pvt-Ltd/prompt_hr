@@ -110,7 +110,6 @@ def interviewer_reschedule_interview(docname, scheduled_on, from_time, to_time):
     if hr_settings.custom_hr_roles_for_recruitment:
         role_list = [r.strip() for r in hr_settings.custom_hr_roles_for_recruitment.split(",") if r.strip()]
     
-    print("\n\nroles",role_list)
     users_with_roles = frappe.db.sql_list("""
         SELECT DISTINCT ur.parent
         FROM `tabHas Role` ur
@@ -122,12 +121,6 @@ def interviewer_reschedule_interview(docname, scheduled_on, from_time, to_time):
                     if u.lower() != "administrator"
                     and frappe.db.get_value("User", u, "enabled") == 1
                 ]
-   
-    #Update interview schedule
-    doc.scheduled_on = scheduled_on
-    doc.from_time = from_time
-    doc.to_time = to_time
-    
 
     # Send email using Notification (instead of direct sendmail)
     if recipients:
