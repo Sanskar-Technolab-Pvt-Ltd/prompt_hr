@@ -409,7 +409,7 @@ frappe.ui.form.on("Payroll Entry", {
                 console.log(has_remaining)
                 if (has_remaining) {
                     frm.add_custom_button(__("Make Remaining Bank Entry"), function () {
-                        make_remaining_bank_entry(frm, (for_withheld_salaries = 1, is_withheld_salary=1));
+                        make_remaining_bank_entry(frm, for_withheld_salaries = 1, is_withheld_salary=1);
                     }).addClass("btn-primary");
                 }
             }
@@ -804,7 +804,7 @@ function isEmpty(value) {
 // 	);
 // };
 
-let make_remaining_bank_entry = function (frm, for_withheld_salaries = 0) {
+let make_remaining_bank_entry = function (frm, for_withheld_salaries = 0,is_withheld_salary=1 ) {
     const doc = frm.doc;
 
     if (!doc.payment_account) {
