@@ -17,6 +17,9 @@ frappe.ui.form.on('Job Offer', {
             add_release_offer_button(frm);
         }
 
+        // ? ADD CREATE EMPLOYEE ONBOARDING BUTTON
+        create_employee_onboarding_button(frm)
+
         // ? CREATE INVITE BUTTON FOR DOCUMENT COLLECTION
         createInviteButton(frm);
 
@@ -73,6 +76,43 @@ function handle_candidate_access(frm) {
     });
 }
 
+async function create_employee_onboarding_button(frm) {
+    if (
+        frm.doc.workflow_state === "Approved" &&
+        (frm.doc.status === "Accepted" || frm.doc.status === "Accepted with Condition")
+    ) {
+
+        // ✅ Check if onboarding exists
+        const existing = await frappe.db.get_value(
+            "Employee Onboarding",
+            { job_offer: frm.doc.name },
+            "name"
+        );
+
+        // ✅ Dynamic button title based on existence
+        let button_label = existing?.message?.name
+            ? __("View Employee Onboarding")
+            : __("Create Employee Onboarding");
+
+        frm.add_custom_button(button_label, function () {
+
+            if (existing && existing.message && existing.message.name) {
+                // ✅ Open existing onboarding
+                frappe.set_route("Form", "Employee Onboarding", existing.message.name);
+                return;
+            }
+
+            // ✅ Create new onboarding
+            frappe.new_doc("Employee Onboarding", {
+                job_offer: frm.doc.name,
+                job_applicant: frm.doc.job_applicant,
+                designation: frm.doc.designation,
+            });
+        });
+    }
+}
+
+
 // ? ADD "RELEASE / RESEND OFFER LETTER" BUTTON FOR HR MANAGER
 function add_release_offer_button(frm) {
     const already_sent = frm.doc.custom_offer_letter_sent === 1;
@@ -98,7 +138,7 @@ function viewCandidatePortalButton(frm) {
                 frappe.msgprint("No Candidate Portal Found.");
             }
         });
-    })
+    }, 'Candidate Portal')
 }
 
 // ? FUNCTION TO ADD UPDATE CANDIDATE PORTAL BUTTON
