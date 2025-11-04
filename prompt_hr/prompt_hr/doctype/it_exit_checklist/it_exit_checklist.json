@@ -14,7 +14,6 @@
   "company",
   "column_break_ktcw",
   "designation",
-  "crm_user_id",
   "department",
   "work_location",
   "employment_type",
@@ -22,11 +21,10 @@
   "relieving_date",
   "section_break_nzqc",
   "it",
-  "section_break_xqaa",
+  "section_break_biao",
   "engineering",
-  "production_app_server",
-  "db_server",
-  "filled_by",
+  "section_break_xqaa",
+  "no_due_clearance",
   "note"
  ],
  "fields": [
@@ -75,11 +73,6 @@
    "options": "Designation"
   },
   {
-   "fieldname": "crm_user_id",
-   "fieldtype": "Data",
-   "label": "CRM User ID"
-  },
-  {
    "fetch_from": "employee.department",
    "fieldname": "department",
    "fieldtype": "Link",
@@ -91,22 +84,6 @@
   {
    "fieldname": "section_break_xqaa",
    "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "production_app_server",
-   "fieldtype": "Data",
-   "label": "Mention Production App Server user name, if any"
-  },
-  {
-   "fieldname": "db_server",
-   "fieldtype": "Data",
-   "label": "Mention Production DB Server user name, if any "
-  },
-  {
-   "fieldname": "filled_by",
-   "fieldtype": "Link",
-   "label": "Filled By",
-   "options": "Employee"
   },
   {
    "fieldname": "note",
@@ -173,12 +150,22 @@
    "label": "Status",
    "options": "Pending\nCompleted",
    "read_only": 1
+  },
+  {
+   "fieldname": "section_break_biao",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "no_due_clearance",
+   "fieldtype": "Table",
+   "label": "No Due Clearance",
+   "options": "IT Asset Clearance"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-16 16:53:44.357427",
+ "modified": "2025-11-01 17:00:36.261117",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "IT Exit Checklist",

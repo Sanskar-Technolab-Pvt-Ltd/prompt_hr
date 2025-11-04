@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-10-31 11:10:23.725468",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Interview",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "<p>Dear {{doc.custom_applicant_name}},<br><br></p>\n\n<p>Thank you for attending your interview scheduled on \n<b>{{ frappe.utils.format_date(doc.scheduled_on) }} between {{doc.from_time}} - {{doc.to_time}}</b>.<br></p>\n\n<p>We appreciate your time and interest.<br><br></p>\n\n<p>Regards,<br>\nRecruitment Team</p>\n",
+ "message_type": "HTML",
+ "modified": "2025-10-31 11:12:28.311902",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Interview Thank You Notification",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "Thank You for Attending Interview"
+}

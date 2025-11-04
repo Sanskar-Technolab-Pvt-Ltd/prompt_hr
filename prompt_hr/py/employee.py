@@ -714,24 +714,15 @@ def validate(doc, method):
         if doc.custom_probation_status == "In Probation":
             joining_date = getdate(doc.date_of_joining)
 
-            if doc.custom_probation_period:
-                if (
-                    not doc.custom_probation_extension_details
-                    and len(doc.custom_probation_extension_details) < 1
-                ):
-                    doc.custom_probation_end_date = getdate(
-                        add_to_date(joining_date, days=doc.custom_probation_period)
-                    )
-                elif (
-                    doc.custom_probation_extension_details
-                    and len(doc.custom_probation_extension_details) > 0
-                ):
-                    if doc.custom_probation_extension_details[-1].get("extended_date"):
-                        doc.custom_probation_end_date = (
-                            doc.custom_probation_extension_details[-1].get(
-                                "extended_date"
-                            )
-                        )
+            
+            if doc.custom_probation_period and (not doc.custom_probation_extension_details and len(doc.custom_probation_extension_details) < 1):
+                doc.custom_probation_end_date = getdate(add_to_date(joining_date, days=doc.custom_probation_period))
+                
+            elif doc.custom_probation_extension_details and len(doc.custom_probation_extension_details) > 0:
+                
+                if doc.custom_probation_extension_details[-1].get("extended_date"):
+                    doc.custom_probation_end_date = doc.custom_probation_extension_details[-1].get("extended_date")
+                    
 
                 # elif doc.custom_extended_period:
                 #     total_extended_days = doc.custom_probation_period + doc.custom_extended_period
@@ -1006,12 +997,11 @@ def send_service_agreement(name):
         )
         notify_signatory_on_email(
             doc.company,
-            "S - HR Director (Global Admin)",
             doc.name,
             "Service Agreement Letter",
         )
         notify_signatory_on_email(
-            doc.company, "Employee", doc.name, "Service Agreement Letter", email
+            doc.company, doc.name, "Service Agreement Letter", email
         )
     else:
         frappe.throw("No Email found for Employee")
@@ -1063,7 +1053,7 @@ def send_confirmation_letter(name):
             attachments=[attachment] if attachment else None,
         )
         notify_signatory_on_email(
-            doc.company, "S - HR Director (Global Admin)", doc.name, letter_name
+            doc.company, doc.name, letter_name
         )
     else:
         frappe.throw("No Email found for Employee")
@@ -1114,7 +1104,7 @@ def send_probation_extension_letter(name):
             attachments=[attachment] if attachment else None,
         )
         notify_signatory_on_email(
-            doc.company, "S - HR Director (Global Admin)", doc.name, letter_name
+            doc.company, doc.name, letter_name
         )
     else:
         frappe.throw("No Email found for Employee")
@@ -1123,14 +1113,19 @@ def send_probation_extension_letter(name):
 
 # ! prompt_hr.py.employee.get_raise_resignation_questions
 @frappe.whitelist()
-def get_raise_resignation_questions(company, employee):
+def get_raise_resignation_questions(company, employee, type_of_exit):
     try:
 
         if company == get_prompt_company_name().get("company_name"):
             # ? FETCH QUIZ NAME FROM HR SETTINGS FOR PROMPT
-            quiz_name = frappe.db.get_value(
-                "HR Settings", None, "custom_exit_quiz_at_employee_form_for_prompt"
-            )
+            if type_of_exit == "Termination":
+                quiz_name = frappe.db.get_value(
+                "HR Settings", None, "custom_termination_quiz_at_employee_form_for_prompt"
+                )
+            else:
+                quiz_name = frappe.db.get_value(
+                    "HR Settings", None, "custom_exit_quiz_at_employee_form_for_prompt"
+                )
         elif company == get_indifoss_company_name().get("company_name"):
             # ? FETCH QUIZ NAME FROM HR SETTINGS FOR INDIFOSS
             quiz_name = frappe.db.get_value(
@@ -1186,26 +1181,50 @@ import json
 
 @frappe.whitelist()
 def create_resignation_quiz_submission(
-    user_response, employee, notice_number_of_days=None, resignation_date=None
+    user_response, employee, type_of_exit, notice_number_of_days=None, resignation_date=None
 ):
     try:
         # ? PARSE USER RESPONSE FROM JSON STRING
         if isinstance(user_response, str):
             user_response = json.loads(user_response)
 
+        user = frappe.session.user
+
+        # ? TERMINATION ALLOWED FOR HR ROLES ONLY
+        allowed_roles = [
+            "S - HR Leave Approval", "S - HR leave Report", "S - HR L6",
+            "S - HR L5", "S - HR L4", "S - HR L3", "S - HR L2", "S - HR L1",
+            "S - HR Director (Global Admin)", "S - HR L2 Manager",
+            "S - HR Supervisor (RM)", "System Manager"
+        ]
+
+        if type_of_exit == "Termination" and not (
+            user == "Administrator" or any(role in allowed_roles for role in frappe.get_roles(user))
+        ):
+            frappe.throw("You are not authorized to initiate Termination.")
+
+        # ? CHECK USER PERMISSION FOR TARGET EMPLOYEE
+        if not frappe.has_permission("Employee", ptype="read", user=user, doc=frappe.get_doc("Employee", employee)):
+            frappe.throw("You do not have permission to perform this action for this Employee.")
+
+        # ? CREATE EXIT / TERMINATION APPROVAL PROCESS
         exit_approval = create_exit_approval_process(
-            user_response, employee, notice_number_of_days
+            user_response, employee, type_of_exit, notice_number_of_days
         )
 
+        # ? SET EXIT DATE ON EMPLOYEE RECORD
         try:
             if not resignation_date:
                 resignation_date = getdate()
+
             frappe.db.set_value(
                 "Employee", employee, "resignation_letter_date", resignation_date
             )
             frappe.db.commit()
+
         except Exception as e:
             frappe.log_error("Error in Setting Resignation Date", str(e))
+
         return exit_approval
 
     except Exception as e:
@@ -1213,7 +1232,7 @@ def create_resignation_quiz_submission(
         return {"error": 1, "message": str(e)}
 
 
-def create_exit_approval_process(user_response, employee, notice_number_of_days=None):
+def create_exit_approval_process(user_response, employee, type_of_exit, notice_number_of_days=None):
     try:
         # ? CHECK IF EXIT APPROVAL PROCESS ALREADY EXISTS
         if frappe.db.exists(
@@ -1227,6 +1246,7 @@ def create_exit_approval_process(user_response, employee, notice_number_of_days=
 
         exit_approval_process = frappe.new_doc("Exit Approval Process")
         exit_approval_process.employee = employee
+        exit_approval_process.custom_exit_type = type_of_exit
         exit_approval_process.resignation_approval = "Pending"
         exit_approval_process.posting_date = getdate()
         exit_approval_process.notice_period_days = notice_number_of_days
@@ -2102,11 +2122,49 @@ def create_leave_policy_assignment(
 
 
 def before_save(doc, method=None):
+    set_bond_completion_date(doc)
     validate_create_checkin_role(doc)
     auto_shift_assign(doc)
     # ? RUN ONLY FOR OLD DOCS
     # if not doc.is_new():
     #     update_leave_and_notice_for_confirmed_employee(doc)
+def set_bond_completion_date(doc):
+    #! CASE 1: USER SET BOND COMPLETION DATE DIRECTLY WITHOUT REQUIRED FIELDS
+    if doc.custom_bond_completion_date and not (doc.custom_bond_in_years and doc.date_of_joining):
+        frappe.msgprint(
+            "Bond Completion Date cannot be set directly. Please enter the 'Bond in Years' and 'Date of Joining' first.",
+            alert=True,
+            indicator="red"
+        )
+        #? CLEAR THE MANUALLY SET VALUE
+        doc.custom_bond_completion_date = None
+        return
+
+    #! CASE 2: CALCULATE BOND COMPLETION DATE IF REQUIRED FIELDS ARE PRESENT
+    if doc.custom_bond_in_years and doc.date_of_joining:
+        try:
+            joining_date = getdate(doc.date_of_joining)
+
+            years_raw = float(doc.custom_bond_in_years)
+
+            #! SPLIT YEARS INTO INTEGER + FRACTION
+            full_years = int(years_raw)
+            fractional_year = years_raw - full_years
+
+            #! CONVERT FRACTIONAL YEAR INTO MONTHS
+            fractional_months = int(fractional_year * 12)
+
+            #! FIRST ADD FULL YEARS
+            bond_date = add_years(joining_date, full_years)
+
+            #! ADD FRACTIONAL MONTHS (IF ANY)
+            if fractional_months:
+                bond_date = add_to_date(bond_date, months=fractional_months)
+
+            doc.custom_bond_completion_date = bond_date
+
+        except Exception:
+            frappe.log_error(frappe.get_traceback(), "Error in Set Bond Completion Date")
 
 
 def validate_create_checkin_role(doc):

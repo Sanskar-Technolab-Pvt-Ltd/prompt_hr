@@ -1,5 +1,6 @@
 import frappe
 from prompt_hr.utils import get_next_date
+from prompt_hr.py.utils import send_notification_email
 
 
 
@@ -250,7 +251,30 @@ def update_job_applicant_status_based_on_job_offer(doc, event):
                 frappe.db.set_value("Job Applicant", doc.job_applicant, "status", "Job Offer Given")
         
         if event == "on_submit":
-            print(f"\n\n\n event is on submit\n\n\n")
+            if doc.workflow_state == "Rejected":
+                doc.status = "Rejected"
+                
+            # ? Get job offer owner email
+            owner_email = doc.owner
+            # ? Send email on APPROVED and REJECTED BY HR
+            
+            if owner_email and owner_email not in ["Administrator", "Guest"]:
+                send_notification_email(
+                    recipients=[owner_email],
+                    notification_name="Job Offer Update",  # Notification Doc
+                    doctype="Job Offer",
+                    docname=doc.name,
+                    send_link=False,
+                    fallback_subject=f"Job Offer: {doc.name} - {doc.workflow_state}",
+                    fallback_message=f"""
+                        Hello,<br><br>
+                        The Job Offer <b>{doc.name}</b> for candidate <b>{doc.applicant_name}</b> 
+                        has been <b>{doc.workflow_state}</b> by {frappe.session.user}.<br><br>
+                        Regards,<br>HR Team
+                    """,
+                    send_header_greeting=True,
+                )
+
             if doc.status in ["Accepted", "Accepted with Conditions"]:
                 print("\n\n setting job applicant status to job offer accepted \n\n")
                 frappe.db.set_value("Job Applicant", doc.job_applicant, "status", "Job Offer Accepted")

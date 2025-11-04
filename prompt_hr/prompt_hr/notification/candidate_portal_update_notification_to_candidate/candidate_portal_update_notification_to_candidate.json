@@ -1,0 +1,26 @@
+{
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-10-31 12:36:11.178158",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Candidate Portal",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "{% set portal_url = frappe.utils.get_url(\"/candidate-portal/new\") %}\n\n<p>Dear {{ doc.applicant_name or \"Candidate\" }},</p>\n\n<p>Your Candidate Portal has been updated. Please log in to review the latest changes.</p>\n\n<p><b>Candidate Portal Link:</b><br>\n<a href=\"{{ portal_url }}\"\n   style=\"padding:10px 16px; background:#3b82f6; color:white; border-radius:6px;\n          text-decoration:none; display:inline-block; margin:6px 0;\">\n   Open Candidate Portal\n</a>\n</p>\n\n<p><b>Important:</b><br>\nThe login credentials were <strong>already shared with you in the previous email</strong>.<br>\nPlease <strong>refer to that email</strong> for the login ID and password.</p>\n\n<p>To <strong>view or update your details</strong> inside the portal,  \nuse the <strong>same phone number and password</strong> that were also provided in the previous mail.</p>\n\n<p><b>Update Summary:</b><br>\n\u2022 <strong>Candidate Name:</strong> {{ doc.applicant_name or \"Candidate\" }}<br>\n\u2022 <strong>Updated On:</strong> {{ frappe.utils.format_datetime(doc.modified) }}</p>\n\n<p>Regards,<br>\nHR Team</p>\n",
+ "message_type": "HTML",
+ "modified": "2025-11-01 11:12:44.737820",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Candidate Portal Update Notification To Candidate",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "Candidate Portal Updated - {{ doc.applicant_name }}"
+}

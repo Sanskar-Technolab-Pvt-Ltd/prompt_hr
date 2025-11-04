@@ -12,10 +12,13 @@ frappe.ui.form.on('Job Offer', {
         const hr_system_roles = ["System Manager", ...hr_roles];
         if (is_candidate) {
             handle_candidate_access(frm);
-        } else if (hr_system_roles || frappe.session.user == "Administrator") {
+        } else if ((hr_system_roles || frappe.session.user == "Administrator") && frm.doc.workflow_state == "Approved") {
             // ? SHOW RELEASE JOB OFFER BUTTON ONLY TO HR ROLES
             add_release_offer_button(frm);
         }
+
+        // ? ADD CREATE EMPLOYEE ONBOARDING BUTTON
+        create_employee_onboarding_button(frm)
 
         // ? CREATE INVITE BUTTON FOR DOCUMENT COLLECTION
         createInviteButton(frm);
@@ -28,23 +31,27 @@ frappe.ui.form.on('Job Offer', {
 
         viewCandidatePortalButton(frm)
 
+        show_salary_breakup_preview_button(frm)
+
         // ? ADD RELEASE LOI LETTER BUTTON
-        frm.add_custom_button(__("Release LOI Letter"), function () {
-            frappe.dom.freeze(__('Releasing Letter...'));
-            frappe.call({
-                method: "prompt_hr.py.job_offer.send_LOI_letter",
-                args: { name: frm.doc.name },
-                callback: function (r) {
-                    if (r.message) {
-                        frappe.msgprint(r.message);
-                        frm.reload_doc();
+        if (frm.doc.workflow_state == "Approved") {
+            frm.add_custom_button(__("Release LOI Letter"), function () {
+                frappe.dom.freeze(__('Releasing Letter...'));
+                frappe.call({
+                    method: "prompt_hr.py.job_offer.send_LOI_letter",
+                    args: { name: frm.doc.name },
+                    callback: function (r) {
+                        if (r.message) {
+                            frappe.msgprint(r.message);
+                            frm.reload_doc();
+                        }
+                    },
+                    always: function () {
+                        frappe.dom.unfreeze();
                     }
-                },
-                always: function () {
-                    frappe.dom.unfreeze();
-                }
-            });
-        }, 'Offer Actions');
+                });
+            }, 'Offer Actions');
+        }
         
     }
 });
@@ -68,6 +75,43 @@ function handle_candidate_access(frm) {
         frm.set_df_property(field.df.fieldname, 'hidden', false);
     });
 }
+
+async function create_employee_onboarding_button(frm) {
+    if (
+        frm.doc.workflow_state === "Approved" &&
+        (frm.doc.status === "Accepted" || frm.doc.status === "Accepted with Condition")
+    ) {
+
+        // ✅ Check if onboarding exists
+        const existing = await frappe.db.get_value(
+            "Employee Onboarding",
+            { job_offer: frm.doc.name },
+            "name"
+        );
+
+        // ✅ Dynamic button title based on existence
+        let button_label = existing?.message?.name
+            ? __("View Employee Onboarding")
+            : __("Create Employee Onboarding");
+
+        frm.add_custom_button(button_label, function () {
+
+            if (existing && existing.message && existing.message.name) {
+                // ✅ Open existing onboarding
+                frappe.set_route("Form", "Employee Onboarding", existing.message.name);
+                return;
+            }
+
+            // ✅ Create new onboarding
+            frappe.new_doc("Employee Onboarding", {
+                job_offer: frm.doc.name,
+                job_applicant: frm.doc.job_applicant,
+                designation: frm.doc.designation,
+            });
+        });
+    }
+}
+
 
 // ? ADD "RELEASE / RESEND OFFER LETTER" BUTTON FOR HR MANAGER
 function add_release_offer_button(frm) {
@@ -94,7 +138,7 @@ function viewCandidatePortalButton(frm) {
                 frappe.msgprint("No Candidate Portal Found.");
             }
         });
-    })
+    }, 'Candidate Portal')
 }
 
 // ? FUNCTION TO ADD UPDATE CANDIDATE PORTAL BUTTON
@@ -348,4 +392,345 @@ function createInviteButton(frm) {
         });
         dialog.show();
     }, 'Candidate Portal');
+}
+
+function show_salary_breakup_preview_button(frm) {
+    // Do not show button for new documents
+    if (frm.doc.__islocal) return;
+
+    // Avoid duplicate buttons
+    frm.remove_custom_button("Preview Salary Breakup");
+
+    // Add the button
+    frm.add_custom_button(
+        "Preview Salary Breakup",
+        () => show_salary_breakup_preview(frm),
+    );
+}
+
+
+function show_salary_breakup_preview(frm) {
+    let earnings = frm.doc.custom_earnings || [];
+    let deductions = frm.doc.custom_deductions || [];
+
+    // Scoped CSS styles
+    const styles = `
+        <style>
+            .salary-preview-container {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            }
+            
+            .salary-preview-header {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 20px;
+                border-radius: 8px 8px 0 0;
+                margin: -15px -15px 20px -15px;
+            }
+            
+            .salary-preview-header h3 {
+                margin: 0;
+                font-size: 24px;
+                font-weight: 600;
+            }
+            
+            .salary-section-card {
+                background: #ffffff;
+                border-radius: 12px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+                margin-bottom: 20px;
+                overflow: hidden;
+                border: 1px solid #e8e8e8;
+            }
+            
+            .salary-section-header {
+                padding: 16px 20px;
+                border-bottom: 2px solid #f0f0f0;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            
+            .salary-section-header.earnings {
+                background: linear-gradient(90deg, #f0fdf4 0%, #dcfce7 100%);
+                border-bottom-color: #86efac;
+            }
+            
+            .salary-section-header.deductions {
+                background: linear-gradient(90deg, #fef2f2 0%, #fee2e2 100%);
+                border-bottom-color: #fca5a5;
+            }
+            
+            .salary-section-icon {
+                width: 32px;
+                height: 32px;
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 18px;
+            }
+            
+            .salary-section-icon.earnings {
+                background: #22c55e;
+                color: white;
+            }
+            
+            .salary-section-icon.deductions {
+                background: #ef4444;
+                color: white;
+            }
+            
+            .salary-section-title {
+                font-size: 18px;
+                font-weight: 600;
+                color: #1f2937;
+                margin: 0;
+            }
+            
+            .salary-preview-table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            
+            .salary-preview-table thead th {
+                background: #f9fafb;
+                padding: 12px 20px;
+                text-align: left;
+                font-size: 13px;
+                font-weight: 600;
+                color: #6b7280;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                border-bottom: 2px solid #e5e7eb;
+            }
+            
+            .salary-preview-table thead th.salary-amount-col {
+                text-align: right;
+            }
+            
+            .salary-preview-table tbody tr {
+                transition: background-color 0.2s ease;
+            }
+            
+            .salary-preview-table tbody tr:hover {
+                background: #f9fafb;
+            }
+            
+            .salary-preview-table tbody td {
+                padding: 14px 20px;
+                border-bottom: 1px solid #f3f4f6;
+                color: #374151;
+                font-size: 14px;
+            }
+            
+            .salary-preview-table tbody tr:last-child td {
+                border-bottom: none;
+            }
+            
+            .salary-component-name {
+                font-weight: 500;
+            }
+            
+            .salary-amount-value {
+                text-align: right;
+                font-weight: 600;
+                color: #111827;
+            }
+            
+            .salary-summary-box {
+                background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+                border-radius: 12px;
+                padding: 24px;
+                margin-top: 24px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            }
+            
+            .salary-summary-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 12px 0;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            .salary-summary-row:last-child {
+                border-bottom: none;
+                margin-top: 8px;
+                padding-top: 20px;
+                border-top: 2px solid rgba(255, 255, 255, 0.2);
+            }
+            
+            .salary-summary-label {
+                font-size: 15px;
+                color: #cbd5e1;
+                font-weight: 500;
+            }
+            
+            .salary-summary-value {
+                font-size: 18px;
+                font-weight: 700;
+                color: #ffffff;
+            }
+            
+            .salary-summary-value.earnings-color {
+                color: #86efac;
+            }
+            
+            .salary-summary-value.deductions-color {
+                color: #fca5a5;
+            }
+            
+            .salary-summary-value.net-pay {
+                font-size: 24px;
+                color: #fbbf24;
+            }
+            
+            .salary-empty-state {
+                text-align: center;
+                padding: 40px 20px;
+                color: #9ca3af;
+            }
+            
+            .salary-empty-icon {
+                font-size: 48px;
+                margin-bottom: 12px;
+                opacity: 0.5;
+            }
+        </style>
+    `;
+
+    // Build earnings table
+    let earnings_html = `
+        <div class="salary-section-card">
+            <div class="salary-section-header earnings">
+                <div class="salary-section-icon earnings">↑</div>
+                <h4 class="salary-section-title">Earnings</h4>
+            </div>
+    `;
+
+    if (earnings.length > 0) {
+        earnings_html += `
+            <table class="salary-preview-table">
+                <thead>
+                    <tr>
+                        <th>Component</th>
+                        <th class="salary-amount-col">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        earnings.forEach(row => {
+            earnings_html += `
+                <tr>
+                    <td class="salary-component-name">${row.salary_component}</td>
+                    <td class="salary-amount-value">${format_currency(row.amount)}</td>
+                </tr>
+            `;
+        });
+
+        earnings_html += `</tbody></table>`;
+    } else {
+        earnings_html += `
+            <div class="salary-empty-state">
+                <div class="salary-empty-icon">📋</div>
+                <p>No earnings components added</p>
+            </div>
+        `;
+    }
+
+    earnings_html += `</div>`;
+
+    // Build deductions table
+    let deductions_html = `
+        <div class="salary-section-card">
+            <div class="salary-section-header deductions">
+                <div class="salary-section-icon deductions">↓</div>
+                <h4 class="salary-section-title">Deductions</h4>
+            </div>
+    `;
+
+    if (deductions.length > 0) {
+        deductions_html += `
+            <table class="salary-preview-table">
+                <thead>
+                    <tr>
+                        <th>Component</th>
+                        <th class="salary-amount-col">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        deductions.forEach(row => {
+            deductions_html += `
+                <tr>
+                    <td class="salary-component-name">${row.salary_component}</td>
+                    <td class="salary-amount-value">${format_currency(row.amount)}</td>
+                </tr>
+            `;
+        });
+
+        deductions_html += `</tbody></table>`;
+    } else {
+        deductions_html += `
+            <div class="salary-empty-state">
+                <div class="salary-empty-icon">📋</div>
+                <p>No deduction components added</p>
+            </div>
+        `;
+    }
+
+    deductions_html += `</div>`;
+
+    // Totals
+    let total_earnings = earnings.reduce((t, r) => t + (r.amount || 0), 0);
+    let total_deductions = deductions.reduce((t, r) => t + (r.amount || 0), 0);
+    let net_pay = total_earnings - total_deductions;
+
+    // Summary HTML
+    let summary_html = `
+        <div class="salary-summary-box">
+            <div class="salary-summary-row">
+                <span class="salary-summary-label">Total Earnings</span>
+                <span class="salary-summary-value earnings-color">${format_currency(total_earnings)}</span>
+            </div>
+            <div class="salary-summary-row">
+                <span class="salary-summary-label">Total Deductions</span>
+                <span class="salary-summary-value deductions-color">${format_currency(total_deductions)}</span>
+            </div>
+            <div class="salary-summary-row">
+                <span class="salary-summary-label">Net Pay</span>
+                <span class="salary-summary-value net-pay">${format_currency(net_pay)}</span>
+            </div>
+        </div>
+    `;
+
+    // Dialog
+    let d = new frappe.ui.Dialog({
+        title: "Salary Breakup Preview",
+        size: "large",
+        fields: [
+            {
+                fieldname: "container_html",
+                fieldtype: "HTML"
+            }
+        ]
+    });
+
+    // Combine all HTML with scoped container
+    d.fields_dict.container_html.$wrapper.html(`
+        ${styles}
+        <div class="salary-preview-container">
+            <div class="salary-preview-header">
+                <h3>💰 Salary Structure Breakdown</h3>
+            </div>
+            ${earnings_html}
+            ${deductions_html}
+            ${summary_html}
+        </div>
+    `);
+
+    d.show();
 }

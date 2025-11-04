@@ -1,0 +1,17 @@
+
+{% set action_user = frappe.session.user %}
+{% set employee_name = frappe.db.get_value("Employee", {"user_id": action_user}, "employee_name") or action_user %}
+
+{% set job_offer_link = frappe.utils.get_url("/app/job-offer/" + doc.name) %}
+
+The Job Offer <b>{{ doc.name }}</b> for candidate 
+<b>{{ doc.applicant_name }}</b> has been 
+<b>{{ doc.workflow_state }} by {{employee_name}}</b>.<br><br>
+
+You can view the Job Offer using the link below:<br>
+<a href="{{ job_offer_link }}" target="_blank">
+    {{ job_offer_link }}
+</a><br><br>
+
+Regards,<br>
+HR Team
