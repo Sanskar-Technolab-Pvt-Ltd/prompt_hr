@@ -2946,6 +2946,7 @@ def check_employee_penalty_criteria(employee=None, penalization_type=None):
     print(f"➡️  Product Line = {employee.custom_product_line}")
     print(f"➡️  Business Unit = {employee.custom_business_unit}")
     print(f"➡️  Company = {employee.company}")
+    print(f"➡️  Shift Type = {employee.default_shift}")
 
     company_abbr = frappe.db.get_value("Company", employee.company, "abbr")
     print(f"\n🏢 Company Abbreviation: {company_abbr}")
@@ -2963,6 +2964,7 @@ def check_employee_penalty_criteria(employee=None, penalization_type=None):
         "Employee Grade": "grade",
         "Designation": "designation",
         "Product Line": "custom_product_line",
+        "Shift Type": "default_shift",
     }
     print(criteria)
 
