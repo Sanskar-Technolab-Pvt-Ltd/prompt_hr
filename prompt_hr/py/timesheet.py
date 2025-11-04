@@ -10,50 +10,53 @@ from datetime import datetime
 def set_billing_rate(doc):
     
     doc = frappe.parse_json(doc)
-    billing_rate = 0        
-    monthly_salary = 0
     
+    if doc.employee:
+        billing_rate = 0        
+        monthly_salary = 0
         
-    gross_salary = frappe.db.get_value("Employee", doc.employee, "custom_gross_salary")
-    ctc_salary = frappe.db.get_value("Employee", doc.employee, "ctc") 
-    
-    if gross_salary:
-        monthly_salary = gross_salary
-    else:
-        monthly_salary = ctc_salary
-    
-    working_days = frappe.db.get_single_value("HR Settings", "custom_working_days_to_calculate_billing_rate_for_prompt") or 28
-    daily_salary = 0
-    
-    shift = frappe.db.get_value("Employee", doc.employee, "default_shift")
-    shift_hours = 0
-    break_hours = 0
-    if shift:
-        shift_data = frappe.db.get_values("Shift Type", shift, ["start_time", "end_time", "custom_break_time"], as_dict=True) 
-        
-    
-    if shift_data:
-        shift_data = shift_data[0]
-        if shift_data.get("start_time") and shift_data.get("end_time"):
-            fmt = "%H:%M:%S"
-            start = datetime.strptime(str(shift_data.get("start_time")), fmt)
-            end = datetime.strptime(str(shift_data.get("end_time")), fmt)
             
-            total_hours = (end - start).total_seconds() / 3600
-            if shift_data.get("custom_break_time"):
-                break_hours = ( shift_data.get("custom_break_time") or 0) / 60
-                
-            shift_hours = total_hours - break_hours
-                    
-    if gross_salary:
-        daily_salary = float(monthly_salary / working_days)
-    
-    
-    if daily_salary and shift_hours:    
-        billing_rate = float(daily_salary / shift_hours)
-
+        gross_salary = frappe.db.get_value("Employee", doc.employee, "custom_gross_salary")
+        ctc_salary = frappe.db.get_value("Employee", doc.employee, "ctc") 
         
-    return {"billing_rate": billing_rate}
+        if gross_salary:
+            monthly_salary = gross_salary
+        else:
+            monthly_salary = ctc_salary
+        
+        working_days = frappe.db.get_single_value("HR Settings", "custom_working_days_to_calculate_billing_rate_for_prompt") or 28
+        daily_salary = 0
+        
+        shift = frappe.db.get_value("Employee", doc.employee, "default_shift")
+        shift_hours = 0
+        break_hours = 0
+        shift_data = None
+        if shift:
+            shift_data = frappe.db.get_values("Shift Type", shift, ["start_time", "end_time", "custom_break_time"], as_dict=True) 
+            
+        
+        if shift_data:
+            shift_data = shift_data[0]
+            if shift_data.get("start_time") and shift_data.get("end_time"):
+                fmt = "%H:%M:%S"
+                start = datetime.strptime(str(shift_data.get("start_time")), fmt)
+                end = datetime.strptime(str(shift_data.get("end_time")), fmt)
+                
+                total_hours = (end - start).total_seconds() / 3600
+                if shift_data.get("custom_break_time"):
+                    break_hours = ( shift_data.get("custom_break_time") or 0) / 60
+                    
+                shift_hours = total_hours - break_hours
+                        
+        if gross_salary:
+            daily_salary = float(monthly_salary / working_days)
+        
+        
+        if daily_salary and shift_hours:    
+            billing_rate = float(daily_salary / shift_hours)
+
+            
+        return {"billing_rate": billing_rate}
 
 
 
