@@ -289,14 +289,15 @@ frappe.ui.form.on("Interview", {
 
         // Fetch allowed roles from HR Settings
         let allowed_roles = [];
-        const hr_settings = await frappe.db.get_doc("HR Settings");
-        if (hr_settings && hr_settings.custom_hr_roles_for_recruitment) {
-            allowed_roles = hr_settings.custom_hr_roles_for_recruitment
-                .split(/\r?\n|,/)
-                .map(role => role.trim())        // remove extra spaces
-                .filter(role => role.length > 0); // remove empty lines
-        }
-
+        const hr_roles_response = await frappe.call({
+            method: "prompt_hr.py.utils.get_roles_from_hr_settings_by_module",
+            args: { role_type_field: "custom_hr_roles_for_recruitment" },
+        });
+        const hr_roles = hr_roles_response?.message || [];
+        allowed_roles = [
+            ...hr_roles,
+            "System Manager",
+        ];
         // Fetch current user's roles from the server
         
         const user_roles = frappe.user_roles || [];

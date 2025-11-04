@@ -1175,6 +1175,7 @@ def get_employee_email(employee=None):
     return None
 
 # ? TO GET ROLES FROM HR SETTINGS COMMA SEPARTED FIELD
+@frappe.whitelist()
 def get_roles_from_hr_settings_by_module(role_type_field):
     """
     #! FETCH CONFIGURED ROLES FROM HR SETTINGS BASED ON MODULE TYPE
