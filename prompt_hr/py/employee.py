@@ -2122,11 +2122,49 @@ def create_leave_policy_assignment(
 
 
 def before_save(doc, method=None):
+    set_bond_comletion_date(doc)
     validate_create_checkin_role(doc)
     auto_shift_assign(doc)
     # ? RUN ONLY FOR OLD DOCS
     # if not doc.is_new():
     #     update_leave_and_notice_for_confirmed_employee(doc)
+def set_bond_comletion_date(doc):
+    #! CASE 1: USER SET BOND COMPLETION DATE DIRECTLY WITHOUT REQUIRED FIELDS
+    if doc.custom_bond_completion_date and not (doc.custom_bond_in_years and doc.date_of_joining):
+        frappe.msgprint(
+            "Bond Completion Date cannot be set directly. Please enter the 'Bond in Years' and 'Date of Joining' first.",
+            alert=True,
+            indicator="red"
+        )
+        #? CLEAR THE MANUALLY SET VALUE
+        doc.custom_bond_completion_date = None
+        return
+
+    #! CASE 2: CALCULATE BOND COMPLETION DATE IF REQUIRED FIELDS ARE PRESENT
+    if doc.custom_bond_in_years and doc.date_of_joining:
+        try:
+            joining_date = getdate(doc.date_of_joining)
+
+            years_raw = float(doc.custom_bond_in_years)
+
+            #! SPLIT YEARS INTO INTEGER + FRACTION
+            full_years = int(years_raw)
+            fractional_year = years_raw - full_years
+
+            #! CONVERT FRACTIONAL YEAR INTO MONTHS
+            fractional_months = int(fractional_year * 12)
+
+            #! FIRST ADD FULL YEARS
+            bond_date = add_years(joining_date, full_years)
+
+            #! ADD FRACTIONAL MONTHS (IF ANY)
+            if fractional_months:
+                bond_date = add_to_date(bond_date, months=fractional_months)
+
+            doc.custom_bond_completion_date = bond_date
+
+        except Exception:
+            frappe.log_error(frappe.get_traceback(), "Error in Set Bond Completion Date")
 
 
 def validate_create_checkin_role(doc):
