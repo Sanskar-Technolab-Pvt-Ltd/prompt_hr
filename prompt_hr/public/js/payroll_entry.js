@@ -45,11 +45,6 @@ frappe.ui.form.on("Payroll Entry", {
 		// }
 
 
-
-
-        // ? CODE TO REMOVE ADD ROW BUTTON FORM THE EXISTING WITHHOLDING SALARY CHILD TABLE
-        frm.set_df_property('custom_pending_withholding_salary', 'cannot_add_rows', true);
-
         // ? CODE TO APPLY FILTERS TO EMPLOYEE FIELD IN SALARY WITHHOLDING DETAILS CHILD TABLE BASED ON EMPLOYEES IN EMPLOYEE DETAILS 
         employee_ids = (frm.doc.employees || []).map(row => row.employee).filter(Boolean);
         if (employee_ids) {
@@ -406,6 +401,19 @@ frappe.ui.form.on("Payroll Entry", {
 					make_bank_entry(frm, (for_withheld_salaries = 1));
 				}).addClass("btn-primary");
 			}
+            else {
+                // ? Check if any employee still pending bank entry
+                const has_remaining = (frm.doc.custom_salary_withholding_details || []).some(
+                    row => !row.is_bank_entry_created
+                );
+                console.log(has_remaining)
+                if (has_remaining) {
+                    frm.add_custom_button(__("Make Remaining Bank Entry"), function () {
+                        make_remaining_bank_entry(frm, for_withheld_salaries = 1, is_withheld_salary=1);
+                    }).addClass("btn-primary");
+                }
+            }
+
 		});
 	},
     custom_new_joinee_and_exit_step_completed: function(frm) {
@@ -430,7 +438,8 @@ function disable_fields_for_completed_steps(frm) {
         "custom_new_joinee_and_exit_step_completed": [
             "custom_new_joinee_count",
             "custom_exit_employees_count",
-            "custom_pending_fnf_details"
+            "custom_pending_fnf_details",
+            "custom_new_joinee_employees"
         ],
         "custom_leave_and_attendance_step_completed": [
             "custom_pending_leave_approval",
@@ -447,7 +456,6 @@ function disable_fields_for_completed_steps(frm) {
         ],
         "custom_salary_withholding_step_completed": [
             "custom_salary_withholding_details",
-            "custom_pending_withholding_salary"
         ]
     };
 
@@ -611,53 +619,23 @@ function send_salary_slip(frm) {
         },
         callback: function (res) {
             if (res.message) {
-                console.log(res.message.is_all_submitted)
                 if (res.message.is_all_submitted == 1) {
-                    console.log("True")
+                    let remaining_employee = [];
+
+                    (frm.doc.custom_salary_withholding_details || []).forEach(row => {
+                        if (row.employee && !row.is_salary_slip_release) {
+                            remaining_employee.push(row.employee);
+                        }
+                    });
+
+                    // ? IF NO remaining employee → do NOT show button
+                    if (!remaining_employee.length) {
+                        return;
+                    }
                     frm.add_custom_button(__('Release Salary Slip'), function () {
-                        hide_field = isEmpty(frm.doc.custom_pending_withholding_salary) ? 0:1;
-                        let remaining_employee = []
-                        if (hide_field) {
-                            (frm.doc.custom_pending_withholding_salary || []).forEach(row => {
-                                if (row.employee && !row.release_salary) {
-                                    remaining_employee.push(row.employee);
-                                }
-                            });
-                        }
-                        if(isEmpty(remaining_employee)){
-                            hide_field = 0
-                        }
                         let d = new frappe.ui.Dialog({
                             title: 'Select Employees',
                             fields: [
-                                {
-                                    label: 'Hold Salary Release for Employee',
-                                    fieldname: 'employee',
-                                    fieldtype: 'Link',
-                                    options: 'Employee',
-                                    hidden:hide_field,
-                                    onchange: function() {
-                                        let employee = d.get_value('employee');
-                                        if (employee) {
-                
-                                            const grid = d.fields_dict.employee_table.grid;
-                                            const data = grid.get_data();
-                
-                                            if (data.some(r => r.employee === employee)) {
-                                                frappe.msgprint(__('Employee already added!'));
-                                                d.set_value('employee', '');
-                                                return;
-                                            }
-                                            grid.add_new_row();
-                
-                                            const row_doc = grid.get_data()[grid.get_data().length - 1];
-                                            row_doc.employee = employee;
-                                            grid.refresh();
-                
-                                            d.set_value('employee', '');
-                                        }
-                                    }
-                                },
                                 {
                                     label: 'Company Email',
                                     fieldname: 'company_email',
@@ -667,24 +645,6 @@ function send_salary_slip(frm) {
                                     label: 'Personal Email',
                                     fieldname: 'personal_email',
                                     fieldtype: 'Check',                    
-                                },
-                                {
-                                    label: 'Salary Release Withheld – Selected Employees',
-                                    fieldname: 'employee_table',
-                                    fieldtype: 'Table',
-                                    cannot_add_rows: true,
-                                    hidden:hide_field,
-                                    // cannot_delete_rows: true,
-                                    fields: [
-                                        {
-                                            fieldname: 'employee',
-                                            fieldtype: 'Link',
-                                            options: 'Employee',
-                                            label: 'Employee',
-                                            in_list_view: 1,
-                                            // read_only: 1
-                                        },
-                                    ]
                                 },
                                 {  
                                     label: 'Salary Release Withheld – Employees',  
@@ -707,27 +667,20 @@ function send_salary_slip(frm) {
                             ],
                             primary_action_label: 'Send',
                             primary_action(values) {
-                                // Collect data to send to server
-                                let data = {
-                                    employees: values.employee_table || []
-                                };
-                                employee_ids = [];
-                                changes_in_employee_ids = []
-                                if (values.employee_table && values.employee_table.length > 0) { 
-                                    employee_ids = values.employee_table.map(row => row.employee).filter(Boolean);
+
+                                let selected_employee_ids = [];
+                                let unselected_employee_ids = [];
+
+                                if (values.withheld_employee_table && values.withheld_employee_table.length > 0) {
+                                    values.withheld_employee_table.forEach(row => {
+                                        if (row.__checked) {
+                                            selected_employee_ids.push(row.employee);
+                                        } else {
+                                            unselected_employee_ids.push(row.employee);
+                                        }
+                                    });
                                 }
 
-                                if (values.withheld_employee_table && values.withheld_employee_table.length > 0) { 
-                                    // Get all checked employee IDs
-                                    changes_in_employee_ids = values.withheld_employee_table
-                                        .filter(row => row.__checked)          // Filter rows where checked is true
-                                        .map(row => row.employee);           // Map to employee IDs
-                                    console.log(changes_in_employee_ids)
-                                    if(!changes_in_employee_ids.length > 0){
-                                        frappe.msgprint(__('Please select at least one employee to release salary.'));
-                                        return;
-                                    }
-                                }
                 
                                 frappe.call({
                                         method: 'prompt_hr.py.payroll_entry.send_salary_sleep_to_employee',
@@ -736,8 +689,8 @@ function send_salary_slip(frm) {
                                             email_details: {
                                                 company_email: values.company_email,
                                                 personal_email: values.personal_email,
-                                                employee_ids: employee_ids,
-                                                changes_in_employee_ids: changes_in_employee_ids
+                                                selected_employee_ids: selected_employee_ids,
+                                                unselected_employee_ids: unselected_employee_ids
                                             }                            
                                         },
                                         callback: function(r) {
@@ -763,7 +716,7 @@ function send_salary_slip(frm) {
                                 employee: emp,  
                                 __islocal: true  
                             });  
-                        });  
+                        });
                         
                         // Refresh the grid to show the new rows  
                         employee_table.refresh();
@@ -851,4 +804,94 @@ function isEmpty(value) {
 // 	);
 // };
 
+let make_remaining_bank_entry = function (frm, for_withheld_salaries = 0,is_withheld_salary=1 ) {
+    const doc = frm.doc;
 
+    if (!doc.payment_account) {
+        frappe.msgprint(__("Payment Account is mandatory"));
+        frm.scroll_to_field("payment_account");
+        return;
+    }
+
+    // ✅ Pending employees (is_bank_entry_created = 0)
+    let pending_rows = (frm.doc.custom_salary_withholding_details || [])
+        .filter(r => !r.is_bank_entry_created)
+        .map(r => ({
+            employee: r.employee,
+            select: 1
+        }));
+
+    if (!pending_rows.length) {
+        frappe.msgprint("No pending employees remaining.");
+        return;
+    }
+
+    // ✅ DEFINE INLINE TABLE COLUMNS
+    let table_fields = [
+        {
+            fieldname: "employee",
+            fieldtype: "Data",
+            label: "Employee",
+            in_list_view: 1,
+            read_only: 1
+        }
+    ];
+
+    // ✅ Create Dialog with REAL Table field
+    let d = new frappe.ui.Dialog({
+        title: "Select Employees for Bank Entry",
+        size: "extra-large",
+        fields: [
+            {
+                label: "Employees",
+                fieldname: "employees",
+                fieldtype: "Table",
+                cannot_add_rows: true,
+                cannot_delete_rows: true,
+                in_place_edit: false,
+                fields: table_fields
+            }
+        ],
+        primary_action_label: "Make Bank Entry",
+        primary_action(values) {
+            let selected_emps = (values.employees || [])
+                .filter(r =>  r.__checked)
+                .map(r => r.employee);
+
+            if (!selected_emps.length) {
+                frappe.msgprint("Please select at least one employee.");
+                return;
+            }
+
+            d.hide();
+
+            // ✅ Backend call
+            frappe.call({
+                method: "run_doc_method",
+                args: {
+                    method: "make_bank_entry",
+                    dt: "Payroll Entry",
+                    dn: frm.doc.name,
+                    args: {
+                        for_withheld_salaries: for_withheld_salaries,
+                        is_withheld_salary: 1,
+                        selected_employees: selected_emps
+                    }
+                },
+                freeze: true,
+                freeze_message: __("Creating Payment Entries..."),
+                callback: () => {
+                    frappe.set_route("List", "Journal Entry", {
+                        "Journal Entry Account.reference_name": frm.doc.name
+                    });
+                }
+            });
+        }
+    });
+
+    // ✅ SET DATA INTO TABLE
+    d.fields_dict.employees.grid.df.data = pending_rows;
+    d.fields_dict.employees.grid.refresh();
+
+    d.show();
+};
