@@ -2122,13 +2122,13 @@ def create_leave_policy_assignment(
 
 
 def before_save(doc, method=None):
-    set_bond_comletion_date(doc)
+    set_bond_completion_date(doc)
     validate_create_checkin_role(doc)
     auto_shift_assign(doc)
     # ? RUN ONLY FOR OLD DOCS
     # if not doc.is_new():
     #     update_leave_and_notice_for_confirmed_employee(doc)
-def set_bond_comletion_date(doc):
+def set_bond_completion_date(doc):
     #! CASE 1: USER SET BOND COMPLETION DATE DIRECTLY WITHOUT REQUIRED FIELDS
     if doc.custom_bond_completion_date and not (doc.custom_bond_in_years and doc.date_of_joining):
         frappe.msgprint(
