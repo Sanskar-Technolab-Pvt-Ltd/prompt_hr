@@ -2359,10 +2359,11 @@ def build_da_expense_rows(
 
                     # ? FETCH CUSTOMER LINKED TO THIS TOUR VISIT
                     customer = frappe.db.get_value("Tour Visit", visit, "customer")
-                    if not customer:
-                        continue
-
-                    customer_name = frappe.db.get_value("Customer", customer, "customer_name") or "-"
+                    
+                    if customer:
+                        customer_name = frappe.db.get_value("Customer", customer, "customer_name") or "-"
+                    else:
+                        customer_name = "-"
 
                     # Store visit mapping (no list, just dict)
                     tour_visit_map[visit] = {
