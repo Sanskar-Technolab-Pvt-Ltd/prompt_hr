@@ -3,6 +3,7 @@ from frappe import _
 from hrms.payroll.doctype.payroll_entry.payroll_entry import PayrollEntry, get_employee_list
 from prompt_hr.py.salary_slip_overriden_methods import custom_create_salary_slips_for_employees
 from frappe.query_builder.functions import Coalesce
+from hrms.payroll.doctype.salary_withholding.salary_withholding import link_bank_entry_in_salary_withholdings
 
 
 class CustomPayrollEntry(PayrollEntry):
@@ -63,9 +64,7 @@ class CustomPayrollEntry(PayrollEntry):
                         )
                     )
                 adhoc_salary_pair.add(key)
-                
-        # * LINKING PAYROLL ENTRY TO SALARY SLIPS
-        self.link_payroll_entry_to_salary_slips()
+    
     
     def before_submit(self):
         super().before_submit()
@@ -116,22 +115,6 @@ class CustomPayrollEntry(PayrollEntry):
             )
         ).run(as_dict=as_dict)
         return ss_list
-
-    def link_payroll_entry_to_salary_slips(self):
-        """
-        Link the Payroll Entry to Salary Slips created for employees.
-        This method is called after salary slips are created.
-        """
-
-        if self.custom_pending_withholding_salary:
-            for row in self.custom_pending_withholding_salary:
-                if row.release_salary:
-
-                    if frappe.db.exists("Salary Slip", {"employee": row.get("employee"), "start_date": [">=", row.get("from_date")], "end_date": ["<=", row.get("to_date")]}):
-                        salary_slips_id = frappe.db.get_all("Salary Slip", {"employee": row.get("employee"), "start_date": [">=", row.get("from_date")], "end_date": ["<=", row.get("to_date")]}, "name")
-                        if salary_slips_id:
-                            for slip in salary_slips_id:
-                                frappe.db.set_value("Salary Slip", slip.name, "payroll_entry", self.name)
 
     @frappe.whitelist()
     def fill_employee_details(self):
@@ -206,19 +189,156 @@ class CustomPayrollEntry(PayrollEntry):
         if employees:
             # ? SET EMPLOYEE COUNT AND APPEND IN PENDING FNF TABLE
             self.append_exit_employees(employees)
-            for emp in employees:
-                if frappe.db.exists("Employee Salary Withholding", {"employee": emp.get('employee'), "is_salary_released": 0}):
-                    doc_id = frappe.db.get_value("Employee Salary Withholding", {"employee": emp.get("employee"), "is_salary_released": 0}, "name")
-                    withholding_doc = frappe.get_doc("Employee Salary Withholding", doc_id)
-
-                    self.append("custom_pending_withholding_salary", {
-                        "employee": withholding_doc.get("employee"),
-                        "from_date": withholding_doc.get("from_date"),
-                        "to_date": withholding_doc.get("to_date"),                        
-                    })        
         
         
         return self.get_employees_with_unmarked_attendance()
+    
+
+    @frappe.whitelist()
+    def make_bank_entry(self, for_withheld_salaries=False, is_withheld_salary=0, selected_employees=[]):
+        self.check_permission("write")
+        self.employee_based_payroll_payable_entries = {}
+
+        employee_wise_accounting_enabled = frappe.db.get_single_value(
+            "Payroll Settings",
+            "process_payroll_accounting_entry_based_on_employee"
+        )
+
+        # ? NOT CREATE BANK ENTRY FOR WITHHELD EMPLOYEE
+        pending_withheld =  completed_withheld = []
+        try:
+            salary_withheld = frappe.get_all(
+                "Hold Salary",
+                filters={
+                    "parent": self.name,
+                    "parentfield": "custom_salary_withholding_details"
+                },
+                fields=["employee", "is_bank_entry_created"]
+            )
+            pending_withheld = [
+                row.employee for row in salary_withheld
+                if not row.is_bank_entry_created
+            ]
+
+            completed_withheld = [
+                row.employee for row in salary_withheld
+                if row.is_bank_entry_created
+            ]
+
+        except Exception as e:
+            frappe.log_error("Error in make_bank_entry", e)
+        
+        # ! REMOVE EMPLOYEE IN WITHHELD SALARY FROM MAKING BANK ENTRY
+        salary_slip_total = 0
+        salary_details = self.get_salary_slip_details(for_withheld_salaries)
+
+        if not is_withheld_salary:
+            salary_details = [
+                d for d in salary_details
+                if d.employee not in pending_withheld and d.employee not in completed_withheld
+            ]
+
+        else:
+            salary_details = get_remaining_bank_entry_salary_slip_details(self)
+            salary_details = [
+                d for d in salary_details
+                if d.employee in pending_withheld and d.employee in selected_employees
+            ]
+
+
+        for salary_detail in salary_details:
+
+            # ✅ Earnings
+            if salary_detail.parentfield == "earnings":
+                (
+                    is_flexible_benefit,
+                    only_tax_impact,
+                    create_separate_je,
+                    statistical_component,
+                ) = frappe.db.get_value(
+                    "Salary Component",
+                    salary_detail.salary_component,
+                    (
+                        "is_flexible_benefit",
+                        "only_tax_impact",
+                        "create_separate_payment_entry_against_benefit_claim",
+                        "statistical_component",
+                    ),
+                    cache=True,
+                )
+
+                if only_tax_impact != 1 and statistical_component != 1:
+                    if is_flexible_benefit == 1 and create_separate_je == 1:
+                        self.set_accounting_entries_for_bank_entry(
+                            salary_detail.amount,
+                            salary_detail.salary_component
+                        )
+                    else:
+                        if employee_wise_accounting_enabled:
+                            self.set_employee_based_payroll_payable_entries(
+                                "earnings",
+                                salary_detail.employee,
+                                salary_detail.amount,
+                                salary_detail.salary_structure,
+                            )
+                        salary_slip_total += salary_detail.amount
+
+            # ✅ Deductions
+            if salary_detail.parentfield == "deductions":
+                statistical_component = frappe.db.get_value(
+                    "Salary Component",
+                    salary_detail.salary_component,
+                    "statistical_component",
+                    cache=True
+                )
+
+                if not statistical_component:
+                    if employee_wise_accounting_enabled:
+                        self.set_employee_based_payroll_payable_entries(
+                            "deductions",
+                            salary_detail.employee,
+                            salary_detail.amount,
+                            salary_detail.salary_structure,
+                        )
+
+                    salary_slip_total -= salary_detail.amount
+
+        # ? Loan Repayment
+        total_loan_repayment = (
+            self.process_loan_repayments_for_bank_entry(salary_details) or 0
+        )
+        salary_slip_total -= total_loan_repayment
+
+        # ? Create Bank Entry
+        bank_entry = None
+        if salary_slip_total > 0:
+            remark = "withheld salaries" if for_withheld_salaries else "salaries"
+            bank_entry = self.set_accounting_entries_for_bank_entry(
+                salary_slip_total,
+                remark
+            )
+
+            if for_withheld_salaries:
+                link_bank_entry_in_salary_withholdings(salary_details, bank_entry.name)
+
+        if is_withheld_salary:
+            # ? After successfully making bank entry check bank entry created in Salary Withholding Details
+            for emp in pending_withheld:
+                if emp in selected_employees:
+                    frappe.db.set_value(
+                        "Hold Salary",
+                        {
+                            "parent": self.name,
+                            "parentfield": "custom_salary_withholding_details",
+                            "employee": emp
+                        },
+                        "is_bank_entry_created",
+                        1
+                    )
+
+
+        return bank_entry
+
 
     def append_exit_employees(self, employees):                        
         eligible_employees = [row.get("employee") for row in employees]
@@ -244,7 +364,7 @@ class CustomPayrollEntry(PayrollEntry):
         # ? FETCH FULL AND FINAL STATEMENTS FOR THESE EMPLOYEES
         fnf_records = frappe.get_all(
             "Full and Final Statement",
-            filters={"employee": ["in", exit_employee_ids], "docstatus": 0},
+            filters={"employee": ["in", exit_employee_ids], "docstatus": 0, "custom_payroll_entry": self.name},
             fields=["employee", "name"],
         )
         
@@ -299,14 +419,7 @@ class CustomPayrollEntry(PayrollEntry):
         #     not_create_slips = [
         #         emp.employee for emp in self.custom_salary_withholding_details if (self.start_date <= emp.from_date <= self.end_date and self.start_date <= emp.to_date <= self.end_date) and emp.withholding_type == "Hold Salary Processing"
         #     ]
-
-        if self.custom_pending_withholding_salary:
-            not_create_slips += [
-                emp.employee for emp in self.custom_pending_withholding_salary if not emp.process_salary 
-            ]
         
-        print(f"\n\n not_create_slips {not_create_slips}\n\n")
-
         skip_salary_slip_creation = False
         for emp in self.employees:
             
@@ -400,3 +513,43 @@ def check_step_completed(self):
     #? THROW IF ANY STEP IS INCOMPLETE
     if messages:
         frappe.throw("<br>".join(messages), title="Incomplete Payroll Steps")
+
+
+# ? TO GET SALARY SLIP DETAILS OF ONLY PENDING BANKE ENTRY EMPLOYEE
+def get_remaining_bank_entry_salary_slip_details(self):
+    SalarySlip = frappe.qb.DocType("Salary Slip")
+    SalaryDetail = frappe.qb.DocType("Salary Detail")
+
+    query = (
+        frappe.qb.from_(SalarySlip)
+        .join(SalaryDetail)
+        .on(SalarySlip.name == SalaryDetail.parent)
+        .select(
+            SalarySlip.name,
+            SalarySlip.employee,
+            SalarySlip.salary_structure,
+            SalarySlip.salary_withholding_cycle,
+            SalaryDetail.salary_component,
+            SalaryDetail.amount,
+            SalaryDetail.parentfield,
+        )
+        .where(
+            (SalarySlip.docstatus == 1)
+            & (SalarySlip.start_date >= self.start_date)
+            & (SalarySlip.end_date <= self.end_date)
+            & (SalarySlip.payroll_entry == self.name)
+            & (
+                (SalaryDetail.do_not_include_in_total == 0)
+                | (
+                    (SalaryDetail.do_not_include_in_total == 1)
+                    & (SalaryDetail.do_not_include_in_accounts == 0)
+                )
+            )
+        )
+    )
+
+    if "lending" in frappe.get_installed_apps():
+        query = query.select(SalarySlip.total_loan_repayment)
+
+
+    return query.run(as_dict=True)

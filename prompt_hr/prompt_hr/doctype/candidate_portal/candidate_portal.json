@@ -19,11 +19,20 @@
   "offer_date",
   "offer_acceptance",
   "offer_letter",
-  "column_break_qblg",
+  "department",
+  "monthly_base_salary",
+  "column_break_mlgy",
   "expected_date_of_joining",
   "condition_for_offer_acceptance",
+  "location",
+  "business_unit",
+  "employment_type",
   "new_joinee_checklist_tab",
-  "new_joinee_documents"
+  "new_joinee_documents",
+  "contact_person_information_tab",
+  "employee",
+  "employee_name",
+  "phone_no"
  ],
  "fields": [
   {
@@ -79,10 +88,6 @@
    "mandatory_depends_on": "eval:doc.offer_acceptance==\"Accepted with Consition\""
   },
   {
-   "fieldname": "column_break_qblg",
-   "fieldtype": "Column Break"
-  },
-  {
    "fieldname": "job_offer",
    "fieldtype": "Link",
    "label": "Job Offer",
@@ -125,12 +130,82 @@
    "fieldtype": "Link",
    "label": "Company",
    "options": "Company"
+  },
+  {
+   "fetch_from": "job_offer.custom_department",
+   "fieldname": "department",
+   "fieldtype": "Data",
+   "ignore_user_permissions": 1,
+   "label": "Department",
+   "read_only": 1
+  },
+  {
+   "fieldname": "location",
+   "fieldtype": "Link",
+   "ignore_user_permissions": 1,
+   "label": "Location",
+   "options": "Address",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "job_offer.custom_business_unit",
+   "fieldname": "business_unit",
+   "fieldtype": "Data",
+   "ignore_user_permissions": 1,
+   "label": "Business Unit",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "job_offer.custom_employment_type",
+   "fieldname": "employment_type",
+   "fieldtype": "Data",
+   "ignore_user_permissions": 1,
+   "label": "Employment Type",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_mlgy",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "contact_person_information_tab",
+   "fieldtype": "Tab Break",
+   "label": "Contact Person Information"
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "ignore_user_permissions": 1,
+   "label": "Employee",
+   "options": "Employee",
+   "read_only": 1
+  },
+  {
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "ignore_user_permissions": 1,
+   "label": "Employee Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "phone_no",
+   "fieldtype": "Data",
+   "ignore_user_permissions": 1,
+   "label": "Phone No",
+   "read_only": 1
+  },
+  {
+   "fieldname": "monthly_base_salary",
+   "fieldtype": "Currency",
+   "ignore_user_permissions": 1,
+   "label": "Monthly Base Salary",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-22 15:36:17.212399",
+ "modified": "2025-11-01 12:09:48.978168",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Candidate Portal",
@@ -151,6 +226,7 @@
   }
  ],
  "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],

@@ -565,31 +565,6 @@ class CustomSalarySlip(SalarySlip):
         if not skip_tax_breakup_computation:
             self.compute_income_tax_breakup()
 
-
-    def get_data_for_eval(self):
-        """Returns data for evaluating formula"""
-        data = frappe._dict()
-        employee = frappe.get_cached_doc("Employee", self.employee).as_dict()
-
-        if not hasattr(self, "_salary_structure_assignment"):
-            self.set_salary_structure_assignment()
-
-        data.update(self._salary_structure_assignment)
-        data.update(self.as_dict())
-        data.update(employee)
-        data.update(self.get_component_abbr_map())
-
-        # Shallow copy of data to store default amounts (without payment days) for tax calculation
-        default_data = data.copy()
-
-        for key in ("earnings", "deductions"):
-            for d in self.get(key):
-                default_data[d.abbr] += d.default_amount or 0
-                data[d.abbr] += d.amount or 0
-
-        return data, default_data
-    
-
     def evaluate_and_update_structure_formula(self, section_name, changes_component_abbr_list):
         for struct_row in self._salary_structure_doc.get(section_name):
             #! EVALUATE STRUCTURE FORMULA LOGIC (UNCHANGED FROM DEFAULT)

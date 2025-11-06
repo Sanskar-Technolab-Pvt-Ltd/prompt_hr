@@ -1040,8 +1040,9 @@ def share_doc_with_employee(employee, doctype, docname, reason_for_escalation=No
     if not user_id:
         frappe.throw(_("Selected Employee has no linked User."))
 
+    flags = {"ignore_share_permission": True}
     # ! SHARE THE DOCUMENT WITH THE USER
-    frappe.share.add(
+    frappe.share.add_docshare(
         doctype=doctype,
         name=docname,
         user=user_id,
@@ -1049,6 +1050,7 @@ def share_doc_with_employee(employee, doctype, docname, reason_for_escalation=No
         write=1,
         submit=1,
         share=1,
+        flags=flags
     )
 
     # ! SET ESCALATED TO FIELDS
@@ -1173,6 +1175,7 @@ def get_employee_email(employee=None):
     return None
 
 # ? TO GET ROLES FROM HR SETTINGS COMMA SEPARTED FIELD
+@frappe.whitelist()
 def get_roles_from_hr_settings_by_module(role_type_field):
     """
     #! FETCH CONFIGURED ROLES FROM HR SETTINGS BASED ON MODULE TYPE

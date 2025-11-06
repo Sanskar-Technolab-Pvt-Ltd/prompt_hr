@@ -77,7 +77,8 @@ doctype_js = {
     "Leave Policy Assignment": "public/js/leave_policy_assignment.js",
     "Salary Slip": "public/js/salary_slip.js",
     "Compensatory Leave Request": "public/js/compensatory_leave_request.js",
-    "Shift Request": "public/js/shift_request.js"
+    "Shift Request": "public/js/shift_request.js",
+    "Timesheet": "public/js/timesheet.js"
 }
 
 doctype_list_js = {
@@ -199,7 +200,8 @@ override_doctype_class = {
     'Process Loan Interest Accrual': 'prompt_hr.overrides.process_loan_interest_accrual_override.CustomProcessLoanInterestAccrual',
     "Leave Encashment": "prompt_hr.overrides.leave_encashment_override.CustomLeaveEncashment",
     "Leave Application": "prompt_hr.overrides.leave_application_override.CustomLeaveApplication",
-    "Shift Request": "prompt_hr.overrides.shift_request_override.CustomShiftRequest"
+    "Shift Request": "prompt_hr.overrides.shift_request_override.CustomShiftRequest",
+    "Timesheet": "prompt_hr.overrides.timesheet_override.CustomTimesheet"
 }
 
 # Document Events
@@ -237,6 +239,8 @@ doc_events = {
         "after_insert": "prompt_hr.py.job_offer.after_insert",
         "on_submit": "prompt_hr.custom_methods.update_job_applicant_status_based_on_job_offer",
         "on_cancel": "prompt_hr.py.job_offer.on_cancel",
+        "on_update": "prompt_hr.py.job_offer.on_update",
+        "before_save": "prompt_hr.py.job_offer.before_save"
     },
     "Employee": {
         "on_update": "prompt_hr.py.employee.on_update",
@@ -277,9 +281,7 @@ doc_events = {
         "on_submit":"prompt_hr.py.attendance.on_submit"
     },
     "Payroll Entry": {
-        "on_update": "prompt_hr.py.payroll_entry.on_update",
-        "on_submit": "prompt_hr.py.payroll_entry.on_submit",
-        
+        "on_update": "prompt_hr.py.payroll_entry.on_update",        
     },
     "Leave Allocation": {
         "before_validate": "prompt_hr.py.leave_allocation.before_validate",
@@ -546,13 +548,13 @@ fixtures = [
     #     "dt":"Role", "filters": [["name", "in", ["Job Requisition", "Head of Department", "Managing Director", "S - Payroll Accounting", "Travel Desk User", "Reporting Manager", "IT User", "Admin User"]]]
     # },
     # {
-    #     "dt":"Workflow", "filters": [["name", "in", ["Exit Approval Process", "Job Requisition","Loan Application", "Compensatory Leave Request", "Leave Application", "Expense Claim", "Travel Request", "Shift Request", "WeekOff Change Request", "Attendance Regularization", "Attendance Request", "Confirmation Evaluation Form", "Employee Profile Changes Approval Interface", "Job Offer"]]]
+    #     "dt":"Workflow", "filters": [["name", "in", ["Exit Approval Process", "Job Requisition","Loan Application", "Compensatory Leave Request", "Leave Application", "Expense Claim", "Travel Request", "Shift Request", "WeekOff Change Request", "Attendance Regularization", "Attendance Request", "Confirmation Evaluation Form", "Employee Profile Changes Approval Interface", "Job Offer", "Time Sheet", "Employee Onboarding"]]]
     # },
     # {
-    #     "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Cancelled by Employee", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled", "Confirmed", "Approved by HR", "Rejected by HR", "Approved by BU Head", "Rejected by BU Head", "Extension Approved", "Extension Confirmed", "Extension Rejected", "Extension Requested", "Send For Approval", "Pending For Approval", "Submitted by RM", "Submitted by DH"]]]
+    #     "dt":"Workflow State", "filters": [["name", "in", ["Approved by HOD", "Cancelled by Employee", "Pending", "Rejected by HOD", "Approved by Director", "Rejected by Director", "Cancelled", "On-Hold", "Filled", "Confirmed", "Approved by HR", "Rejected by HR", "Approved by BU Head", "Rejected by BU Head", "Extension Approved", "Extension Confirmed", "Extension Rejected", "Extension Requested", "Send For Approval", "Pending For Approval", "Submitted by RM", "Submitted by DH", "Requested for Unsubmission"]]]
     # },
     # {
-    #     "dt":"Workflow Action Master", "filters": [["name", "in", ["Confirm", "Send For Approval", "Withdraw"]]]
+    #     "dt":"Workflow Action Master", "filters": [["name", "in", ["Confirm", "Send For Approval", "Withdraw", "Request for Unsubmit Timesheet", "Mark As Complete"]]]
     # },
     # {
     #     "doctype": "Type of Document",

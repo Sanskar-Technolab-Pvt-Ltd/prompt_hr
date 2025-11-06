@@ -36,7 +36,6 @@ def custom_create_salary_slips_for_employees(employees, args, publish_progress=T
 	try:
 		create_pending_withholding_salary = []
 
-		create_pending_withholding_salary = [{"employee": emp.employee, "from_date": emp.from_date, "to_date": emp.to_date} for emp in payroll_entry.custom_pending_withholding_salary if emp.process_salary]
 
 		salary_slips_exist_for = get_existing_salary_slips(employees, args)
 		count = 0

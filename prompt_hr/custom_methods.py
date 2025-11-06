@@ -269,7 +269,7 @@ def update_job_applicant_status_based_on_job_offer(doc, event):
                     fallback_message=f"""
                         Hello,<br><br>
                         The Job Offer <b>{doc.name}</b> for candidate <b>{doc.applicant_name}</b> 
-                        has been <b>{{doc.workflow_state}}</b> by {frappe.session.user}.<br><br>
+                        has been <b>{doc.workflow_state}</b> by {frappe.session.user}.<br><br>
                         Regards,<br>HR Team
                     """,
                     send_header_greeting=True,

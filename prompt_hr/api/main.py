@@ -28,45 +28,49 @@ def trigger_appointment_notification(name):
         send_attach=True,
         print_format=print_format
     )
-   
-
-    notify_signatory_on_email(doc.company, "S - HR Director (Global Admin)", doc.name, f"Appointment Letter - {doc.company}")
+    notify_signatory_on_email(doc.company, doc.name, f"Appointment Letter - Prompt")
 
     return "Appointment Letter Successfully"
 
 @frappe.whitelist()
-def notify_signatory_on_email(company,role,name,letter,email=None):
+def notify_signatory_on_email(company,name,letter,email=None):
     signatory_doc = frappe.get_all("Signature Directory", filters={"company":company},fields=["name"])
     if signatory_doc:
-        signatory_details = frappe.get_all("Signature Details", filters={"parent": signatory_doc[0].name,"is_approval_required":1,"role":role}, fields=["name"])
+        signatory_details = frappe.get_all("Signature Details", filters={"parent": signatory_doc[0].name,"is_approval_required":1,"print_format":letter}, fields=["name","employee"])
     if signatory_doc and signatory_details:
             role_email = email
+            emp = frappe.get_doc("Employee", signatory_details[0].employee)
             notification = frappe.get_doc("Notification", "Signature Used")
-            message = frappe.render_template(notification.message, {"company": company,"role":role,"name":name,"letter":letter})
-            subject = frappe.render_template(notification.subject, {"company": company, "role":role})
+            message = frappe.render_template(notification.message, {"company": company,"emp":emp.employee_name,"name":name,"letter":letter})
+            subject = frappe.render_template(notification.subject, {"company": company, "emp":emp.employee_name})
             if role_email:
                 frappe.sendmail(
                     recipients=role_email,
                     subject=subject,
                     message=message
                 )
-                return
+            else:
+                frappe.sendmail(
+                    recipients=emp.user_id,
+                    subject=subject,
+                    message=message
+                )
 
-            role_users = frappe.get_all(
-                "Employee",
-                filters={"company": company},
-                fields=["user_id"]
-            )
-            for role_user in role_users:
-                role_user_id = role_user.get("user_id")
-                if role_user_id:
-                    # Check if this user has the HR Manager role
-                    if role in frappe.get_roles(role_user_id):
-                        role_email = frappe.db.get_value("User", role_user_id, "email")
-                        break
-            if role_email:
-                frappe.sendmail(
-                    recipients=role_email,
-                    subject=subject,
-                    message=message
-                )
+            # role_users = frappe.get_all(
+            #     "Employee",
+            #     filters={"company": company},
+            #     fields=["user_id"]
+            # )
+            # for role_user in role_users:
+            #     role_user_id = role_user.get("user_id")
+            #     if role_user_id:
+            #         # Check if this user has the HR Manager role
+            #         if role in frappe.get_roles(role_user_id):
+            #             role_email = frappe.db.get_value("User", role_user_id, "email")
+            #             break
+            # if role_email:
+            #     frappe.sendmail(
+            #         recipients=role_email,
+            #         subject=subject,
+            #         message=message
+            #     )

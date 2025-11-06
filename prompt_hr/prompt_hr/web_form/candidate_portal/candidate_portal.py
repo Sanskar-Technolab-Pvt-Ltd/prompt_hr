@@ -1,14 +1,18 @@
 import frappe
-from prompt_hr.py.utils import validate_hash, send_notification_email, get_hr_managers_by_company
+from prompt_hr.py.utils import validate_hash, send_notification_email, get_hr_managers_by_company, get_roles_from_hr_settings_by_module, get_email_ids_for_roles
 import json
 from frappe import _
 from datetime import datetime
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+	from frappe.core.doctype.file.file import File
+
 
 
 def get_context(context):
     # do your magic here
     pass
-
 
 # ! prompt_hr.prompt_hr.web_form.candidate_portal.candidate_portal.validate_candidate_portal_hash
 # ? FUNCTION TO VALIDATE CANDIDATE PORTAL HASH
@@ -46,6 +50,15 @@ def validate_candidate_portal_hash(
                     "child_table_fieldname": child_doctype_config["child_table_fieldname"],
                 }
             )
+
+        try:
+            if form_data[0].get("job_offer"):
+                salary_break_up = get_salary_breakup_from_job_offer(form_data[0].get("job_offer"))
+                if salary_break_up:
+                    form_data[0]["salary_break_up"] = salary_break_up
+        except Exception as e:
+            frappe.log_error(frappe.get_traceback(), "Error Getting Salary Breakup")
+            form_data[0]["salary_break_up"] = None
 
         # ? COMBINE THE FORM AND CHILD DATA IN A SINGLE DICT
         data = {"form_data": form_data, "child_tables_data": child_tables_data}
@@ -193,13 +206,21 @@ def update_candidate_portal(doc):
 
         # ? SEND MAIL TO HR
         try:
-            send_notification_email(
-                notification_name="HR Candidate Web Form Revert Mail",
-                recipients=get_hr_managers_by_company(portal_doc.company),
-                button_label="View Details",
-                doctype="Candidate Portal",
-                docname=portal_doc.name,
-            )
+            recipients = []
+            hr_roles = get_roles_from_hr_settings_by_module("custom_hr_roles_for_recruitment")
+            if hr_roles:
+                recipients = get_email_ids_for_roles(hr_roles)
+        except:
+            recipients = []
+        try:
+            if recipients:
+                send_notification_email(
+                    notification_name="HR Candidate Web Form Revert Mail",
+                    recipients=recipients,
+                    button_label="View Details",
+                    doctype="Candidate Portal",
+                    docname=portal_doc.name,
+                )
         except Exception as email_error:
             # ? LOG EMAIL ERROR BUT DON'T FAIL THE ENTIRE UPDATE
             frappe.log_error(f"Failed to send notification email: {str(email_error)}", "Email Notification Error")
@@ -210,3 +231,96 @@ def update_candidate_portal(doc):
         # ? LOG ERROR IF SOMETHING FAILS
         frappe.log_error(frappe.get_traceback(), "Candidate Portal Update Error")
         return {"success": False, "message": f"Error updating information: {str(e)}"}
+    
+
+@frappe.whitelist(allow_guest=True)  
+def get_candidate_portal_file_public(doc_name, file_field):  
+    """  
+    Serve private files publicly for Candidate Portal  
+    WARNING: This bypasses all permission checks  
+    """  
+    # Get the Candidate Portal document  
+    portal_doc = frappe.get_doc("Candidate Portal", doc_name)  
+
+    # Get the file URL  
+    file_url = portal_doc.get(file_field)  
+    if not file_url:  
+        frappe.throw("File not found")  
+
+    # Extract relative path if full URL  
+    if file_url.startswith(("http://", "https://")):  
+        from urllib.parse import urlparse, unquote  
+        parsed = urlparse(file_url)  
+        file_url = unquote(parsed.path)  # Decode %20 to spaces, etc.  
+
+    # Get file document  
+    from frappe.core.doctype.file.utils import find_file_by_url  
+    file_doc = find_file_by_url_without_permissions(file_url)  
+    if not file_doc:  
+        frappe.throw("File not found")  
+
+    # Serve file directly WITHOUT permission check  
+    frappe.local.response.filename = file_doc.file_name  
+    frappe.local.response.filecontent = file_doc.get_content()  
+    frappe.local.response.display_content_as = "inline"  # View instead of download  
+    frappe.local.response.type = "download"
+
+
+def find_file_by_url_without_permissions(path=None, name=None):
+	filters = {"file_url": str(path)}
+	if name:
+		filters["name"] = str(name)
+
+	files = frappe.get_all("File", filters=filters, fields="*")
+
+	# this file might be attached to multiple documents
+	# if the file is accessible from any one of those documents
+	# then it should be downloadable
+	for file_data in files:
+		file: "File" = frappe.get_doc(doctype="File", **file_data)
+		if file:
+			return file
+
+@frappe.whitelist()
+def get_job_offer_workflow_state(job_offer_name):
+    if not job_offer_name:
+        return {"workflow_state": None}
+
+    workflow_state = frappe.db.get_value("Job Offer", job_offer_name, "workflow_state")
+    return {"workflow_state": workflow_state}
+
+def get_salary_breakup_from_job_offer(job_offer_name):
+    if not job_offer_name:
+        return None
+
+    # ✅ Check if applicant is allowed to see breakup
+    is_breakup_shown_to_employee = frappe.db.get_value(
+        "Job Offer",
+        job_offer_name,
+        "custom_show_salary_breakup_to_applicant"
+    )
+
+    if not is_breakup_shown_to_employee:
+        return None
+
+    # ? Fetch earnings (array of dict)
+    earnings = frappe.get_all(
+        "Salary Detail",
+        filters={"parent": job_offer_name, "parentfield": "custom_earnings"},
+        fields=["salary_component", "amount"],
+        order_by="idx ASC"
+    )
+
+    # ? Fetch deductions (array of dict)
+    deductions = frappe.get_all(
+        "Salary Detail",
+        filters={"parent": job_offer_name, "parentfield": "custom_deductions"},
+        fields=["salary_component", "amount"],
+        order_by="idx ASC"
+    )
+
+
+    return {
+        "earnings": earnings,
+        "deductions": deductions,
+    }
