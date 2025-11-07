@@ -169,7 +169,8 @@ def probation_feedback_for_prompt():
                                 employee_doc.custom_first_probation_feedback = (
                                     first_probation_form.name
                                 )
-                                employee_doc.save(ignore_permissions=True, ignore_mandatory=True)
+                                employee_doc.flags.ignore_mandatory = True
+                                employee_doc.save(ignore_permissions=True)
                                 frappe.db.commit()
                             else:
                                 # remarks_added = frappe.db.exists(
@@ -288,7 +289,8 @@ def probation_feedback_for_prompt():
                                 employee_doc.custom_second_probation_feedback = (
                                     second_probation_form.name
                                 )
-                                employee_doc.save(ignore_permissions=True, ignore_mandatory=True)
+                                employee_doc.flags.ignore_mandatory = True
+                                employee_doc.save(ignore_permissions=True)
 
                                 frappe.db.commit()
                             elif second_feedback_form_id:
@@ -907,7 +909,8 @@ def create_confirmation_evaluation_form_for_prompt():
                             if not first_confirmation_form:
                                 confirmation_doc = create_evaluation()
                                 employee_doc.custom_confirmation_evaluation_form = confirmation_doc.name
-                                employee_doc.save(ignore_permissions=True, ignore_mandatory=True)
+                                employee_doc.flags.ignore_mandatory = True
+                                employee_doc.save(ignore_permissions=True)
                                 frappe.db.commit()
                             
                             else:
@@ -934,7 +937,8 @@ def create_confirmation_evaluation_form_for_prompt():
                                         else:
                                             confirmation_doc = create_evaluation()
                                             create_confirmation.confirmation_evaluation_form = confirmation_doc.name
-                                            employee_doc.save(ignore_permissions=True, ignore_mandatory=True)
+                                            employee_doc.flags.ignore_mandatory = True
+                                            employee_doc.save(ignore_permissions=True)
                                             frappe.db.commit()                                                                                                
                                 
                         except Exception as e:
