@@ -176,7 +176,8 @@ permission_query_conditions = {
     "Interview Feedback": "prompt_hr.py.interview_feedback.get_permission_query_conditions",
     "Job Opening": "prompt_hr.py.job_opening.get_permission_query_conditions",
     "Salary Slip": "prompt_hr.py.salary_slip.salary_slip_view_and_access_permissions",
-    "Organization Documents": "prompt_hr.prompt_hr.doctype.organization_documents.organization_documents.get_permission_query_conditions"
+    "Organization Documents": "prompt_hr.prompt_hr.doctype.organization_documents.organization_documents.get_permission_query_conditions",
+    "Task": "prompt_hr.py.task.task_view_and_access_permissions"
 }
 
 # has_permission = {
@@ -366,6 +367,9 @@ doc_events = {
     },
     "Shift Request":{
         "on_update":"prompt_hr.py.shift_request.on_update"
+    },
+    "Task": {
+        "on_update": "prompt_hr.py.task.share_doc_to_users"
     }
 }
 
