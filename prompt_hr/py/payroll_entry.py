@@ -58,7 +58,7 @@ def set_new_joinee_count(doc):
             "date_of_joining": ["between", [doc.start_date, doc.end_date]],
         },
         fields=["name"],
-        pluck="",
+        pluck="name",
     )
     frappe.db.set_value(
         "Payroll Entry", doc.name, "custom_new_joinee_count", len(new_joinees)
