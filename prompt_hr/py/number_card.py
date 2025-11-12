@@ -58,3 +58,40 @@ def get_pending_records_for_user(filters):
         "fieldtype": "Int",  
         "route": ["List", filters.get("doctype"), {"employee": ["in", all_employees], "workflow_state": "Pending"}],
     }
+
+
+
+@frappe.whitelist()
+def get_pending_records_for_hod_user(filters):\
+    
+    if not filters:
+        return  
+
+    if filters:
+        filters = frappe.parse_json(filters)
+    
+    current_user = frappe.session.user
+    if not current_user or current_user == "Guest":
+        return []
+
+    # ? GET THE EMPLOYEE LINKED TO THE CURRENT USER
+    hod_employee_id = frappe.db.get_value("Employee", {"user_id": current_user}, "name")
+    if not hod_employee_id:
+        return []
+    
+    
+    hod_pending_records = frappe.get_all(
+        filters.get("doctype"),
+        filters={
+            "hod": ["=", hod_employee_id],
+            "workflow_state": "Pending",
+        },
+        fields=["name"],
+    )
+    
+    return {  
+        "value": int(len(hod_pending_records)),
+        "fieldtype": "Int",  
+        "route": ["List", filters.get("doctype"), {"hod": ["=", hod_employee_id], "workflow_state": "Pending"}],
+    }
+    

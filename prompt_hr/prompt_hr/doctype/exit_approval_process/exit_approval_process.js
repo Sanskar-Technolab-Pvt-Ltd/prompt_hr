@@ -70,7 +70,7 @@ function update_notice_period_days(frm) {
 
 // ? ADD THE "RAISE EXIT CHECKLIST" BUTTON
 function add_raise_exit_checklist_button(frm) {
-    frm.add_custom_button('Raise Employee Separation', function () {
+    frm.add_custom_button('Raise Exit Checklist', function () {
         frappe.dom.freeze("Creating Employee Separation...");
 
         frappe.call({

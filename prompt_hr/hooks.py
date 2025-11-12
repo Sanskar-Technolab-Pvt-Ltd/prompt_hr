@@ -598,7 +598,8 @@ fixtures = [
     #             "Exit Checklist - Pending Completion",
     #             "Probation Feedback: 30 Days-Pending",
     #             "Probation Feedback: 60 Days-Pending",
-    #             "Confirmation Evaluation - Pending"
+    #             "Confirmation Evaluation - Pending",
+    #             "Confirmation Evaluation - Pending(HOD)"
     #         ]]
     #     }
     # }
