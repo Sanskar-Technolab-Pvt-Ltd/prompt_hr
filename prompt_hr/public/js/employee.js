@@ -633,8 +633,27 @@ function createEmployeeActionButtons(frm) {
             frappe.user_roles.some(role => allowed_roles.includes(role)) ||
             frappe.session.user === "Administrator"
     
-    if (!can_show_hr_button) return;
+    if (!can_show_hr_button){
+        add_terminate_button(frm);
+        return;
+    } 
 
+    if (frappe.session.user) {
+        frappe.db.get_value("Employee", { user_id: frappe.session.user }, "name")
+            .then(r => {
+                const emp_id = r.message ? r.message.name : "";
+                const is_reporting_manager = emp_id && frm.doc.reports_to === emp_id;
+
+                if (is_reporting_manager) {
+                    add_termination_button(frm);
+                }
+            })
+            .catch(err => console.error("Error fetching employee:", err));
+    }
+}
+
+
+function add_terminate_button(frm){
     frm.add_custom_button(__("Raise Termination"), function () {
         handleEmployeeExitOrTermination(frm, "Termination");
     }, __("Actions"));

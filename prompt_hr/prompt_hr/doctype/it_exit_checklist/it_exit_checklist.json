@@ -20,11 +20,7 @@
   "status",
   "relieving_date",
   "section_break_nzqc",
-  "it",
-  "section_break_biao",
-  "engineering",
-  "section_break_xqaa",
-  "no_due_clearance",
+  "exit_tasks",
   "note"
  ],
  "fields": [
@@ -82,10 +78,6 @@
    "options": "Department"
   },
   {
-   "fieldname": "section_break_xqaa",
-   "fieldtype": "Section Break"
-  },
-  {
    "fieldname": "note",
    "fieldtype": "Small Text",
    "label": "Note"
@@ -107,18 +99,6 @@
   {
    "fieldname": "section_break_nzqc",
    "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "it",
-   "fieldtype": "Table",
-   "label": "IT",
-   "options": "IT Asset Clearance"
-  },
-  {
-   "fieldname": "engineering",
-   "fieldtype": "Table",
-   "label": "Engineering",
-   "options": "IT Asset Clearance"
   },
   {
    "fetch_from": "employee.custom_work_location",
@@ -152,20 +132,16 @@
    "read_only": 1
   },
   {
-   "fieldname": "section_break_biao",
-   "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "no_due_clearance",
+   "fieldname": "exit_tasks",
    "fieldtype": "Table",
-   "label": "No Due Clearance",
+   "label": "Exit Tasks",
    "options": "IT Asset Clearance"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-01 17:00:36.261117",
+ "modified": "2025-11-12 18:05:29.621186",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "IT Exit Checklist",

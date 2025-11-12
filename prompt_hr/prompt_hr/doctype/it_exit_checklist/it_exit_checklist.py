@@ -18,23 +18,23 @@ class ITExitChecklist(Document):
         """
 
         #? RETURN IF NO IT OR ENGINEERING CHILD TABLE RECORDS
-        if not self.it and not self.engineering:
-            self.status = "Pending"
-            return
+        # if not self.it and not self.engineering:
+        #     self.status = "Pending"
+        #     return
 
-        for record in (self.it or []) + (self.engineering or []):
+        for record in self.exit_tasks:
             if record.no_response_to_be_filled_in_status:
-                record.status = "Input"
+                record.action_required = "Input"
                 record.response = "Not Applicable"
             
             if record.no_response_to_be_filled_in_approval_status:
-                record.approval_status = "Approved"
+                record.status = "Completed"
 
         #? IF DOCUMENT IS NEW
         if self.is_new():
             is_completed = 1
-            for record in (self.it or []) + (self.engineering or []):
-                if record.approval_status != "Approved" or not record.status:
+            for record in self.exit_tasks:
+                if record.status != "Completed" or not record.action_required:
                     is_completed = 0
                     break
 
@@ -49,11 +49,11 @@ class ITExitChecklist(Document):
         prev_records = frappe.get_all(
             "IT Asset Clearance",
             filters={"parent": self.name},
-            fields=["name", "approval_status"]
+            fields=["name", "status"]
         )
 
-        #? CREATE DICTIONARY {name: approval_status} FOR QUICK LOOKUP
-        prev_dict = {rec["name"]: rec["approval_status"] for rec in prev_records}
+        #? CREATE DICTIONARY {name: status} FOR QUICK LOOKUP
+        prev_dict = {rec["name"]: rec["status"] for rec in prev_records}
 
         #? GET CURRENT USER'S EMPLOYEE NAME
         current_user = frappe.session.user
@@ -71,10 +71,10 @@ class ITExitChecklist(Document):
         is_completed = 1
 
         #? LOOP THROUGH IT CHILD TABLE AND TRACK STATUS CHANGES
-        for record in (self.it or []) + (self.engineering or []):
+        for record in (self.exit_tasks):
             if record.name in prev_dict:
                 previous_status = prev_dict.get(record.name)
-                current_status = record.approval_status
+                current_status = record.status
 
                 #? CHECK IF APPROVAL STATUS HAS CHANGED
                 if current_status != previous_status:
@@ -86,7 +86,7 @@ class ITExitChecklist(Document):
                     else:
                         record.approval_status_history = history_entry
 
-            if record.approval_status != "Approved" or not record.status:
+            if record.status != "Completed" or not record.action_required:
                 is_completed = 0
                 
 
@@ -125,7 +125,7 @@ class ITExitChecklist(Document):
                 status_map[department] = "Pending"
                 continue
 
-            statuses = {row.status for row in rows}
+            statuses = {row.action_required for row in rows}
 
             if statuses.issubset(rules["empty"]):
                 status = "Pending"
