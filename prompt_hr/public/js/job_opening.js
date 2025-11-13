@@ -291,7 +291,7 @@ function handleEmployeeReferral(frm) {
                                     method: "prompt_hr.py.job_opening.send_job_opening_notification",
                                     args: {
                                         company: frm.doc.company,
-                                        due_date: frm.doc.custom_due_date_for_applying_job_jr,
+                                        // due_date: frm.doc.custom_due_date_for_applying_job_jr,
                                         min_tenure_in_company: frm.doc.custom_minimum_tenure_in_company_in_months_jr,
                                         min_tenure_in_current_role: frm.doc.custom_minimum_tenure_in_current_role_in_months_jr,
                                         allowed_department: (frm.doc.custom_can_refer_from_department_referral).map(item => item.department),
