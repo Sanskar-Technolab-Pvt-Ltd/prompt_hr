@@ -404,6 +404,9 @@ scheduler_events = {
         "0 4 * * *": [
             "prompt_hr.py.attendance_penalty_api.send_penalty_notification_emails"
         ],
+        "0 6 * * *": [
+            "prompt_hr.scheduler_methods.send_exit_checklist_reminders"
+        ]
     },
     "daily": [
         "prompt_hr.py.employee_changes_approval.daily_check_employee_changes_approval",
