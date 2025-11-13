@@ -93,7 +93,8 @@ doctype_list_js = {
     "Job Requisition": "public/js/job_requisition_list.js",
     "Travel Request": "public/js/travel_request_list.js",
     "Expense Claim": "public/js/expense_claim_list.js",
-    "Salary Slip": "public/js/salary_slip_list.js"
+    "Salary Slip": "public/js/salary_slip_list.js",
+    "Employee Referral": "public/js/employee_referral_list.js"
 }
 
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -370,6 +371,9 @@ doc_events = {
     },
     "Task": {
         "on_update": "prompt_hr.py.task.share_doc_to_users"
+    },
+    "Employee Referral": {
+        "before_save": "prompt_hr.py.employee_referral.before_save"
     }
 }
 

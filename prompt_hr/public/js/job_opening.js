@@ -214,7 +214,7 @@ function handleInternalJobPosting(frm) {
 
             if (frm.is_dirty()) {
 
-                frappe.show_alert({
+                frappe.msgprint({
                     message: "Please save the document before notifying employees.",
                     indicator: "orange"
                 });
@@ -273,7 +273,7 @@ function handleEmployeeReferral(frm) {
 
             if (frm.is_dirty()) {
 
-                frappe.show_alert({
+                frappe.msgprint({
                     message: "Please save the document before notifying employees.",
                     indicator: "orange"
                 });
