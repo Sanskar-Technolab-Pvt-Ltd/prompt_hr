@@ -19,62 +19,145 @@ frappe.ui.form.on("Travel Request", {
 	before_workflow_action: function(frm) {
 	frappe.dom.unfreeze();
 
-	return new Promise((resolve, reject) => {
-		try {
-			//? Check if the action is Escalate
-			if (frm.selected_workflow_action === "Escalate") {
+		return new Promise((resolve, reject) => {
+			try {
+					if (frm.selected_workflow_action !== "Escalate") {
+						resolve();
+						return;
+					}
 
-				//? Check user role - only Travel Desk User can edit
-				if (!frappe.user.has_role("Travel Desk User")) {
-					reject(); //? Stop workflow
-					return;
-				}
-
-				//? Make the escalation reason field required
-				frm.set_df_property('custom_escalation_reason', 'reqd', 1);
-
-				//? Make the field editable only for Travel Desk User
-				frm.set_df_property('custom_escalation_reason', 'read_only', 0);
-
-				if (!frm.doc.custom_escalation_reason){
-					//? Scroll to the field and focus cursor inside textarea
-					setTimeout(() => {
-						let fieldEl = $('[data-fieldname="custom_escalation_reason"] textarea');
-						if (fieldEl.length) {
-							$('html, body').animate({
-								scrollTop: fieldEl.offset().top - 100
-							}, 300);
-							fieldEl.focus();
+					const dialog_fields = [
+						{
+							label: "Employee",
+							fieldname: "employee",
+							fieldtype: "Link",
+							options: "Employee",
+							ignore_user_permissions: true,
+							reqd: 1,
+							get_query: function () { return {}; }
+						},
+						{
+							label: "Reason For Escalation",
+							fieldname: "reason_for_escalation",
+							fieldtype: "Small Text",
+							reqd: 1,
 						}
-					}, 300);
+					];
+
+					let dialog = new frappe.ui.Dialog({
+						title: __("Confirm {0}", [frm.selected_workflow_action]),
+						fields: dialog_fields,
+						primary_action_label: "Send For Approval",
+						primary_action: function (values) {
+							// hide dialog and call backend
+							
+							dialog.hide();
+							frappe.call({
+								method: "prompt_hr.py.utils.share_doc_with_employee",
+								args: {
+									employee: values.employee,
+									doctype: frm.doctype,
+									docname: frm.docname,
+									reason_for_escalation: values.reason_for_escalation || ""
+								},
+								callback: function (r) {
+									if (r.message && r.message.status === "success") {
+										frappe.msgprint(__(`Document shared with ${values.employee} successfully.`));
+										resolve();
+									} else {
+										frappe.msgprint(__('Failed to share document.'));
+										reject();
+									}
+								},
+								error: function (err) {
+									console.error("Error during API call:", err);
+									frappe.msgprint(__('Error occurred while sharing document.'));
+									reject();
+								}
+							});
+						},
+						secondary_action_label: __("Cancel"),
+						secondary_action: function () {
+							dialog.hide();
+							reject();
+						}
+					});
+
+					dialog.show();
+
+				} catch (e) {
+					console.error(e);
+					reject();
 				}
+		});
+	},
+
+
+
+
+
+
+
+
+// 	before_workflow_action: function(frm) {
+// 	frappe.dom.unfreeze();
+
+// 	return new Promise((resolve, reject) => {
+// 		try {
+// 			//? Check if the action is Escalate
+// 			if (frm.selected_workflow_action === "Escalate") {
+
+// 				//? Check user role - only Travel Desk User can edit
+// 				if (!frappe.user.has_role("Travel Desk User")) {
+// 					reject(); //? Stop workflow
+// 					return;
+// 				}
+
+// 				//? Make the escalation reason field required
+// 				frm.set_df_property('custom_escalation_reason', 'reqd', 1);
+
+// 				//? Make the field editable only for Travel Desk User
+// 				frm.set_df_property('custom_escalation_reason', 'read_only', 0);
+
+// 				if (!frm.doc.custom_escalation_reason){
+// 					//? Scroll to the field and focus cursor inside textarea
+// 					setTimeout(() => {
+// 						let fieldEl = $('[data-fieldname="custom_escalation_reason"] textarea');
+// 						if (fieldEl.length) {
+// 							$('html, body').animate({
+// 								scrollTop: fieldEl.offset().top - 100
+// 							}, 300);
+// 							fieldEl.focus();
+// 						}
+// 					}, 300);
+// 				}
 				
 
-				// ? Check if user has filled the escalation reason
-				if (!frm.doc.custom_escalation_reason) {
-					frappe.msgprint(__('Please fill Escalation Reason before escalating.'));
-					reject(); //? Stop workflow
-					return;
-				}
+// 				// ? Check if user has filled the escalation reason
+// 				if (!frm.doc.custom_escalation_reason) {
+// 					frappe.msgprint(__('Please fill Escalation Reason before escalating.'));
+// 					reject(); //? Stop workflow
+// 					return;
+// 				}
 
-				resolve(); //? Allow workflow to proceed
-			} else {
-				//? If not escalating, remove required and make read-only again
-				frm.set_df_property('custom_escalation_reason', 'reqd', 0);
+// 				resolve(); //? Allow workflow to proceed
+// 			} else {
+// 				//? If not escalating, remove required and make read-only again
+// 				frm.set_df_property('custom_escalation_reason', 'reqd', 0);
 
-				//? If not travel desk user → field stays readonly
-				if (!frappe.user.has_role("Travel Desk User")) {
-					frm.set_df_property('custom_escalation_reason', 'read_only', 1);
-				}
-				resolve(); //? Allow workflow to proceed
-			}
-		} catch (e) {
-			frappe.msgprint(__('An unexpected error occurred.'));
-			console.error(e);
-			reject();
-		}
-	});
-},
+// 				//? If not travel desk user → field stays readonly
+// 				if (!frappe.user.has_role("Travel Desk User")) {
+// 					frm.set_df_property('custom_escalation_reason', 'read_only', 1);
+// 				}
+// 				resolve(); //? Allow workflow to proceed
+// 			}
+// 		} catch (e) {
+// 			frappe.msgprint(__('An unexpected error occurred.'));
+// 			console.error(e);
+// 			reject();
+// 		}
+// 	});
+// },
 
 	// after_workflow_action: function(frm){
 	// 	 if (frm.doc.workflow_state === "Approved by Reporting Manager") {
@@ -87,6 +170,31 @@ frappe.ui.form.on("Travel Request", {
 	// }
 
 });
+
+function reason_for_escalation_dialog(frm) {
+    return new Promise((resolve, reject) => {
+        frappe.dom.unfreeze()
+        
+        frappe.prompt({
+            label: 'Reason for Escalation',
+            fieldname: 'reason_for_escalation',
+            fieldtype: 'Small Text',
+            reqd: 1
+        }, (values) => {
+            if (values.reason_for_escalation) {
+                frm.set_value("custom_escalation_reason", values.reason_for_escalation)
+                // frm.set_value("approval_status", "Rejected")
+                frm.save().then(() => {
+                    resolve();
+                }).catch(reject);						
+            }
+            else {
+                reject()
+            }
+        })
+    });
+}
+
 
 
 // ? HANDLE CHILD TABLE ROW ADD/REMOVE EVENTS

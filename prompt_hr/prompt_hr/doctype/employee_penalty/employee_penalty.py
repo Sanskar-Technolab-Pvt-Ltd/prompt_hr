@@ -9,13 +9,44 @@ from frappe import _
 
 from prompt_hr.py.leave_application import handle_penalties_for_sandwich_rule
 
+
 class EmployeePenalty(Document):
     pass
 
 
 @frappe.whitelist()
-def cancel_penalties(ids, reason = None, attendance_modified = 0):
+def cancel_penalties(ids, reason=None, attendance_modified=0):
     """Cancel penalties and delete linked leave ledger entries efficiently and securely."""
+
+    roles_from_hr_settings = (
+        frappe.db.get_all(
+            "Role Multiselect",
+            {
+                "parenttype": "HR Settings",
+                "parentfield": "custom_penalization_cancellation_roles",
+            },
+            ["role"],
+            pluck="role"
+        )
+        or []
+    )
+    print(roles_from_hr_settings, "ROLES FROM HR SETTINGS")
+    if len(roles_from_hr_settings) < 1:
+        frappe.throw(
+            _("No role is defined in HR Settings to cancel Employee Penalty records."),
+            frappe.PermissionError,
+        )
+
+    if roles_from_hr_settings:
+        user_roles = frappe.get_roles(frappe.session.user)
+        print(user_roles, "USER ROLES")
+        if not any(role in roles_from_hr_settings for role in user_roles):
+            frappe.throw(
+                _(
+                    "You do not have the required role to cancel Employee Penalty records."
+                ),
+                frappe.PermissionError,
+            )
 
     if not ids:
         return
@@ -30,15 +61,15 @@ def cancel_penalties(ids, reason = None, attendance_modified = 0):
 
     penalties = frappe.get_all(
         "Employee Penalty",
-        filters={"name": ["in", ids], "is_leave_balance_restore":0},
+        filters={"name": ["in", ids], "is_leave_balance_restore": 0},
         fields=["name", "attendance"],
     )
 
     if not attendance_modified and is_call_from_frontend:
         is_restored_already = frappe.get_all(
             "Employee Penalty",
-            filters={"name": ["in", ids], "is_leave_balance_restore":1},
-            fields=["name"]
+            filters={"name": ["in", ids], "is_leave_balance_restore": 1},
+            fields=["name"],
         )
         if is_restored_already:
             frappe.throw(
@@ -51,14 +82,14 @@ def cancel_penalties(ids, reason = None, attendance_modified = 0):
             timeout=3000,
             penalties=penalties,
             reason=reason,
-            attendance_modified=attendance_modified
+            attendance_modified=attendance_modified,
         )
         frappe.msgprint(
             _("Penalty cancellation is running in the background."),
             alert=True,
             indicator="blue",
         )
-        return {"status":"background_job"}
+        return {"status": "background_job"}
 
     else:
         return handle_cancel_penalties(penalties, reason, attendance_modified)
@@ -68,7 +99,7 @@ def handle_cancel_penalties(penalties, reason, attendance_modified):
     child_table_data = frappe.get_all(
         "Employee Leave Penalty Details",
         filters={"parent": ["in", [p.name for p in penalties]]},
-        fields=["name", "leave_ledger_entry", "reason", "parent"]
+        fields=["name", "leave_ledger_entry", "reason", "parent"],
     )
 
     # ? GATHER ALL LEAVE LEDGER ENTRY IDS AND PENALTY-ROW PAIRS
@@ -97,7 +128,7 @@ def handle_cancel_penalties(penalties, reason, attendance_modified):
         data = frappe.get_all(
             "Employee Penalty",
             filters={"name": row_name},
-            fields=["name", "employee", "penalty_date", 'company'],
+            fields=["name", "employee", "penalty_date", "company"],
         )
         if data:
             datas.extend(data)
@@ -108,9 +139,16 @@ def handle_cancel_penalties(penalties, reason, attendance_modified):
 
     # ? UNLINK PENALTIES FROM ATTENDANCE
     for doctype, row_name in attendance_penalty_pairs:
-        frappe.db.set_value("Employee Penalty", {"attendance":row_name}, "is_leave_balance_restore", 1)
+        frappe.db.set_value(
+            "Employee Penalty", {"attendance": row_name}, "is_leave_balance_restore", 1
+        )
         if reason:
-            frappe.db.set_value("Employee Penalty", {"attendance":row_name}, "cancellation_reason", reason)
+            frappe.db.set_value(
+                "Employee Penalty",
+                {"attendance": row_name},
+                "cancellation_reason",
+                reason,
+            )
         frappe.db.set_value(doctype, row_name, "custom_employee_penalty_id", None)
         if doctype == "Attendance":
             frappe.db.set_value("Attendance", row_name, "custom_penalty_applied", "")
@@ -121,17 +159,25 @@ def handle_cancel_penalties(penalties, reason, attendance_modified):
                 penalty_name, penalty_employee, penalty_date = frappe.db.get_value(
                     "Employee Penalty",
                     {"attendance": row_name},
-                    ["name", "employee", "penalty_date"]
+                    ["name", "employee", "penalty_date"],
                 )
 
                 if penalty_employee:
                     emp_user_id = get_employee_email(penalty_employee)
-                    reporting_manager = frappe.db.get_value("Employee", penalty_employee, "reports_to")
-                    reporting_manager_user = get_employee_email(reporting_manager) if reporting_manager else None
+                    reporting_manager = frappe.db.get_value(
+                        "Employee", penalty_employee, "reports_to"
+                    )
+                    reporting_manager_user = (
+                        get_employee_email(reporting_manager)
+                        if reporting_manager
+                        else None
+                    )
 
                     current_user = frappe.session.user
                     current_user_employee = (
-                        frappe.db.get_value("Employee", {"user_id": current_user}, "name")
+                        frappe.db.get_value(
+                            "Employee", {"user_id": current_user}, "name"
+                        )
                         or current_user
                     )
 
@@ -139,12 +185,18 @@ def handle_cancel_penalties(penalties, reason, attendance_modified):
                         email_recipients = []
                         if emp_user_id:
                             email_recipients.append(emp_user_id)
-                        if reporting_manager_user and reporting_manager_user != emp_user_id:
+                        if (
+                            reporting_manager_user
+                            and reporting_manager_user != emp_user_id
+                        ):
                             email_recipients.append(reporting_manager_user)
 
                         subject = frappe.render_template(
                             notification_doc.subject,
-                            {"penalty": penalty_name, "employee_name": penalty_employee}
+                            {
+                                "penalty": penalty_name,
+                                "employee_name": penalty_employee,
+                            },
                         )
                         message = frappe.render_template(
                             notification_doc.message,
@@ -153,8 +205,8 @@ def handle_cancel_penalties(penalties, reason, attendance_modified):
                                 "employee_name": penalty_employee,
                                 "current_user": current_user_employee,
                                 "reason": reason,
-                                "penalty_date": penalty_date
-                            }
+                                "penalty_date": penalty_date,
+                            },
                         )
                         if not attendance_modified:
                             frappe.sendmail(
@@ -170,26 +222,37 @@ def handle_cancel_penalties(penalties, reason, attendance_modified):
                                     subject,
                                     message,
                                     "Employee Penalty",
-                                    penalty_name
+                                    penalty_name,
                                 )
-                
+
             except Exception as e:
                 frappe.log_error(f"Error sending cancellation notification", str(e))
                 continue
 
     # ? BULK DELETE LEAVE LEDGER ENTRIES
     if leave_entries_to_delete:
-        frappe.db.delete("Leave Ledger Entry", {"name": ["in", leave_entries_to_delete]})
+        frappe.db.delete(
+            "Leave Ledger Entry", {"name": ["in", leave_entries_to_delete]}
+        )
 
     if datas:
         try:
             for data in datas:
                 try:
-                    handle_penalties_for_sandwich_rule(data.penalty_date, data.penalty_date, data.employee, data.company)
+                    handle_penalties_for_sandwich_rule(
+                        data.penalty_date,
+                        data.penalty_date,
+                        data.employee,
+                        data.company,
+                    )
                 except:
-                    frappe.log_error("Error in Updating Penalty and Leave Balance For Sandwich Rule")
+                    frappe.log_error(
+                        "Error in Updating Penalty and Leave Balance For Sandwich Rule"
+                    )
         except:
-            frappe.log_error("Error in Updating Penalty and Leave Balance For Sandwich Rule")
+            frappe.log_error(
+                "Error in Updating Penalty and Leave Balance For Sandwich Rule"
+            )
 
     frappe.db.commit()
-    return {"status":"success"}
+    return {"status": "success"}

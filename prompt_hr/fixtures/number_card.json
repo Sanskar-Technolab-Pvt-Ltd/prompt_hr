@@ -1,6 +1,7 @@
 [
  {
   "aggregate_function_based_on": "",
+  "background_color": null,
   "color": null,
   "currency": "INR",
   "docstatus": 0,
@@ -27,6 +28,7 @@
  },
  {
   "aggregate_function_based_on": "",
+  "background_color": null,
   "color": null,
   "currency": "INR",
   "docstatus": 0,
@@ -53,6 +55,7 @@
  },
  {
   "aggregate_function_based_on": "",
+  "background_color": null,
   "color": "#29CD42",
   "currency": "",
   "docstatus": 0,
@@ -79,6 +82,7 @@
  },
  {
   "aggregate_function_based_on": "",
+  "background_color": null,
   "color": "#29CD42",
   "currency": "",
   "docstatus": 0,
@@ -105,6 +109,7 @@
  },
  {
   "aggregate_function_based_on": "",
+  "background_color": null,
   "color": "#29CD42",
   "currency": "",
   "docstatus": 0,
@@ -131,6 +136,7 @@
  },
  {
   "aggregate_function_based_on": "",
+  "background_color": null,
   "color": "#29CD42",
   "currency": "",
   "docstatus": 0,
@@ -157,6 +163,7 @@
  },
  {
   "aggregate_function_based_on": "",
+  "background_color": null,
   "color": "#29CD42",
   "currency": "",
   "docstatus": 0,
@@ -183,6 +190,7 @@
  },
  {
   "aggregate_function_based_on": "",
+  "background_color": null,
   "color": null,
   "currency": "INR",
   "docstatus": 0,
@@ -209,6 +217,7 @@
  },
  {
   "aggregate_function_based_on": "",
+  "background_color": null,
   "color": "#29CD42",
   "currency": "",
   "docstatus": 0,
@@ -235,6 +244,7 @@
  },
  {
   "aggregate_function_based_on": "",
+  "background_color": null,
   "color": "#29CD42",
   "currency": "INR",
   "docstatus": 0,
@@ -261,6 +271,7 @@
  },
  {
   "aggregate_function_based_on": "",
+  "background_color": null,
   "color": "#29CD42",
   "currency": "",
   "docstatus": 0,
@@ -287,6 +298,7 @@
  },
  {
   "aggregate_function_based_on": "",
+  "background_color": null,
   "color": null,
   "currency": "",
   "docstatus": 0,
@@ -303,6 +315,33 @@
   "modified": "2025-10-31 18:39:53.748191",
   "module": null,
   "name": "Confirmation Evaluation - Pending",
+  "parent_document_type": "",
+  "report_field": null,
+  "report_function": "Sum",
+  "report_name": null,
+  "show_percentage_stats": 1,
+  "stats_time_interval": "Daily",
+  "type": "Custom"
+ },
+ {
+  "aggregate_function_based_on": "",
+  "background_color": null,
+  "color": null,
+  "currency": "",
+  "docstatus": 0,
+  "doctype": "Number Card",
+  "document_type": "Confirmation Evaluation Form",
+  "dynamic_filters_json": "[]",
+  "filters_config": "[{\n    \"fieldname\": \"doctype\",\n    \"label\": \"Doctype\",\n    \"fieldtype\": \"Link\",\n    \"options\": \"DocType\",\n    \"default\": \"Confirmation Evaluation Form\",\n    \"hidden\": 1\n}]\n",
+  "filters_json": "{\"doctype\":\"Confirmation Evaluation Form\"}",
+  "function": "Count",
+  "is_public": 0,
+  "is_standard": 0,
+  "label": "Confirmation Evaluation - Pending(HOD)",
+  "method": "prompt_hr.py.number_card.get_pending_records_for_hod_user",
+  "modified": "2025-11-11 15:14:23.827504",
+  "module": null,
+  "name": "Confirmation Evaluation - Pending(HOD)",
   "parent_document_type": "",
   "report_field": null,
   "report_function": "Sum",

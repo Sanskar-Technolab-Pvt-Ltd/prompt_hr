@@ -25,7 +25,7 @@ frappe.listview_settings["Employee Penalty"] = {
                     frappe.call({
                         method: "prompt_hr.prompt_hr.doctype.employee_penalty.employee_penalty.cancel_penalties",
                         args: {
-                            ids,
+                            ids: ids,
                             reason: values.reason
                         },
                         freeze: true,

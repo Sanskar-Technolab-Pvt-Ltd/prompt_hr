@@ -2872,6 +2872,7 @@ def process_tour_visit_da(employee, company, from_date, to_date, expense_claim_n
             filters={
                 "person": employee,
                 "status": "Completed",
+                "is_work_from_office_or_home": "Field Visit"
             },
             or_filters=[
                 ["tour_start_date", "between", [from_date, to_date]],

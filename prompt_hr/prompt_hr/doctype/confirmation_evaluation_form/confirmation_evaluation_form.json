@@ -60,6 +60,8 @@
   {
    "fieldname": "employee",
    "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Employee",
    "options": "Employee"
   },
@@ -67,12 +69,14 @@
    "fetch_from": "employee.employee_name",
    "fieldname": "employee_name",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Employee Name"
   },
   {
    "fetch_from": "employee.department",
    "fieldname": "department",
    "fieldtype": "Link",
+   "in_standard_filter": 1,
    "label": "Department",
    "options": "Department"
   },
@@ -80,6 +84,7 @@
    "fetch_from": "employee.designation",
    "fieldname": "designation",
    "fieldtype": "Data",
+   "in_standard_filter": 1,
    "label": "Designation"
   },
   {
@@ -97,18 +102,22 @@
    "fetch_from": "employee.custom_business_unit",
    "fieldname": "business_unit",
    "fieldtype": "Data",
+   "in_standard_filter": 1,
    "label": "Business Unit"
   },
   {
    "fetch_from": "employee.reports_to",
    "fieldname": "reporting_manager",
    "fieldtype": "Link",
+   "in_standard_filter": 1,
    "label": "Reporting Manager",
    "options": "Employee"
   },
   {
    "fieldname": "evaluation_date",
    "fieldtype": "Date",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Evaluation Date"
   },
   {
@@ -116,6 +125,7 @@
    "fetch_if_empty": 1,
    "fieldname": "hod",
    "fieldtype": "Link",
+   "in_standard_filter": 1,
    "label": "HOD",
    "options": "Employee"
   },
@@ -336,7 +346,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-31 12:58:38.099308",
+ "modified": "2025-11-07 19:17:37.750812",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Confirmation Evaluation Form",

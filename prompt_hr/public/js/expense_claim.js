@@ -468,6 +468,7 @@ function claim_extra_expenses(frm, service_roles = [], sales_roles = [], hr_role
                         filters = {
                             person: frm.doc.employee,
                             status: "Completed",
+                            is_work_from_office_or_home: "Field Visit"
                         }
                         const from_date = dialog.get_value("from_date");
                         const to_date = dialog.get_value("to_date");

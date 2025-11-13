@@ -1059,6 +1059,12 @@ def share_doc_with_employee(employee, doctype, docname, reason_for_escalation=No
             frappe.db.set_value(doctype, docname, "custom_escalated_to", employee)
             if reason_for_escalation:
                 frappe.db.set_value(doctype, docname, "custom_reason_for_escalation", reason_for_escalation)
+        
+        if doctype == "Travel Request":
+            frappe.db.set_value(doctype, docname, "custom_escalated_to", employee)
+            if reason_for_escalation:
+                    frappe.db.set_value(doctype, docname, "custom_escalation_reason", reason_for_escalation)
+    
     except Exception as e:
         frappe.log_error(
             f"Error setting custom_escalated_to",

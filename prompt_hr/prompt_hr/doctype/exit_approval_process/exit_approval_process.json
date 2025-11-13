@@ -15,6 +15,7 @@
   "employment_type",
   "exit_interview",
   "employee_separation",
+  "exit_checklist",
   "column_break_lhxs",
   "resignation_approval",
   "company",
@@ -147,12 +148,18 @@
    "in_standard_filter": 1,
    "label": "Work Location",
    "options": "Address"
+  },
+  {
+   "fieldname": "exit_checklist",
+   "fieldtype": "Link",
+   "label": "Exit Checklist",
+   "options": "IT Exit Checklist"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-13 16:24:42.147291",
+ "modified": "2025-11-11 18:45:26.671743",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Exit Approval Process",

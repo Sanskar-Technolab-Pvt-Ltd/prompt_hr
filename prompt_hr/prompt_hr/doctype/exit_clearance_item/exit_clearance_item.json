@@ -30,7 +30,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Table Name",
-   "options": "\nit\nengineering\nno_due_clearance",
+   "options": "\nexit_tasks",
    "reqd": 1
   },
   {
@@ -97,7 +97,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-01 17:01:41.105806",
+ "modified": "2025-11-12 18:05:58.601327",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Exit Clearance Item",

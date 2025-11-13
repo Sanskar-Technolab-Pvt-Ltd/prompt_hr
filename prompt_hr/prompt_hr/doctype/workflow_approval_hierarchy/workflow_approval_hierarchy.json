@@ -80,23 +80,21 @@
   },
   {
    "default": "0",
+   "depends_on": "eval:doc.role",
    "description": "Allow approval for creator of the document",
    "fieldname": "allow_self_approval",
    "fieldtype": "Check",
-   "hidden": 1,
    "label": "Allow Self Approval"
   },
   {
    "default": "0",
    "fieldname": "send_email_to_creator",
    "fieldtype": "Check",
-   "hidden": 1,
    "label": "send_email_to_creator"
   },
   {
    "fieldname": "condition",
    "fieldtype": "Code",
-   "hidden": 1,
    "label": "Condition",
    "options": "Python"
   },
@@ -109,7 +107,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-10-13 18:34:24.247200",
+ "modified": "2025-11-11 17:49:09.238683",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Workflow Approval Hierarchy",
