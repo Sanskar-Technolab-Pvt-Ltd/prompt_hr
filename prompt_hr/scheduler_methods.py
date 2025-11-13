@@ -3390,6 +3390,7 @@ def send_exit_checklist_reminders():
     fields are empty, to users who are eligible to fill them.
     """
 
+    frappe.log_error("info_send_exit_checklist_reminders", "Scheduler Stared")
     # Fetch all active IT Exit Checklist documents
     checklists = frappe.get_all("IT Exit Checklist", fields=["name", "reports_to"])
 
@@ -3449,5 +3450,11 @@ def send_exit_checklist_reminders():
             if recipients:
                 form_url = frappe.utils.get_url_to_form(doc.doctype, doc.name)
                 subject = f"IT Exit Checklist Reminder"
-                message += f"""<p>The following IT Exit Checklist items need your attention:{doc.name}</p> <p>Here is the IT Exit Checklist Link: {form_url}</p>"""
-                send_notification_email(recipients=recipients,doctype=doc.doctype, docname=doc.name, notification_name=0,fallback_message=message, fallback_subject=subject, send_header_greeting=True, send_link=False)
+                message = f"""<p>The following IT Exit Checklist items need your attention:{doc.name}</p> <p>Here is the IT Exit Checklist Link: {form_url}</p>"""
+                try:
+                    send_notification_email(recipients=recipients,doctype=doc.doctype, docname=doc.name, notification_name=0,fallback_message=message, fallback_subject=subject, send_header_greeting=True, send_link=False)
+                except Exception as e:
+                    frappe.log_error("error_send_exit_checklist_reminders", frappe.get_traceback())
+        
+    frappe.log_error("info_send_exit_checklist_reminders", "Scheduler Ended")
+        
