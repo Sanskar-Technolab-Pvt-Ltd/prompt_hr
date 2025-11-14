@@ -349,7 +349,7 @@ def invite_for_document_collection(
                 doctype="Candidate Portal",
                 docname=invitation.name,
                 button_label="Submit Documents",
-                button_link=f"/login?redirect-to=/candidate-portal/new#login",
+                button_link=f"/candidate-portal/",
                 hash_input_text=invitation.name,
             )
             return _("Invitation updated successfully.")
