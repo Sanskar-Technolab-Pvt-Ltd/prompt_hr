@@ -90,12 +90,10 @@ def share_doc_to_users(doc,method):
     if not doc.is_new():
         employees = doc.custom_assignee
         
-        print(f"\n\n USERS {employees} \n\n")
 
         # # ? GET LIST OF ALL CURRENT EMPLOYEE SETTED IN THE Assignee MULTISELECT FILELD
         current_users = {frappe.db.get_value("Employee", emp.employee, "user_id") or "" for emp in employees}
         
-        print(f"\n\n current_users {current_users} \n\n")
 
         # ? GET A LIST OF ALL open STATUS TODO(ASSIGNMENTS) FOR THIS PARTICULAR DOCUMENT
         assigned_todos = frappe.get_all(
