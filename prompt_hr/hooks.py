@@ -203,7 +203,8 @@ override_doctype_class = {
     "Leave Encashment": "prompt_hr.overrides.leave_encashment_override.CustomLeaveEncashment",
     "Leave Application": "prompt_hr.overrides.leave_application_override.CustomLeaveApplication",
     "Shift Request": "prompt_hr.overrides.shift_request_override.CustomShiftRequest",
-    "Timesheet": "prompt_hr.overrides.timesheet_override.CustomTimesheet"
+    "Timesheet": "prompt_hr.overrides.timesheet_override.CustomTimesheet",
+    "Project": "prompt_hr.overrides.project_override.CustomProject"
 }
 
 # Document Events
