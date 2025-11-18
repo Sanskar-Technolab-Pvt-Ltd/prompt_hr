@@ -110,18 +110,31 @@ def interviewer_reschedule_interview(docname, scheduled_on, from_time, to_time):
     if hr_settings.custom_hr_roles_for_recruitment:
         role_list = [r.strip() for r in hr_settings.custom_hr_roles_for_recruitment.split(",") if r.strip()]
     
-    users_with_roles = frappe.db.sql_list("""
-        SELECT DISTINCT ur.parent
-        FROM `tabHas Role` ur
-        WHERE ur.role IN (%s)
-    """ % (", ".join(["%s"] * len(role_list))), tuple(role_list))
+    # users_with_roles = frappe.db.sql_list("""
+    #     SELECT DISTINCT ur.parent
+    #     FROM `tabHas Role` ur
+    #     WHERE ur.role IN (%s)
+    # """ % (", ".join(["%s"] * len(role_list))), tuple(role_list))
+
+    if not role_list:
+        users_with_roles = []
+    else:
+        placeholders = ','.join(['%s'] * len(role_list))
+        users_with_roles = frappe.db.sql_list(
+            f"""
+            SELECT DISTINCT ur.parent
+            FROM `tabHas Role` ur
+            WHERE ur.role IN ({placeholders})
+            """,
+            tuple(role_list)
+        )
     
     print("\n\nusers with role",users_with_roles)
     recipients = [  u for u in users_with_roles
                     if u.lower() != "administrator"
                     and frappe.db.get_value("User", u, "enabled") == 1
                 ]
-
+    
     # Send email using Notification (instead of direct sendmail)
     if recipients:
         try:
@@ -142,7 +155,9 @@ def interviewer_reschedule_interview(docname, scheduled_on, from_time, to_time):
         except Exception as e:
             frappe.log_error(f"Error sending interview reschedule notification: {str(e)}")
 
-    return _("Interview rescheduled successfully and notification sent to interviewers.")
+        return _("Interview rescheduled successfully and notification sent to interviewers.")
+    else:
+        return _("No active interviewers found to notify.")
 
 
 def send_interview_feedback_notifications():
