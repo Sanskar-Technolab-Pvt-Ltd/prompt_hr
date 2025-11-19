@@ -237,15 +237,31 @@ def get_workflow_approvals(company, doctype, docname):
             if not criteria:
                 filtered_approvals.append(approval)
             else:
-                is_approval_applicable = True
+                # ---- CHANGED: group repeated field_name values and use IN semantics ----
+                criteria_map = {}
                 for c in criteria:
-                    if doc.get(c.field_name):
-                        if str(doc.get(c.field_name)) != str(c.expected_value):
-                            is_approval_applicable = False
-                            break
-                    else:
+                    fname = c.get('field_name')
+                    # normalize expected_value to string (handle None)
+                    exp_val = str(c.get('expected_value') or "").strip()
+                    criteria_map.setdefault(fname, set()).add(exp_val)
+
+                is_approval_applicable = True
+                for fname, expected_values in criteria_map.items():
+                    # ---- CHANGED: avoid 'in' on Document; use doc.get(fname) check ----
+                    # consider missing if None or empty string
+                    doc_field_value = doc.get(fname)
+                    if doc_field_value in (None, ""):
                         is_approval_applicable = False
                         break
+
+                    # normalize document value to string for comparison
+                    doc_val_str = str(doc_field_value).strip()
+
+                    # IN check: document value must match one of the expected values for this field
+                    if doc_val_str not in expected_values:
+                        is_approval_applicable = False
+                        break
+                    # -----------------------------------------------------------------------
 
                 if is_approval_applicable:
                     filtered_approvals.append(approval)
@@ -289,3 +305,90 @@ def get_workflow_approvals(company, doctype, docname):
                 })
 
     return table_data
+
+
+
+# @frappe.whitelist()
+# def get_workflow_approvals(company, doctype, docname):
+#     """
+#     #! GET WORKFLOW APPROVALS FOR GIVEN COMPANY AND DOCTYPE
+#     #! IF NO CUSTOM APPROVAL FOUND, USE DEFAULT WORKFLOW CONFIG
+#     """
+#     table_data = []
+
+#     #? FETCH CUSTOM WORKFLOW APPROVALS
+#     approvals = frappe.get_all(
+#         'Workflow Approval',
+#         filters={
+#             'company': company,
+#             'applicable_doctype': doctype
+#         },
+#         fields=['name'],
+#         order_by='modified desc',
+#     )
+
+#     doc = frappe.get_doc(doctype, docname)
+#     filtered_approvals = []
+
+#     if approvals:
+#         for approval in approvals:
+#             criteria = frappe.get_all(
+#                 'Workflow Approval Criteria',
+#                 filters={'parent': approval.name},
+#                 fields=['field_name', 'expected_value']
+#             )
+#             if not criteria:
+#                 filtered_approvals.append(approval)
+#             else:
+#                 is_approval_applicable = True
+#                 for c in criteria:
+#                     if doc.get(c.field_name):
+#                         if str(doc.get(c.field_name)) != str(c.expected_value):
+#                             is_approval_applicable = False
+#                             break
+#                     else:
+#                         is_approval_applicable = False
+#                         break
+
+#                 if is_approval_applicable:
+#                     filtered_approvals.append(approval)
+#     #? CASE 1 — USE CUSTOM WORKFLOW APPROVAL (IF FOUND)
+#     if filtered_approvals:
+#         approval = filtered_approvals[0]
+#         workflow_approval_hierarchy = frappe.get_all(
+#             'Workflow Approval Hierarchy',
+#             filters={'parent': approval.name, "state": doc.workflow_state},
+#             fields=['*'],
+#             order_by='idx asc'
+#         )
+#         if workflow_approval_hierarchy:
+#             for row in workflow_approval_hierarchy:
+#                 table_data.append({
+#                     "state": row.state,
+#                     "action": row.action,
+#                     "next_state": row.next_state,
+#                     "allowed_by": row.allowed_by,
+#                     "value": row.employee if row.allowed_by == "User" else row.role,
+#                 })
+
+#     #? CASE 2 — FALLBACK TO DEFAULT WORKFLOW
+#     else:
+#         workflow_name = frappe.db.get_value('Workflow', {'document_type': doctype, 'is_active': 1}, 'name')
+#         if workflow_name:
+#             transitions = frappe.get_all(
+#                 'Workflow Transition',
+#                 filters={'parent': workflow_name, 'state': doc.workflow_state},
+#                 fields=['state', 'action', 'next_state', 'allowed'],
+#                 order_by='idx asc'
+#             )
+
+#             for row in transitions:
+#                 table_data.append({
+#                     "state": row.state,
+#                     "action": row.action,
+#                     "next_state": row.next_state,
+#                     "allowed_by": "Role",
+#                     "value": row.allowed
+#                 })
+
+#     return table_data
