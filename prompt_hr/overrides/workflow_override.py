@@ -83,11 +83,51 @@ def custom_has_approval_access(user, doc, transition):
     return user == "Administrator" or transition.get("allow_self_approval") or user != doc.get("owner")
 
 
+# def get_matching_workflow_approval(doc):
+#     all_approvals = frappe.get_all("Workflow Approval", filters={"applicable_doctype": doc.doctype}, pluck="name")
+#     for name in all_approvals:
+#         approval = frappe.get_doc("Workflow Approval", name)
+#         if all(str(doc.get(c.field_name)).strip() == str(c.expected_value).strip() for c in approval.workflow_approval_criteria):
+#             return approval
+#     return None
+
+
 def get_matching_workflow_approval(doc):
-    all_approvals = frappe.get_all("Workflow Approval", filters={"applicable_doctype": doc.doctype}, pluck="name")
-    for name in all_approvals:
+    approvals = frappe.get_all(
+        "Workflow Approval",
+        filters={"applicable_doctype": doc.doctype},
+        pluck="name"
+    )
+
+    for name in approvals:
         approval = frappe.get_doc("Workflow Approval", name)
-        if all(str(doc.get(c.field_name)).strip() == str(c.expected_value).strip() for c in approval.workflow_approval_criteria):
+
+        # Build a map: field_name -> set/list of expected values
+        criteria_map = {}
+        for c in approval.workflow_approval_criteria:
+            field_name = c.field_name
+            expected_value = (str(c.expected_value).strip()
+                              if c.expected_value is not None else "")
+
+            criteria_map.setdefault(field_name, set()).add(expected_value)
+
+        # Now check if the doc matches ALL fields (AND),
+        # but for each field, value can be ANY of the grouped expected values (IN)
+        is_match = True
+        for field_name, expected_values in criteria_map.items():
+            doc_value = doc.get(field_name)
+
+            # normalize to string for comparison, same as before
+            doc_value_str = (str(doc_value).strip()
+                             if doc_value is not None else "")
+
+            # IN check for this field
+            if doc_value_str not in expected_values:
+                is_match = False
+                break
+
+        if is_match:
             return approval
+
     return None
 
