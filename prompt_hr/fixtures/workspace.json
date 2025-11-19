@@ -2274,7 +2274,7 @@
  },
  {
   "charts": [],
-  "content": "[{\"id\":\"_lWGnWLEHA\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Employee ESS</span>\",\"col\":12}},{\"id\":\"hdo6jo7ibI\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><i>Welcome to Your Employee Self Service Portal</i><b></b></span>\",\"col\":12}},{\"id\":\"D8zDUosuJo\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"9mgPt-ZCDh\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\" style=\\\"\\\"><a href=\\\"/helpdesk\\\">Visit Helpdesk</a></span>\",\"col\":12}},{\"id\":\"2Ju8KgbQQ1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"My Profile\",\"col\":3}},{\"id\":\"ZHXU7IS1sm\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Leave Calendar\",\"col\":3}},{\"id\":\"FVDedLfA8b\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Attendance Calendar\",\"col\":3}},{\"id\":\"PcjcPavO_L\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Organization Policies\",\"col\":3}},{\"id\":\"p0C_WahirL\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Exit Questionnaire Form\",\"col\":3}},{\"id\":\"ysDv0nutnh\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"ywVMoAC5S1\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Leave Application - Pending Approval\",\"col\":4}},{\"id\":\"C4n6SarIrx\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Attendance Regularization - Pending Approval\",\"col\":4}},{\"id\":\"MRgkXQnmRv\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Attendance Request - Pending Approval\",\"col\":4}},{\"id\":\"8zGuGRZSZh\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Shift Request - Pending Approval\",\"col\":4}},{\"id\":\"B3zX6hokO3\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"WeekOff Change Request - Pending Approval\",\"col\":4}},{\"id\":\"eGZmNyrsob\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Exit Approval Process - Pending Approval\",\"col\":4}},{\"id\":\"dijND8_I_q\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Exit Checklist - Pending Completion\",\"col\":4}},{\"id\":\"bfQ5PHK4cM\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Probation Feedback: 30 Days-Pending\",\"col\":4}},{\"id\":\"SNOlwaMd1Y\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Probation Feedback: 60 Days-Pending\",\"col\":4}},{\"id\":\"-FfafwVHtK\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Confirmation Evaluation - Pending\",\"col\":4}},{\"id\":\"IdoE18J9u0\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Confirmation Evaluation - Pending(HOD)\",\"col\":4}},{\"id\":\"KL7BEZMNvX\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"HtaOE1KiNk\",\"type\":\"card\",\"data\":{\"card_name\":\"Attendance\",\"col\":4}},{\"id\":\"EnaIoMoh87\",\"type\":\"card\",\"data\":{\"card_name\":\"Leave\",\"col\":4}}]",
+  "content": "[{\"id\":\"_lWGnWLEHA\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">Employee ESS</span>\",\"col\":12}},{\"id\":\"hdo6jo7ibI\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><i>Welcome to Your Employee Self Service Portal</i><b></b></span>\",\"col\":12}},{\"id\":\"D8zDUosuJo\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"9mgPt-ZCDh\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\" style=\\\"\\\"><a href=\\\"/helpdesk\\\">Visit Helpdesk</a></span>\",\"col\":12}},{\"id\":\"2Ju8KgbQQ1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"My Profile\",\"col\":3}},{\"id\":\"ZHXU7IS1sm\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Leave Calendar\",\"col\":3}},{\"id\":\"FVDedLfA8b\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Attendance Calendar\",\"col\":3}},{\"id\":\"PcjcPavO_L\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Organization Policies\",\"col\":3}},{\"id\":\"p0C_WahirL\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Exit Questionnaire Form\",\"col\":3}},{\"id\":\"ysDv0nutnh\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"ywVMoAC5S1\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Leave Application - Pending Approval\",\"col\":4}},{\"id\":\"C4n6SarIrx\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Attendance Regularization - Pending Approval\",\"col\":4}},{\"id\":\"MRgkXQnmRv\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Attendance Request - Pending Approval\",\"col\":4}},{\"id\":\"8zGuGRZSZh\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Shift Request - Pending Approval\",\"col\":4}},{\"id\":\"B3zX6hokO3\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"WeekOff Change Request - Pending Approval\",\"col\":4}},{\"id\":\"eGZmNyrsob\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Exit Approval Process - Pending Approval\",\"col\":4}},{\"id\":\"dijND8_I_q\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Exit Checklist - Pending Completion\",\"col\":4}},{\"id\":\"bfQ5PHK4cM\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Probation Feedback: 30 Days-Pending\",\"col\":4}},{\"id\":\"SNOlwaMd1Y\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Probation Feedback: 60 Days-Pending\",\"col\":4}},{\"id\":\"-FfafwVHtK\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Confirmation Evaluation - Pending\",\"col\":4}},{\"id\":\"IdoE18J9u0\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Confirmation Evaluation - Pending(HOD)\",\"col\":4}},{\"id\":\"msO_GwvKI4\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Expense Claim Pending For Approval\",\"col\":4}},{\"id\":\"KL7BEZMNvX\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"HtaOE1KiNk\",\"type\":\"card\",\"data\":{\"card_name\":\"Attendance\",\"col\":4}},{\"id\":\"EnaIoMoh87\",\"type\":\"card\",\"data\":{\"card_name\":\"Leave\",\"col\":4}},{\"id\":\"uee054kHo4\",\"type\":\"card\",\"data\":{\"card_name\":\"Expense Claim\",\"col\":4}}]",
   "custom_blocks": [],
   "docstatus": 0,
   "doctype": "Workspace",
@@ -2500,15 +2500,58 @@
     "parenttype": "Workspace",
     "report_ref_doctype": null,
     "type": "Link"
+   },
+   {
+    "dependencies": null,
+    "description": null,
+    "hidden": 0,
+    "icon": null,
+    "is_query_report": 0,
+    "label": "Expense Claim",
+    "link_count": 1,
+    "link_to": null,
+    "link_type": "DocType",
+    "onboard": 0,
+    "only_for": null,
+    "parent": "Employee ESS",
+    "parentfield": "links",
+    "parenttype": "Workspace",
+    "report_ref_doctype": null,
+    "type": "Card Break"
+   },
+   {
+    "dependencies": null,
+    "description": null,
+    "hidden": 0,
+    "icon": null,
+    "is_query_report": 0,
+    "label": "Expense Claim",
+    "link_count": 0,
+    "link_to": "Expense Claim",
+    "link_type": "DocType",
+    "onboard": 0,
+    "only_for": null,
+    "parent": "Employee ESS",
+    "parentfield": "links",
+    "parenttype": "Workspace",
+    "report_ref_doctype": null,
+    "type": "Link"
    }
   ],
-  "modified": "2025-11-11 15:14:48.888454",
+  "modified": "2025-11-14 12:54:28.910053",
   "module": null,
   "name": "Employee ESS",
   "number_cards": [
    {
     "label": "Exit Checklist - Pending Completion",
     "number_card_name": "Exit Checklist - Pending Completion",
+    "parent": "Employee ESS",
+    "parentfield": "number_cards",
+    "parenttype": "Workspace"
+   },
+   {
+    "label": "Expense Claim Pending For Approval",
+    "number_card_name": "Expense Claim Pending For Approval",
     "parent": "Employee ESS",
     "parentfield": "number_cards",
     "parenttype": "Workspace"

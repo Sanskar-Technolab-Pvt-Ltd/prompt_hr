@@ -23,7 +23,10 @@ class CandidatePortal(Document):
         if self.applicant_email:
             candidate_email = frappe.db.get_value("Job Applicant", self.applicant_email, "email_id")
 
-        if candidate_email:
+        #? CHECK THAT NOTIFICATION SENT IS ENABLE OR NOT
+        enabled = frappe.db.get_single_value("HR Settings", "custom_enable_candidate_portal_update_notifications")
+
+        if candidate_email and enabled:
             #  CALL NOTIFICATION DOCTYPE
             send_notification_email(
                 recipients=[candidate_email],
@@ -47,7 +50,7 @@ class CandidatePortal(Document):
                 send_header_greeting=False,
             )
 
-        if recruiter_emails:
+        if recruiter_emails and enabled:
             #  CALL NOTIFICATION DOCTYPE
             send_notification_email(
                     recipients=recruiter_emails,
