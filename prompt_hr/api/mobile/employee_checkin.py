@@ -1,5 +1,5 @@
 import frappe
-from datetime import datetime, date
+from datetime import datetime, date,time
 
 
 # ! prompt_hr.api.mobile.employee_checkin.list
@@ -163,6 +163,34 @@ def create(**args):
 
         # ? FETCH EMPLOYEE DOC
         emp_doc = frappe.get_doc("Employee", args.get("employee"))    
+        
+        today_date = frappe.utils.getdate()
+
+        # Create datetime for start and end of the day
+        start_of_day = datetime.combine(today_date, time.min)
+        end_of_day = datetime.combine(today_date, time.max)
+
+        last_log = frappe.db.get_all(
+            "Employee Checkin",
+            filters={
+                "employee": args.get("employee"),
+                "time": ["between", [start_of_day, end_of_day]]
+            },
+            fields=["log_type"],
+            order_by="time desc",
+            limit=1
+        )
+
+        # If no entry today → first entry → should be "IN"
+        if not last_log:
+            args["log_type"] = "IN"
+        else:
+            previous_log_type = last_log[0].log_type
+            # Toggle
+            if previous_log_type == "IN":
+                args["log_type"] = "OUT"
+            else:
+                args["log_type"] = "IN"
         
         # ? CREATE EMPLOYEE CHECKIN DOC
         employee_checkin_doc = frappe.get_doc({

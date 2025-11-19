@@ -1,7 +1,26 @@
-frappe.ready(function () {
+frappe.ready(async function () {
+    
     if (!frappe.session.user || frappe.session.user === "Guest") {
-        return;
+        //? AUTO LOGIN USER TO ACCESS CANDIDATE PORTAL
+        await frappe.call({
+            method: "login",
+            type: "POST",
+            args: {
+                usr: "candidate@promptdairytech.com",
+                pwd: "Candidate@123"
+            },
+            callback: function (r) {
+                if (r.message) {
+                    console.log("Login Successful!"); 
+                    window.location.reload();   
+                }
+            },
+            error: function(err) {
+                console.log("Login Failed:", err);
+            }
+        });
     }
+
     // ? FORCE DISABLE THE DEFAULT WEB FORM FUNCTIONALITY
     setTimeout(function () {
         // ? REMOVE THE STANDARD SUBMIT BUTTON ENTIRELY
@@ -93,8 +112,11 @@ frappe.ready(function () {
                         // ? STORE THE DOCNAME IN A GLOBAL VARIABLE
                         window.verifiedDocName = docName;
 
-                        frappe.msgprint('Verification successful!');
+                        // frappe.msgprint('Verification successful!');
                         dialog.hide();
+
+                        localStorage.setItem("portal_phone", values.phone_number);
+                        localStorage.setItem("portal_hash", values.password);
 
                         // ? SET VALUES FROM RETURNED DATA
                         Object.entries(data).forEach(([key, value]) => {
@@ -386,7 +408,22 @@ frappe.ready(function () {
     });
 
     // ? SHOW DIALOG ON WEB FORM LOAD
-    dialog.show();
+    const savedPhone = localStorage.getItem("portal_phone");
+    const savedHash = localStorage.getItem("portal_hash");
+
+    if (savedPhone && savedHash) {
+        dialog.set_values({
+            phone_number: savedPhone,
+            password: savedHash
+        });
+
+        dialog.primary_action({
+            phone_number: savedPhone,
+            password: savedHash
+        });
+    } else {
+        dialog.show();
+    }
 });
 
 

@@ -29,12 +29,22 @@
   "related_to",
   "related_to_form",
   "color",
+  "section_break_cgpf",
+  "next_action_required",
+  "next_action_type",
+  "next_action_date",
+  "column_break_uwig",
+  "organizer",
+  "assigned_to",
+  "next_action_agenda",
   "participants_section",
   "table_qygi",
   "room_setup_instruction_section_section",
   "room_setup_instruction",
   "section_break_nlgt",
-  "notes"
+  "notes",
+  "section_break_ojsr",
+  "next_action_of"
  ],
  "fields": [
   {
@@ -114,12 +124,14 @@
    "default": "0",
    "fieldname": "generate_meeting_link",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "Generate Meeting Link"
   },
   {
    "default": "0",
    "fieldname": "is_recurring_meeting",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "Is Recurring Meeting"
   },
   {
@@ -199,13 +211,76 @@
    "fieldname": "table_qygi",
    "fieldtype": "Table",
    "options": "Meeting Participants"
+  },
+  {
+   "fieldname": "section_break_cgpf",
+   "fieldtype": "Section Break",
+   "label": "Next Meeting"
+  },
+  {
+   "default": "0",
+   "fieldname": "next_action_required",
+   "fieldtype": "Check",
+   "label": "Next Action Required?"
+  },
+  {
+   "depends_on": "next_action_required",
+   "fieldname": "next_action_type",
+   "fieldtype": "Select",
+   "label": "Next Action Type",
+   "options": "Offline\nOnline\nOn Site\nCall",
+   "read_only": 1
+  },
+  {
+   "depends_on": "next_action_required",
+   "fieldname": "next_action_date",
+   "fieldtype": "Datetime",
+   "label": "Next Action Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_uwig",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "next_action_required",
+   "fieldname": "assigned_to",
+   "fieldtype": "Link",
+   "label": "Assigned To",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "depends_on": "next_action_required",
+   "fieldname": "next_action_agenda",
+   "fieldtype": "Text",
+   "label": "Next Meeting Agenda",
+   "read_only": 1
+  },
+  {
+   "depends_on": "next_action_required",
+   "fieldname": "organizer",
+   "fieldtype": "Link",
+   "label": "Organizer",
+   "options": "Employee",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_ojsr",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "next_action_of",
+   "fieldtype": "Link",
+   "label": "Next Action Of",
+   "options": "Meeting Request"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_calendar_and_gantt": 1,
  "links": [],
- "modified": "2025-07-22 15:36:16.246879",
+ "modified": "2025-11-19 19:06:49.326660",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Meeting Request",

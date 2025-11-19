@@ -417,3 +417,44 @@ def field_visit_list(
             "data": field_visit_list,
             "count": total_count        
         }        
+        
+        
+from frappe.utils import get_url
+from frappe.auth import LoginManager
+@frappe.whitelist()
+def expense_claim_url():
+    try:
+        url = get_url()
+        hr_setting = frappe.get_doc("HR Settings", "HR Settings")
+
+        # Ensure we have the current user
+        user = frappe.session.user
+        # Generate a new session for the user
+        login_manager = LoginManager()
+        login_manager.user = user
+        login_manager.post_login()
+        sid = frappe.session.sid
+
+        if hr_setting.custom_create_expense_claim:
+            final_url = f"{url}{hr_setting.custom_create_expense_claim}?sid={sid}"
+        else:
+            final_url = f"{url}/app?sid={sid}"
+
+    except Exception as e:
+        # ? HANDLE ERRORS
+        frappe.log_error("Error While Getting Expense Claim URL", str(e))
+        frappe.clear_messages()
+        frappe.local.response["message"] = {
+            "success": False,
+            "message": str(e),
+            "data": None,
+        }
+
+    else:
+        # ? HANDLE SUCCESS
+        frappe.local.response["message"] = {
+            "success": True,
+            "message": "Expense Claim URL Loaded Successfully!",
+            "data": final_url,
+        }
+        

@@ -186,7 +186,7 @@ def attendance_calendar_list(
                     "attendance_date": h.holiday_date,
                     "employee_name": frappe.db.get_value("Employee", employee, "employee_name"),
                     "employee": employee,
-                    "status": "No Attendance",
+                    "status": "Holiday",
                 })
 
         all_entries = attendance_list + holiday_entries
