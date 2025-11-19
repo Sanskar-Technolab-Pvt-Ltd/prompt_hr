@@ -169,7 +169,8 @@ def probation_feedback_for_prompt():
                                 employee_doc.custom_first_probation_feedback = (
                                     first_probation_form.name
                                 )
-                                employee_doc.save(ignore_permissions=True, ignore_mandatory=True)
+                                employee_doc.flags.ignore_mandatory = True
+                                employee_doc.save(ignore_permissions=True)
                                 frappe.db.commit()
                             else:
                                 # remarks_added = frappe.db.exists(
@@ -288,7 +289,8 @@ def probation_feedback_for_prompt():
                                 employee_doc.custom_second_probation_feedback = (
                                     second_probation_form.name
                                 )
-                                employee_doc.save(ignore_permissions=True, ignore_mandatory=True)
+                                employee_doc.flags.ignore_mandatory = True
+                                employee_doc.save(ignore_permissions=True)
 
                                 frappe.db.commit()
                             elif second_feedback_form_id:
@@ -907,7 +909,8 @@ def create_confirmation_evaluation_form_for_prompt():
                             if not first_confirmation_form:
                                 confirmation_doc = create_evaluation()
                                 employee_doc.custom_confirmation_evaluation_form = confirmation_doc.name
-                                employee_doc.save(ignore_permissions=True, ignore_mandatory=True)
+                                employee_doc.flags.ignore_mandatory = True
+                                employee_doc.save(ignore_permissions=True)
                                 frappe.db.commit()
                             
                             else:
@@ -934,7 +937,8 @@ def create_confirmation_evaluation_form_for_prompt():
                                         else:
                                             confirmation_doc = create_evaluation()
                                             create_confirmation.confirmation_evaluation_form = confirmation_doc.name
-                                            employee_doc.save(ignore_permissions=True, ignore_mandatory=True)
+                                            employee_doc.flags.ignore_mandatory = True
+                                            employee_doc.save(ignore_permissions=True)
                                             frappe.db.commit()                                                                                                
                                 
                         except Exception as e:
@@ -3379,3 +3383,78 @@ def penalize_employee_for_attendance_mispunch_prompt(args):
         )
         print(f"[ERROR] Exception occurred: {str(e)}\n")
 
+
+def send_exit_checklist_reminders():
+    """
+    Send reminder emails for IT Exit Checklist where action_required or status
+    fields are empty, to users who are eligible to fill them.
+    """
+
+    frappe.log_error("info_send_exit_checklist_reminders", "Scheduler Stared")
+    # Fetch all active IT Exit Checklist documents
+    checklists = frappe.get_all("IT Exit Checklist", fields=["name", "reports_to"])
+
+    for checklist in checklists:
+        doc = frappe.get_doc("IT Exit Checklist", checklist.name)
+
+        # to collect users needing email
+        users_to_notify = set()
+        for row in doc.exit_tasks:
+
+            # --- Step 1: Check if anything needs attention ---
+            needs_status = not row.action_required and not row.no_response_to_be_filled_in_status
+            needs_approval = (not row.status or row.status == "Pending") and not row.no_response_to_be_filled_in_approval_status
+
+            # If nothing missing, skip heavy logic
+            if not needs_status and not needs_approval:
+                continue
+
+            # --- Step 2: Build eligible user lists only when required ---
+            rm_user = frappe.db.get_value("Employee", doc.reports_to, "user_id") if doc.reports_to else None
+
+            can_modify_status_users = set()
+            can_modify_approval_users = set()
+
+            # Fill eligibility only if relevant
+            if needs_status:
+                if row.user_allowed_to_modify_status:
+                    can_modify_status_users.add(row.user_allowed_to_modify_status)
+
+                if row.role_allowed_to_modify_status:
+                    users = frappe.get_all("Has Role", filters={"role": row.role_allowed_to_modify_status}, fields=["parent"])
+                    can_modify_status_users.update(u.parent for u in users)
+
+                if row.status_to_be_filled_by_reporting_manager and rm_user:
+                    can_modify_status_users.add(rm_user)
+
+            if needs_approval:
+                if row.user_allowed_to_modify_approval_status:
+                    can_modify_approval_users.add(row.user_allowed_to_modify_approval_status)
+
+                if row.role_allowed_to_modify_approval_status:
+                    users = frappe.get_all("Has Role", filters={"role": row.role_allowed_to_modify_approval_status}, fields=["parent"])
+                    can_modify_approval_users.update(u.parent for u in users)
+
+                if row.approval_status_to_be_filled_by_reporting_manager and rm_user:
+                    can_modify_approval_users.add(rm_user)
+
+            # --- Step 3: Add eligible users to notify list ---
+            if needs_status:
+                users_to_notify.update(can_modify_status_users)
+            if needs_approval:
+                users_to_notify.update(can_modify_approval_users)
+
+        if users_to_notify:
+            users_to_notify.discard("Administrator")  # skip system user
+            recipients = list(users_to_notify)
+            if recipients:
+                form_url = frappe.utils.get_url_to_form(doc.doctype, doc.name)
+                subject = f"IT Exit Checklist Reminder"
+                message = f"""<p>The following IT Exit Checklist items need your attention:{doc.name}</p> <p>Here is the IT Exit Checklist Link: {form_url}</p>"""
+                try:
+                    send_notification_email(recipients=recipients,doctype=doc.doctype, docname=doc.name, notification_name=0,fallback_message=message, fallback_subject=subject, send_header_greeting=True, send_link=False)
+                except Exception as e:
+                    frappe.log_error("error_send_exit_checklist_reminders", frappe.get_traceback())
+        
+    frappe.log_error("info_send_exit_checklist_reminders", "Scheduler Ended")
+        

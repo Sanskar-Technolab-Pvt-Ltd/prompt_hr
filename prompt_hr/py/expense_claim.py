@@ -2359,10 +2359,11 @@ def build_da_expense_rows(
 
                     # ? FETCH CUSTOMER LINKED TO THIS TOUR VISIT
                     customer = frappe.db.get_value("Tour Visit", visit, "customer")
-                    if not customer:
-                        continue
-
-                    customer_name = frappe.db.get_value("Customer", customer, "customer_name") or "-"
+                    
+                    if customer:
+                        customer_name = frappe.db.get_value("Customer", customer, "customer_name") or "-"
+                    else:
+                        customer_name = "-"
 
                     # Store visit mapping (no list, just dict)
                     tour_visit_map[visit] = {
@@ -2871,6 +2872,7 @@ def process_tour_visit_da(employee, company, from_date, to_date, expense_claim_n
             filters={
                 "person": employee,
                 "status": "Completed",
+                "is_work_from_office_or_home": "Field Visit"
             },
             or_filters=[
                 ["tour_start_date", "between", [from_date, to_date]],

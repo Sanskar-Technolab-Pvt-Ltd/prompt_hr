@@ -93,7 +93,8 @@ doctype_list_js = {
     "Job Requisition": "public/js/job_requisition_list.js",
     "Travel Request": "public/js/travel_request_list.js",
     "Expense Claim": "public/js/expense_claim_list.js",
-    "Salary Slip": "public/js/salary_slip_list.js"
+    "Salary Slip": "public/js/salary_slip_list.js",
+    "Employee Referral": "public/js/employee_referral_list.js"
 }
 
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -176,7 +177,8 @@ permission_query_conditions = {
     "Interview Feedback": "prompt_hr.py.interview_feedback.get_permission_query_conditions",
     "Job Opening": "prompt_hr.py.job_opening.get_permission_query_conditions",
     "Salary Slip": "prompt_hr.py.salary_slip.salary_slip_view_and_access_permissions",
-    "Organization Documents": "prompt_hr.prompt_hr.doctype.organization_documents.organization_documents.get_permission_query_conditions"
+    "Organization Documents": "prompt_hr.prompt_hr.doctype.organization_documents.organization_documents.get_permission_query_conditions",
+    "Task": "prompt_hr.py.task.task_view_and_access_permissions"
 }
 
 # has_permission = {
@@ -201,7 +203,8 @@ override_doctype_class = {
     "Leave Encashment": "prompt_hr.overrides.leave_encashment_override.CustomLeaveEncashment",
     "Leave Application": "prompt_hr.overrides.leave_application_override.CustomLeaveApplication",
     "Shift Request": "prompt_hr.overrides.shift_request_override.CustomShiftRequest",
-    "Timesheet": "prompt_hr.overrides.timesheet_override.CustomTimesheet"
+    "Timesheet": "prompt_hr.overrides.timesheet_override.CustomTimesheet",
+    "Project": "prompt_hr.overrides.project_override.CustomProject"
 }
 
 # Document Events
@@ -366,6 +369,12 @@ doc_events = {
     },
     "Shift Request":{
         "on_update":"prompt_hr.py.shift_request.on_update"
+    },
+    "Task": {
+        "on_update": "prompt_hr.py.task.share_doc_to_users"
+    },
+    "Employee Referral": {
+        "before_save": "prompt_hr.py.employee_referral.before_save"
     }
 }
 
@@ -400,6 +409,9 @@ scheduler_events = {
         "0 4 * * *": [
             "prompt_hr.py.attendance_penalty_api.send_penalty_notification_emails"
         ],
+        "0 6 * * *": [
+            "prompt_hr.scheduler_methods.send_exit_checklist_reminders"
+        ]
     },
     "daily": [
         "prompt_hr.py.employee_changes_approval.daily_check_employee_changes_approval",
@@ -594,7 +606,8 @@ fixtures = [
     #             "Exit Checklist - Pending Completion",
     #             "Probation Feedback: 30 Days-Pending",
     #             "Probation Feedback: 60 Days-Pending",
-    #             "Confirmation Evaluation - Pending"
+    #             "Confirmation Evaluation - Pending",
+    #             "Confirmation Evaluation - Pending(HOD)"
     #         ]]
     #     }
     # }

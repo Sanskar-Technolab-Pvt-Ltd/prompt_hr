@@ -180,6 +180,18 @@ def create_employee_separation(employee, company, exit_approval_process):
 
     doc.insert(ignore_permissions=True)
     frappe.db.commit()
+    
+    checklist_id = ""
+    if doc.activities:
+        for acti in doc.activities:
+            print(f"\n\n  {acti.custom_checklist_record} aand (acti.custom_checklist_record) \n\n")
+            if acti.custom_checklist_name == "IT Exit Checklist" and acti.custom_checklist_record:
+                checklist_id = acti.custom_checklist_record
+                break
+    
+    
+    if checklist_id:
+        frappe.db.set_value("Exit Approval Process", exit_approval_process, "exit_checklist", checklist_id)
     frappe.db.set_value(
         "Exit Approval Process", exit_approval_process, "employee_separation", doc.name
     )

@@ -7,19 +7,19 @@
  "engine": "InnoDB",
  "field_order": [
   "clearance_item",
-  "status",
+  "action_required",
   "response",
-  "role_allowed_to_modify_approval_status",
-  "user_allowed_to_modify_approval_status",
-  "approval_status_to_be_filled_by_reporting_manager",
-  "no_response_to_be_filled_in_approval_status",
-  "column_break_kump",
-  "approval_status",
-  "approval_status_history",
   "role_allowed_to_modify_status",
   "user_allowed_to_modify_status",
   "no_response_to_be_filled_in_status",
-  "status_to_be_filled_by_reporting_manager"
+  "status_to_be_filled_by_reporting_manager",
+  "column_break_kump",
+  "status",
+  "approval_status_history",
+  "role_allowed_to_modify_approval_status",
+  "user_allowed_to_modify_approval_status",
+  "approval_status_to_be_filled_by_reporting_manager",
+  "no_response_to_be_filled_in_approval_status"
  ],
  "fields": [
   {
@@ -28,20 +28,6 @@
    "in_list_view": 1,
    "label": "Clearance Item",
    "options": "Exit Clearance Item"
-  },
-  {
-   "fieldname": "status",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "Status",
-   "options": "\nDiscontinue\nHold Till (Mention Date)\nForward/Transfer To\nInput"
-  },
-  {
-   "fieldname": "approval_status",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "Approval Status",
-   "options": "Pending\nApproved"
   },
   {
    "fieldname": "approval_status_history",
@@ -118,13 +104,27 @@
   {
    "fieldname": "column_break_kump",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "action_required",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Action Required",
+   "options": "\nDiscontinue\nHold Till (Mention Date)\nForward/Transfer To\nInput"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Pending\nCompleted"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-10-17 16:35:11.615120",
+ "modified": "2025-11-12 15:53:46.163456",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "IT Asset Clearance",
