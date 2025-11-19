@@ -98,6 +98,26 @@ def teams_calender_book(docname, rendered_html):
                 
         
         attendees = []
+        added_emails = set()    
+
+        def add_attendee(email, name):
+            """Add attendee only if not already added"""
+            if not email:
+                return
+
+            email_lower = email.lower()
+            if email_lower in added_emails:
+                return 
+
+            attendees.append({
+                "emailAddress": {
+                    "address": email,
+                    "name": name
+                },
+                "type": "required"
+            })
+
+            added_emails.add(email_lower)
 
         # 1. Add Applicant
         
@@ -109,13 +129,10 @@ def teams_calender_book(docname, rendered_html):
                 applicant_email = None
 
             if applicant_email:
-                attendees.append({
-                    "emailAddress": {
-                        "address": applicant_email,
-                        "name": interview_doc.custom_applicant_name if interview_doc.custom_applicant_name else interview_doc.job_applicant
-                    },
-                    "type": "required"
-                })
+                add_attendee(
+                    applicant_email,
+                    interview_doc.custom_applicant_name or interview_doc.job_applicant
+                )
 
         # 2. Add Internal Interviewers (interview_details child table)
         
@@ -123,13 +140,7 @@ def teams_calender_book(docname, rendered_html):
             if row.custom_interviewer_employee:
                 user_id = frappe.db.get_value("Employee", row.custom_interviewer_employee, "user_id")
                 if user_id:
-                    attendees.append({
-                        "emailAddress": {
-                            "address": user_id,
-                            "name": row.custom_interviewer_name if row.custom_interviewer_name else user_id
-                        },
-                        "type": "required"
-                    })
+                    add_attendee(user_id, row.custom_interviewer_name or user_id)
 
         # 3. Add External Interviewers (custom_external_interviewers child table)
         
@@ -137,13 +148,54 @@ def teams_calender_book(docname, rendered_html):
             if row.custom_user:
                 custom_user_email = frappe.db.get_value("Supplier", row.custom_user, "custom_user")
                 if custom_user_email:
-                    attendees.append({
-                        "emailAddress": {
-                            "address": custom_user_email,
-                            "name": row.user_name if row.user_name else custom_user_email
-                        },
-                        "type": "required"
-                    })
+                    add_attendee(custom_user_email, row.user_name or custom_user_email)
+                                        
+        # 4. Add Internal Recruiter
+        
+        for row in interview_doc.custom_internal_recruiter:
+            if row.custom_user:
+                user_id = frappe.db.get_value("Employee", row.custom_user, "user_id")
+                if user_id:
+                    add_attendee(user_id, row.user_name or user_id)
+
+        # 5. Add External Recruiter 
+        
+        for row in interview_doc.custom_external_recruiter:
+            if row.custom_user:
+                custom_user_email = frappe.db.get_value("Supplier", row.custom_user, "custom_user")
+                if custom_user_email:
+                    add_attendee(custom_user_email, row.user_name or custom_user_email)
+                    
+        
+        if interview_doc.job_opening:
+            job_opening = frappe.get_doc("Job Opening", interview_doc.job_opening)
+            if job_opening:
+                for row in job_opening.custom_internal_interviewers:
+                    if row.custom_user:
+                        custom_user_email = frappe.db.get_value("Employee", row.custom_user, "user_id")
+                        if custom_user_email:
+                            add_attendee(custom_user_email, row.user_name or custom_user_email)
+
+                
+                for row in job_opening.custom_external_interviewers:
+                    if row.custom_user:
+                        custom_user_email = frappe.db.get_value("Supplier", row.custom_user, "custom_user")
+                        if custom_user_email:
+                            add_attendee(custom_user_email, row.user_name or custom_user_email)
+                
+                for row in job_opening.custom_internal_recruiter:
+                    if row.custom_user:
+                        custom_user_email = frappe.db.get_value("Employee", row.custom_user, "user_id")
+                        if custom_user_email:
+                            add_attendee(custom_user_email, row.user_name or custom_user_email)
+                
+                for row in job_opening.custom_external_recruiter:
+                    if row.custom_user:
+                        custom_user_email = frappe.db.get_value("Supplier", row.custom_user, "custom_user")
+                        if custom_user_email:
+                            add_attendee(custom_user_email, row.user_name or custom_user_email)                                   
+
+              
         
         payload = {
             "subject": f"{subject}",
