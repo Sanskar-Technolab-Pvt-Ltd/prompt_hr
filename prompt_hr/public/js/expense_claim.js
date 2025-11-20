@@ -734,6 +734,13 @@ function toggle_commute_fields(frm, grid_row, row) {
 
 	if (!isLocalCommute) {
 		reset_amount_read_only(grid_row);
+
+        // ? SET OR RESET DISTRICT READ-ONLY
+        if (row.expense_type != "Lodging") {
+            set_district_read_only(grid_row);
+        } else {    
+            reset_district_read_only(grid_row);
+        }
 		return;
 	}
 
@@ -746,6 +753,7 @@ function toggle_commute_fields(frm, grid_row, row) {
 	} else {
 		reset_amount_read_only(grid_row);
 	}
+
 }
 
 // ? RESET VEHICLE FIELDS
@@ -768,6 +776,29 @@ function update_type_of_vehicle_options(frm, mode) {
 		options
 	});
 }
+
+// ? MARK DISTRICT READ-ONLY
+function set_district_read_only(grid_row) {
+    const row = grid_row.doc;
+    grid_row.set_field_property("custom_district", "read_only", true);
+    // ? FOR EXPANDED FORM MODE
+    if (grid_row.grid_form?.fields_dict?.custom_district) {
+        grid_row.grid_form.fields_dict.custom_district.df.read_only = 1;
+        grid_row.grid_form.fields_dict.custom_district.refresh();
+    }   
+}
+
+// ? UNMARK DISTRICT READ-ONLY
+function reset_district_read_only(grid_row) {
+
+    grid_row.set_field_property("custom_district", "read_only", false);
+
+    if (grid_row.grid_form?.fields_dict?.custom_district) {
+        grid_row.grid_form.fields_dict.custom_district.df.read_only = 0;
+        grid_row.grid_form.fields_dict.custom_district.refresh();
+    }
+}
+
 
 // ? MARK AMOUNT READ-ONLY
 function set_amount_read_only(grid_row) {

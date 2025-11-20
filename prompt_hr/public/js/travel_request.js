@@ -3,6 +3,7 @@
 frappe.ui.form.on("Travel Request", {
 	refresh: function (frm) {
 		add_query_filter_to_existing_rows(frm);
+		control_travel_desk_fields(frm)
 		allow_traveldesk_user_to_update_travel_request(frm);
 		allow_edit_booking_table_to_traveldesk_user(frm);
 	},
@@ -13,8 +14,8 @@ frappe.ui.form.on("Travel Request", {
 		add_query_filter_to_existing_rows(frm);
 	},
 	onload:function(frm){
-		 add_current_user_employee(frm);
-		
+		add_current_user_employee(frm);
+		control_travel_desk_fields(frm)
 	},
 	before_workflow_action: function(frm) {
 	frappe.dom.unfreeze();
@@ -218,10 +219,11 @@ function allow_edit_booking_table_to_traveldesk_user(frm){
 			//? Hide Add Row and Remove Row buttons
 			frm.fields_dict.custom_booking_details.grid.wrapper.find('.grid-add-row').hide();
 			frm.fields_dict.custom_booking_details.grid.wrapper.find('.grid-remove-rows').hide();
+
 			frm.set_df_property('custom_escalation_reason','read_only',1)
 		} else {
 			//? Allow editing for Travel Desk User
-			frm.set_df_property('custom_booking_details', 'read_only', 0);
+			frm.set_df_property('custom_booking_details', 'read_only', 0);			
 			frm.fields_dict.custom_booking_details.grid.wrapper.find('.grid-add-row').show();
 			frm.fields_dict.custom_booking_details.grid.wrapper.find('.grid-remove-rows').show();
 			frm.set_df_property('custom_escalation_reason','read_only',0)
@@ -247,6 +249,33 @@ function allow_traveldesk_user_to_update_travel_request(frm){
 		}
 	}
 }
+
+function control_travel_desk_fields(frm) {
+    const allowed_roles = [
+        "Travel Desk User",
+        "S - Accounts Executive"
+    ];
+
+    // Check if user has at least one role
+    const has_allowed_role = allowed_roles.some(role => frappe.user.has_role(role));
+
+    const fields = [
+        "custom_booking_details",
+        "custom_escalation_reason",
+        "custom_escalated_to",
+        "costing_details",
+        "cost_center",
+        "costings",
+        "accounting_dimensions_section"
+    ];
+
+    fields.forEach(fieldname => {
+        frm.set_df_property(fieldname, "read_only", !has_allowed_role);
+    });
+}
+
+
+
 
 function add_current_user_employee(frm){
 	if (!frm.doc.employee) {

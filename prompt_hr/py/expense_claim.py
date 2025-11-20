@@ -387,10 +387,10 @@ def validate_expense_claim_detail_rules(doc):
 
 
             expense_days = row.custom_days or 0
-            #? RULE 1: CITY IS MANDATORY IF EXPENSE TYPE IS 'Lodging'
-            if row.expense_type == "Lodging" and not row.custom_city:
+            #? RULE 1: DISTRICT IS MANDATORY IF EXPENSE TYPE IS 'Lodging'
+            if row.expense_type == "Lodging" and not row.custom_district:
                 frappe.throw(
-                    _(f"City is mandatory for Lodging expense. Please fill 'City' in row {row.idx}.")
+                    _(f"District is mandatory for Lodging expense. Please fill 'District' in row {row.idx}.")
                 )
 
             #? RULE 2: DAYS GREATER THAN ZERO FOR DA
