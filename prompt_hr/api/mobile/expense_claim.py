@@ -429,10 +429,6 @@ def expense_claim_url():
 
         # Ensure we have the current user
         user = frappe.session.user
-        # Generate a new session for the user
-        login_manager = LoginManager()
-        login_manager.user = user
-        login_manager.post_login()
         sid = frappe.session.sid
 
         if hr_setting.custom_create_expense_claim:
