@@ -342,8 +342,13 @@ def validate_in_out_time(doc):
         # ? PROCEED ONLY IF BOTH TIMES ARE ENTERED
         if row.in_time and row.out_time:
             # ? TYPECAST BOTH TIMES TO datetime.time FOR SAFE COMPARISON
-            in_time = datetime.strptime(str(row.in_time), "%H:%M:%S").time()
-            out_time = datetime.strptime(str(row.out_time), "%H:%M:%S").time()
+            in_str = str(row.in_time)
+            in_str = in_str.split(".")[0]
+            in_time = datetime.strptime(in_str, "%H:%M:%S").time()
+
+            out_str = str(row.out_time)
+            out_str = out_str.split(".")[0]
+            out_time = datetime.strptime(out_str, "%H:%M:%S").time()
 
             # ? VALIDATE THAT IN-TIME IS STRICTLY BEFORE OUT-TIME
             if in_time >= out_time:
