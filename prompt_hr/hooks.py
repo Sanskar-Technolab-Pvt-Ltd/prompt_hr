@@ -71,6 +71,7 @@ doctype_js = {
     "Expense Claim": "public/js/expense_claim.js",
     "Full and Final Statement": "public/js/full_and_final_statement.js",
     "Loan Application": "public/js/loan_application.js",
+    "Loan": "public/js/loan.js",
     "Exit Interview": "public/js/exit_interview.js",
     "Travel Request": "public/js/travel_request.js",
     "Leave Allocation": "public/js/leave_allocation.js",
