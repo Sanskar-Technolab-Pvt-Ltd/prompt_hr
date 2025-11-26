@@ -71,6 +71,7 @@ doctype_js = {
     "Expense Claim": "public/js/expense_claim.js",
     "Full and Final Statement": "public/js/full_and_final_statement.js",
     "Loan Application": "public/js/loan_application.js",
+    "Loan": "public/js/loan.js",
     "Exit Interview": "public/js/exit_interview.js",
     "Travel Request": "public/js/travel_request.js",
     "Leave Allocation": "public/js/leave_allocation.js",
@@ -78,7 +79,8 @@ doctype_js = {
     "Salary Slip": "public/js/salary_slip.js",
     "Compensatory Leave Request": "public/js/compensatory_leave_request.js",
     "Shift Request": "public/js/shift_request.js",
-    "Timesheet": "public/js/timesheet.js"
+    "Timesheet": "public/js/timesheet.js",
+    "Employee Advance": "public/js/employee_advance.js",
 }
 
 doctype_list_js = {

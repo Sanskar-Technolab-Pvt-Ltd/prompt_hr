@@ -928,3 +928,81 @@ async function is_hr_user_or_owner(current_user, frm) {
     return user_roles.some(role => allowed_roles.includes(role));
 }
 
+frappe.ui.form.on("Interview", {
+    job_opening(frm) {
+        if (!frm.doc.job_opening) {
+            return;
+        }
+
+        // Only run if document is new
+        if (!frm.is_new()) {
+            return;
+        }
+
+        frappe.call({
+            method: "frappe.client.get",
+            args: {
+                doctype: "Job Opening",
+                name: frm.doc.job_opening
+            },
+            callback: function(res) {
+                if (!res.message) return;
+
+                let job = res.message;
+                console.log("Fetched Job Opening:", job);
+
+                // Clear existing child tables
+                frm.clear_table("custom_internal_recruiter");
+                frm.clear_table("custom_external_recruiter");
+                frm.clear_table("interview_details");
+                frm.clear_table("custom_external_interviewers");
+
+                // ---------------------------
+                // INTERNAL RECRUITER
+                // ---------------------------
+                if (job.custom_internal_recruiter?.length) {
+                    job.custom_internal_recruiter.forEach(row => {
+                        let child = frm.add_child("custom_internal_recruiter");
+                        child.custom_user = row.custom_user;
+                        child.user_name = row.user_name;
+                    });
+                }
+
+                // ---------------------------
+                // EXTERNAL RECRUITER
+                // ---------------------------
+                if (job.custom_external_recruiter?.length) {
+                    job.custom_external_recruiter.forEach(row => {
+                        let child = frm.add_child("custom_external_recruiter");
+                        child.custom_user = row.custom_user;
+                        child.user_name = row.user_name;
+                    });
+                }
+
+                // ---------------------------
+                // INTERNAL INTERVIEWERS
+                // ---------------------------
+                if (job.custom_internal_interviewers?.length) {
+                    job.custom_internal_interviewers.forEach(row => {
+                        let child = frm.add_child("interview_details");
+                        child.custom_interviewer_employee = row.custom_user;
+                        child.custom_interviewer_name = row.user_name;
+                    });
+                }
+
+                // ---------------------------
+                // EXTERNAL INTERVIEWERS
+                // ---------------------------
+                if (job.custom_external_interviewers?.length) {
+                    job.custom_external_interviewers.forEach(row => {
+                        let child = frm.add_child("custom_external_interviewers");
+                        child.custom_user = row.custom_user;
+                        child.user_name = row.user_name;
+                    });
+                }
+
+                frm.refresh_fields();
+            }
+        });
+    }
+});

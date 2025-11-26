@@ -22,8 +22,8 @@ function set_text_field_height() {
 frappe.ui.form.on("Employee", {
 
     onload(frm) {
-            
-        if ( frappe.route_options && frappe.route_options.show_update_message) {            
+
+        if (frappe.route_options && frappe.route_options.show_update_message) {
             setTimeout(() => {
                 frappe.msgprint("Please update Notice Period, Leave Policy, and Leave Policy Change Date.");
             }, 1000);
@@ -154,7 +154,10 @@ frappe.ui.form.on("Employee", {
 
         // ? AUTO-CLICK "Raise Resignation" BUTTON IF URL PARAMETER IS PRESENT
         raise_resignation_button_auto_click_from_url(frm);
-        disable_employee_fields_for_left_employee(frm)
+        disable_employee_fields_for_left_employee(frm);
+
+        // ? Update notice_period_days in Exit Approval Process
+        calculate_notice_days_employee(frm);
     },
     custom_current_country(frm) {
         set_state_options(frm, "custom_current_state", "custom_current_country");
@@ -280,7 +283,7 @@ frappe.ui.form.on("Employee", {
             frm.set_value("notice_number_of_days", "")
             frm.set_value("custom_leave_policy", "")
         }
-    }
+    },
     // refresh: function (frm){
     //     prompt_probation_period = frappe.db.get_single_value("HR Settings","custom_probation_period_for_prompt")
     //     indifoss_probation_period = frappe.db.get_single_value("HR Settings","custom_probation_period_for_indifoss")
@@ -289,10 +292,40 @@ frappe.ui.form.on("Employee", {
     //     }
     // }
 
+
+    resignation_letter_date(frm) {
+        calculate_notice_days_employee(frm);
+    },
+
+    before_save(frm) {
+        if (!frm.doc.relieving_date || !frm.doc.name) return;
+
+        frappe.db.get_value(
+            "Exit Approval Process",
+            { employee: frm.doc.name },
+            "name",
+            function (r) {
+                if (r && r.name) {
+                    frappe.db.set_value(
+                        "Exit Approval Process",
+                        r.name,
+                        "last_date_of_working",
+                        frm.doc.relieving_date
+                    );
+                }
+            }
+        );
+    },
+
+    relieving_date(frm) {
+        calculate_notice_days_employee(frm);
+    }
+
+
 });
 
 frappe.ui.form.on("Probation Extension", {
-    
+
     // custom_probation_extension_details_add: function (frm, cdt, cdn) {
     //     let row = locals[cdt][cdn]
     //     if (frm.doc.custom_probation_end_date && !row.probation_end_date) {
@@ -324,7 +357,7 @@ frappe.ui.form.on("Probation Extension", {
                 extended_days = 90;
             }
 
-            
+
             row.extended_date = frappe.datetime.add_days(row.probation_end_date, extended_days)
             frm.refresh_field("custom_probation_extension_details")
         }
@@ -344,7 +377,7 @@ frappe.ui.form.on("Probation Extension", {
             else if (row.extended_period == "90 Days") {
                 extended_days = 90;
             }
-            
+
             row.extended_date = frappe.datetime.add_days(row.probation_end_date, extended_days)
             frm.refresh_field("custom_probation_extension_details")
         }
@@ -354,6 +387,33 @@ frappe.ui.form.on("Probation Extension", {
 
 
 
+// ? FUNCTION TO CALCULATE notice_period_days = resignation_letter_date - relieving_date
+async function calculate_notice_days_employee(frm) {
+    if (!frm.doc.resignation_letter_date) return;
+
+    // Get Exit Approval details
+    let r = await frappe.db.get_value(
+        "Exit Approval Process",
+        { employee: frm.doc.name },
+        ["name", "last_date_of_working"]
+    );
+
+    if (!r.message || !r.message.name || !r.message.last_date_of_working) return;
+
+    // Convert dates
+    let start = frappe.datetime.str_to_obj(frm.doc.resignation_letter_date);
+    let end = frappe.datetime.str_to_obj(r.message.last_date_of_working);
+
+    let days = frappe.datetime.get_diff(end, start);
+
+    // Update notice_period_days
+    await frappe.db.set_value(
+        "Exit Approval Process",
+        r.message.name,
+        "notice_period_days",
+        days
+    );
+}
 
 
 
@@ -623,20 +683,20 @@ function createEmployeeActionButtons(frm) {
 
     // ? TERMINATION ALLOWED FOR HR ROLES ONLY
     const allowed_roles = [
-                    "S - HR Leave Approval", "S - HR leave Report", "S - HR L6",
-                    "S - HR L5", "S - HR L4", "S - HR L3", "S - HR L2", "S - HR L1",
-                    "S - HR Director (Global Admin)", "S - HR L2 Manager",
-                    "S - HR Supervisor (RM)", "System Manager"
-                ];
-    
+        "S - HR Leave Approval", "S - HR leave Report", "S - HR L6",
+        "S - HR L5", "S - HR L4", "S - HR L3", "S - HR L2", "S - HR L1",
+        "S - HR Director (Global Admin)", "S - HR L2 Manager",
+        "S - HR Supervisor (RM)", "System Manager"
+    ];
+
     const can_show_hr_button =
-            frappe.user_roles.some(role => allowed_roles.includes(role)) ||
-            frappe.session.user === "Administrator"
-    
-    if (!can_show_hr_button){
+        frappe.user_roles.some(role => allowed_roles.includes(role)) ||
+        frappe.session.user === "Administrator"
+
+    if (!can_show_hr_button) {
         add_terminate_button(frm);
         return;
-    } 
+    }
 
     if (frappe.session.user) {
         frappe.db.get_value("Employee", { user_id: frappe.session.user }, "name")
@@ -653,7 +713,7 @@ function createEmployeeActionButtons(frm) {
 }
 
 
-function add_terminate_button(frm){
+function add_terminate_button(frm) {
     frm.add_custom_button(__("Raise Termination"), function () {
         handleEmployeeExitOrTermination(frm, "Termination");
     }, __("Actions"));
@@ -1254,7 +1314,7 @@ function set_field_visibility(frm) {
                                     let field_obj = frm.fields_dict[field];
                                     if (field_obj) {
                                         if (field_obj.df.permlevel > 0) {
-                                            has_perm = frappe.perm.has_perm("Employee", "read", employee_user, permlevel=field_obj.df.permlevel)
+                                            has_perm = frappe.perm.has_perm("Employee", "read", employee_user, permlevel = field_obj.df.permlevel)
                                             if (!has_perm) {
                                                 frm.set_df_property(field, "permlevel", 0)
                                                 frm.set_value(field, value, null, true)
@@ -1262,7 +1322,7 @@ function set_field_visibility(frm) {
                                             }
                                         }
                                         else {
-                                            if(!frm.doc.field) {
+                                            if (!frm.doc.field) {
                                                 frm.set_value(field, value, null, true)
                                                 frm.refresh_field(field)
                                             }
