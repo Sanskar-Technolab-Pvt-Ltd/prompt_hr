@@ -78,7 +78,8 @@ doctype_js = {
     "Salary Slip": "public/js/salary_slip.js",
     "Compensatory Leave Request": "public/js/compensatory_leave_request.js",
     "Shift Request": "public/js/shift_request.js",
-    "Timesheet": "public/js/timesheet.js"
+    "Timesheet": "public/js/timesheet.js",
+    "Employee Advance": "public/js/employee_advance.js",
 }
 
 doctype_list_js = {
