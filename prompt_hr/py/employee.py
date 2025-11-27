@@ -2211,7 +2211,7 @@ def custom_autoname_employee(doc, method=None):
             frappe.throw(
                 "Employer Number is required when using 'employer_number' as naming series."
             )
-        doc.name = doc.employee_number
+        doc.name = f"{doc.employee_number}: {doc.employee_name}"
         return
 
     # ? MANUAL HANDLING FOR PE.####, PI.####, PC.####
@@ -2232,7 +2232,7 @@ def custom_autoname_employee(doc, method=None):
                 last_number = max(last_number, num)
         # ? GENERATE NEXT NAME
         next_number = last_number + 1
-        doc.name = f"{prefix}{str(next_number).zfill(4)}"
+        doc.name = f"{prefix}{str(next_number).zfill(4)}: {doc.employee_name}"
 
 
 def validate_create_checkin_role(doc):
