@@ -2,7 +2,7 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on('Exit Approval Process', {
-    refresh: function(frm) {
+    refresh: function (frm) {
         if (frm.doc.resignation_approval == "Approved") {
 
             // ? BUTTON ONLY VISIBLE TO HR ROLES
@@ -39,12 +39,23 @@ frappe.ui.form.on('Exit Approval Process', {
     },
 
     // ? TRIGGERED WHEN NOTICE PERIOD DAYS IS CHANGED
-    notice_period_days: function(frm) {
+    notice_period_days: function (frm) {
         update_last_date_of_working(frm);
     },
 
+    before_save(frm) {
+        if (frm.doc.last_date_of_working && frm.doc.employee) {
+            frappe.db.set_value(
+                "Employee",
+                frm.doc.employee,
+                "relieving_date",
+                frm.doc.last_date_of_working
+            );
+        }
+    },
+
     // ? TRIGGERED WHEN LAST DATE OF WORKING IS CHANGED
-    last_date_of_working: function(frm) {
+    last_date_of_working: function (frm) {
         update_notice_period_days(frm);
     }
 });
@@ -128,9 +139,9 @@ function add_raise_exit_interview_button(frm) {
                     });
 
                     setTimeout(() => {
-                            window.location.reload();
-                        }, 3000);
-                    
+                        window.location.reload();
+                    }, 3000);
+
                 }
             },
             error: function () {
