@@ -449,8 +449,8 @@ def create_new_holiday_list_for_employee(employee, base_holiday_list, weekoff_de
     new_holiday_list_doc = frappe.new_doc("Holiday List")
     new_holiday_list_doc.holiday_list_name = f"{employee} - {docname}"
     new_holiday_list_doc.is_default = 0
-    new_holiday_list_doc.from_date  = get_year_start(getdate(), as_str=False)
-    new_holiday_list_doc.to_date = get_year_ending(getdate())
+    new_holiday_list_doc.from_date  = base_holiday_list_doc.from_date
+    new_holiday_list_doc.to_date = base_holiday_list_doc.to_date
 
     #! COLLECT OLD WEEK-OFF DATES FROM weekoff_details
     old_weekoff_dates = [row.get("existing_weekoff_date") for row in weekoff_details if row.get("existing_weekoff_date")]
@@ -491,7 +491,7 @@ def validate_for_sandwich_policy(doc):
     """
     VALIDATES WHETHER A WEEKOFF CHANGE REQUEST VIOLATES THE SANDWICH LEAVE POLICY.
 
-    IF AN APPROVED LEAVE IS FOUND EITHER BEFORE OR AFTER THE REQUESTED WEEKOFF DATE,
+    IF AN APPROVED LEAVE IS FOUND EITHER BEFORE AND AFTER THE REQUESTED WEEKOFF DATE,
     IT WILL RAISE AN ERROR TO PREVENT WEEKOFF CHANGE.
     """
 
@@ -582,7 +582,7 @@ def validate_for_sandwich_policy(doc):
                 #? IF DATE IS IN LEAVE → MARK SANDWICH
                 elif leave_app:
                     if sandwich_rule_applicable_to_employee(doc.employee, leave_app["leave_type"]):
-                        leave_before_weekoff = 1
+                        leave_before_weekoff = 1    
                     break
 
                 #? OTHERWISE → BREAK LOOP
@@ -590,10 +590,32 @@ def validate_for_sandwich_policy(doc):
                     break
 
         # ------------------------------------------------------------------------
-        #! FINAL VALIDATION → IF LEAVE FOUND EITHER SIDE, BLOCK WEEKOFF CHANGE
+        #! FINAL VALIDATION → IF LEAVE FOUND BOTH SIDE, BLOCK WEEKOFF CHANGE
         # ------------------------------------------------------------------------
-        if leave_before_weekoff or leave_after_weekoff:
-            frappe.throw("Weekoff change denied due to Sandwich Leave Policy.")
+        if leave_before_weekoff and leave_after_weekoff:
+            employee = doc.employee
+
+            # Build dynamic URL with filters (no hardcoding)
+            base_url = frappe.utils.get_url()   # auto-detects site URL
+            leave_list_url = f"{base_url}/app/leave-application?status=Approved&employee={employee}"
+
+            frappe.throw(
+                f"""
+                <b>Weekoff Change Denied</b><br><br>
+                Your request cannot be processed due to the <b>Sandwich Leave Policy</b>.<br><br>
+
+                <b>View Related Leave Applications:</b>
+                <a href="{leave_list_url}" target="_blank">Click here</a>
+                <br><br>
+
+                <b>Please take one of the following actions:</b><br>
+                • Cancel the approved leave application that overlaps with this weekoff, OR<br>
+                • Apply a new Leave Application for this date if you do not want to work.<br>
+                """,
+                title="Weekoff Change Denied"
+            )
+
+
 
 
 def sandwich_rule_applicable_to_employee(employee, leave_type):
