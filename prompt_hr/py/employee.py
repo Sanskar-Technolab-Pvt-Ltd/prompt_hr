@@ -684,7 +684,7 @@ def create_leave_allocation(
 def validate(doc, method):
 
     # ? * CHECKING IF HOLIDAY LIST EXISTS IF NOT THEN CREATING A NEW HOLIDAY LIST BASED ON THE WEEKLYOFF TYPE AND FESTIVAL HOLIDAY LIST
-    if doc.custom_weeklyoff and doc.custom_festival_holiday_list:
+    if doc.custom_weeklyoff and doc.custom_festival_holiday_list and not doc.holiday_list:
         holiday_list = frappe.db.exists(
             "Holiday List",
             {
