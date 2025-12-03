@@ -1,0 +1,28 @@
+{
+ "attach_files": "",
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-12-03 16:35:46.512660",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Employee",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "<p>Dear <strong>{{ doc.employee_name }}</strong>,</p>\n\n<p>\n    Welcome to <strong>{{ doc.company }}</strong>.<br>\n    This email contains your <strong>Non-Disclosure Agreement (NDA)</strong> for review.\n</p>\n\n<p>\n    If you have any questions, feel free to contact the HR department.\n</p>\n\n<p>\n    Regards,<br>\n    <strong>{{ doc.company }} HR Team</strong>\n</p>\n",
+ "message_type": "HTML",
+ "modified": "2025-12-03 16:36:59.065163",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Non-Disclosure Agreement",
+ "owner": "Administrator",
+ "print_format": "Confirmation Letter - Prompt",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "Non-Disclosure Agreement for {{doc.employee_name}}"
+}

@@ -34,25 +34,91 @@ frappe.ui.form.on('Job Offer', {
         show_salary_breakup_preview_button(frm)
 
         // ? ADD RELEASE LOI LETTER BUTTON
+        // if (frm.doc.workflow_state == "Approved") {
+        //     frm.add_custom_button(__("Release LOI Letter"), function () {
+        //         frappe.dom.freeze(__('Releasing Letter...'));
+        //         frappe.call({
+        //             method: "prompt_hr.py.job_offer.send_LOI_letter",
+        //             args: { name: frm.doc.name },
+        //             callback: function (r) {
+        //                 if (r.message) {
+        //                     frappe.msgprint(r.message);
+        //                     frm.reload_doc();
+        //                 }
+        //             },
+        //             always: function () {
+        //                 frappe.dom.unfreeze();
+        //             }
+        //         });
+        //     }, 'Offer Actions');
+        // }
+
+        // 
         if (frm.doc.workflow_state == "Approved") {
-            frm.add_custom_button(__("Release LOI Letter"), function () {
-                frappe.dom.freeze(__('Releasing Letter...'));
-                frappe.call({
-                    method: "prompt_hr.py.job_offer.send_LOI_letter",
-                    args: { name: frm.doc.name },
-                    callback: function (r) {
-                        if (r.message) {
-                            frappe.msgprint(r.message);
-                            frm.reload_doc();
+                
+                frm.add_custom_button(__("Release LOI Letter"), function () {
+
+                    let d = new frappe.ui.Dialog({
+                        title: "Release Letter",
+                        fields: [
+                            {
+                                fieldname: "recipient_table",
+                                label: "Recipients",
+                                fieldtype: "Table",
+                                cannot_add_rows: false,
+                                in_place_edit: true,
+                                fields: [
+                                    {
+                                        fieldtype: "Select",
+                                        fieldname: "recipient_type",
+                                        label: "Type",
+                                        options: ["To", "CC"],
+                                        in_list_view: 1,
+                                        reqd: 1
+                                    },
+                                    {
+                                        fieldtype: "Link",
+                                        fieldname: "user",
+                                        label: "User",
+                                        options: "User",
+                                        in_list_view: 1,
+                                        reqd: 1,
+                                        get_query: function () {
+                                            return {
+                                                query: "frappe.core.doctype.user.user.user_query"
+                                            };
+                                        }
+                                    }
+                                ]
+                            }
+                        ],
+
+                        primary_action_label: "Send Letter",
+                        primary_action(values) {
+
+                            // Convert rows into separate To and CC lists
+                            let to_users = [];
+                            let cc_users = [];
+
+                            // Push applicant email directly into TO list
+                            if (frm.doc.applicant_email) {
+                                to_users.push(frm.doc.applicant_email);
+                            }
+
+                            values.recipient_table.forEach(row => {
+                                if (row.recipient_type === "To") {
+                                    to_users.push(row.user);
+                                } else if (row.recipient_type === "CC") {
+                                    cc_users.push(row.user);
+                                }
+                            });
+                            release_offer_letter(frm, already_sent);
                         }
-                    },
-                    always: function () {
-                        frappe.dom.unfreeze();
-                    }
-                });
-            }, 'Offer Actions');
+                    });
+
+                    d.show();
+                }, "Offer Actions");
         }
-        
     }
 });
 
@@ -114,17 +180,271 @@ async function create_employee_onboarding_button(frm) {
 
 
 // ? ADD "RELEASE / RESEND OFFER LETTER" BUTTON FOR HR MANAGER
+// function add_release_offer_button(frm) {
+//     const already_sent = frm.doc.custom_offer_letter_sent === 1;
+//     const button_label = already_sent ? "Resend Offer Letter" : "Release Offer Letter";
+
+//     // frm.add_custom_button(button_label, () => {
+//     //     frappe.confirm(
+//     //         `Are you sure you want to ${already_sent ? "resend" : "release"} the offer letter?`,
+//     //         () => release_offer_letter(frm, already_sent)
+//     //     );
+//     // }, 'Offer Actions');
+//     frm.add_custom_button(button_label, () => {
+
+//         frappe.call({
+//             method: "frappe.client.get_list",
+//             args: {
+//                 doctype: "Employee Letter Approval",
+//                 fields: ["name", "workflow_state"],
+//                 filters: { record_link: frm.doc.name },
+//                 order_by: "creation desc",
+//                 limit_page_length: 1
+//             },
+//             callback(r) {
+
+//                 const record = r.message?.[0];
+
+//                 // 1️⃣ No Approval Record → Show simple dialog
+//                 if (!record) {
+//                     show_offer_letter_dialog(frm, already_sent);
+//                     return;
+//                 }
+
+//                 // 2️⃣ Found Approval but NOT Final Approval → Block
+//                 if (record.workflow_state !== "Final Approval") {
+//                     frappe.msgprint(
+//                         __(`Offer Letter is under approval: ${frm.doc.applicant_name}`)
+//                     );
+//                     return;
+//                 }
+
+//                 // 3️⃣ Final Approval → Show TO/CC Dialog
+//                 show_to_cc_dialog(frm, already_sent);
+//             }
+//         });
+//     }, "Offer Actions");
+// }
+
+
 function add_release_offer_button(frm) {
     const already_sent = frm.doc.custom_offer_letter_sent === 1;
     const button_label = already_sent ? "Resend Offer Letter" : "Release Offer Letter";
 
     frm.add_custom_button(button_label, () => {
-        frappe.confirm(
-            `Are you sure you want to ${already_sent ? "resend" : "release"} the offer letter?`,
-            () => release_offer_letter(frm, already_sent)
-        );
-    }, 'Offer Actions');
+
+        frappe.call({
+            method: "frappe.client.get_list",
+            args: {
+                doctype: "Employee Letter Approval",
+                fields: ["name", "workflow_state"],
+                filters: { record_link: frm.doc.name },
+                order_by: "creation desc",
+                limit_page_length: 1
+            },
+            callback(r) {
+
+                const record = r.message?.[0];
+
+                // 1️⃣ No Approval Record → Show simple dialog
+                if (!record) {
+                    show_offer_letter_dialog(frm, already_sent);
+                    return;
+                }
+
+                // 2️⃣ Found Approval but NOT Final Approval → Block
+                if (record.workflow_state !== "Final Approval") {
+                    frappe.msgprint(
+                        __(`Offer Letter is under approval: ${frm.doc.applicant_name}`)
+                    );
+                    return;
+                }
+
+                // 3️⃣ Final Approval → Show ONLY 2 OPTIONS
+                frappe.prompt(
+                    [
+                        {
+                            fieldname: "action",
+                            label: "Choose Action",
+                            fieldtype: "Select",
+                            options: [
+                                "Resend Offer Letter Directly",
+                                "Send with TO/CC"
+                            ],
+                            reqd: 1
+                        }
+                    ],
+                    (values) => {
+
+                        if (values.action === "Resend Offer Letter") {
+                            // ✔ Resend with NO TO/CC dialog
+                            show_offer_letter_dialog(frm, already_sent);
+                        }
+
+                        if (values.action === "Send with TO/CC") {
+                            // ✔ Old behavior
+                            show_to_cc_dialog(frm, already_sent);
+                        }
+
+                    },
+                    __("Offer Letter Already Approved"),
+                    __("Continue")
+                );
+
+            }
+        });
+    }, "Offer Actions");
 }
+
+
+function show_offer_letter_dialog(frm, already_sent) {
+    const applicant_email = frm.doc.applicant_email;
+
+    const dlg = new frappe.ui.Dialog({
+        title: already_sent ? __('Resend Offer Letter') : __('Release Offer Letter'),
+        fields: [
+            {
+                fieldname: 'send_email',
+                fieldtype: 'Check',
+                label: __('Send to Applicant Email (' + applicant_email + ')'),
+                default: 1
+            }
+        ],
+        primary_action_label: __('Send'),
+        primary_action(values) {
+
+            if (!values.send_email) {
+                frappe.throw(__('Please check the option to send the offer letter.'));
+                return;
+            }
+
+            frappe.dom.freeze(__('Sending Offer Letter...'));
+
+            // Fetch Employee using doc.owner → user_id
+            frappe.db.get_value(
+                "Employee",
+                {"user_id": frappe.session.user},
+                ["name", "employee_name"]
+            ).then(emp => {
+
+                const released_by =
+                    emp && emp.message
+                        ? `${emp.message.name} - ${emp.message.employee_name}`
+                        : frappe.session.user;
+
+                frappe.call({
+                    method: "prompt_hr.py.job_offer.create_employee_letter_approval",
+                    args: {
+                        employee_id: emp?.message?.name || null,
+                        letter: "Offer Letter - PROMPT",
+                        job_applicant_name: frm.doc.job_applicant, 
+                        released_on_job_applicant_email: frm.doc.applicant_email,
+                        send_personal_email: 1,
+                        record: frm.doc.doctype,
+                        record_link: frm.doc.name,
+                        released_by_emp_code_and_name: released_by,
+                        
+                    },
+                    callback: function (r) {
+                        frappe.dom.unfreeze();
+
+                        if (r.message && r.message.status === "success") {
+                            frappe.msgprint({
+                                message: r.message.message,
+                                indicator: 'green'
+                            });
+                            dlg.hide();
+                            frm.reload_doc();
+                        } else {
+                            frappe.msgprint({
+                                message: r.message?.message || __('Failed to send offer letter.'),
+                                indicator: 'red'
+                            });
+                        }
+                    },
+                    error: function (err) {
+                        frappe.dom.unfreeze();
+                        frappe.msgprint({
+                            message: __('Something went wrong.'),
+                            indicator: 'red'
+                        });
+                        console.error(err);
+                    }
+                });
+            });
+        }
+    });
+
+    dlg.show();
+}
+
+
+function show_to_cc_dialog(frm, already_sent) {
+    let d = new frappe.ui.Dialog({
+        title: already_sent ? "Resend Offer Letter" : "Release Offer Letter",
+        fields: [
+            {
+                fieldname: "recipient_table",
+                label: "Recipients",
+                fieldtype: "Table",
+                cannot_add_rows: false,
+                in_place_edit: true,
+                fields: [
+                    {
+                        fieldtype: "Select",
+                        fieldname: "recipient_type",
+                        label: "Type",
+                        options: ["To", "CC"],
+                        in_list_view: 1,
+                        reqd: 1
+                    },
+                    {
+                        fieldtype: "Link",
+                        fieldname: "user",
+                        label: "User",
+                        options: "User",
+                        in_list_view: 1,
+                        reqd: 1,
+                        get_query: () => {
+                            return {
+                                query: "frappe.core.doctype.user.user.user_query"
+                            };
+                        }
+                    }
+                ]
+            }
+        ],
+
+        primary_action_label: "Send Letter",
+        primary_action(values) {
+
+            let to_users = [];
+            let cc_users = [];
+
+            // Applicant email always goes in TO list
+            if (frm.doc.applicant_email) {
+                to_users.push(frm.doc.applicant_email);
+            }
+
+            // Separate TO and CC users
+            values.recipient_table.forEach(row => {
+                if (row.recipient_type === "To") {
+                    to_users.push(row.user);
+                } else {
+                    cc_users.push(row.user);
+                }
+            });
+
+            // Call function 
+            release_offer_letter(frm, already_sent, to_users, cc_users);
+
+            d.hide();
+        }
+    });
+
+    d.show();
+}
+
 
 function viewCandidatePortalButton(frm) {
     frm.add_custom_button('View Candidate Portal', function() {

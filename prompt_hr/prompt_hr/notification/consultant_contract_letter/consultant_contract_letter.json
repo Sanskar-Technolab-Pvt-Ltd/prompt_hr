@@ -1,0 +1,28 @@
+{
+ "attach_files": "",
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-12-03 17:56:09.655785",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Employee",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "<p>Dear <strong>{{ doc.employee_name }}</strong>,</p>\n<p> Welcome to <strong>{{ doc.company }}</strong>.<br>\nPlease find attached your <strong>Consultant Contract Letter</strong> for review. </p>\n<p> If you have any questions or need further assistance, please feel free to contact the HR department. </p>\n<p> Regards,<br> <strong>{{ doc.company }} HR Team</strong> </p>\n",
+ "message_type": "HTML",
+ "modified": "2025-12-03 17:56:09.655785",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Consultant Contract Letter",
+ "owner": "Administrator",
+ "print_format": "Confirmation Letter - Prompt",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "Consultant Contract Letter For {{doc.employee_name}}"
+}
