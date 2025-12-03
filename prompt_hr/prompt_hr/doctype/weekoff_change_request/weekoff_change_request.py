@@ -16,7 +16,7 @@ from erpnext.setup.doctype.employee.employee import is_holiday
 from hrms.hr.utils import get_leave_period
 from prompt_hr.overrides.attendance_override import modify_employee_penalty
 from prompt_hr.prompt_hr.doctype.employee_penalty.employee_penalty import (
-    cancel_penalties,
+    cancel_penalties,exlcude_roles_cancel_penalties
 )
 from prompt_hr.py.auto_mark_attendance import mark_attendance
 
@@ -133,7 +133,7 @@ class WeekOffChangeRequest(Document):
 
                         # Cancel penalties if any
                         if attendance.custom_employee_penalty_id:
-                            cancel_penalties(
+                            exlcude_roles_cancel_penalties(
                                 attendance.custom_employee_penalty_id,
                                 "Weekoff change request Approve",
                                 1,

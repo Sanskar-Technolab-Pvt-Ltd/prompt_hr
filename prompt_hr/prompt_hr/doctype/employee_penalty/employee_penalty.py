@@ -256,3 +256,54 @@ def handle_cancel_penalties(penalties, reason, attendance_modified):
 
     frappe.db.commit()
     return {"status": "success"}
+
+
+
+def exlcude_roles_cancel_penalties(ids, reason=None, attendance_modified=0):
+    """Cancel penalties and delete linked leave ledger entries efficiently and securely."""
+
+    if not ids:
+        return
+
+    is_call_from_frontend = True if isinstance(ids, str) else False
+    # ? CONVERT TO PYTHON LIST IF IT'S A JSON STRING
+    if isinstance(ids, str):
+        try:
+            ids = json.loads(ids)
+        except Exception:
+            ids = [ids]
+
+    penalties = frappe.get_all(
+        "Employee Penalty",
+        filters={"name": ["in", ids], "is_leave_balance_restore": 0},
+        fields=["name", "attendance"],
+    )
+
+    if not attendance_modified and is_call_from_frontend:
+        is_restored_already = frappe.get_all(
+            "Employee Penalty",
+            filters={"name": ["in", ids], "is_leave_balance_restore": 1},
+            fields=["name"],
+        )
+        if is_restored_already:
+            frappe.throw(
+                "Leave balance has already been restored for some or all of the selected Employee Penalty record(s)."
+            )
+
+    if len(penalties) > 30:
+        frappe.enqueue(
+            handle_cancel_penalties,
+            timeout=3000,
+            penalties=penalties,
+            reason=reason,
+            attendance_modified=attendance_modified,
+        )
+        frappe.msgprint(
+            _("Penalty cancellation is running in the background."),
+            alert=True,
+            indicator="blue",
+        )
+        return {"status": "background_job"}
+
+    else:
+        return handle_cancel_penalties(penalties, reason, attendance_modified)
