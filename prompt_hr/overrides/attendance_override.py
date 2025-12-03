@@ -67,7 +67,7 @@ def modify_employee_penalty(employee, attendance_date, weekoff_change=False):
                 for penalty in employee_penalty:
                     cancel_penalties(penalty.name, reason="Attendance Modified", attendance_modified=1)
                     frappe.delete_doc("Employee Penalty", penalty.name)
-        except:
+        except Exception as e:
             frappe.log_error(
                 "Error in Canceling Penalties", str(e)
             )
