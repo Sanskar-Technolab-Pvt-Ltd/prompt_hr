@@ -891,9 +891,9 @@ def _validate_and_process_expense(
     elif exp.expense_type == EXPENSE_TYPES["LOCAL_COMMUTE"]:
         if days <= 0:
             frappe.throw(f"Days cannot be less than 1 in Row #{idx}")
-
-        end_date = expense_date + timedelta(days=days - 1)
-
+        print("Expnese Date\n\n\n", expense_date)
+        end_date = getdate(exp.custom_expense_end_date)
+        print("End Date\n\n\n", end_date)
         # Local Commute expense cannot span across different months
         if expense_date.month != end_date.month or expense_date.year != end_date.year:
             frappe.throw(
