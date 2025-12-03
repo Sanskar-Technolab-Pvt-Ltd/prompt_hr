@@ -8,6 +8,10 @@ from frappe.utils import (
     get_last_day, getdate, rounded
 )
 from datetime import date
+from frappe.utils.pdf import get_pdf
+from frappe.www.printview import get_print_format
+from frappe import _
+import json
 
 
 # ? SYNC CANDIDATE PORTAL ON JOB OFFER INSERT
@@ -336,6 +340,86 @@ def release_offer_letter(doctype, docname, is_resend=False, notification_name=No
         }
 
 
+# ? Create an Employee Letter Approval record.
+@frappe.whitelist()
+def create_employee_letter_approval(letter="Offer Letter - PROMPT",
+                                    released_on_job_applicant_email=None, record=None, record_link=None,
+                                    released_by_emp_code_and_name=None, job_applicant_name=None):
+    print("record_name", record_link)
+    # Build base fields
+    doc_fields = {
+        "doctype": "Employee Letter Approval",
+        "letter": letter,
+        "job_applicant_email": released_on_job_applicant_email,
+        "job_applicant_name": job_applicant_name,
+        "released_on_job_applicant_email": 1 if bool else 0,
+        "released_by_emp_code_and_name": released_by_emp_code_and_name ,
+        "record": record,
+        "record_link": record_link,
+    }
+ 
+    # Create record
+    doc = frappe.get_doc(doc_fields)
+    doc.insert(ignore_permissions=True)
+
+    
+    # try:
+    #     print_format_name = "Offer Letter - PROMPT"
+    #     pdf_filename = "Offer Letter - PROMPT.pdf"
+
+    #     # Generate PDF using print format
+    #     pdf_content = frappe.get_print(
+    #         "Employee Letter Approval",
+    #         doc.name,
+    #         print_format=print_format_name,
+    #         as_pdf=True
+    #     )
+
+    #     # Save file and attach
+    #     file_doc = save_file(
+    #         pdf_filename,
+    #         pdf_content,
+    #         doc.doctype,
+    #         doc.name,
+    #         is_private=False
+    #     )
+
+    #     if file_doc:
+    #         doc.db_set("attachment", file_doc.file_url)
+
+    # except Exception:
+    #     # Fallback: HTML to PDF if print format fails
+    #     try:
+    #         html = frappe.render_template(
+    #             "prompt_hr/templates/includes/job_offer.html",
+    #             {"employee": doc.name, "letter": doc.letter}
+    #         )
+
+    #         pdf = get_pdf(html)
+
+    #         file_doc = save_file(
+    #             pdf_filename,
+    #             pdf,
+    #             doc.doctype,
+    #             doc.name,
+    #             is_private=False
+    #         )
+
+    #         if file_doc:
+    #             doc.db_set("attachment", file_doc.file_url)
+
+    #     except Exception:
+    #         frappe.log_error(
+    #             frappe.get_traceback(),
+    #             "create_employee_letter_approval: PDF generation failed"
+    #         )
+
+    return {
+        "status": "success",
+        "message": _("Letter recorded: {0}").format(doc.name)
+    }
+
+
 # ? SEND JOB OFFER EMAIL TO CANDIDATE
 def send_mail_to_job_applicant(doc, is_resend=False, notification_name=None):
     try:
@@ -401,8 +485,106 @@ def get_offer_letter_attachment(doc):
         return []
 
 
+# @frappe.whitelist()
+# def send_LOI_letter(name):
+#     doc = frappe.get_doc("Job Offer", name)
+    
+#     # Ensure candidate portal exists before sending LOI
+#     portal_name = ensure_candidate_portal_exists(doc)
+#     if not portal_name:
+#         frappe.throw("Could not create or find Candidate Portal for this Job Offer.")
+    
+#     notification = frappe.get_doc("Notification", "LOI Letter Notification")
+#     subject = frappe.render_template(notification.subject, {"doc": doc})
+#     message = frappe.render_template(notification.message, {"doc": doc})
+#     email = doc.applicant_email if doc.applicant_email else None
+#     attachment = None
+    
+#     if notification.attach_print and notification.print_format:
+#         pdf_content = frappe.get_print(
+#             "Job Offer", 
+#             doc.name, 
+#             print_format=notification.print_format, 
+#             as_pdf=True
+#         )
+        
+#         attachment = {
+#             "fname": f"{notification.print_format}.pdf",
+#             "fcontent": pdf_content
+#         }
+
+#     if email:
+#         frappe.sendmail(
+#             recipients=email,
+#             subject=subject,
+#             content=message,
+#             attachments=[attachment] if attachment else None
+#         )
+#     else:
+#         frappe.throw("No Email found for Employee")
+#     return "LOI Letter sent Successfully"
+
+
 @frappe.whitelist()
-def send_LOI_letter(name):
+def send_LOI_letter(name, to_users=None, cc_users=None):
+    doc = frappe.get_doc("Job Offer", name)
+
+    # Convert JSON string to list if needed
+    if isinstance(to_users, str):
+        to_users = json.loads(to_users)
+    if isinstance(cc_users, str):
+        cc_users = json.loads(cc_users)
+
+    # Always ensure lists
+    to_users = to_users or []
+    cc_users = cc_users or []
+
+    # Ensure candidate portal exists
+    portal_name = ensure_candidate_portal_exists(doc)
+    if not portal_name:
+        frappe.throw("Could not create or find Candidate Portal for this Job Offer.")
+
+    # Fetch Notification
+    notification = frappe.get_doc("Notification", "LOI Letter Notification")
+
+    subject = frappe.render_template(notification.subject, {"doc": doc})
+    message = frappe.render_template(notification.message, {"doc": doc})
+
+    # Add applicant email automatically to TO list
+    if doc.applicant_email and doc.applicant_email not in to_users:
+        to_users.append(doc.applicant_email)
+
+    if not to_users:
+        frappe.throw("No recipients found in TO users or applicant email.")
+
+    # Prepare attachment
+    attachment = None
+    if notification.attach_print and notification.print_format:
+        pdf_content = frappe.get_print(
+            "Job Offer",
+            doc.name,
+            print_format=notification.print_format,
+            as_pdf=True
+        )
+        attachment = {
+            "fname": f"{notification.print_format}.pdf",
+            "fcontent": pdf_content
+        }
+
+    # Send email
+    frappe.sendmail(
+        recipients=to_users,
+        cc=cc_users,
+        subject=subject,
+        content=message,
+        attachments=[attachment] if attachment else None
+    )
+
+    return "LOI Letter sent Successfully"
+
+
+@frappe.whitelist()
+def send_release_letter(name):
     doc = frappe.get_doc("Job Offer", name)
     
     # Ensure candidate portal exists before sending LOI
@@ -410,9 +592,10 @@ def send_LOI_letter(name):
     if not portal_name:
         frappe.throw("Could not create or find Candidate Portal for this Job Offer.")
     
-    notification = frappe.get_doc("Notification", "LOI Letter Notification")
+    notification = frappe.get_doc("Notification", "Release Offer Letter")
     subject = frappe.render_template(notification.subject, {"doc": doc})
     message = frappe.render_template(notification.message, {"doc": doc})
+    # chang to cc users 
     email = doc.applicant_email if doc.applicant_email else None
     attachment = None
     
@@ -438,7 +621,7 @@ def send_LOI_letter(name):
         )
     else:
         frappe.throw("No Email found for Employee")
-    return "LOI Letter sent Successfully"
+    return "Release Letter sent Successfully"
 
 
 def set_salary_components_with_amount(doc):
@@ -662,3 +845,27 @@ def calculate_gross_pay_and_deductions(doc):
     doc.custom_total_deductions = total_deduction or 0
 
     doc.custom_net_pay = doc.custom_total_gross_pay - doc.custom_total_deductions
+
+
+@frappe.whitelist()
+def get_user_list(search=None):
+    users = frappe.get_all(
+        "User",
+        filters={"enabled": 1},
+        or_filters=[
+            ["email", "like", f"%{search}%"],
+            ["full_name", "like", f"%{search}%"]
+        ],
+        fields=["name as value", "full_name as description", "email"],
+        limit_page_length=1000  # show up to 1000 users
+    )
+
+    # Format for MultiSelectList
+    result = []
+    for u in users:
+        result.append({
+            "value": u['value'],
+            "description": u['description'] or u['value']
+        })
+
+    return result
