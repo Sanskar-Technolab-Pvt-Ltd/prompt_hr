@@ -2,7 +2,7 @@ import frappe
 from hrms.hr.doctype.attendance.attendance import Attendance, validate_active_employee
 from frappe.utils import get_link_to_form, format_date, getdate, add_to_date, today, get_datetime
 from prompt_hr.py.attendance_penalty_api import create_penalty_records, process_no_attendance_penalties_for_prompt, process_daily_hours_penalties_for_prompt, process_late_entry_penalties_for_prompt, process_mispunch_penalties_for_prompt
-from prompt_hr.prompt_hr.doctype.employee_penalty.employee_penalty import cancel_penalties
+from prompt_hr.prompt_hr.doctype.employee_penalty.employee_penalty import cancel_penalties,exlcude_roles_cancel_penalties
 
 class CustomAttendance(Attendance):
     def validate(self):
@@ -65,7 +65,7 @@ def modify_employee_penalty(employee, attendance_date, weekoff_change=False):
             )
             if employee_penalty:
                 for penalty in employee_penalty:
-                    cancel_penalties(penalty.name, reason="Attendance Modified", attendance_modified=1)
+                    exlcude_roles_cancel_penalties(penalty.name, reason="Attendance Modified", attendance_modified=1)
                     frappe.delete_doc("Employee Penalty", penalty.name)
         except:
             frappe.log_error(
