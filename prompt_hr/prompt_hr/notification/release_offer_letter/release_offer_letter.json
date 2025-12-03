@@ -1,0 +1,27 @@
+{
+ "attach_files": "",
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-12-01 15:39:46.382939",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Job Offer",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "<p>Dear Team,</p>\n\n<p>\n    This is to inform you that <b>{{ doc.applicant_name }}</b> has been issued a \n    Letter of Intent for the position of <b>{{ doc.designation }}</b> at \n    <b>{{ doc.company }}</b>.\n</p>\n\n<p>The key details are as follows:</p>\n\n<ul>\n    <li>Applicant Name: <b>{{ doc.applicant_name }}</b></li>\n    <li>Position: <b>{{ doc.designation }}</b></li>\n    <li>Expected Start Date: <b>{{ doc.custom_expected_date_of_joining }}</b></li>\n    <li>Current Applicant Status: <b>{{ doc.workflow_state }}</b></li>\n</ul>\n\n<p>\n    Kindly take the necessary follow-up actions as per the process.\n</p>\n",
+ "message_type": "Markdown",
+ "modified": "2025-12-01 15:50:48.936056",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Release Offer Letter",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "Offer Letter - Job Offer for {{doc.applicant_name}}"
+}
