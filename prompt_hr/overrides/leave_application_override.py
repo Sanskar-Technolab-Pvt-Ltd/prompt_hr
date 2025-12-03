@@ -3,7 +3,7 @@ from frappe.utils import getdate, today, flt, time_diff_in_hours, cint, formatda
 from frappe import _
 from hrms.hr.doctype.leave_application.leave_application import LeaveApplication, get_leave_period, is_lwp, OverlapError, InsufficientLeaveBalanceError
 from prompt_hr.py.leave_application import custom_get_number_of_leave_days
-from prompt_hr.prompt_hr.doctype.employee_penalty.employee_penalty import cancel_penalties
+from prompt_hr.prompt_hr.doctype.employee_penalty.employee_penalty import cancel_penalties,exlcude_roles_cancel_penalties
 from datetime import timedelta
 
 
@@ -192,7 +192,7 @@ class CustomLeaveApplication(LeaveApplication):
                             status = "Absent"
 
             if doc.custom_employee_penalty_id:
-                cancel_penalties([doc.custom_employee_penalty_id])
+                exlcude_roles_cancel_penalties([doc.custom_employee_penalty_id])
 
             doc.db_set(
                 {
