@@ -30,7 +30,8 @@
    "fieldname": "employee",
    "fieldtype": "Link",
    "label": "Employee",
-   "options": "Employee"
+   "options": "Employee",
+   "read_only": 1
   },
   {
    "fetch_from": "employee.employee",
@@ -80,7 +81,8 @@
   {
    "fieldname": "released_by_emp_code_and_name",
    "fieldtype": "Data",
-   "label": "Released by Emp code and name"
+   "label": "Released by Emp code and name",
+   "read_only": 1
   },
   {
    "fieldname": "attachment",
@@ -97,7 +99,8 @@
    "fieldname": "record",
    "fieldtype": "Link",
    "label": "Record ",
-   "options": "DocType"
+   "options": "DocType",
+   "read_only": 1
   },
   {
    "fetch_from": "employee.designation",
@@ -129,18 +132,20 @@
    "fieldname": "record_link",
    "fieldtype": "Dynamic Link",
    "label": "Record link",
-   "options": "record"
+   "options": "record",
+   "read_only": 1
   },
   {
    "fieldname": "pending_approval_emp_code_and_name",
    "fieldtype": "Data",
-   "label": " Pending Approval Emp Code and name"
+   "label": " Pending Approval Emp Code and name",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-12-04 17:37:55.341256",
+ "modified": "2025-12-04 19:19:24.933090",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Letter Approval",
