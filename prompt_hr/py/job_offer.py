@@ -293,50 +293,89 @@ def ensure_candidate_portal_exists(job_offer_doc):
 
 
 # ? RELEASE JOB OFFER TO CANDIDATE
+# @frappe.whitelist()
+# def release_offer_letter(doctype, docname, is_resend=False, notification_name=None):
+#     try:
+#         # ? FETCH THE DOCUMENT
+#         doc = frappe.get_doc(doctype, docname)
+
+#         if not doc.job_applicant:
+#             return {
+#                 "status": "error",
+#                 "message": "No Job Applicant linked with this Job Offer."
+#             }
+
+#         # ? ENSURE CANDIDATE PORTAL EXISTS
+#         portal_name = ensure_candidate_portal_exists(doc)
+#         if not portal_name:
+#             return {
+#                 "status": "error",
+#                 "message": "Could not create or find Candidate Portal for this Job Offer."
+#             }
+
+#         # ? SEND THE EMAIL
+#         send_mail_to_job_applicant(
+#             doc,
+#             is_resend=frappe.parse_json(is_resend),
+#             notification_name=notification_name,
+#         )
+
+#         return {
+#             "status": "success",
+#             "message": "Offer Letter successfully sent to the candidate."
+#         }
+
+#     except frappe.DoesNotExistError:
+#         frappe.log_error(frappe.get_traceback(), "Job Offer Document Not Found")
+#         return {
+#             "status": "error",
+#             "message": "The specified Job Offer document does not exist."
+#         }
+
+#     except Exception:
+#         frappe.log_error(frappe.get_traceback(), "Error in release_offer_letter")
+#         return {
+#             "status": "error",
+#             "message": "Something went wrong while releasing the offer letter."
+#         }
+
+
 @frappe.whitelist()
-def release_offer_letter(doctype, docname, is_resend=False, notification_name=None):
+def release_offer_letter(doctype, docname, is_resend=False, notification_name=None,
+                         to_users=None, cc_users=None):
     try:
-        # ? FETCH THE DOCUMENT
         doc = frappe.get_doc(doctype, docname)
 
-        if not doc.job_applicant:
-            return {
-                "status": "error",
-                "message": "No Job Applicant linked with this Job Offer."
-            }
+        to_users = frappe.parse_json(to_users) if to_users else []
+        cc_users = frappe.parse_json(cc_users) if cc_users else []
 
-        # ? ENSURE CANDIDATE PORTAL EXISTS
+        if not doc.job_applicant:
+            return {"status": "error", "message": "No Job Applicant linked."}
+
         portal_name = ensure_candidate_portal_exists(doc)
         if not portal_name:
-            return {
-                "status": "error",
-                "message": "Could not create or find Candidate Portal for this Job Offer."
-            }
+            return {"status": "error",
+                    "message": "Could not create or find Candidate Portal."}
 
-        # ? SEND THE EMAIL
+        # PASS TO AND CC TO YOUR EMAIL FUNCTION
         send_mail_to_job_applicant(
             doc,
             is_resend=frappe.parse_json(is_resend),
             notification_name=notification_name,
+            to_recipients=to_users,
+            cc_recipients=cc_users,
         )
 
         return {
             "status": "success",
-            "message": "Offer Letter successfully sent to the candidate."
-        }
-
-    except frappe.DoesNotExistError:
-        frappe.log_error(frappe.get_traceback(), "Job Offer Document Not Found")
-        return {
-            "status": "error",
-            "message": "The specified Job Offer document does not exist."
+            "message": "Offer Letter successfully sent."
         }
 
     except Exception:
         frappe.log_error(frappe.get_traceback(), "Error in release_offer_letter")
         return {
             "status": "error",
-            "message": "Something went wrong while releasing the offer letter."
+            "message": "Something went wrong."
         }
 
 
@@ -498,12 +537,64 @@ def create_LOI_employee_letter_approval(letter=None, released_on_job_applicant_e
     }
 
 
+# SEND JOB OFFER EMAIL TO CANDIDATE
+# def send_mail_to_job_applicant(doc, is_resend=False, notification_name=None):
+#     try:
+#         # Ensure candidate portal exists before trying to send email
+#         portal_name = ensure_candidate_portal_exists(doc)
+#         if not portal_name:
+#             frappe.log_error("Candidate Portal could not be created", "Portal Creation Error")
+#             return
+
+#         candidate = frappe.db.get_value(
+#             "Candidate Portal",
+#             {"job_offer": doc.name},
+#             ["applicant_email", "phone_number", "name"],
+#             as_dict=True,
+#         )
+
+#         if not candidate or not candidate.applicant_email:
+#             frappe.log_error(
+#                 f"Invalid candidate portal data: {candidate}", "Candidate Portal Error"
+#             )
+#             return
+
+#         attachments = get_offer_letter_attachment(doc)
+#         if is_resend:
+#             notification_name = notification_name or "Resend Job Offer"
+
+#         letter_head = frappe.db.get_value("Letter Head",{"is_default": 1},"name")
+#         print_format = frappe.db.get_value("Print Format", {"disabled": 0, "doc_type": doc.doctype}, "name")
+
+#         send_notification_email(
+#             recipients=[candidate.applicant_email],
+#             notification_name=notification_name,
+#             doctype="Job Offer",
+#             docname=doc.name,
+#             hash_input_text=candidate.name,
+#             button_link=f"/login?redirect-to=/candidate-portal/new#login",
+#             send_attach=True,
+#             letterhead=letter_head,
+#             print_format=print_format
+#         )
+
+#     except Exception:
+#         frappe.log_error(frappe.get_traceback(), "Error in send_mail_to_job_applicant")
 
 
 # ? SEND JOB OFFER EMAIL TO CANDIDATE
-def send_mail_to_job_applicant(doc, is_resend=False, notification_name=None):
+def send_mail_to_job_applicant(
+    doc,
+    is_resend=False,
+    notification_name=None,
+    to_recipients=None,
+    cc_recipients=None
+):
     try:
-        # Ensure candidate portal exists before trying to send email
+        to_recipients = to_recipients or []
+        cc_recipients = cc_recipients or []
+
+        # Ensure portal exists
         portal_name = ensure_candidate_portal_exists(doc)
         if not portal_name:
             frappe.log_error("Candidate Portal could not be created", "Portal Creation Error")
@@ -517,20 +608,28 @@ def send_mail_to_job_applicant(doc, is_resend=False, notification_name=None):
         )
 
         if not candidate or not candidate.applicant_email:
-            frappe.log_error(
-                f"Invalid candidate portal data: {candidate}", "Candidate Portal Error"
-            )
+            frappe.log_error(f"Invalid candidate portal data: {candidate}", "Candidate Portal Error")
             return
+
+        # Candidate email must always be in TO
+        if candidate.applicant_email not in to_recipients:
+            to_recipients.append(candidate.applicant_email)
 
         attachments = get_offer_letter_attachment(doc)
         if is_resend:
             notification_name = notification_name or "Resend Job Offer"
 
-        letter_head = frappe.db.get_value("Letter Head",{"is_default": 1},"name")
-        print_format = frappe.db.get_value("Print Format", {"disabled": 0, "doc_type": doc.doctype}, "name")
+        letter_head = frappe.db.get_value("Letter Head", {"is_default": 1}, "name")
+        print_format = frappe.db.get_value(
+            "Print Format",
+            {"disabled": 0, "doc_type": doc.doctype},
+            "name"
+        )
 
+        # CC FINALLY ADDED HERE
         send_notification_email(
-            recipients=[candidate.applicant_email],
+            recipients=to_recipients,
+            cc=cc_recipients,
             notification_name=notification_name,
             doctype="Job Offer",
             docname=doc.name,
@@ -543,6 +642,7 @@ def send_mail_to_job_applicant(doc, is_resend=False, notification_name=None):
 
     except Exception:
         frappe.log_error(frappe.get_traceback(), "Error in send_mail_to_job_applicant")
+
 
 
 # ? RETURN OFFER LETTER PDF AS ATTACHMENT

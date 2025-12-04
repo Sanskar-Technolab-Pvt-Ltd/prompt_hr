@@ -1,0 +1,28 @@
+{
+ "attach_files": "",
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-12-04 15:09:36.503820",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Employee",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "  <b> {{ doc.applicant_name }} (The Borrower)</b><br>\n\n",
+ "message_type": "HTML",
+ "modified": "2025-12-04 15:57:29.705113",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Loan Agreement",
+ "owner": "Administrator",
+ "print_format": "Confirmation Letter - Prompt",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "Loan Agreement For {{doc.applicant}}"
+}

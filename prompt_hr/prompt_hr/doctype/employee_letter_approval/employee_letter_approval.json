@@ -134,14 +134,13 @@
   {
    "fieldname": "pending_approval_emp_code_and_name",
    "fieldtype": "Data",
-   "label": " Pending Approval Emp Code and name",
-   "read_only": 1
+   "label": " Pending Approval Emp Code and name"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-12-04 14:23:18.061198",
+ "modified": "2025-12-04 17:37:55.341256",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Letter Approval",

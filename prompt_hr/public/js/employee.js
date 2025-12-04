@@ -873,7 +873,8 @@ function show_service_letter_send_dialog(frm, already_sent) {
                             personal_email: personal_email,
                             record: frm.doc.doctype,
                             record_link: frm.doc.name,
-                            released_by_emp_code_and_name: released_by
+                            released_by_emp_code_and_name: released_by,
+                            pending_by_emp_code_and_name: pending_by
                         },
                         callback(r) {
                             frappe.dom.unfreeze();
