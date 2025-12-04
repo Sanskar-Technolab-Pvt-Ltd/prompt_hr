@@ -201,8 +201,8 @@ function add_release_offer_button(frm) {
                 const record = r.message?.[0];
 
                 // No approval → Show dialog directly
-                if (!record) {show_offer_letter_dialog
-                    (frm, already_sent);
+                if (!record) {
+                    show_offer_letter_dialog(frm, already_sent);
                     return;
                 }
 
