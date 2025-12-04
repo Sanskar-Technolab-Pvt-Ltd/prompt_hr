@@ -1,4 +1,7 @@
 import frappe
+from frappe.utils.file_manager import save_file
+from frappe.utils.pdf import get_pdf
+
 
 def before_save(doc, method=None):
     set_annexure_details(doc)
@@ -80,3 +83,64 @@ def set_annexure_details(doc):
                 comp_dict.pop("parentfield", None)
                 comp_dict.pop("parenttype", None)
                 doc.append("custom_employer_contribution", comp_dict)
+
+
+@frappe.whitelist()
+def create_appointment_letter_approval(employee_id, letter=None, released_by_emp_code_and_name=None,
+                                    send_company_email=False, send_personal_email=False, record= None,
+                                    record_link=None):
+    """
+    Create an Employee Letter Approval record, generate PDF and attach it.
+    """
+    emp = frappe.get_doc("Employee", employee_id)
+
+    doc = frappe.get_doc({
+        "doctype": "Employee Letter Approval",
+        "employee": emp.name,
+        "employee_name": emp.employee_name,
+        "department": emp.department,
+        "letter": letter,
+        "company_email": emp.company_email,
+        "personal_email": emp.personal_email,
+        "released_on_company_email": 1 if str(send_company_email).lower() in ("true", "1") else 0,
+        "released_on_personal_email": 1 if str(send_personal_email).lower() in ("true", "1") else 0,
+        "pending_approval_emp_code_and_name": None,
+        "record": record,
+        "record_link": record_link,
+        "released_by_emp_code_and_name": released_by_emp_code_and_name
+    })
+    doc.insert(ignore_permissions=True)
+
+    # generate PDF using print format (use frappe.get_print)
+    try:
+        company_abbr = frappe.db.get_value("Company", emp.company, "abbr")
+        # choose print format based on company if you keep different names
+        if company_abbr == frappe.db.get_single_value("HR Settings", "custom_prompt_abbr"):
+            letter_name = letter
+    
+        # get PDF bytes from print
+        pdf_content = frappe.get_print("Employee", emp.name, print_format=letter_name, as_pdf=True)
+
+        # save file and attach to Employee Letter Approval doc
+        file_doc = save_file(f"{emp.name}-{letter_name}.pdf", pdf_content, doc.doctype, doc.name, is_private=False)
+        if file_doc:
+            try:
+                doc.db_set("attachment", file_doc.file_url)
+            except Exception:
+                pass
+
+    except Exception:
+        # fallback to simple html rendering if print format fails
+        try:
+            html = frappe.render_template("prompt_hr/templates/includes/appointment_letter.html", {"employee": emp, "letter": letter})
+            pdf = get_pdf(html)
+            file_doc = save_file(f"{emp.name}-{letter}.pdf", pdf, doc.doctype, doc.name, is_private=False)
+            if file_doc:
+                try:
+                    doc.db_set("attachment", file_doc.file_url)
+                except Exception:
+                    pass
+        except Exception:
+            frappe.log_error(frappe.get_traceback(), "create_employee_letter_approval: PDF generation failed")
+
+    return {"status": "success", "message": _("Letter recorded: {0}").format(doc.name)}

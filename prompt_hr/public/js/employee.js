@@ -916,7 +916,7 @@ function show_probation_letter_send_dialog(frm, already_sent) {
         const personal_email = emp.message.personal_email || "";
 
         const dlg = new frappe.ui.Dialog({
-            title: __('Send Confirmation Letter'),
+            title: __('Send Probation Letter'),
             fields: [
                 {
                     fieldname: 'send_company_email',
@@ -1192,7 +1192,7 @@ function show_consultant_service_letter_completion_send_dialog(frm, already_sent
         const personal_email = emp.message.personal_email || "";
 
         const dlg = new frappe.ui.Dialog({
-            title: __('Send Confirmation Letter'),
+            title: __('Send Consultant Service Letter'),
             fields: [
                 {
                     fieldname: 'send_company_email',
@@ -1468,7 +1468,7 @@ function show_promotion_letter_send_dialog(frm, already_sent) {
         const personal_email = emp.message.personal_email || "";
 
         const dlg = new frappe.ui.Dialog({
-            title: __('Send Confirmation Letter'),
+            title: __('Send Promation Letter'),
             fields: [
                 {
                     fieldname: 'send_company_email',
@@ -1763,7 +1763,7 @@ function show_confirmation_to_cc_dialog(frm) {
 function show_non_disclosure_to_cc_dialog(frm) {
 
     const d = new frappe.ui.Dialog({
-        title: "Send Confirmation Letter",
+        title: "Send Non Disclosure Letter",
         fields: [
             {
                 fieldname: "recipient_table",
@@ -1833,7 +1833,7 @@ function show_non_disclosure_to_cc_dialog(frm) {
 function show_consultant_service_to_cc_dialog(frm) {
 
     const d = new frappe.ui.Dialog({
-        title: "Send Confirmation Letter",
+        title: "Send Consultant Service Letter",
         fields: [
             {
                 fieldname: "recipient_table",
@@ -1903,7 +1903,7 @@ function show_consultant_service_to_cc_dialog(frm) {
 function show_consultant_contract_letter_to_cc_dialog(frm) {
 
     const d = new frappe.ui.Dialog({
-        title: "Send Confirmation Letter",
+        title: "Send Consultant Contract Letter",
         fields: [
             {
                 fieldname: "recipient_table",
@@ -1973,7 +1973,7 @@ function show_consultant_contract_letter_to_cc_dialog(frm) {
 function show_relieving_letter_to_cc_dialog(frm) {
 
     const d = new frappe.ui.Dialog({
-        title: "Send Confirmation Letter",
+        title: "Send Relieving Letter",
         fields: [
             {
                 fieldname: "recipient_table",
@@ -2043,7 +2043,7 @@ function show_relieving_letter_to_cc_dialog(frm) {
 function show_promotion_letter_to_cc_dialog(frm) {
 
     const d = new frappe.ui.Dialog({
-        title: "Send Confirmation Letter",
+        title: "Send Promation Letter",
         fields: [
             {
                 fieldname: "recipient_table",

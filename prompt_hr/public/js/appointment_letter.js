@@ -41,7 +41,7 @@ frappe.ui.form.on("Appointment Letter", {
 
                         // No Approval Record → Simple dialog
                         if (!record) {
-                            show_offer_letter_dialog(frm, already_sent);
+                            show_appointment_letter_dialog(frm, already_sent);
                             return;
                         }
 
@@ -69,9 +69,9 @@ frappe.ui.form.on("Appointment Letter", {
                             ],
                             (values) => {
 
-                                if (values.action === "Resend Appointment Letter Directly") {
+                                if (values.action === "Resend Appointment Letter") {
                                     // ✔ No TO/CC dialog
-                                    show_offer_letter_dialog(frm, already_sent);
+                                    show_appointment_letter_dialog(frm, already_sent);
                                 }
 
                                 if (values.action === "Send with TO/CC") {
@@ -93,7 +93,7 @@ frappe.ui.form.on("Appointment Letter", {
 });
 
 
-function show_offer_letter_dialog(frm, already_sent) {
+function show_appointment_letter_dialog(frm, already_sent) {
     const employee_id = frm.doc.custom_employee;
 
     if (!employee_id) {
@@ -154,10 +154,10 @@ function show_offer_letter_dialog(frm, already_sent) {
                             : frappe.session.user;
 
                     frappe.call({
-                        method: "prompt_hr.py.job_offer.create_employee_letter_approval",
+                        method: "prompt_hr.py.job_offer.create_appointment_letter_approval",
                         args: {    
                             employee_id: employee_id,
-                            letter: "Appointment Letter",
+                            letter: "Appointment Letter - Prompt",
                             send_company_email: values.send_company_email ? 1 : 0,
                             send_personal_email: values.send_personal_email ? 1 : 0,
                             company_email: company_email,
