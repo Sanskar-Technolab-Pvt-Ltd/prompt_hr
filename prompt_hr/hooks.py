@@ -81,6 +81,7 @@ doctype_js = {
     "Shift Request": "public/js/shift_request.js",
     "Timesheet": "public/js/timesheet.js",
     "Employee Advance": "public/js/employee_advance.js",
+    "Appraisal": "public/js/appraisal.js", 
 }
 
 doctype_list_js = {

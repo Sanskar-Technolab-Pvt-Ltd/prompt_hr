@@ -1,51 +1,9 @@
-frappe.ui.form.on("Loan", {
-    refresh(frm) {
-        if (!frm.doc.name) return;
-
-        // Find connected Loan Repayment Schedule (via Dynamic Link)
-        frappe.call({
-            method: "frappe.client.get_list",
-            args: {
-                doctype: "Loan Repayment Schedule",
-                filters: {
-                    "loan": frm.doc.name
-                },
-                fields: ["name"],
-                limit_page_length: 1
-            },
-            callback(res) {
-                if (!res.message || res.message.length === 0) return;
-
-                let schedule_name = res.message[0].name;
-
-                // Now get the repayment schedule child table (repayment schedule rows)
-                frappe.call({
-                    method: "frappe.client.get",
-                    args: {
-                        doctype: "Loan Repayment Schedule",
-                        name: schedule_name
-                    },
-                    callback(r2) {
-                        if (!r2.message || !r2.message.repayment_schedule) return;
-
-                        let rows = r2.message.repayment_schedule;
-
-                        if (rows.length > 0) {
-                            // last row date
-                            let last_payment_date = rows[rows.length - 1].payment_date;
-
-                            // Set in Loan form
-                            frm.set_value("custom_repayment_end_date", last_payment_date);
-                        }
-                    }
-                });
-            }
-        });
-
+frappe.ui.form.on("Appraisal", {
+    refresh(frm) { 
         //
-        if (frm.doc.docstatus === 1 && frm.doc.applicant_type === "Employee") {
-            frm.add_custom_button("Send Loan Agreement", function() {
-                frappe.dom.freeze("Sending Loan Agreement...");
+        if(frm.doc.docstatus === 1) {
+            frm.add_custom_button("Send Performance Appraisal Letter", function() {
+                frappe.dom.freeze("Sending Performance Appraisal Letter...");
 
                 frappe.call({
                     method: "frappe.client.get_list",
@@ -64,14 +22,14 @@ frappe.ui.form.on("Loan", {
 
                         // No Approval Record → Simple dialog
                         if (!record) {
-                            show_loan_agreement_letter_dialog(frm);
+                            show_performance_letter_letter_dialog(frm);
                             return;
                         }
 
                         // Approval exists but NOT Final Approval → Block
                         if (record.workflow_state !== "Final Approval") {
                             frappe.msgprint(
-                                __(`Loan Agreement is under approval: ${frm.doc.applicant_name}`)
+                                __(`Performance Appraisal Letter is under approval: ${frm.doc.applicant_name}`)
                             );
                             return;
                         }
@@ -84,7 +42,7 @@ frappe.ui.form.on("Loan", {
                                     label: "Choose Action",
                                     fieldtype: "Select",
                                     options: [
-                                        "Resend Loan Agreement",
+                                        "Resend Performance Appraisal Letter",
                                         "Send with TO/CC"
                                     ],
                                     reqd: 1
@@ -92,34 +50,35 @@ frappe.ui.form.on("Loan", {
                             ],
                             (values) => {
 
-                                if (values.action === "Resend Loan Agreement") {
+                                if (values.action === "Resend Performance Appraisal Letter") {
                                     // ✔ No TO/CC dialog
-                                    show_loan_agreement_letter_dialog(frm);
+                                    show_performance_letter_letter_dialog(frm);
                                 }
 
                                 if (values.action === "Send with TO/CC") {
                                     // ✔ TO/CC dialog
-                                    show_loan_agreement_to_cc_dialog(frm);
+                                    show_performance_letter_to_cc_dialog(frm);
                                 }
 
                             },
-                            __("Loan Agreement Already Approved"),
+                            __("Performance Appraisal Letter Already Approved"),
                             __("Continue")
                         );
                     }
                 });
 
             });
+
         }
     }
 });
 
 
-function show_loan_agreement_letter_dialog(frm) {
-    const employee_id = frm.doc.applicant;
+function show_performance_letter_letter_dialog(frm) {
+    const employee_id = frm.doc.employee;
 
     if (!employee_id) {
-        frappe.throw("applicant is missing in this Appointment Letter.");
+        frappe.throw("applicant is missing in this Appraisal Letter.");
         return;
     }
 
@@ -131,7 +90,7 @@ function show_loan_agreement_letter_dialog(frm) {
         const personal_email = emp.message.personal_email || "";
 
         const dlg = new frappe.ui.Dialog({
-            title: __('Send Appointment Letter'),
+            title: __('Send Appraisal Letter'),
             fields: [
                 {
                     fieldname: 'send_company_email',
@@ -160,7 +119,7 @@ function show_loan_agreement_letter_dialog(frm) {
                     frappe.throw(__('Please select at least one email option.'));
                 }
 
-                frappe.dom.freeze(__('Sending Appointment Letter...'));
+                frappe.dom.freeze(__('Sending Apprisal Letter...'));
 
                 // Fetch EMPLOYEE of CURRENT USER → For released_by
                 frappe.db.get_value(
@@ -176,10 +135,10 @@ function show_loan_agreement_letter_dialog(frm) {
                             : frappe.session.user;
 
                     frappe.call({
-                        method: "prompt_hr.py.loan_application.create_loan_agreement_letter_approval",
+                        method: "prompt_hr.py.appraisal_letter.create_appraisal_letter_approval",
                         args: {    
                             employee_id: employee_id,
-                            letter: "Loan Agreement - Prompt",
+                            letter: "Prompt Equipments _ Performance Appraisal Letter (Oct) (Eng) Gross New",
                             send_company_email: values.send_company_email ? 1 : 0,
                             send_personal_email: values.send_personal_email ? 1 : 0,
                             company_email: company_email,
@@ -225,7 +184,7 @@ function show_loan_agreement_letter_dialog(frm) {
 }
 
 
-function show_loan_agreement_to_cc_dialog(frm,) {
+function show_performance_letter_to_cc_dialog(frm,) {
     let d = new frappe.ui.Dialog({
         title:"Send Loan Agreement",
         fields: [
@@ -282,16 +241,15 @@ function show_loan_agreement_to_cc_dialog(frm,) {
             });
 
             // Call function 
-            
             frappe.call({
-                method: "prompt_hr.py.loan_application.trigger_loan_notification",
+                method: "prompt_hr.py.appraisal_letter.trigger_apprisal_notification",
                 args: {
                     name: frm.doc.name,
                     to: to_users,
                     cc: cc_users
                 },
                 callback(r) {
-                    frappe.msgprint(r.message || "Loan Agreement Sent");
+                    frappe.msgprint(r.message || "Appraisal Letter");
                     d.hide();
                 }
             });

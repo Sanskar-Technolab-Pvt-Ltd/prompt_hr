@@ -124,7 +124,6 @@ def create_appointment_letter_approval(employee_id, letter=None, released_by_emp
 
         # save file and attach to Employee Letter Approval doc
         file_doc = save_file(f"{emp.name}-{letter_name}.pdf", pdf_content, doc.doctype, doc.name, is_private=False)
-        print("file_doc", file_doc)
         if file_doc:
             try:
                 doc.db_set("attachment", file_doc.file_url)

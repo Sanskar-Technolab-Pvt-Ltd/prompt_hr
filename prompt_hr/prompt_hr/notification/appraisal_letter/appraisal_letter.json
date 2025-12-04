@@ -1,0 +1,28 @@
+{
+ "attach_files": "",
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-12-04 16:27:41.044352",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Employee",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "  <b> {{ doc.employee }} (The Borrower)</b><br>\n\n",
+ "message_type": "HTML",
+ "modified": "2025-12-04 16:27:41.044352",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Appraisal Letter",
+ "owner": "Administrator",
+ "print_format": "Confirmation Letter - Prompt",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "Appraisal Letter For {{doc.employee}}"
+}

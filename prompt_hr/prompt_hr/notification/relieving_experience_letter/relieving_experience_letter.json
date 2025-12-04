@@ -13,7 +13,7 @@
  "is_standard": 1,
  "message": "<p>Dear <strong>{{ doc.employee_name }}</strong>,</p>\n<p> Welcome to <strong>{{ doc.company }}</strong>.<br>\nPlease find attached your <strong>Relieving-Experience Letter</strong> for review. </p>\n<p> If you have any questions or need further assistance, please feel free to contact the HR department. </p>\n<p> Regards,<br> <strong>{{ doc.company }} HR Team</strong> </p>\n",
  "message_type": "HTML",
- "modified": "2025-12-03 17:57:13.569854",
+ "modified": "2025-12-04 15:12:46.668549",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Relieving-Experience Letter",
