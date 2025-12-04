@@ -1,9 +1,7 @@
 frappe.ui.form.on("Appointment Letter", {
     refresh(frm) {
         if (!frm.is_new()) {
-
             frm.add_custom_button("Send Appointment Letter", function() {
-
                 // frappe.call({
                 //     method: "prompt_hr.api.main.trigger_appointment_notification",
                 //     args: {
@@ -19,8 +17,6 @@ frappe.ui.form.on("Appointment Letter", {
                 //         frappe.dom.unfreeze();
                 //     }
                 // });
-
-                const already_sent = frm.doc.custom_appointment_letter_sent === 1;
 
                 frappe.dom.freeze("Sending Appointment Letter...");
 
@@ -41,7 +37,7 @@ frappe.ui.form.on("Appointment Letter", {
 
                         // No Approval Record → Simple dialog
                         if (!record) {
-                            show_appointment_letter_dialog(frm, already_sent);
+                            show_appointment_letter_dialog(frm);
                             return;
                         }
 
@@ -61,7 +57,7 @@ frappe.ui.form.on("Appointment Letter", {
                                     label: "Choose Action",
                                     fieldtype: "Select",
                                     options: [
-                                        "Resend Appointment Letter Directly",
+                                        "Resend Appointment Letter",
                                         "Send with TO/CC"
                                     ],
                                     reqd: 1
@@ -71,12 +67,12 @@ frappe.ui.form.on("Appointment Letter", {
 
                                 if (values.action === "Resend Appointment Letter") {
                                     // ✔ No TO/CC dialog
-                                    show_appointment_letter_dialog(frm, already_sent);
+                                    show_appointment_letter_dialog(frm);
                                 }
 
                                 if (values.action === "Send with TO/CC") {
                                     // ✔ TO/CC dialog
-                                    show_to_cc_dialog(frm, already_sent);
+                                    show_appointment_to_cc_dialog(frm);
                                 }
 
                             },
@@ -93,7 +89,7 @@ frappe.ui.form.on("Appointment Letter", {
 });
 
 
-function show_appointment_letter_dialog(frm, already_sent) {
+function show_appointment_letter_dialog(frm) {
     const employee_id = frm.doc.custom_employee;
 
     if (!employee_id) {
@@ -154,7 +150,7 @@ function show_appointment_letter_dialog(frm, already_sent) {
                             : frappe.session.user;
 
                     frappe.call({
-                        method: "prompt_hr.py.job_offer.create_appointment_letter_approval",
+                        method: "prompt_hr.py.appointment_letter.create_appointment_letter_approval",
                         args: {    
                             employee_id: employee_id,
                             letter: "Appointment Letter - Prompt",
@@ -203,9 +199,9 @@ function show_appointment_letter_dialog(frm, already_sent) {
 }
 
 
-function show_to_cc_dialog(frm, already_sent) {
+function show_appointment_to_cc_dialog(frm,) {
     let d = new frappe.ui.Dialog({
-        title: already_sent ? "Resend Offer Letter" : "Release Offer Letter",
+        title:"Resend Appointment Letter",
         fields: [
             {
                 fieldname: "recipient_table",
@@ -260,7 +256,19 @@ function show_to_cc_dialog(frm, already_sent) {
             });
 
             // Call function 
-            release_offer_letter(frm, already_sent, to_users, cc_users);
+            
+            frappe.call({
+                method: "prompt_hr.api.main.trigger_appointment_notification",
+                args: {
+                    name: frm.doc.name,
+                    to: to_users,
+                    cc: cc_users
+                },
+                callback(r) {
+                    frappe.msgprint(r.message || "Appointmnet Letter Sent");
+                    d.hide();
+                }
+            });
 
             d.hide();
         }

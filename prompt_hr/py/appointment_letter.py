@@ -1,6 +1,7 @@
 import frappe
 from frappe.utils.file_manager import save_file
 from frappe.utils.pdf import get_pdf
+from frappe import _
 
 
 def before_save(doc, method=None):
@@ -123,6 +124,7 @@ def create_appointment_letter_approval(employee_id, letter=None, released_by_emp
 
         # save file and attach to Employee Letter Approval doc
         file_doc = save_file(f"{emp.name}-{letter_name}.pdf", pdf_content, doc.doctype, doc.name, is_private=False)
+        print("file_doc", file_doc)
         if file_doc:
             try:
                 doc.db_set("attachment", file_doc.file_url)
@@ -130,6 +132,7 @@ def create_appointment_letter_approval(employee_id, letter=None, released_by_emp
                 pass
 
     except Exception:
+        print("error")
         # fallback to simple html rendering if print format fails
         try:
             html = frappe.render_template("prompt_hr/templates/includes/appointment_letter.html", {"employee": emp, "letter": letter})

@@ -97,8 +97,7 @@
    "fieldname": "record",
    "fieldtype": "Link",
    "label": "Record ",
-   "options": "DocType",
-   "read_only": 1
+   "options": "DocType"
   },
   {
    "fetch_from": "employee.designation",
@@ -130,8 +129,7 @@
    "fieldname": "record_link",
    "fieldtype": "Dynamic Link",
    "label": "Record link",
-   "options": "record",
-   "read_only": 1
+   "options": "record"
   },
   {
    "fieldname": "pending_approval_emp_code_and_name",
@@ -143,7 +141,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-12-03 20:16:05.961798",
+ "modified": "2025-12-04 14:23:18.061198",
  "modified_by": "Administrator",
  "module": "Prompt HR",
  "name": "Employee Letter Approval",

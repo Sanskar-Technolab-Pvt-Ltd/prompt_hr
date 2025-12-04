@@ -105,9 +105,7 @@ frappe.ui.form.on("Employee", {
         // ? ONLY VISIBLE TO HR MANAGER, HR USER AND SYSTEM MANAGER
         if (frappe.user_roles.includes("S - HR Director (Global Admin)") || frappe.user_roles.includes("System Manager")) {
             frm.add_custom_button("Release Service Level Agreement", function () {
-
                 const already_sent = frm.doc.custom_confirmation_letter_sent === 1;
-
                 frappe.dom.freeze("Releasing Letter...");
 
                 frappe.call({
@@ -146,7 +144,7 @@ frappe.ui.form.on("Employee", {
                                     label: "Choose Action",
                                     reqd: 1,
                                     options: [
-                                        "Resend Service Letter",
+                                        "Resend Service Letter Agreement",
                                         "Send with TO/CC"
                                     ]
                                 }
@@ -212,14 +210,14 @@ frappe.ui.form.on("Employee", {
                                     label: "Choose Action",
                                     reqd: 1,
                                     options: [
-                                        "Resend Confirmation Letter Directly",
+                                        "Resend Confirmation Letter",
                                         "Send with TO/CC"
                                     ]
                                 }
                             ],
                             (values) => {
 
-                                if (values.action === "Resend Confirmation Letter Directly") {
+                                if (values.action === "Resend Confirmation Letter") {
                                     show_confirmation_send_dialog(frm, already_sent);
                                 }
 
@@ -285,7 +283,7 @@ frappe.ui.form.on("Employee", {
                             ],
                             (values) => {
 
-                                if (values.action === "Resend Probation Extension Letter") {
+                                if (values.action === "Resend Probation Extension") {
                                     show_probation_letter_send_dialog(frm, already_sent);
                                 }
 

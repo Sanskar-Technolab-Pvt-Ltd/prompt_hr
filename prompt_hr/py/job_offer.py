@@ -342,7 +342,7 @@ def release_offer_letter(doctype, docname, is_resend=False, notification_name=No
 
 # ? Create an Employee Letter Approval record.
 @frappe.whitelist()
-def create_employee_letter_approval(letter="Offer Letter - PROMPT",
+def create_employee_letter_approval(letter=None,
                                     released_on_job_applicant_email=None, record=None, record_link=None,
                                     released_by_emp_code_and_name=None, job_applicant_name=None):
     print("record_name", record_link)
@@ -418,6 +418,86 @@ def create_employee_letter_approval(letter="Offer Letter - PROMPT",
         "status": "success",
         "message": _("Letter recorded: {0}").format(doc.name)
     }
+
+
+@frappe.whitelist()
+def create_LOI_employee_letter_approval(letter=None, released_on_job_applicant_email=None, record=None, record_link=None,
+                                    released_by_emp_code_and_name=None, job_applicant_name=None):
+    print("record_name", record_link)
+    # Build base fields
+    doc_fields = {
+        "doctype": "Employee Letter Approval",
+        "letter": letter,
+        "job_applicant_email": released_on_job_applicant_email,
+        "job_applicant_name": job_applicant_name,
+        "released_on_job_applicant_email": 1 if bool else 0,
+        "released_by_emp_code_and_name": released_by_emp_code_and_name ,
+        "record": record,
+        "record_link": record_link,
+    }
+ 
+    # Create record
+    doc = frappe.get_doc(doc_fields)
+    doc.insert(ignore_permissions=True)
+
+    
+    # try:
+    #     print_format_name = "Offer Letter - PROMPT"
+    #     pdf_filename = "Offer Letter - PROMPT.pdf"
+
+    #     # Generate PDF using print format
+    #     pdf_content = frappe.get_print(
+    #         "Employee Letter Approval",
+    #         doc.name,
+    #         print_format=print_format_name,
+    #         as_pdf=True
+    #     )
+
+    #     # Save file and attach
+    #     file_doc = save_file(
+    #         pdf_filename,
+    #         pdf_content,
+    #         doc.doctype,
+    #         doc.name,
+    #         is_private=False
+    #     )
+
+    #     if file_doc:
+    #         doc.db_set("attachment", file_doc.file_url)
+
+    # except Exception:
+    #     # Fallback: HTML to PDF if print format fails
+    #     try:
+    #         html = frappe.render_template(
+    #             "prompt_hr/templates/includes/job_offer.html",
+    #             {"employee": doc.name, "letter": doc.letter}
+    #         )
+
+    #         pdf = get_pdf(html)
+
+    #         file_doc = save_file(
+    #             pdf_filename,
+    #             pdf,
+    #             doc.doctype,
+    #             doc.name,
+    #             is_private=False
+    #         )
+
+    #         if file_doc:
+    #             doc.db_set("attachment", file_doc.file_url)
+
+    #     except Exception:
+    #         frappe.log_error(
+    #             frappe.get_traceback(),
+    #             "create_employee_letter_approval: PDF generation failed"
+    #         )
+
+    return {
+        "status": "success",
+        "message": _("Letter recorded: {0}").format(doc.name)
+    }
+
+
 
 
 # ? SEND JOB OFFER EMAIL TO CANDIDATE
