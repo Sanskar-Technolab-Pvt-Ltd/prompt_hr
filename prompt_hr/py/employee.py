@@ -3195,7 +3195,7 @@ def create_probation_letter_approval(employee_id, letter=None, released_by_emp_c
         "employee": emp.name,
         "employee_name": emp.employee_name,
         "department": emp.department,
-        "letter": emp.letter,
+        "letter": letter,
         "company_email": emp.company_email,
         "personal_email": emp.personal_email,
         "released_on_company_email": 1 if str(send_company_email).lower() in ("true", "1") else 0,
@@ -3211,7 +3211,7 @@ def create_probation_letter_approval(employee_id, letter=None, released_by_emp_c
         company_abbr = frappe.db.get_value("Company", emp.company, "abbr")
         # choose print format based on company if you keep different names
         if company_abbr == frappe.db.get_single_value("HR Settings", "custom_prompt_abbr"):
-            letter_name = emp.letter
+            letter_name = letter
         # get PDF bytes from print
         pdf_content = frappe.get_print("Employee", emp.name, print_format=letter_name, as_pdf=True)
 
@@ -3254,7 +3254,7 @@ def create_non_disclosure_letter_approval(employee_id, letter=None, released_by_
         "employee": emp.name,
         "employee_name": emp.employee_name,
         "department": emp.department,
-        "letter": emp.letter,
+        "letter": letter,
         "company_email": emp.company_email,
         "personal_email": emp.personal_email,
         "released_on_company_email": 1 if str(send_company_email).lower() in ("true", "1") else 0,
@@ -3270,7 +3270,7 @@ def create_non_disclosure_letter_approval(employee_id, letter=None, released_by_
         company_abbr = frappe.db.get_value("Company", emp.company, "abbr")
         # choose print format based on company if you keep different names
         if company_abbr == frappe.db.get_single_value("HR Settings", "custom_prompt_abbr"):
-            letter_name = emp.letter
+            letter_name = letter
 
         # get PDF bytes from print
         pdf_content = frappe.get_print("Employee", emp.name, print_format=letter_name, as_pdf=True)
@@ -3314,7 +3314,7 @@ def create_consultant_service_letter_completion_letter_approval(employee_id, let
         "employee": emp.name,
         "employee_name": emp.employee_name,
         "department": emp.department,
-        "letter": emp.letter,
+        "letter": letter,
         "company_email": emp.company_email,
         "personal_email": emp.personal_email,
         "released_on_company_email": 1 if str(send_company_email).lower() in ("true", "1") else 0,
@@ -3330,7 +3330,7 @@ def create_consultant_service_letter_completion_letter_approval(employee_id, let
         company_abbr = frappe.db.get_value("Company", emp.company, "abbr")
         # choose print format based on company if you keep different names
         if company_abbr == frappe.db.get_single_value("HR Settings", "custom_prompt_abbr"):
-            letter_name = emp.letter
+            letter_name = letter
 
         # get PDF bytes from print
         pdf_content = frappe.get_print("Employee", emp.name, print_format=letter_name, as_pdf=True)
@@ -3374,7 +3374,7 @@ def create_consultant_contract_letter_approval(employee_id, letter=None, release
         "employee": emp.name,
         "employee_name": emp.employee_name,
         "department": emp.department,
-        "letter": emp.letter,
+        "letter": letter,
         "company_email": emp.company_email,
         "personal_email": emp.personal_email,
         "released_on_company_email": 1 if str(send_company_email).lower() in ("true", "1") else 0,
@@ -3390,7 +3390,7 @@ def create_consultant_contract_letter_approval(employee_id, letter=None, release
         company_abbr = frappe.db.get_value("Company", emp.company, "abbr")
         # choose print format based on company if you keep different names
         if company_abbr == frappe.db.get_single_value("HR Settings", "custom_prompt_abbr"):
-            letter_name = emp.letter
+            letter_name = letter
 
         # get PDF bytes from print
         pdf_content = frappe.get_print("Employee", emp.name, print_format=letter_name, as_pdf=True)
@@ -3434,7 +3434,7 @@ def create_relieving_experience_letter_approval(employee_id, letter=None, releas
         "employee": emp.name,
         "employee_name": emp.employee_name,
         "department": emp.department,
-        "letter": emp.letter,
+        "letter": letter,
         "company_email": emp.company_email,
         "personal_email": emp.personal_email,
         "released_on_company_email": 1 if str(send_company_email).lower() in ("true", "1") else 0,
@@ -3450,7 +3450,7 @@ def create_relieving_experience_letter_approval(employee_id, letter=None, releas
         company_abbr = frappe.db.get_value("Company", emp.company, "abbr")
         # choose print format based on company if you keep different names
         if company_abbr == frappe.db.get_single_value("HR Settings", "custom_prompt_abbr"):
-            letter_name = emp.letter
+            letter_name = letter
 
         # get PDF bytes from print
         pdf_content = frappe.get_print("Employee", emp.name, print_format=letter_name, as_pdf=True)
@@ -3494,7 +3494,7 @@ def create_promotion_letter_approval(employee_id, letter=None, released_by_emp_c
         "employee": emp.name,
         "employee_name": emp.employee_name,
         "department": emp.department,
-        "letter": emp.letter,
+        "letter": letter,
         "company_email": emp.company_email,
         "personal_email": emp.personal_email,
         "released_on_company_email": 1 if str(send_company_email).lower() in ("true", "1") else 0,
@@ -3510,7 +3510,7 @@ def create_promotion_letter_approval(employee_id, letter=None, released_by_emp_c
         company_abbr = frappe.db.get_value("Company", emp.company, "abbr")
         # choose print format based on company if you keep different names
         if company_abbr == frappe.db.get_single_value("HR Settings", "custom_prompt_abbr"):
-            letter_name = emp.letter
+            letter_name = letter
 
         # get PDF bytes from print
         pdf_content = frappe.get_print("Employee", emp.name, print_format=letter_name, as_pdf=True)
