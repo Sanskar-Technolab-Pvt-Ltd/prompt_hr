@@ -42,7 +42,7 @@ frappe.ui.form.on("Employee", {
         set_state_options(frm, "custom_permanent_state", "custom_permanent_country");
 
 
-        // ? SET FILTERS FOR CURRENT AND PERMANENT DISTRICT, SUB DISTRICT
+        // ? SET FILTERS FOR CURRENT AND PERMANENT DISTRICT, SUB DISTRICT kk
         handle_location_change(frm, "custom_current")
         handle_location_change(frm, "custom_permanent")
 
@@ -104,51 +104,535 @@ frappe.ui.form.on("Employee", {
         }
         // ? ONLY VISIBLE TO HR MANAGER, HR USER AND SYSTEM MANAGER
         if (frappe.user_roles.includes("S - HR Director (Global Admin)") || frappe.user_roles.includes("System Manager")) {
-            frm.add_custom_button(__("Release Service Level Agreement"), function () {
-                frappe.dom.freeze(__('Releasing Letter...'));
+            frm.add_custom_button("Release Service Level Agreement", function () {
+                const already_sent = frm.doc.custom_confirmation_letter_sent === 1;
+                frappe.dom.freeze("Releasing Letter...");
+
                 frappe.call({
-                    method: "prompt_hr.py.employee.send_service_agreement",
-                    args: { name: frm.doc.name },
-                    callback: function (r) {
-                        if (r.message) {
-                            frappe.msgprint(r.message);
-                        }
+                    method: "frappe.client.get_list",
+                    args: {
+                        doctype: "Employee Letter Approval",
+                        fields: ["name", "workflow_state"],
+                        filters: { record_link: frm.doc.name, letter: "Service Agreement - Prompt"},
+                        order_by: "creation desc",
+                        limit_page_length: 1
                     },
-                    always: function () {
+                    callback(r) {
+
                         frappe.dom.unfreeze();
+
+                        const record = r.message?.[0];
+
+                        // No approval → Show dialog directly
+                        if (!record) {
+                            show_service_letter_send_dialog(frm, already_sent);
+                            return;
+                        }
+
+                        // Approval exists but not final → Block
+                        if (record.workflow_state !== "Final Approval") {
+                            frappe.msgprint(__("Service Level Agreement is under approval."));
+                            return;
+                        }
+
+                        // Final Approval → Ask how to send
+                        frappe.prompt(
+                            [
+                                {
+                                    fieldname: "action",
+                                    fieldtype: "Select",
+                                    label: "Choose Action",
+                                    reqd: 1,
+                                    options: [
+                                        "Resend Service Letter Agreement",
+                                        "Send with TO/CC"
+                                    ]
+                                }
+                            ],
+                            (values) => {
+
+                                if (values.action === "Resend Service Level Agreement") {
+                                    show_service_letter_send_dialog(frm, already_sent);
+                                }
+
+                                if (values.action === "Send with TO/CC") {
+                                    show_service_letter_to_cc_dialog(frm);
+                                }
+
+                            },
+                            "Service Level Agreement Approved",
+                            "Continue"
+                        );
                     }
                 });
+
             }, __("Release Letters"));
 
-            frm.add_custom_button(__("Release Confirmation Letter"), function () {
-                frappe.dom.freeze(__('Releasing Letter...'));
+            frm.add_custom_button("Release Confirmation Letter", function () {
+
+                const already_sent = frm.doc.custom_confirmation_letter_sent === 1;
+
+                frappe.dom.freeze("Checking approval...");
+
                 frappe.call({
-                    method: "prompt_hr.py.employee.send_confirmation_letter",
-                    args: { name: frm.doc.name },
-                    callback: function (r) {
-                        if (r.message) {
-                            frappe.msgprint(r.message);
-                        }
+                    method: "frappe.client.get_list",
+                    args: {
+                        doctype: "Employee Letter Approval",
+                        fields: ["name", "workflow_state"],
+                        filters: { record_link: frm.doc.name, letter: "Confirmation Letter - Prompt"},
+                        order_by: "creation desc",
+                        limit_page_length: 1
                     },
-                    always: function () {
+                    callback(r) {
+
                         frappe.dom.unfreeze();
+
+                        const record = r.message?.[0];
+
+                        // 1️⃣ No approval → Show dialog directly
+                        if (!record) {
+                            show_confirmation_send_dialog(frm, already_sent);
+                            return;
+                        }
+
+                        // 2️⃣ Approval exists but not final → Block
+                        if (record.workflow_state !== "Final Approval") {
+                            frappe.msgprint(__("Confirmation Letter is under approval."));
+                            return;
+                        }
+
+                        // 3️⃣ Final Approval → Ask how to send
+                        frappe.prompt(
+                            [
+                                {
+                                    fieldname: "action",
+                                    fieldtype: "Select",
+                                    label: "Choose Action",
+                                    reqd: 1,
+                                    options: [
+                                        "Resend Confirmation Letter",
+                                        "Send with TO/CC"
+                                    ]
+                                }
+                            ],
+                            (values) => {
+
+                                if (values.action === "Resend Confirmation Letter") {
+                                    show_confirmation_send_dialog(frm, already_sent);
+                                }
+
+                                if (values.action === "Send with TO/CC") {
+                                    show_confirmation_to_cc_dialog(frm);
+                                }
+
+                            },
+                            "Confirmation Letter Approved",
+                            "Continue"
+                        );
                     }
                 });
+
             }, __("Release Letters"));
-            frm.add_custom_button(__("Release Probation Extension Letter"), function () {
-                frappe.dom.freeze(__('Releasing Letter...'));
+
+            frm.add_custom_button("Release Probation Extension Letter", function () {
+
+                const already_sent = frm.doc.custom_confirmation_letter_sent === 1;
+
+                frappe.dom.freeze("Release Probation Extension Letter...");
+
                 frappe.call({
-                    method: "prompt_hr.py.employee.send_probation_extension_letter",
-                    args: { name: frm.doc.name },
-                    callback: function (r) {
-                        if (r.message) {
-                            frappe.msgprint(r.message);
-                        }
+                    method: "frappe.client.get_list",
+                    args: {
+                        doctype: "Employee Letter Approval",
+                        fields: ["name", "workflow_state"],
+                        filters: { record_link: frm.doc.name, letter: "Probation Extension Letter - Prompt"},
+                        order_by: "creation desc",
+                        limit_page_length: 1
                     },
-                    always: function () {
+                    callback(r) {
+
                         frappe.dom.unfreeze();
+
+                        const record = r.message?.[0];
+
+                        // 1No approval → Show dialog directly
+                        if (!record) {
+                            show_probation_letter_send_dialog(frm, already_sent);
+                            return;
+                        }
+
+                        // Approval exists but not final → Block
+                        if (record.workflow_state !== "Final Approval") {
+                            frappe.msgprint(__("Release Probation Extension Letter is under approval."));
+                            return;
+                        }
+
+                        // Final Approval → Ask how to send
+                        frappe.prompt(
+                            [
+                                {
+                                    fieldname: "action",
+                                    fieldtype: "Select",
+                                    label: "Choose Action",
+                                    reqd: 1,
+                                    options: [
+                                        "Resend Release Probation Extension",
+                                        "Send with TO/CC"
+                                    ]
+                                }
+                            ],
+                            (values) => {
+
+                                if (values.action === "Resend Probation Extension") {
+                                    show_probation_letter_send_dialog(frm, already_sent);
+                                }
+
+                                if (values.action === "Send with TO/CC") {
+                                    show_probation_letter_to_cc_dialog(frm);
+                                }
+
+                            },
+                            "Probation Letter Approved",
+                            "Continue"
+                        );
                     }
                 });
+
+            }, __("Release Letters"));
+
+            // 
+            frm.add_custom_button("Release Non-Disclosure Agreement", function () {
+
+                const already_sent = frm.doc.custom_confirmation_letter_sent === 1;
+
+                frappe.dom.freeze("Non-Disclosure Agreement...");
+
+                frappe.call({
+                    method: "frappe.client.get_list",
+                    args: {
+                        doctype: "Employee Letter Approval",
+                        fields: ["name", "workflow_state"],
+                        filters: { record_link: frm.doc.name, letter: "Non-Disclosure Agreement - Prompt" },
+                        order_by: "creation desc",
+                        limit_page_length: 1
+                    },
+                    callback(r) {
+
+                        frappe.dom.unfreeze();
+
+                        const record = r.message?.[0];
+
+                        // No approval → Show dialog directly
+                        if (!record) {
+                            show_non_disclosure_send_dialog(frm, already_sent);
+                            return;
+                        }
+
+                        // Approval exists but not final → Block
+                        if (record.workflow_state !== "Final Approval") {
+                            frappe.msgprint(__("Non-Disclosure Agreement is under approval."));
+                            return;
+                        }
+
+                        // Final Approval → Ask how to send
+                        frappe.prompt(
+                            [
+                                {
+                                    fieldname: "action",
+                                    fieldtype: "Select",
+                                    label: "Choose Action",
+                                    reqd: 1,
+                                    options: [
+                                        "Resend Non-Disclosure Agreement",
+                                        "Send with TO/CC"
+                                    ]
+                                }
+                            ],
+                            (values) => {
+
+                                if (values.action === "Resend Non-Disclosure Agreement") {
+                                    show_non_disclosure_send_dialog(frm, already_sent);
+                                }
+
+                                if (values.action === "Send with TO/CC") {
+                                    show_non_disclosure_to_cc_dialog(frm);
+                                }
+
+                            },
+                            "Non-Disclosure Agreement Approved",
+                            "Continue"
+                        );
+                    }
+                });
+
+            }, __("Release Letters"));
+
+            //  
+            frm.add_custom_button("Release Consultant Service Completion Letter", function () {
+
+                const already_sent = frm.doc.custom_confirmation_letter_sent === 1;
+
+                frappe.dom.freeze("Consultant Service Completion Letter...");
+
+                frappe.call({
+                    method: "frappe.client.get_list",
+                    args: {
+                        doctype: "Employee Letter Approval",
+                        fields: ["name", "workflow_state"],
+                        filters: { record_link: frm.doc.name, letter: "Consultant Service Completion Letter - Prompt" },
+                        order_by: "creation desc",
+                        limit_page_length: 1
+                    },
+                    callback(r) {
+
+                        frappe.dom.unfreeze();
+
+                        const record = r.message?.[0];
+
+                        // No approval → Show dialog directly
+                        if (!record) {
+                            show_consultant_service_letter_completion_send_dialog(frm, already_sent);
+                            return;
+                        }
+
+                        // Approval exists but not final → Block
+                        if (record.workflow_state !== "Final Approval") {
+                            frappe.msgprint(__("Consultant Service Completion Letter is under approval."));
+                            return;
+                        }
+
+                        // Final Approval → Ask how to send
+                        frappe.prompt(
+                            [
+                                {
+                                    fieldname: "action",
+                                    fieldtype: "Select",
+                                    label: "Choose Action",
+                                    reqd: 1,
+                                    options: [
+                                        "Resend Consultant Service Completion Letter",
+                                        "Send with TO/CC"
+                                    ]
+                                }
+                            ],
+                            (values) => {
+
+                                if (values.action === "Resend Consultant Service Completion Letter") {
+                                    show_consultant_service_letter_completion_send_dialog(frm, already_sent);
+                                }
+
+                                if (values.action === "Send with TO/CC") {
+                                    show_consultant_service_to_cc_dialog(frm);
+                                }
+
+                            },
+                            "Consultant Service Completion Letter Approved",
+                            "Continue"
+                        );
+                    }
+                });
+
+            }, __("Release Letters"));
+
+            //
+            frm.add_custom_button("Release Consultant Contract Letter", function () {
+
+                const already_sent = frm.doc.custom_confirmation_letter_sent === 1;
+
+                frappe.dom.freeze("Consultant Contract Letter...");
+
+                frappe.call({
+                    method: "frappe.client.get_list",
+                    args: {
+                        doctype: "Employee Letter Approval",
+                        fields: ["name", "workflow_state"],
+                        filters: { record_link: frm.doc.name, letter: "Consultant Contract Letter - Prompt" },
+                        order_by: "creation desc",
+                        limit_page_length: 1
+                    },
+                    callback(r) {
+
+                        frappe.dom.unfreeze();
+
+                        const record = r.message?.[0];
+
+                        // No approval → Show dialog directly
+                        if (!record) {
+                            show_consultant_contract_letter_send_dialog(frm, already_sent);
+                            return;
+                        }
+
+                        // Approval exists but not final → Block
+                        if (record.workflow_state !== "Final Approval") {
+                            frappe.msgprint(__("Consultant Contract Letter is under approval."));
+                            return;
+                        }
+
+                        // Final Approval → Ask how to send
+                        frappe.prompt(
+                            [
+                                {
+                                    fieldname: "action",
+                                    fieldtype: "Select",
+                                    label: "Choose Action",
+                                    reqd: 1,
+                                    options: [
+                                        "Resend Consultant Contract Letter",
+                                        "Send with TO/CC"
+                                    ]
+                                }
+                            ],
+                            (values) => {
+
+                                if (values.action === "Resend Consultant Contract Letter") {
+                                    show_consultant_contract_letter_send_dialog(frm, already_sent);
+                                }
+
+                                if (values.action === "Send with TO/CC") {
+                                    show_consultant_contract_letter_to_cc_dialog(frm);
+                                }
+
+                            },
+                            "Consultant Contract Letter Approved",
+                            "Continue"
+                        );
+                    }
+                });
+
+            }, __("Release Letters"));
+
+            //
+            frm.add_custom_button("Relieving Experience Letter", function () {
+
+                const already_sent = frm.doc.custom_confirmation_letter_sent === 1;
+
+                frappe.dom.freeze("Relieving-Experience Letter...");
+
+                frappe.call({
+                    method: "frappe.client.get_list",
+                    args: {
+                        doctype: "Employee Letter Approval",
+                        fields: ["name", "workflow_state"],
+                        filters: { record_link: frm.doc.name, letter: "Relieving-Experience Letter - Prompt"},
+                        order_by: "creation desc",
+                        limit_page_length: 1
+                    },
+                    callback(r) {
+
+                        frappe.dom.unfreeze();
+
+                        const record = r.message?.[0];
+
+                        // No approval → Show dialog directly
+                        if (!record) {
+                            show_relieving_experience_letter_send_dialog(frm, already_sent);
+                            return;
+                        }
+
+                        // Approval exists but not final → Block
+                        if (record.workflow_state !== "Final Approval") {
+                            frappe.msgprint(__("Relieving Experience Letter is under approval."));
+                            return;
+                        }
+
+                        // Final Approval → Ask how to send
+                        frappe.prompt(
+                            [
+                                {
+                                    fieldname: "action",
+                                    fieldtype: "Select",
+                                    label: "Choose Action",
+                                    reqd: 1,
+                                    options: [
+                                        "Resend Relieving Experience Letter",
+                                        "Send with TO/CC"
+                                    ]
+                                }
+                            ],
+                            (values) => {
+
+                                if (values.action === "Resend Relieving Experience Letter") {
+                                    show_relieving_experience_letter_send_dialog(frm, already_sent);
+                                }
+
+                                if (values.action === "Send with TO/CC") {
+                                    show_relieving_letter_to_cc_dialog(frm);
+                                }
+
+                            },
+                            "Relieving Experience Approved",
+                            "Continue"
+                        );
+                    }
+                });
+
+            }, __("Release Letters"));
+
+            //
+            frm.add_custom_button("Promotion Letter", function () {
+
+                const already_sent = frm.doc.custom_confirmation_letter_sent === 1;
+
+                frappe.dom.freeze("Promotion Letter...");
+
+                frappe.call({
+                    method: "frappe.client.get_list",
+                    args: {
+                        doctype: "Employee Letter Approval",
+                        fields: ["name", "workflow_state"],
+                        filters: { record_link: frm.doc.name, letter: "Promotion Letter - Prompt"},
+                        order_by: "creation desc",
+                        limit_page_length: 1
+                    },
+                    callback(r) {
+
+                        frappe.dom.unfreeze();
+
+                        const record = r.message?.[0];
+
+                        // No approval → Show dialog directly
+                        if (!record) {
+                            show_promotion_letter_send_dialog(frm, already_sent);
+                            return;
+                        }
+
+                        // Approval exists but not final → Block
+                        if (record.workflow_state !== "Final Approval") {
+                            frappe.msgprint(__("Promotion Letter is under approval."));
+                            return;
+                        }
+
+                        // Final Approval → Ask how to send
+                        frappe.prompt(
+                            [
+                                {
+                                    fieldname: "action",
+                                    fieldtype: "Select",
+                                    label: "Choose Action",
+                                    reqd: 1,
+                                    options: [
+                                        "Resend Promotion Letter",
+                                        "Send with TO/CC"
+                                    ]
+                                }
+                            ],
+                            (values) => {
+
+                                if (values.action === "Resend Promotion Letter") {
+                                    show_promotion_letter_send_dialog(frm, already_sent);
+                                }
+
+                                if (values.action === "Send with TO/CC") {
+                                    show_promotion_letter_to_cc_dialog(frm);
+                                }
+
+                            },
+                            "Promotion Letter Approved",
+                            "Continue"
+                        );
+                    }
+                });
+
             }, __("Release Letters"));
         }
 
@@ -320,9 +804,1311 @@ frappe.ui.form.on("Employee", {
     relieving_date(frm) {
         calculate_notice_days_employee(frm);
     }
-
-
 });
+
+// service letter employee approval
+function show_service_letter_send_dialog(frm, already_sent) {
+    const employee_id = frm.doc.employee || frm.doc.custom_employee;
+
+    if (!employee_id) {
+        frappe.throw("Employee ID not found on this document.");
+        return;
+    }
+
+    frappe.db.get_value("Employee", employee_id, ["company_email", "personal_email"])
+    .then(emp => {
+
+        const company_email = emp.message.company_email || "";
+        const personal_email = emp.message.personal_email || "";
+
+        const dlg = new frappe.ui.Dialog({
+            title: __('Send Service Letter Agreement'),
+            fields: [
+                {
+                    fieldname: 'send_company_email',
+                    fieldtype: 'Check',
+                    label: __('Send to Company Email') +
+                        (company_email ? ` (${company_email})` : " (Not Available)"),
+                    default: company_email ? 1 : 0,
+                    depends_on: () => company_email ? 1 : 0
+                },
+                {
+                    fieldname: 'send_personal_email',
+                    fieldtype: 'Check',
+                    label: __('Send to Personal Email') +
+                        (personal_email ? ` (${personal_email})` : " (Not Available)"),
+                    default: personal_email ? 1 : 0,
+                    depends_on: () => personal_email ? 1 : 0
+                }
+            ],
+            primary_action_label: __('Send'),
+
+            primary_action(values) {
+
+                if (!values.send_company_email && !values.send_personal_email) {
+                    frappe.throw("Select at least one email to send.");
+                }
+
+                frappe.dom.freeze("Creating approval record...");
+
+                frappe.db.get_value(
+                    "Employee",
+                    { "user_id": frappe.session.user },
+                    ["name", "employee_name"]
+                ).then(emp => {
+
+                    const released_by =
+                        emp?.message
+                            ? `${emp.message.name} - ${emp.message.employee_name}`
+                            : frappe.session.user;
+
+                    frappe.call({
+                        method: "prompt_hr.py.employee.create_employee_letter_approval",
+                        args: {
+                            employee_id: employee_id,
+                            letter: "Service Agreement - Prompt",
+                            send_company_email: values.send_company_email ? 1 : 0,
+                            send_personal_email: values.send_personal_email ? 1 : 0,
+                            company_email: company_email,
+                            personal_email: personal_email,
+                            record: frm.doc.doctype,
+                            record_link: frm.doc.name,
+                            released_by_emp_code_and_name: released_by,
+                            pending_by_emp_code_and_name: pending_by
+                        },
+                        callback(r) {
+                            frappe.dom.unfreeze();
+
+                            if (r.message?.status === "success") {
+                                frappe.msgprint({ message: r.message.message, indicator: "green" });
+                                dlg.hide();
+                                frm.reload_doc();
+                            } else {
+                                frappe.msgprint({
+                                    message: r.message?.message || "Failed to create approval.",
+                                    indicator: "red"
+                                });
+                            }
+                        }
+                    });
+                });
+            }
+        });
+
+        dlg.show();
+    });
+}
+
+// probation letter employee approval
+function show_probation_letter_send_dialog(frm, already_sent) {
+    const employee_id = frm.doc.employee || frm.doc.custom_employee;
+
+    if (!employee_id) {
+        frappe.throw("Employee ID not found on this document.");
+        return;
+    }
+
+    frappe.db.get_value("Employee", employee_id, ["company_email", "personal_email"])
+    .then(emp => {
+
+        const company_email = emp.message.company_email || "";
+        const personal_email = emp.message.personal_email || "";
+
+        const dlg = new frappe.ui.Dialog({
+            title: __('Send Probation Letter'),
+            fields: [
+                {
+                    fieldname: 'send_company_email',
+                    fieldtype: 'Check',
+                    label: __('Send to Company Email') +
+                        (company_email ? ` (${company_email})` : " (Not Available)"),
+                    default: company_email ? 1 : 0,
+                    depends_on: () => company_email ? 1 : 0
+                },
+                {
+                    fieldname: 'send_personal_email',
+                    fieldtype: 'Check',
+                    label: __('Send to Personal Email') +
+                        (personal_email ? ` (${personal_email})` : " (Not Available)"),
+                    default: personal_email ? 1 : 0,
+                    depends_on: () => personal_email ? 1 : 0
+                }
+            ],
+            primary_action_label: __('Send'),
+
+            primary_action(values) {
+
+                if (!values.send_company_email && !values.send_personal_email) {
+                    frappe.throw("Select at least one email to send.");
+                }
+
+                frappe.dom.freeze("Creating approval record...");
+
+                frappe.db.get_value(
+                    "Employee",
+                    { "user_id": frappe.session.user },
+                    ["name", "employee_name"]
+                ).then(emp => {
+
+                    const released_by =
+                        emp?.message
+                            ? `${emp.message.name} - ${emp.message.employee_name}`
+                            : frappe.session.user;
+
+                    frappe.call({
+                        method: "prompt_hr.py.employee.create_probation_letter_approval",
+                        args: {
+                            employee_id: employee_id,
+                            letter: "Probation Extension Letter - Prompt",
+                            send_company_email: values.send_company_email ? 1 : 0,
+                            send_personal_email: values.send_personal_email ? 1 : 0,
+                            company_email: company_email,
+                            personal_email: personal_email,
+                            record: frm.doc.doctype,
+                            record_link: frm.doc.name,
+                            released_by_emp_code_and_name: released_by
+                        },
+                        callback(r) {
+                            frappe.dom.unfreeze();
+
+                            if (r.message?.status === "success") {
+                                frappe.msgprint({ message: r.message.message, indicator: "green" });
+                                dlg.hide();
+                                frm.reload_doc();
+                            } else {
+                                frappe.msgprint({
+                                    message: r.message?.message || "Failed to create approval.",
+                                    indicator: "red"
+                                });
+                            }
+                        }
+                    });
+                });
+            }
+        });
+
+        dlg.show();
+    });
+}
+
+// confirmation letter employee approval
+function show_confirmation_send_dialog(frm, already_sent) {
+    const employee_id = frm.doc.employee || frm.doc.custom_employee;
+
+    if (!employee_id) {
+        frappe.throw("Employee ID not found on this document.");
+        return;
+    }
+
+    frappe.db.get_value("Employee", employee_id, ["company_email", "personal_email"])
+    .then(emp => {
+
+        const company_email = emp.message.company_email || "";
+        const personal_email = emp.message.personal_email || "";
+
+        const dlg = new frappe.ui.Dialog({
+            title: __('Send Confirmation Letter'),
+            fields: [
+                {
+                    fieldname: 'send_company_email',
+                    fieldtype: 'Check',
+                    label: __('Send to Company Email') +
+                        (company_email ? ` (${company_email})` : " (Not Available)"),
+                    default: company_email ? 1 : 0,
+                    depends_on: () => company_email ? 1 : 0
+                },
+                {
+                    fieldname: 'send_personal_email',
+                    fieldtype: 'Check',
+                    label: __('Send to Personal Email') +
+                        (personal_email ? ` (${personal_email})` : " (Not Available)"),
+                    default: personal_email ? 1 : 0,
+                    depends_on: () => personal_email ? 1 : 0
+                }
+            ],
+            primary_action_label: __('Send'),
+
+            primary_action(values) {
+
+                if (!values.send_company_email && !values.send_personal_email) {
+                    frappe.throw("Select at least one email to send.");
+                }
+
+                frappe.dom.freeze("Creating approval record...");
+
+                frappe.db.get_value(
+                    "Employee",
+                    { "user_id": frappe.session.user },
+                    ["name", "employee_name"]
+                ).then(emp => {
+
+                    const released_by =
+                        emp?.message
+                            ? `${emp.message.name} - ${emp.message.employee_name}`
+                            : frappe.session.user;
+
+                    frappe.call({
+                        method: "prompt_hr.py.employee.create_confirmation_letter_approval",
+                        args: {
+                            employee_id: employee_id,
+                            letter: "Confirmation Letter - Prompt",
+                            send_company_email: values.send_company_email ? 1 : 0,
+                            send_personal_email: values.send_personal_email ? 1 : 0,
+                            company_email: company_email,
+                            personal_email: personal_email,
+                            record: frm.doc.doctype,
+                            record_link: frm.doc.name,
+                            released_by_emp_code_and_name: released_by
+                        },
+                        callback(r) {
+                            frappe.dom.unfreeze();
+
+                            if (r.message?.status === "success") {
+                                frappe.msgprint({ message: r.message.message, indicator: "green" });
+                                dlg.hide();
+                                frm.reload_doc();
+                            } else {
+                                frappe.msgprint({
+                                    message: r.message?.message || "Failed to create approval.",
+                                    indicator: "red"
+                                });
+                            }
+                        }
+                    });
+                });
+            }
+        });
+
+        dlg.show();
+    });
+}
+
+// Non Disclosure letter employee approval
+function show_non_disclosure_send_dialog(frm, already_sent) {
+    const employee_id = frm.doc.employee || frm.doc.custom_employee;
+
+    if (!employee_id) {
+        frappe.throw("Employee ID not found on this document.");
+        return;
+    }
+
+    frappe.db.get_value("Employee", employee_id, ["company_email", "personal_email"])
+    .then(emp => {
+
+        const company_email = emp.message.company_email || "";
+        const personal_email = emp.message.personal_email || "";
+
+        const dlg = new frappe.ui.Dialog({
+            title: __('Send Non-Disclosure Agreement Letter'),
+            fields: [
+                {
+                    fieldname: 'send_company_email',
+                    fieldtype: 'Check',
+                    label: __('Send to Company Email') +
+                        (company_email ? ` (${company_email})` : " (Not Available)"),
+                    default: company_email ? 1 : 0,
+                    depends_on: () => company_email ? 1 : 0
+                },
+                {
+                    fieldname: 'send_personal_email',
+                    fieldtype: 'Check',
+                    label: __('Send to Personal Email') +
+                        (personal_email ? ` (${personal_email})` : " (Not Available)"),
+                    default: personal_email ? 1 : 0,
+                    depends_on: () => personal_email ? 1 : 0
+                }
+            ],
+            primary_action_label: __('Send'),
+
+            primary_action(values) {
+
+                if (!values.send_company_email && !values.send_personal_email) {
+                    frappe.throw("Select at least one email to send.");
+                }
+
+                frappe.dom.freeze("Creating approval record...");
+
+                frappe.db.get_value(
+                    "Employee",
+                    { "user_id": frappe.session.user },
+                    ["name", "employee_name"]
+                ).then(emp => {
+
+                    const released_by =
+                        emp?.message
+                            ? `${emp.message.name} - ${emp.message.employee_name}`
+                            : frappe.session.user;
+
+                    frappe.call({
+                        method: "prompt_hr.py.employee.create_non_disclosure_letter_approval",
+                        args: {
+                            employee_id: employee_id,
+                            letter: "Non-Disclosure Agreement - Prompt",
+                            send_company_email: values.send_company_email ? 1 : 0,
+                            send_personal_email: values.send_personal_email ? 1 : 0,
+                            company_email: company_email,
+                            personal_email: personal_email,
+                            record: frm.doc.doctype,
+                            record_link: frm.doc.name,
+                            released_by_emp_code_and_name: released_by
+                        },
+                        callback(r) {
+                            frappe.dom.unfreeze();
+
+                            if (r.message?.status === "success") {
+                                frappe.msgprint({ message: r.message.message, indicator: "green" });
+                                dlg.hide();
+                                frm.reload_doc();
+                            } else {
+                                frappe.msgprint({
+                                    message: r.message?.message || "Failed to create approval.",
+                                    indicator: "red"
+                                });
+                            }
+                        }
+                    });
+                });
+            }
+        });
+
+        dlg.show();
+    });
+}
+
+// Consultant Service letter employee approval
+function show_consultant_service_letter_completion_send_dialog(frm, already_sent) {
+    const employee_id = frm.doc.employee || frm.doc.custom_employee;
+
+    if (!employee_id) {
+        frappe.throw("Employee ID not found on this document.");
+        return;
+    }
+
+    frappe.db.get_value("Employee", employee_id, ["company_email", "personal_email"])
+    .then(emp => {
+
+        const company_email = emp.message.company_email || "";
+        const personal_email = emp.message.personal_email || "";
+
+        const dlg = new frappe.ui.Dialog({
+            title: __('Send Consultant Service Letter'),
+            fields: [
+                {
+                    fieldname: 'send_company_email',
+                    fieldtype: 'Check',
+                    label: __('Send to Company Email') +
+                        (company_email ? ` (${company_email})` : " (Not Available)"),
+                    default: company_email ? 1 : 0,
+                    depends_on: () => company_email ? 1 : 0
+                },
+                {
+                    fieldname: 'send_personal_email',
+                    fieldtype: 'Check',
+                    label: __('Send to Personal Email') +
+                        (personal_email ? ` (${personal_email})` : " (Not Available)"),
+                    default: personal_email ? 1 : 0,
+                    depends_on: () => personal_email ? 1 : 0
+                }
+            ],
+            primary_action_label: __('Send'),
+
+            primary_action(values) {
+
+                if (!values.send_company_email && !values.send_personal_email) {
+                    frappe.throw("Select at least one email to send.");
+                }
+
+                frappe.dom.freeze("Creating approval record...");
+
+                frappe.db.get_value(
+                    "Employee",
+                    { "user_id": frappe.session.user },
+                    ["name", "employee_name"]
+                ).then(emp => {
+
+                    const released_by =
+                        emp?.message
+                            ? `${emp.message.name} - ${emp.message.employee_name}`
+                            : frappe.session.user;
+
+                    frappe.call({
+                        method: "prompt_hr.py.employee.create_consultant_service_letter_completion_letter_approval",
+                        args: {
+                            employee_id: employee_id,
+                            letter: "Confirmation Letter - Prompt",
+                            send_company_email: values.send_company_email ? 1 : 0,
+                            send_personal_email: values.send_personal_email ? 1 : 0,
+                            company_email: company_email,
+                            personal_email: personal_email,
+                            record: frm.doc.doctype,
+                            record_link: frm.doc.name,
+                            released_by_emp_code_and_name: released_by
+                        },
+                        callback(r) {
+                            frappe.dom.unfreeze();
+
+                            if (r.message?.status === "success") {
+                                frappe.msgprint({ message: r.message.message, indicator: "green" });
+                                dlg.hide();
+                                frm.reload_doc();
+                            } else {
+                                frappe.msgprint({
+                                    message: r.message?.message || "Failed to create approval.",
+                                    indicator: "red"
+                                });
+                            }
+                        }
+                    });
+                });
+            }
+        });
+
+        dlg.show();
+    });
+}
+
+// Consultant Contract letter employee approval
+function show_consultant_contract_letter_send_dialog(frm, already_sent) {
+    const employee_id = frm.doc.employee || frm.doc.custom_employee;
+
+    if (!employee_id) {
+        frappe.throw("Employee ID not found on this document.");
+        return;
+    }
+
+    frappe.db.get_value("Employee", employee_id, ["company_email", "personal_email"])
+    .then(emp => {
+
+        const company_email = emp.message.company_email || "";
+        const personal_email = emp.message.personal_email || "";
+
+        const dlg = new frappe.ui.Dialog({
+            title: __('Send Consultant Contract Letter'),
+            fields: [
+                {
+                    fieldname: 'send_company_email',
+                    fieldtype: 'Check',
+                    label: __('Send to Company Email') +
+                        (company_email ? ` (${company_email})` : " (Not Available)"),
+                    default: company_email ? 1 : 0,
+                    depends_on: () => company_email ? 1 : 0
+                },
+                {
+                    fieldname: 'send_personal_email',
+                    fieldtype: 'Check',
+                    label: __('Send to Personal Email') +
+                        (personal_email ? ` (${personal_email})` : " (Not Available)"),
+                    default: personal_email ? 1 : 0,
+                    depends_on: () => personal_email ? 1 : 0
+                }
+            ],
+            primary_action_label: __('Send'),
+
+            primary_action(values) {
+
+                if (!values.send_company_email && !values.send_personal_email) {
+                    frappe.throw("Select at least one email to send.");
+                }
+
+                frappe.dom.freeze("Creating approval record...");
+
+                frappe.db.get_value(
+                    "Employee",
+                    { "user_id": frappe.session.user },
+                    ["name", "employee_name"]
+                ).then(emp => {
+
+                    const released_by =
+                        emp?.message
+                            ? `${emp.message.name} - ${emp.message.employee_name}`
+                            : frappe.session.user;
+
+                    frappe.call({
+                        method: "prompt_hr.py.employee.create_consultant_contract_letter_approval",
+                        args: {
+                            employee_id: employee_id,
+                            letter: "Consultant Contract Letter - Prompt",
+                            send_company_email: values.send_company_email ? 1 : 0,
+                            send_personal_email: values.send_personal_email ? 1 : 0,
+                            company_email: company_email,
+                            personal_email: personal_email,
+                            record: frm.doc.doctype,
+                            record_link: frm.doc.name,
+                            released_by_emp_code_and_name: released_by
+                        },
+                        callback(r) {
+                            frappe.dom.unfreeze();
+
+                            if (r.message?.status === "success") {
+                                frappe.msgprint({ message: r.message.message, indicator: "green" });
+                                dlg.hide();
+                                frm.reload_doc();
+                            } else {
+                                frappe.msgprint({
+                                    message: r.message?.message || "Failed to create approval.",
+                                    indicator: "red"
+                                });
+                            }
+                        }
+                    });
+                });
+            }
+        });
+
+        dlg.show();
+    });
+}
+
+// Relieving Experience letter employee approval
+function show_relieving_experience_letter_send_dialog(frm, already_sent) {
+    const employee_id = frm.doc.employee || frm.doc.custom_employee;
+
+    if (!employee_id) {
+        frappe.throw("Employee ID not found on this document.");
+        return;
+    }
+
+    frappe.db.get_value("Employee", employee_id, ["company_email", "personal_email"])
+    .then(emp => {
+
+        const company_email = emp.message.company_email || "";
+        const personal_email = emp.message.personal_email || "";
+
+        const dlg = new frappe.ui.Dialog({
+            title: __('Send Relieving Letter'),
+            fields: [
+                {
+                    fieldname: 'send_company_email',
+                    fieldtype: 'Check',
+                    label: __('Send to Company Email') +
+                        (company_email ? ` (${company_email})` : " (Not Available)"),
+                    default: company_email ? 1 : 0,
+                    depends_on: () => company_email ? 1 : 0
+                },
+                {
+                    fieldname: 'send_personal_email',
+                    fieldtype: 'Check',
+                    label: __('Send to Personal Email') +
+                        (personal_email ? ` (${personal_email})` : " (Not Available)"),
+                    default: personal_email ? 1 : 0,
+                    depends_on: () => personal_email ? 1 : 0
+                }
+            ],
+            primary_action_label: __('Send'),
+
+            primary_action(values) {
+
+                if (!values.send_company_email && !values.send_personal_email) {
+                    frappe.throw("Select at least one email to send.");
+                }
+
+                frappe.dom.freeze("Creating approval record...");
+
+                frappe.db.get_value(
+                    "Employee",
+                    { "user_id": frappe.session.user },
+                    ["name", "employee_name"]
+                ).then(emp => {
+
+                    const released_by =
+                        emp?.message
+                            ? `${emp.message.name} - ${emp.message.employee_name}`
+                            : frappe.session.user;
+
+                    frappe.call({
+                        method: "prompt_hr.py.employee.create_relieving_experience_letter_approval",
+                        args: {
+                            employee_id: employee_id,
+                            letter: "Relieving-Experience Letter - Prompt",
+                            send_company_email: values.send_company_email ? 1 : 0,
+                            send_personal_email: values.send_personal_email ? 1 : 0,
+                            company_email: company_email,
+                            personal_email: personal_email,
+                            record: frm.doc.doctype,
+                            record_link: frm.doc.name,
+                            released_by_emp_code_and_name: released_by
+                        },
+                        callback(r) {
+                            frappe.dom.unfreeze();
+
+                            if (r.message?.status === "success") {
+                                frappe.msgprint({ message: r.message.message, indicator: "green" });
+                                dlg.hide();
+                                frm.reload_doc();
+                            } else {
+                                frappe.msgprint({
+                                    message: r.message?.message || "Failed to create approval.",
+                                    indicator: "red"
+                                });
+                            }
+                        }
+                    });
+                });
+            }
+        });
+
+        dlg.show();
+    });
+}
+
+// Promation letter employee approval
+function show_promotion_letter_send_dialog(frm, already_sent) {
+    const employee_id = frm.doc.employee || frm.doc.custom_employee;
+
+    if (!employee_id) {
+        frappe.throw("Employee ID not found on this document.");
+        return;
+    }
+
+    frappe.db.get_value("Employee", employee_id, ["company_email", "personal_email"])
+    .then(emp => {
+
+        const company_email = emp.message.company_email || "";
+        const personal_email = emp.message.personal_email || "";
+
+        const dlg = new frappe.ui.Dialog({
+            title: __('Send Promation Letter'),
+            fields: [
+                {
+                    fieldname: 'send_company_email',
+                    fieldtype: 'Check',
+                    label: __('Send to Company Email') +
+                        (company_email ? ` (${company_email})` : " (Not Available)"),
+                    default: company_email ? 1 : 0,
+                    depends_on: () => company_email ? 1 : 0
+                },
+                {
+                    fieldname: 'send_personal_email',
+                    fieldtype: 'Check',
+                    label: __('Send to Personal Email') +
+                        (personal_email ? ` (${personal_email})` : " (Not Available)"),
+                    default: personal_email ? 1 : 0,
+                    depends_on: () => personal_email ? 1 : 0
+                }
+            ],
+            primary_action_label: __('Send'),
+
+            primary_action(values) {
+
+                if (!values.send_company_email && !values.send_personal_email) {
+                    frappe.throw("Select at least one email to send.");
+                }
+
+                frappe.dom.freeze("Creating approval record...");
+
+                frappe.db.get_value(
+                    "Employee",
+                    { "user_id": frappe.session.user },
+                    ["name", "employee_name"]
+                ).then(emp => {
+
+                    const released_by =
+                        emp?.message
+                            ? `${emp.message.name} - ${emp.message.employee_name}`
+                            : frappe.session.user;
+
+                    frappe.call({
+                        method: "prompt_hr.py.employee.create_promotion_letter_approval",
+                        args: {
+                            employee_id: employee_id,
+                            letter: "Promotion Letter - Prompt",
+                            send_company_email: values.send_company_email ? 1 : 0,
+                            send_personal_email: values.send_personal_email ? 1 : 0,
+                            company_email: company_email,
+                            personal_email: personal_email,
+                            record: frm.doc.doctype,
+                            record_link: frm.doc.name,
+                            released_by_emp_code_and_name: released_by
+                        },
+                        callback(r) {
+                            frappe.dom.unfreeze();
+
+                            if (r.message?.status === "success") {
+                                frappe.msgprint({ message: r.message.message, indicator: "green" });
+                                dlg.hide();
+                                frm.reload_doc();
+                            } else {
+                                frappe.msgprint({
+                                    message: r.message?.message || "Failed to create approval.",
+                                    indicator: "red"
+                                });
+                            }
+                        }
+                    });
+                });
+            }
+        });
+
+        dlg.show();
+    });
+}
+
+
+// to cc service letter
+function show_service_letter_to_cc_dialog(frm) {
+    const d = new frappe.ui.Dialog({
+        title: "Send Service Level Agreement",
+        fields: [
+            {
+                fieldname: "recipient_table",
+                label: "Recipients",
+                fieldtype: "Table",
+                cannot_add_rows: false,
+                in_place_edit: true,
+                fields: [
+                    {
+                        fieldtype: "Select",
+                        fieldname: "recipient_type",
+                        label: "Type",
+                        options: ["To", "CC"],
+                        reqd: 1,
+                        in_list_view: 1
+                    },
+                    {
+                        fieldtype: "Link",
+                        fieldname: "user",
+                        label: "User",
+                        options: "User",
+                        reqd: 1,
+                        in_list_view: 1
+                    }
+                ]
+            }
+        ],
+
+        primary_action_label: "Send Letter",
+
+        primary_action(values) {
+
+            let to_users = [];
+            let cc_users = [];
+
+            // default TO should be employee’s email
+            if (frm.doc.company_email) {
+                to_users.push(frm.doc.company_email);
+            }
+
+            values.recipient_table.forEach(row => {
+                if (row.recipient_type === "To") {
+                    to_users.push(row.user);
+                } else {
+                    cc_users.push(row.user);
+                }
+            });
+            console.log("to_users", to_users)
+            console.log("cc_users", cc_users)
+
+            frappe.call({
+                method: "prompt_hr.py.employee.send_service_agreement",
+                args: {
+                    name: frm.doc.name,
+                    to: to_users,
+                    cc: cc_users
+                },
+                callback(r) {
+                    frappe.msgprint(r.message || "Service Letter Agreement Sent");
+                    d.hide();
+                }
+            });
+        }
+    });
+
+    d.show();
+}
+
+// to cc probation letter letter
+function show_probation_letter_to_cc_dialog(frm) {
+
+    const d = new frappe.ui.Dialog({
+        title: "Send Probation Letter",
+        fields: [
+            {
+                fieldname: "recipient_table",
+                label: "Recipients",
+                fieldtype: "Table",
+                cannot_add_rows: false,
+                in_place_edit: true,
+                fields: [
+                    {
+                        fieldtype: "Select",
+                        fieldname: "recipient_type",
+                        label: "Type",
+                        options: ["To", "CC"],
+                        reqd: 1,
+                        in_list_view: 1
+                    },
+                    {
+                        fieldtype: "Link",
+                        fieldname: "user",
+                        label: "User",
+                        options: "User",
+                        reqd: 1,
+                        in_list_view: 1
+                    }
+                ]
+            }
+        ],
+
+        primary_action_label: "Send Letter",
+
+        primary_action(values) {
+
+            let to_users = [];
+            let cc_users = [];
+
+            // default TO should be employee’s email
+            if (frm.doc.company_email) {
+                to_users.push(frm.doc.company_email);
+            }
+
+            values.recipient_table.forEach(row => {
+                if (row.recipient_type === "To") {
+                    to_users.push(row.user);
+                } else {
+                    cc_users.push(row.user);
+                }
+            });
+
+            frappe.call({
+                method: "prompt_hr.py.employee.send_probation_extension_letter",
+                args: {
+                    name: frm.doc.name,
+                    to: to_users,
+                    cc: cc_users
+                },
+                callback(r) {
+                    frappe.msgprint(r.message || "probation Letter Sent");
+                    d.hide();
+                }
+            });
+        }
+    });
+
+    d.show();
+}
+
+// to cc confirmation letter
+function show_confirmation_to_cc_dialog(frm) {
+
+    const d = new frappe.ui.Dialog({
+        title: "Send Confirmation Letter",
+        fields: [
+            {
+                fieldname: "recipient_table",
+                label: "Recipients",
+                fieldtype: "Table",
+                cannot_add_rows: false,
+                in_place_edit: true,
+                fields: [
+                    {
+                        fieldtype: "Select",
+                        fieldname: "recipient_type",
+                        label: "Type",
+                        options: ["To", "CC"],
+                        reqd: 1,
+                        in_list_view: 1
+                    },
+                    {
+                        fieldtype: "Link",
+                        fieldname: "user",
+                        label: "User",
+                        options: "User",
+                        reqd: 1,
+                        in_list_view: 1
+                    }
+                ]
+            }
+        ],
+
+        primary_action_label: "Send Letter",
+
+        primary_action(values) {
+
+            let to_users = [];
+            let cc_users = [];
+
+            // default TO should be employee’s email
+            if (frm.doc.company_email) {
+                to_users.push(frm.doc.company_email);
+            }
+
+            values.recipient_table.forEach(row => {
+                if (row.recipient_type === "To") {
+                    to_users.push(row.user);
+                } else {
+                    cc_users.push(row.user);
+                }
+            });
+
+            frappe.call({
+                method: "prompt_hr.py.employee.send_confirmation_letter",
+                args: {
+                    name: frm.doc.name,
+                    to: to_users,
+                    cc: cc_users
+                },
+                callback(r) {
+                    frappe.msgprint(r.message || "Confirmation Letter Sent");
+                    d.hide();
+                }
+            });
+        }
+    });
+
+    d.show();
+}
+
+
+function show_non_disclosure_to_cc_dialog(frm) {
+
+    const d = new frappe.ui.Dialog({
+        title: "Send Non Disclosure Letter",
+        fields: [
+            {
+                fieldname: "recipient_table",
+                label: "Recipients",
+                fieldtype: "Table",
+                cannot_add_rows: false,
+                in_place_edit: true,
+                fields: [
+                    {
+                        fieldtype: "Select",
+                        fieldname: "recipient_type",
+                        label: "Type",
+                        options: ["To", "CC"],
+                        reqd: 1,
+                        in_list_view: 1
+                    },
+                    {
+                        fieldtype: "Link",
+                        fieldname: "user",
+                        label: "User",
+                        options: "User",
+                        reqd: 1,
+                        in_list_view: 1
+                    }
+                ]
+            }
+        ],
+
+        primary_action_label: "Send Letter",
+
+        primary_action(values) {
+
+            let to_users = [];
+            let cc_users = [];
+
+            // default TO should be employee’s email
+            if (frm.doc.company_email) {
+                to_users.push(frm.doc.company_email);
+            }
+
+            values.recipient_table.forEach(row => {
+                if (row.recipient_type === "To") {
+                    to_users.push(row.user);
+                } else {
+                    cc_users.push(row.user);
+                }
+            });
+
+            frappe.call({
+                method: "prompt_hr.py.employee.send_non_disclosure_letter",
+                args: {
+                    name: frm.doc.name,
+                    to: to_users,
+                    cc: cc_users
+                },
+                callback(r) {
+                    frappe.msgprint(r.message || "Confirmation Letter Sent");
+                    d.hide();
+                }
+            });
+        }
+    });
+
+    d.show();
+}
+
+function show_consultant_service_to_cc_dialog(frm) {
+
+    const d = new frappe.ui.Dialog({
+        title: "Send Consultant Service Letter",
+        fields: [
+            {
+                fieldname: "recipient_table",
+                label: "Recipients",
+                fieldtype: "Table",
+                cannot_add_rows: false,
+                in_place_edit: true,
+                fields: [
+                    {
+                        fieldtype: "Select",
+                        fieldname: "recipient_type",
+                        label: "Type",
+                        options: ["To", "CC"],
+                        reqd: 1,
+                        in_list_view: 1
+                    },
+                    {
+                        fieldtype: "Link",
+                        fieldname: "user",
+                        label: "User",
+                        options: "User",
+                        reqd: 1,
+                        in_list_view: 1
+                    }
+                ]
+            }
+        ],
+
+        primary_action_label: "Send Letter",
+
+        primary_action(values) {
+
+            let to_users = [];
+            let cc_users = [];
+
+            // default TO should be employee’s email
+            if (frm.doc.company_email) {
+                to_users.push(frm.doc.company_email);
+            }
+
+            values.recipient_table.forEach(row => {
+                if (row.recipient_type === "To") {
+                    to_users.push(row.user);
+                } else {
+                    cc_users.push(row.user);
+                }
+            });
+
+            frappe.call({
+                method: "prompt_hr.py.employee.send_consultant_service_letter",
+                args: {
+                    name: frm.doc.name,
+                    to: to_users,
+                    cc: cc_users
+                },
+                callback(r) {
+                    frappe.msgprint(r.message || "Confirmation Letter Sent");
+                    d.hide();
+                }
+            });
+        }
+    });
+
+    d.show();
+}
+
+function show_consultant_contract_letter_to_cc_dialog(frm) {
+
+    const d = new frappe.ui.Dialog({
+        title: "Send Consultant Contract Letter",
+        fields: [
+            {
+                fieldname: "recipient_table",
+                label: "Recipients",
+                fieldtype: "Table",
+                cannot_add_rows: false,
+                in_place_edit: true,
+                fields: [
+                    {
+                        fieldtype: "Select",
+                        fieldname: "recipient_type",
+                        label: "Type",
+                        options: ["To", "CC"],
+                        reqd: 1,
+                        in_list_view: 1
+                    },
+                    {
+                        fieldtype: "Link",
+                        fieldname: "user",
+                        label: "User",
+                        options: "User",
+                        reqd: 1,
+                        in_list_view: 1
+                    }
+                ]
+            }
+        ],
+
+        primary_action_label: "Send Letter",
+
+        primary_action(values) {
+
+            let to_users = [];
+            let cc_users = [];
+
+            // default TO should be employee’s email
+            if (frm.doc.company_email) {
+                to_users.push(frm.doc.company_email);
+            }
+
+            values.recipient_table.forEach(row => {
+                if (row.recipient_type === "To") {
+                    to_users.push(row.user);
+                } else {
+                    cc_users.push(row.user);
+                }
+            });
+
+            frappe.call({
+                method: "prompt_hr.py.employee.send_consultant_contract_letter",
+                args: {
+                    name: frm.doc.name,
+                    to: to_users,
+                    cc: cc_users
+                },
+                callback(r) {
+                    frappe.msgprint(r.message || "Confirmation Letter Sent");
+                    d.hide();
+                }
+            });
+        }
+    });
+
+    d.show();
+}
+
+function show_relieving_letter_to_cc_dialog(frm) {
+
+    const d = new frappe.ui.Dialog({
+        title: "Send Relieving Letter",
+        fields: [
+            {
+                fieldname: "recipient_table",
+                label: "Recipients",
+                fieldtype: "Table",
+                cannot_add_rows: false,
+                in_place_edit: true,
+                fields: [
+                    {
+                        fieldtype: "Select",
+                        fieldname: "recipient_type",
+                        label: "Type",
+                        options: ["To", "CC"],
+                        reqd: 1,
+                        in_list_view: 1
+                    },
+                    {
+                        fieldtype: "Link",
+                        fieldname: "user",
+                        label: "User",
+                        options: "User",
+                        reqd: 1,
+                        in_list_view: 1
+                    }
+                ]
+            }
+        ],
+
+        primary_action_label: "Send Letter",
+
+        primary_action(values) {
+
+            let to_users = [];
+            let cc_users = [];
+
+            // default TO should be employee’s email
+            if (frm.doc.company_email) {
+                to_users.push(frm.doc.company_email);
+            }
+
+            values.recipient_table.forEach(row => {
+                if (row.recipient_type === "To") {
+                    to_users.push(row.user);
+                } else {
+                    cc_users.push(row.user);
+                }
+            });
+
+            frappe.call({
+                method: "prompt_hr.py.employee.send_relieving_letter",
+                args: {
+                    name: frm.doc.name,
+                    to: to_users,
+                    cc: cc_users
+                },
+                callback(r) {
+                    frappe.msgprint(r.message || "Confirmation Letter Sent");
+                    d.hide();
+                }
+            });
+        }
+    });
+
+    d.show();
+}
+
+function show_promotion_letter_to_cc_dialog(frm) {
+
+    const d = new frappe.ui.Dialog({
+        title: "Send Promation Letter",
+        fields: [
+            {
+                fieldname: "recipient_table",
+                label: "Recipients",
+                fieldtype: "Table",
+                cannot_add_rows: false,
+                in_place_edit: true,
+                fields: [
+                    {
+                        fieldtype: "Select",
+                        fieldname: "recipient_type",
+                        label: "Type",
+                        options: ["To", "CC"],
+                        reqd: 1,
+                        in_list_view: 1
+                    },
+                    {
+                        fieldtype: "Link",
+                        fieldname: "user",
+                        label: "User",
+                        options: "User",
+                        reqd: 1,
+                        in_list_view: 1
+                    }
+                ]
+            }
+        ],
+
+        primary_action_label: "Send Letter",
+
+        primary_action(values) {
+
+            let to_users = [];
+            let cc_users = [];
+
+            // default TO should be employee’s email
+            if (frm.doc.company_email) {
+                to_users.push(frm.doc.company_email);
+            }
+
+            values.recipient_table.forEach(row => {
+                if (row.recipient_type === "To") {
+                    to_users.push(row.user);
+                } else {
+                    cc_users.push(row.user);
+                }
+            });
+
+            frappe.call({
+                method: "prompt_hr.py.employee.send_promation_letter",
+                args: {
+                    name: frm.doc.name,
+                    to: to_users,
+                    cc: cc_users
+                },
+                callback(r) {
+                    frappe.msgprint(r.message || "Confirmation Letter Sent");
+                    d.hide();
+                }
+            });
+        }
+    });
+
+    d.show();
+}
+
 
 frappe.ui.form.on("Probation Extension", {
 
@@ -384,9 +2170,6 @@ frappe.ui.form.on("Probation Extension", {
     }
 })
 
-
-
-
 // ? FUNCTION TO CALCULATE notice_period_days = resignation_letter_date - relieving_date
 async function calculate_notice_days_employee(frm) {
     if (!frm.doc.resignation_letter_date) return;
@@ -414,9 +2197,6 @@ async function calculate_notice_days_employee(frm) {
         days
     );
 }
-
-
-
 
 // ? FUNCTION TO APPROVE/REJECT DETAILS UPLOADED BY EMPLOYEE
 function addApproveEmployeeDetailsButton(frm) {

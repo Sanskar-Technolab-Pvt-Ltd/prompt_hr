@@ -20,6 +20,7 @@ from dateutil import relativedelta
 from frappe import _
 import re
 from prompt_hr.py.utils import get_prompt_company_name, get_indifoss_company_name, get_roles_from_hr_settings_by_module, get_email_ids_for_roles
+from frappe.utils.file_manager import save_file
 
 
 # ? FUNCTION TO CREATE WELCOME PAGE RECORD FOR GIVEN USER
@@ -954,29 +955,186 @@ def get_nth_weekday_of_month(year, month, weekday, nth):
     return None
 
 
+# @frappe.whitelist()
+# def send_service_agreement(name):
+#     doc = frappe.get_doc("Employee", name)
+#     notification = frappe.get_doc("Notification", "Service Agreement Letter")
+#     subject = frappe.render_template(notification.subject, {"doc": doc})
+#     message = frappe.render_template(notification.message, {"doc": doc})
+#     email = None
+#     company_abbr = frappe.db.get_value("Company", doc.company, "abbr")
+#     if company_abbr == frappe.db.get_single_value("HR Settings", "custom_prompt_abbr"):
+#         letter_name = "Prompt Equipments _ Service Agreement"
+#     else:
+#         letter_name = "Indifoss _ Service Agreement"
+#     if doc.prefered_contact_email:
+#         if doc.prefered_contact_email == "Company Email":
+#             email = doc.company_email
+#         elif doc.prefered_contact_email == "Personal Email":
+#             email = doc.personal_email
+#         elif doc.prefered_contact_email == "User ID":
+#             email = doc.prefered_email
+#     else:
+#         email = doc.personal_email
+#     attachment = None
+
+#     pdf_content = frappe.get_print(
+#         "Employee", doc.name, print_format=letter_name, as_pdf=True
+#     )
+
+#     attachment = {
+#         "fname": f"{letter_name}.pdf",
+#         "fcontent": pdf_content,
+#     }
+
+#     if email:
+#         frappe.sendmail(
+#             recipients=email,
+#             subject=subject,
+#             content=message,
+#             reference_doctype=doc.doctype,
+#             reference_name=doc.name,
+#             attachments=[attachment] if attachment else None,
+#         )
+#         notify_signatory_on_email(
+#             doc.company,
+#             doc.name,
+#             "Service Agreement Letter",
+#         )
+#         notify_signatory_on_email(
+#             doc.company, doc.name, "Service Agreement Letter", email
+#         )
+#     else:
+#         frappe.throw("No Email found for Employee")
+#     return "Service Agreement sent Successfully"
+
+
+# @frappe.whitelist()
+# def send_confirmation_letter(name):
+#     doc = frappe.get_doc("Employee", name)
+#     notification = frappe.get_doc("Notification", "Confirmation Letter Notification")
+#     subject = frappe.render_template(notification.subject, {"doc": doc})
+#     message = frappe.render_template(notification.message, {"doc": doc})
+
+#     email = None
+#     company_abbr = frappe.db.get_value("Company", doc.company, "abbr")
+#     if company_abbr == frappe.db.get_single_value("HR Settings", "custom_prompt_abbr"):
+#         letter_name = "Confirmation Letter - Prompt"
+#     else:
+#         letter_name = "Confirmation Letter - IndiFOSS"
+#     if doc.prefered_contact_email:
+#         if doc.prefered_contact_email == "Company Email":
+#             email = doc.company_email
+#         elif doc.prefered_contact_email == "Personal Email":
+#             email = doc.personal_email
+#         elif doc.prefered_contact_email == "User ID":
+#             email = doc.prefered_email
+#     else:
+#         email = doc.personal_email
+
+#     attachment = None
+
+#     pdf_content = frappe.get_print(
+#         "Employee", doc.name, print_format=letter_name, as_pdf=True
+#     )
+
+#     attachment = {
+#         "fname": f"{letter_name}.pdf",
+#         "fcontent": pdf_content,
+#     }
+
+#     # ? SEND THE EMAIL
+#     if email:
+#         frappe.sendmail(
+#             recipients=email,
+#             subject=subject,
+#             message=message,
+#             reference_doctype=doc.doctype,
+#             reference_name=doc.name,
+#             attachments=[attachment] if attachment else None,
+#         )
+#         notify_signatory_on_email(
+#             doc.company, doc.name, letter_name
+#         )
+#     else:
+#         frappe.throw("No Email found for Employee")
+
+#     return "Confirmation Letter sent Successfully"
+
+
+# @frappe.whitelist()
+# def send_probation_extension_letter(name):
+#     doc = frappe.get_doc("Employee", name)
+#     notification = frappe.get_doc(
+#         "Notification", "Probation Extension Letter Notification"
+#     )
+#     subject = frappe.render_template(notification.subject, {"doc": doc})
+#     message = frappe.render_template(notification.message, {"doc": doc})
+#     email = None
+
+#     letter_name = "Probation Extension Letter - Prompt"
+
+#     if doc.prefered_contact_email:
+#         if doc.prefered_contact_email == "Company Email":
+#             email = doc.company_email
+#         elif doc.prefered_contact_email == "Personal Email":
+#             email = doc.personal_email
+#         elif doc.prefered_contact_email == "User ID":
+#             email = doc.prefered_email
+#     else:
+#         email = doc.personal_email
+
+#     attachment = None
+
+#     pdf_content = frappe.get_print(
+#         "Employee", doc.name, print_format=letter_name, as_pdf=True
+#     )
+
+#     attachment = {
+#         "fname": f"{letter_name}.pdf",
+#         "fcontent": pdf_content,
+#     }
+#     if email:
+
+#         frappe.sendmail(
+#             recipients=email,
+#             subject=subject,
+#             content=message,
+#             reference_doctype=doc.doctype,
+#             reference_name=doc.name,
+#             attachments=[attachment] if attachment else None,
+#         )
+#         notify_signatory_on_email(
+#             doc.company, doc.name, letter_name
+#         )
+#     else:
+#         frappe.throw("No Email found for Employee")
+#     return "Probation Extension Letter sent Successfully"
+
+
+# SLA notification 
 @frappe.whitelist()
-def send_service_agreement(name):
+def send_service_agreement(name, to=None, cc=None):
+    to = frappe.parse_json(to) if to else []
+    cc = frappe.parse_json(cc) if cc else []
+
     doc = frappe.get_doc("Employee", name)
     notification = frappe.get_doc("Notification", "Service Agreement Letter")
+
     subject = frappe.render_template(notification.subject, {"doc": doc})
     message = frappe.render_template(notification.message, {"doc": doc})
-    email = None
-    company_abbr = frappe.db.get_value("Company", doc.company, "abbr")
-    if company_abbr == frappe.db.get_single_value("HR Settings", "custom_prompt_abbr"):
-        letter_name = "Prompt Equipments _ Service Agreement"
-    else:
-        letter_name = "Indifoss _ Service Agreement"
-    if doc.prefered_contact_email:
-        if doc.prefered_contact_email == "Company Email":
-            email = doc.company_email
-        elif doc.prefered_contact_email == "Personal Email":
-            email = doc.personal_email
-        elif doc.prefered_contact_email == "User ID":
-            email = doc.prefered_email
-    else:
-        email = doc.personal_email
-    attachment = None
 
+    # Choose print format
+    company_abbr = frappe.db.get_value("Company", doc.company, "abbr")
+    prompt_abbr = frappe.db.get_single_value("HR Settings", "custom_prompt_abbr")
+
+    letter_name = (
+        "Prompt Equipments _ Service Agreement"
+        if company_abbr == prompt_abbr
+        else "Indifoss _ Service Agreement"
+    )
+
+    # Generate PDF
     pdf_content = frappe.get_print(
         "Employee", doc.name, print_format=letter_name, as_pdf=True
     )
@@ -986,52 +1144,49 @@ def send_service_agreement(name):
         "fcontent": pdf_content,
     }
 
-    if email:
-        frappe.sendmail(
-            recipients=email,
-            subject=subject,
-            content=message,
-            reference_doctype=doc.doctype,
-            reference_name=doc.name,
-            attachments=[attachment] if attachment else None,
-        )
-        notify_signatory_on_email(
-            doc.company,
-            doc.name,
-            "Service Agreement Letter",
-        )
-        notify_signatory_on_email(
-            doc.company, doc.name, "Service Agreement Letter", email
-        )
-    else:
-        frappe.throw("No Email found for Employee")
+    if not to:
+        frappe.throw("No TO email recipients provided.")
+
+    # Send email
+    frappe.sendmail(
+        recipients=to,
+        cc=cc,
+        subject=subject,
+        content=message,
+        reference_doctype=doc.doctype,
+        reference_name=doc.name,
+        attachments=[attachment],
+    )
+
+    # Notify signatory
+    notify_signatory_on_email(
+        doc.company,
+        doc.name,
+        "Service Agreement Letter",
+    )
+
     return "Service Agreement sent Successfully"
 
-
+# Confirmation letter notification
 @frappe.whitelist()
-def send_confirmation_letter(name):
+def send_confirmation_letter(name, to=None, cc=None):
+    to = frappe.parse_json(to) if to else []
+    cc = frappe.parse_json(cc) if cc else []
+
     doc = frappe.get_doc("Employee", name)
     notification = frappe.get_doc("Notification", "Confirmation Letter Notification")
+
     subject = frappe.render_template(notification.subject, {"doc": doc})
     message = frappe.render_template(notification.message, {"doc": doc})
 
-    email = None
     company_abbr = frappe.db.get_value("Company", doc.company, "abbr")
-    if company_abbr == frappe.db.get_single_value("HR Settings", "custom_prompt_abbr"):
-        letter_name = "Confirmation Letter - Prompt"
-    else:
-        letter_name = "Confirmation Letter - IndiFOSS"
-    if doc.prefered_contact_email:
-        if doc.prefered_contact_email == "Company Email":
-            email = doc.company_email
-        elif doc.prefered_contact_email == "Personal Email":
-            email = doc.personal_email
-        elif doc.prefered_contact_email == "User ID":
-            email = doc.prefered_email
-    else:
-        email = doc.personal_email
+    prompt_abbr = frappe.db.get_single_value("HR Settings", "custom_prompt_abbr")
 
-    attachment = None
+    letter_name = (
+        "Confirmation Letter - Prompt"
+        if company_abbr == prompt_abbr
+        else "Confirmation Letter - IndiFOSS"
+    )
 
     pdf_content = frappe.get_print(
         "Employee", doc.name, print_format=letter_name, as_pdf=True
@@ -1042,48 +1197,35 @@ def send_confirmation_letter(name):
         "fcontent": pdf_content,
     }
 
-    # ? SEND THE EMAIL
-    if email:
-        frappe.sendmail(
-            recipients=email,
-            subject=subject,
-            message=message,
-            reference_doctype=doc.doctype,
-            reference_name=doc.name,
-            attachments=[attachment] if attachment else None,
-        )
-        notify_signatory_on_email(
-            doc.company, doc.name, letter_name
-        )
-    else:
-        frappe.throw("No Email found for Employee")
+    if not to:
+        frappe.throw("No TO email recipients provided.")
+
+    frappe.sendmail(
+        recipients=to,
+        cc=cc,
+        subject=subject,
+        content=message,
+        reference_doctype=doc.doctype,
+        reference_name=doc.name,
+        attachments=[attachment],
+    )
+
+    notify_signatory_on_email(doc.company, doc.name, letter_name)
 
     return "Confirmation Letter sent Successfully"
 
-
 @frappe.whitelist()
-def send_probation_extension_letter(name):
+def send_non_disclosure_letter(name, to=None, cc=None):
+    to = frappe.parse_json(to) if to else []
+    cc = frappe.parse_json(cc) if cc else []
+
     doc = frappe.get_doc("Employee", name)
-    notification = frappe.get_doc(
-        "Notification", "Probation Extension Letter Notification"
-    )
+    notification = frappe.get_doc("Notification", "Non-Disclosure Agreement")
+
     subject = frappe.render_template(notification.subject, {"doc": doc})
     message = frappe.render_template(notification.message, {"doc": doc})
-    email = None
 
-    letter_name = "Probation Extension Letter - Prompt"
-
-    if doc.prefered_contact_email:
-        if doc.prefered_contact_email == "Company Email":
-            email = doc.company_email
-        elif doc.prefered_contact_email == "Personal Email":
-            email = doc.personal_email
-        elif doc.prefered_contact_email == "User ID":
-            email = doc.prefered_email
-    else:
-        email = doc.personal_email
-
-    attachment = None
+    letter_name = "Non-Disclosure Agreement - Prompt"
 
     pdf_content = frappe.get_print(
         "Employee", doc.name, print_format=letter_name, as_pdf=True
@@ -1093,21 +1235,222 @@ def send_probation_extension_letter(name):
         "fname": f"{letter_name}.pdf",
         "fcontent": pdf_content,
     }
-    if email:
 
-        frappe.sendmail(
-            recipients=email,
-            subject=subject,
-            content=message,
-            reference_doctype=doc.doctype,
-            reference_name=doc.name,
-            attachments=[attachment] if attachment else None,
-        )
-        notify_signatory_on_email(
-            doc.company, doc.name, letter_name
-        )
-    else:
-        frappe.throw("No Email found for Employee")
+    if not to:
+        frappe.throw("No TO email recipients provided.")
+
+    frappe.sendmail(
+        recipients=to,
+        cc=cc,
+        subject=subject,
+        content=message,
+        reference_doctype=doc.doctype,
+        reference_name=doc.name,
+        attachments=[attachment],
+    )
+
+    notify_signatory_on_email(doc.company, doc.name, letter_name)
+
+    return "Non-Disclosure Agreement Letter sent Successfully"
+
+# probation letter notificationS
+@frappe.whitelist()
+def send_probation_extension_letter(name, to=None, cc=None):
+    to = frappe.parse_json(to) if to else []
+    cc = frappe.parse_json(cc) if cc else []
+
+    doc = frappe.get_doc("Employee", name)
+    notification = frappe.get_doc("Notification", "Probation Extension Letter Notification")
+
+    subject = frappe.render_template(notification.subject, {"doc": doc})
+    message = frappe.render_template(notification.message, {"doc": doc})
+
+    letter_name = "Probation Extension Letter - Prompt"
+
+    pdf_content = frappe.get_print(
+        "Employee", doc.name, print_format=letter_name, as_pdf=True
+    )
+
+    attachment = {
+        "fname": f"{letter_name}.pdf",
+        "fcontent": pdf_content,
+    }
+
+    if not to:
+        frappe.throw("No TO email recipients provided.")
+
+    frappe.sendmail(
+        recipients=to,
+        cc=cc,
+        subject=subject,
+        content=message,
+        reference_doctype=doc.doctype,
+        reference_name=doc.name,
+        attachments=[attachment],
+    )
+
+    notify_signatory_on_email(doc.company, doc.name, letter_name)
+
+    return "Probation Extension Letter sent Successfully"
+
+
+@frappe.whitelist()
+def send_consultant_service_letter(name, to=None, cc=None):
+    to = frappe.parse_json(to) if to else []
+    cc = frappe.parse_json(cc) if cc else []
+
+    doc = frappe.get_doc("Employee", name)
+    notification = frappe.get_doc("Notification", "Probation Extension Letter Notification")
+
+    subject = frappe.render_template(notification.subject, {"doc": doc})
+    message = frappe.render_template(notification.message, {"doc": doc})
+
+    letter_name = "Probation Extension Letter - Prompt"
+
+    pdf_content = frappe.get_print(
+        "Employee", doc.name, print_format=letter_name, as_pdf=True
+    )
+
+    attachment = {
+        "fname": f"{letter_name}.pdf",
+        "fcontent": pdf_content,
+    }
+
+    if not to:
+        frappe.throw("No TO email recipients provided.")
+
+    frappe.sendmail(
+        recipients=to,
+        cc=cc,
+        subject=subject,
+        content=message,
+        reference_doctype=doc.doctype,
+        reference_name=doc.name,
+        attachments=[attachment],
+    )
+
+    notify_signatory_on_email(doc.company, doc.name, letter_name)
+
+    return "Probation Extension Letter sent Successfully"
+
+
+@frappe.whitelist()
+def send_consultant_contract_letter(name, to=None, cc=None):
+    to = frappe.parse_json(to) if to else []
+    cc = frappe.parse_json(cc) if cc else []
+
+    doc = frappe.get_doc("Employee", name)
+    notification = frappe.get_doc("Notification", "Probation Extension Letter Notification")
+
+    subject = frappe.render_template(notification.subject, {"doc": doc})
+    message = frappe.render_template(notification.message, {"doc": doc})
+
+    letter_name = "Probation Extension Letter - Prompt"
+
+    pdf_content = frappe.get_print(
+        "Employee", doc.name, print_format=letter_name, as_pdf=True
+    )
+
+    attachment = {
+        "fname": f"{letter_name}.pdf",
+        "fcontent": pdf_content,
+    }
+
+    if not to:
+        frappe.throw("No TO email recipients provided.")
+
+    frappe.sendmail(
+        recipients=to,
+        cc=cc,
+        subject=subject,
+        content=message,
+        reference_doctype=doc.doctype,
+        reference_name=doc.name,
+        attachments=[attachment],
+    )
+
+    notify_signatory_on_email(doc.company, doc.name, letter_name)
+
+    return "Probation Extension Letter sent Successfully"
+
+
+@frappe.whitelist()
+def send_promation_letter(name, to=None, cc=None):
+    to = frappe.parse_json(to) if to else []
+    cc = frappe.parse_json(cc) if cc else []
+
+    doc = frappe.get_doc("Employee", name)
+    notification = frappe.get_doc("Notification", "Probation Extension Letter Notification")
+
+    subject = frappe.render_template(notification.subject, {"doc": doc})
+    message = frappe.render_template(notification.message, {"doc": doc})
+
+    letter_name = "Probation Extension Letter - Prompt"
+
+    pdf_content = frappe.get_print(
+        "Employee", doc.name, print_format=letter_name, as_pdf=True
+    )
+
+    attachment = {
+        "fname": f"{letter_name}.pdf",
+        "fcontent": pdf_content,
+    }
+
+    if not to:
+        frappe.throw("No TO email recipients provided.")
+
+    frappe.sendmail(
+        recipients=to,
+        cc=cc,
+        subject=subject,
+        content=message,
+        reference_doctype=doc.doctype,
+        reference_name=doc.name,
+        attachments=[attachment],
+    )
+
+    notify_signatory_on_email(doc.company, doc.name, letter_name)
+
+    return "Probation Extension Letter sent Successfully"
+
+
+@frappe.whitelist()
+def send_relieving_letter(name, to=None, cc=None):
+    to = frappe.parse_json(to) if to else []
+    cc = frappe.parse_json(cc) if cc else []
+
+    doc = frappe.get_doc("Employee", name)
+    notification = frappe.get_doc("Notification", "Probation Extension Letter Notification")
+
+    subject = frappe.render_template(notification.subject, {"doc": doc})
+    message = frappe.render_template(notification.message, {"doc": doc})
+
+    letter_name = "Probation Extension Letter - Prompt"
+
+    pdf_content = frappe.get_print(
+        "Employee", doc.name, print_format=letter_name, as_pdf=True
+    )
+
+    attachment = {
+        "fname": f"{letter_name}.pdf",
+        "fcontent": pdf_content,
+    }
+
+    if not to:
+        frappe.throw("No TO email recipients provided.")
+
+    frappe.sendmail(
+        recipients=to,
+        cc=cc,
+        subject=subject,
+        content=message,
+        reference_doctype=doc.doctype,
+        reference_name=doc.name,
+        attachments=[attachment],
+    )
+
+    notify_signatory_on_email(doc.company, doc.name, letter_name)
+
     return "Probation Extension Letter sent Successfully"
 
 
@@ -2713,3 +3056,485 @@ def rename_selected_employees_background(employee_list):
     )
 
     return renamed_employees
+
+
+@frappe.whitelist()
+def create_employee_letter_approval(employee_id, letter=None, released_by_emp_code_and_name=None,
+                                    send_company_email=False, send_personal_email=False, record= None,
+                                    record_link=None):
+    """
+    Create an Employee Letter Approval record, generate PDF and attach it.
+    """
+    emp = frappe.get_doc("Employee", employee_id)
+
+    doc = frappe.get_doc({
+        "doctype": "Employee Letter Approval",
+        "employee": emp.name,
+        "employee_name": emp.employee_name,
+        "department": emp.department,
+        "letter": letter,
+        "company_email": emp.company_email,
+        "personal_email": emp.personal_email,
+        "released_on_company_email": 1 if str(send_company_email).lower() in ("true", "1") else 0,
+        "released_on_personal_email": 1 if str(send_personal_email).lower() in ("true", "1") else 0,
+        "pending_approval_emp_code_and_name": None,
+        "record": record,
+        "record_link": record_link,
+        "released_by_emp_code_and_name": released_by_emp_code_and_name
+    })
+    doc.insert(ignore_permissions=True)
+
+    # generate PDF using print format (use frappe.get_print)
+    try:
+        company_abbr = frappe.db.get_value("Company", emp.company, "abbr")
+        # choose print format based on company if you keep different names
+        if company_abbr == frappe.db.get_single_value("HR Settings", "custom_prompt_abbr"):
+            letter_name = "Prompt Equipments _ Service Agreement New"
+        else:
+            letter_name = "Indifoss _ Service Agreement"
+
+        # get PDF bytes from print
+        pdf_content = frappe.get_print("Employee", emp.name, print_format=letter_name, as_pdf=True)
+
+        # save file and attach to Employee Letter Approval doc
+        file_doc = save_file(f"{emp.name}-{letter_name}.pdf", pdf_content, doc.doctype, doc.name, is_private=False)
+        if file_doc:
+            try:
+                doc.db_set("attachment", file_doc.file_url)
+            except Exception:
+                pass
+
+    except Exception:
+        # fallback to simple html rendering if print format fails
+        try:
+            html = frappe.render_template("prompt_hr/templates/includes/employee_letter.html", {"employee": emp, "letter": letter})
+            pdf = get_pdf(html)
+            file_doc = save_file(f"{emp.name}-{letter}.pdf", pdf, doc.doctype, doc.name, is_private=False)
+            if file_doc:
+                try:
+                    doc.db_set("attachment", file_doc.file_url)
+                except Exception:
+                    pass
+        except Exception:
+            frappe.log_error(frappe.get_traceback(), "create_employee_letter_approval: PDF generation failed")
+
+    return {"status": "success", "message": _("Letter recorded: {0}").format(doc.name)}
+
+
+@frappe.whitelist()
+def create_confirmation_letter_approval(employee_id, letter=None, released_by_emp_code_and_name=None,
+                                    send_company_email=False, send_personal_email=False, record= None,
+                                    record_link=None):
+    """
+    Create an Employee Letter Approval record, generate PDF and attach it.
+    """
+    emp = frappe.get_doc("Employee", employee_id)
+
+    doc = frappe.get_doc({
+        "doctype": "Employee Letter Approval",
+        "employee": emp.name,
+        "employee_name": emp.employee_name,
+        "department": emp.department,
+        "letter": emp.letter,
+        "company_email": emp.company_email,
+        "personal_email": emp.personal_email,
+        "released_on_company_email": 1 if str(send_company_email).lower() in ("true", "1") else 0,
+        "released_on_personal_email": 1 if str(send_personal_email).lower() in ("true", "1") else 0,
+        "record": record,
+        "record_link": record_link,
+        "released_by_emp_code_and_name": released_by_emp_code_and_name
+    })
+    doc.insert(ignore_permissions=True)
+
+    # generate PDF using print format (use frappe.get_print)
+    try:
+        company_abbr = frappe.db.get_value("Company", emp.company, "abbr")
+        # choose print format based on company if you keep different names
+        if company_abbr == frappe.db.get_single_value("HR Settings", "custom_prompt_abbr"):
+            letter_name = "Confirmation Letter - Prompt"
+
+        # get PDF bytes from print
+        pdf_content = frappe.get_print("Employee", emp.name, print_format=letter_name, as_pdf=True)
+
+        # save file and attach to Employee Letter Approval doc
+        file_doc = save_file(f"{emp.name}-{letter_name}.pdf", pdf_content, doc.doctype, doc.name, is_private=False)
+        if file_doc:
+            try:
+                doc.db_set("attachment", file_doc.file_url)
+            except Exception:
+                pass
+
+    except Exception:
+        # fallback to simple html rendering if print format fails
+        try:
+            html = frappe.render_template("prompt_hr/templates/includes/confirmation_letter.html", {"employee": emp, "letter": letter})
+            pdf = get_pdf(html)
+            file_doc = save_file(f"{emp.name}-{letter}.pdf", pdf, doc.doctype, doc.name, is_private=False)
+            if file_doc:
+                try:
+                    doc.db_set("attachment", file_doc.file_url)
+                except Exception:
+                    pass
+        except Exception:
+            frappe.log_error(frappe.get_traceback(), "create_confirmation_letter_approval: PDF generation failed")
+
+    return {"status": "success", "message": _("Letter recorded: {0}").format(doc.name)}
+
+
+@frappe.whitelist()
+def create_probation_letter_approval(employee_id, letter=None, released_by_emp_code_and_name=None,
+                                    send_company_email=False, send_personal_email=False, record= None,
+                                    record_link=None):
+    """
+    Create an Employee Letter Approval record, generate PDF and attach it.
+    """
+    emp = frappe.get_doc("Employee", employee_id)
+
+    doc = frappe.get_doc({
+        "doctype": "Employee Letter Approval",
+        "employee": emp.name,
+        "employee_name": emp.employee_name,
+        "department": emp.department,
+        "letter": letter,
+        "company_email": emp.company_email,
+        "personal_email": emp.personal_email,
+        "released_on_company_email": 1 if str(send_company_email).lower() in ("true", "1") else 0,
+        "released_on_personal_email": 1 if str(send_personal_email).lower() in ("true", "1") else 0,
+        "record": record,
+        "record_link": record_link,
+        "released_by_emp_code_and_name": released_by_emp_code_and_name
+    })
+    doc.insert(ignore_permissions=True)
+
+    # generate PDF using print format (use frappe.get_print)
+    try:
+        company_abbr = frappe.db.get_value("Company", emp.company, "abbr")
+        # choose print format based on company if you keep different names
+        if company_abbr == frappe.db.get_single_value("HR Settings", "custom_prompt_abbr"):
+            letter_name = letter
+        # get PDF bytes from print
+        pdf_content = frappe.get_print("Employee", emp.name, print_format=letter_name, as_pdf=True)
+
+        # save file and attach to Employee Letter Approval doc
+        file_doc = save_file(f"{emp.name}-{letter_name}.pdf", pdf_content, doc.doctype, doc.name, is_private=False)
+        if file_doc:
+            try:
+                doc.db_set("attachment", file_doc.file_url)
+            except Exception:
+                pass
+
+    except Exception:
+        # fallback to simple html rendering if print format fails
+        try:
+            html = frappe.render_template("prompt_hr/templates/includes/confirmation_letter.html", {"employee": emp, "letter": letter})
+            pdf = get_pdf(html)
+            file_doc = save_file(f"{emp.name}-{letter}.pdf", pdf, doc.doctype, doc.name, is_private=False)
+            if file_doc:
+                try:
+                    doc.db_set("attachment", file_doc.file_url)
+                except Exception:
+                    pass
+        except Exception:
+            frappe.log_error(frappe.get_traceback(), "create_confirmation_letter_approval: PDF generation failed")
+
+    return {"status": "success", "message": _("Letter recorded: {0}").format(doc.name)}
+
+
+@frappe.whitelist()
+def create_non_disclosure_letter_approval(employee_id, letter=None, released_by_emp_code_and_name=None,
+                                    send_company_email=False, send_personal_email=False, record= None,
+                                    record_link=None):
+    """
+    Create an Employee Letter Approval record, generate PDF and attach it.
+    """
+    emp = frappe.get_doc("Employee", employee_id)
+
+    doc = frappe.get_doc({
+        "doctype": "Employee Letter Approval",
+        "employee": emp.name,
+        "employee_name": emp.employee_name,
+        "department": emp.department,
+        "letter": letter,
+        "company_email": emp.company_email,
+        "personal_email": emp.personal_email,
+        "released_on_company_email": 1 if str(send_company_email).lower() in ("true", "1") else 0,
+        "released_on_personal_email": 1 if str(send_personal_email).lower() in ("true", "1") else 0,
+        "record": record,
+        "record_link": record_link,
+        "released_by_emp_code_and_name": released_by_emp_code_and_name
+    })
+    doc.insert(ignore_permissions=True)
+
+    # generate PDF using print format (use frappe.get_print)
+    try:
+        company_abbr = frappe.db.get_value("Company", emp.company, "abbr")
+        # choose print format based on company if you keep different names
+        if company_abbr == frappe.db.get_single_value("HR Settings", "custom_prompt_abbr"):
+            letter_name = letter
+
+        # get PDF bytes from print
+        pdf_content = frappe.get_print("Employee", emp.name, print_format=letter_name, as_pdf=True)
+
+        # save file and attach to Employee Letter Approval doc
+        file_doc = save_file(f"{emp.name}-{letter_name}.pdf", pdf_content, doc.doctype, doc.name, is_private=False)
+        if file_doc:
+            try:
+                doc.db_set("attachment", file_doc.file_url)
+            except Exception:
+                pass
+
+    except Exception:
+        # fallback to simple html rendering if print format fails
+        try:
+            html = frappe.render_template("prompt_hr/templates/includes/non_disclosure_letter.html", {"employee": emp, "letter": letter})
+            pdf = get_pdf(html)
+            file_doc = save_file(f"{emp.name}-{letter}.pdf", pdf, doc.doctype, doc.name, is_private=False)
+            if file_doc:
+                try:
+                    doc.db_set("attachment", file_doc.file_url)
+                except Exception:
+                    pass
+        except Exception:
+            frappe.log_error(frappe.get_traceback(), "create_non_disclosure_letter_approval: PDF generation failed")
+
+    return {"status": "success", "message": _("Letter recorded: {0}").format(doc.name)}
+
+
+@frappe.whitelist()
+def create_consultant_service_letter_completion_letter_approval(employee_id, letter=None, released_by_emp_code_and_name=None,
+                                    send_company_email=False, send_personal_email=False, record= None,
+                                    record_link=None):
+    """
+    Create an Employee Letter Approval record, generate PDF and attach it.
+    """
+    emp = frappe.get_doc("Employee", employee_id)
+
+    doc = frappe.get_doc({
+        "doctype": "Employee Letter Approval",
+        "employee": emp.name,
+        "employee_name": emp.employee_name,
+        "department": emp.department,
+        "letter": letter,
+        "company_email": emp.company_email,
+        "personal_email": emp.personal_email,
+        "released_on_company_email": 1 if str(send_company_email).lower() in ("true", "1") else 0,
+        "released_on_personal_email": 1 if str(send_personal_email).lower() in ("true", "1") else 0,
+        "record": record,
+        "record_link": record_link,
+        "released_by_emp_code_and_name": released_by_emp_code_and_name
+    })
+    doc.insert(ignore_permissions=True)
+
+    # generate PDF using print format (use frappe.get_print)
+    try:
+        company_abbr = frappe.db.get_value("Company", emp.company, "abbr")
+        # choose print format based on company if you keep different names
+        if company_abbr == frappe.db.get_single_value("HR Settings", "custom_prompt_abbr"):
+            letter_name = letter
+
+        # get PDF bytes from print
+        pdf_content = frappe.get_print("Employee", emp.name, print_format=letter_name, as_pdf=True)
+
+        # save file and attach to Employee Letter Approval doc
+        file_doc = save_file(f"{emp.name}-{letter_name}.pdf", pdf_content, doc.doctype, doc.name, is_private=False)
+        if file_doc:
+            try:
+                doc.db_set("attachment", file_doc.file_url)
+            except Exception:
+                pass
+
+    except Exception:
+        # fallback to simple html rendering if print format fails
+        try:
+            html = frappe.render_template("prompt_hr/templates/includes/consultant_service_letter.html", {"employee": emp, "letter": letter})
+            pdf = get_pdf(html)
+            file_doc = save_file(f"{emp.name}-{letter}.pdf", pdf, doc.doctype, doc.name, is_private=False)
+            if file_doc:
+                try:
+                    doc.db_set("attachment", file_doc.file_url)
+                except Exception:
+                    pass
+        except Exception:
+            frappe.log_error(frappe.get_traceback(), "create_consultant_service_letter_completion_letter_approval: PDF generation failed")
+
+    return {"status": "success", "message": _("Letter recorded: {0}").format(doc.name)}
+
+
+@frappe.whitelist()
+def create_consultant_contract_letter_approval(employee_id, letter=None, released_by_emp_code_and_name=None,
+                                    send_company_email=False, send_personal_email=False, record= None,
+                                    record_link=None):
+    """
+    Create an Employee Letter Approval record, generate PDF and attach it.
+    """
+    emp = frappe.get_doc("Employee", employee_id)
+
+    doc = frappe.get_doc({
+        "doctype": "Employee Letter Approval",
+        "employee": emp.name,
+        "employee_name": emp.employee_name,
+        "department": emp.department,
+        "letter": letter,
+        "company_email": emp.company_email,
+        "personal_email": emp.personal_email,
+        "released_on_company_email": 1 if str(send_company_email).lower() in ("true", "1") else 0,
+        "released_on_personal_email": 1 if str(send_personal_email).lower() in ("true", "1") else 0,
+        "record": record,
+        "record_link": record_link,
+        "released_by_emp_code_and_name": released_by_emp_code_and_name
+    })
+    doc.insert(ignore_permissions=True)
+
+    # generate PDF using print format (use frappe.get_print)
+    try:
+        company_abbr = frappe.db.get_value("Company", emp.company, "abbr")
+        # choose print format based on company if you keep different names
+        if company_abbr == frappe.db.get_single_value("HR Settings", "custom_prompt_abbr"):
+            letter_name = letter
+
+        # get PDF bytes from print
+        pdf_content = frappe.get_print("Employee", emp.name, print_format=letter_name, as_pdf=True)
+
+        # save file and attach to Employee Letter Approval doc
+        file_doc = save_file(f"{emp.name}-{letter_name}.pdf", pdf_content, doc.doctype, doc.name, is_private=False)
+        if file_doc:
+            try:
+                doc.db_set("attachment", file_doc.file_url)
+            except Exception:
+                pass
+
+    except Exception:
+        # fallback to simple html rendering if print format fails
+        try:
+            html = frappe.render_template("prompt_hr/templates/includes/consultant_contract_letter.html", {"employee": emp, "letter": letter})
+            pdf = get_pdf(html)
+            file_doc = save_file(f"{emp.name}-{letter}.pdf", pdf, doc.doctype, doc.name, is_private=False)
+            if file_doc:
+                try:
+                    doc.db_set("attachment", file_doc.file_url)
+                except Exception:
+                    pass
+        except Exception:
+            frappe.log_error(frappe.get_traceback(), "consultant_contract_letter: PDF generation failed")
+
+    return {"status": "success", "message": _("Letter recorded: {0}").format(doc.name)}
+
+
+@frappe.whitelist()
+def create_relieving_experience_letter_approval(employee_id, letter=None, released_by_emp_code_and_name=None,
+                                    send_company_email=False, send_personal_email=False, record= None,
+                                    record_link=None):
+    """
+    Create an Employee Letter Approval record, generate PDF and attach it.
+    """
+    emp = frappe.get_doc("Employee", employee_id)
+
+    doc = frappe.get_doc({
+        "doctype": "Employee Letter Approval",
+        "employee": emp.name,
+        "employee_name": emp.employee_name,
+        "department": emp.department,
+        "letter": letter,
+        "company_email": emp.company_email,
+        "personal_email": emp.personal_email,
+        "released_on_company_email": 1 if str(send_company_email).lower() in ("true", "1") else 0,
+        "released_on_personal_email": 1 if str(send_personal_email).lower() in ("true", "1") else 0,
+        "record": record,
+        "record_link": record_link,
+        "released_by_emp_code_and_name": released_by_emp_code_and_name
+    })
+    doc.insert(ignore_permissions=True)
+
+    # generate PDF using print format (use frappe.get_print)
+    try:
+        company_abbr = frappe.db.get_value("Company", emp.company, "abbr")
+        # choose print format based on company if you keep different names
+        if company_abbr == frappe.db.get_single_value("HR Settings", "custom_prompt_abbr"):
+            letter_name = letter
+
+        # get PDF bytes from print
+        pdf_content = frappe.get_print("Employee", emp.name, print_format=letter_name, as_pdf=True)
+
+        # save file and attach to Employee Letter Approval doc
+        file_doc = save_file(f"{emp.name}-{letter_name}.pdf", pdf_content, doc.doctype, doc.name, is_private=False)
+        if file_doc:
+            try:
+                doc.db_set("attachment", file_doc.file_url)
+            except Exception:
+                pass
+
+    except Exception:
+        # fallback to simple html rendering if print format fails
+        try:
+            html = frappe.render_template("prompt_hr/templates/includes/relieving_letter.html", {"employee": emp, "letter": letter})
+            pdf = get_pdf(html)
+            file_doc = save_file(f"{emp.name}-{letter}.pdf", pdf, doc.doctype, doc.name, is_private=False)
+            if file_doc:
+                try:
+                    doc.db_set("attachment", file_doc.file_url)
+                except Exception:
+                    pass
+        except Exception:
+            frappe.log_error(frappe.get_traceback(), "create_relieving_experience_letter_approval: PDF generation failed")
+
+    return {"status": "success", "message": _("Letter recorded: {0}").format(doc.name)}
+
+
+@frappe.whitelist()
+def create_promotion_letter_approval(employee_id, letter=None, released_by_emp_code_and_name=None,
+                                    send_company_email=False, send_personal_email=False, record= None,
+                                    record_link=None):
+    """
+    Create an Employee Letter Approval record, generate PDF and attach it.
+    """
+    emp = frappe.get_doc("Employee", employee_id)
+
+    doc = frappe.get_doc({
+        "doctype": "Employee Letter Approval",
+        "employee": emp.name,
+        "employee_name": emp.employee_name,
+        "department": emp.department,
+        "letter": letter,
+        "company_email": emp.company_email,
+        "personal_email": emp.personal_email,
+        "released_on_company_email": 1 if str(send_company_email).lower() in ("true", "1") else 0,
+        "released_on_personal_email": 1 if str(send_personal_email).lower() in ("true", "1") else 0,
+        "record": record,
+        "record_link": record_link,
+        "released_by_emp_code_and_name": released_by_emp_code_and_name
+    })
+    doc.insert(ignore_permissions=True)
+
+    # generate PDF using print format (use frappe.get_print)
+    try:
+        company_abbr = frappe.db.get_value("Company", emp.company, "abbr")
+        # choose print format based on company if you keep different names
+        if company_abbr == frappe.db.get_single_value("HR Settings", "custom_prompt_abbr"):
+            letter_name = letter
+
+        # get PDF bytes from print
+        pdf_content = frappe.get_print("Employee", emp.name, print_format=letter_name, as_pdf=True)
+
+        # save file and attach to Employee Letter Approval doc
+        file_doc = save_file(f"{emp.name}-{letter_name}.pdf", pdf_content, doc.doctype, doc.name, is_private=False)
+        if file_doc:
+            try:
+                doc.db_set("attachment", file_doc.file_url)
+            except Exception:
+                pass
+
+    except Exception:
+        # fallback to simple html rendering if print format fails
+        try:
+            html = frappe.render_template("prompt_hr/templates/includes/promotion_letter_approval.html", {"employee": emp, "letter": letter})
+            pdf = get_pdf(html)
+            file_doc = save_file(f"{emp.name}-{letter}.pdf", pdf, doc.doctype, doc.name, is_private=False)
+            if file_doc:
+                try:
+                    doc.db_set("attachment", file_doc.file_url)
+                except Exception:
+                    pass
+        except Exception:
+            frappe.log_error(frappe.get_traceback(), "create_promotion_letter_approval: PDF generation failed")
+
+    return {"status": "success", "message": _("Letter recorded: {0}").format(doc.name)}

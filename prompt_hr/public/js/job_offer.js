@@ -34,25 +34,89 @@ frappe.ui.form.on('Job Offer', {
         show_salary_breakup_preview_button(frm)
 
         // ? ADD RELEASE LOI LETTER BUTTON
+        // if (frm.doc.workflow_state == "Approved") {
+        //     frm.add_custom_button(__("Release LOI Letter"), function () {
+        //         frappe.dom.freeze(__('Releasing Letter...'));
+        //         frappe.call({
+        //             method: "prompt_hr.py.job_offer.send_LOI_letter",
+        //             args: { name: frm.doc.name },
+        //             callback: function (r) {
+        //                 if (r.message) {
+        //                     frappe.msgprint(r.message);
+        //                     frm.reload_doc();
+        //                 }
+        //             },
+        //             always: function () {
+        //                 frappe.dom.unfreeze();
+        //             }
+        //         });
+        //     }, 'Offer Actions');
+        // }
+
+        // 
         if (frm.doc.workflow_state == "Approved") {
-            frm.add_custom_button(__("Release LOI Letter"), function () {
-                frappe.dom.freeze(__('Releasing Letter...'));
+            frm.add_custom_button("Release LOI Letter", () => {
+                frappe.dom.freeze("Releasing LOI...");
+
                 frappe.call({
-                    method: "prompt_hr.py.job_offer.send_LOI_letter",
-                    args: { name: frm.doc.name },
-                    callback: function (r) {
-                        if (r.message) {
-                            frappe.msgprint(r.message);
-                            frm.reload_doc();
-                        }
+                    method: "frappe.client.get_list",
+                    args: {
+                        doctype: "Employee Letter Approval",
+                        fields: ["name", "workflow_state"],
+                        filters: { record_link: frm.doc.name, letter: "LOI" },
+                        order_by: "creation desc",
+                        limit_page_length: 1
                     },
-                    always: function () {
+                    callback(r) {
+
                         frappe.dom.unfreeze();
+                        const record = r.message?.[0];
+
+                        // No approval → Show dialog directly
+                        if (!record) {
+                            show_LOI_dialog(frm);
+                            return;
+                        }
+
+                        // Approval exists but not final → Block
+                        if (record.workflow_state !== "Final Approval") {
+                            frappe.msgprint(__("LOI is under approval."));
+                            return;
+                        }
+
+                        // Final Approval → Ask how to send
+                        frappe.prompt(
+                            [
+                                {
+                                    fieldname: "action",
+                                    fieldtype: "Select",
+                                    label: "Choose Action",
+                                    reqd: 1,
+                                    options: [
+                                        "Resend LOI",
+                                        "Send with TO/CC"
+                                    ]
+                                }
+                            ],
+                            (values) => {
+
+                                if (values.action === "Resend LOI") {
+                                    show_LOI_dialog(frm);
+                                }
+
+                                if (values.action === "Send with TO/CC") {
+                                    show_LOI_to_cc_dialog(frm);
+                                }
+
+                            },
+                            "LOI Approved",
+                            "Continue"
+                        );
                     }
                 });
-            }, 'Offer Actions');
-        }
-        
+
+            }, __("Offer Actions"));
+        }        
     }
 });
 
@@ -119,12 +183,376 @@ function add_release_offer_button(frm) {
     const button_label = already_sent ? "Resend Offer Letter" : "Release Offer Letter";
 
     frm.add_custom_button(button_label, () => {
-        frappe.confirm(
-            `Are you sure you want to ${already_sent ? "resend" : "release"} the offer letter?`,
-            () => release_offer_letter(frm, already_sent)
-        );
-    }, 'Offer Actions');
+        frappe.dom.freeze("Releasing Offer Letter...");
+
+        frappe.call({
+            method: "frappe.client.get_list",
+            args: {
+                doctype: "Employee Letter Approval",
+                fields: ["name", "workflow_state"],
+                filters: { record_link: frm.doc.name, letter: "Offer Letter - PROMPT"},
+                order_by: "creation desc",
+                limit_page_length: 1
+            },
+            callback(r) {
+
+                frappe.dom.unfreeze();
+
+                const record = r.message?.[0];
+
+                // No approval → Show dialog directly
+                if (!record) {
+                    show_offer_letter_dialog(frm, already_sent);
+                    return;
+                }
+
+                // Approval exists but not final → Block
+                if (record.workflow_state !== "Final Approval") {
+                    frappe.msgprint(__("Offer Letter is under approval."));
+                    return;
+                }
+
+                // Final Approval → Ask how to send
+                frappe.prompt(
+                    [
+                        {
+                            fieldname: "action",
+                            fieldtype: "Select",
+                            label: "Choose Action",
+                            reqd: 1,
+                            options: [
+                                "Resend Offer Letter",
+                                "Send with TO/CC"
+                            ]
+                        }
+                    ],
+                    (values) => {
+
+                        if (values.action === "Resend Offer Letter") {
+                            show_offer_letter_dialog(frm, already_sent);
+                        }
+
+                        if (values.action === "Send with TO/CC") {
+                            show_to_cc_dialog(frm);
+                        }
+
+                    },
+                    "Offer Letter Approved",
+                    "Continue"
+                );
+            }
+        });
+
+    }, __("Offer Actions"));
 }
+
+
+function show_offer_letter_dialog(frm, already_sent) {
+    const applicant_email = frm.doc.applicant_email;
+
+    const dlg = new frappe.ui.Dialog({
+        title: already_sent ? __('Resend Offer Letter') : __('Release Offer Letter'),
+        fields: [
+            {
+                fieldname: 'send_email',
+                fieldtype: 'Check',
+                label: __('Send to Applicant Email (' + applicant_email + ')'),
+                default: 1
+            }
+        ],
+        primary_action_label: __('Send'),
+        primary_action(values) {
+
+            if (!values.send_email) {
+                frappe.throw(__('Please check the option to send the offer letter.'));
+                return;
+            }
+
+            frappe.dom.freeze(__('Sending Offer Letter...'));
+
+            // Fetch Employee using doc.owner → user_id
+            frappe.db.get_value(
+                "Employee",
+                {"user_id": frappe.session.user},
+                ["name", "employee_name"]
+            ).then(emp => {
+
+                const released_by =
+                    emp && emp.message
+                        ? `${emp.message.name} - ${emp.message.employee_name}`
+                        : frappe.session.user;
+
+                frappe.call({
+                    method: "prompt_hr.py.job_offer.create_employee_letter_approval",
+                    args: {
+                        employee_id: emp?.message?.name || null,
+                        letter: "Offer Letter - PROMPT",
+                        job_applicant_name: frm.doc.job_applicant, 
+                        released_on_job_applicant_email: frm.doc.applicant_email,
+                        send_personal_email: 1,
+                        record: frm.doc.doctype,
+                        record_link: frm.doc.name,
+                        released_by_emp_code_and_name: released_by,
+                        
+                    },
+                    callback: function (r) {
+                        frappe.dom.unfreeze();
+
+                        if (r.message && r.message.status === "success") {
+                            frappe.msgprint({
+                                message: r.message.message,
+                                indicator: 'green'
+                            });
+                            dlg.hide();
+                            frm.reload_doc();
+                        } else {
+                            frappe.msgprint({
+                                message: r.message?.message || __('Failed to send offer letter.'),
+                                indicator: 'red'
+                            });
+                        }
+                    },
+                    error: function (err) {
+                        frappe.dom.unfreeze();
+                        frappe.msgprint({
+                            message: __('Something went wrong.'),
+                            indicator: 'red'
+                        });
+                        console.error(err);
+                    }
+                });
+            });
+        }
+    });
+
+    dlg.show();
+}
+
+
+function show_to_cc_dialog(frm, already_sent) {
+    let d = new frappe.ui.Dialog({
+        title: already_sent ? "Resend Offer Letter" : "Release Offer Letter",
+        fields: [
+            {
+                fieldname: "recipient_table",
+                label: "Recipients",
+                fieldtype: "Table",
+                cannot_add_rows: false,
+                in_place_edit: true,
+                fields: [
+                    {
+                        fieldtype: "Select",
+                        fieldname: "recipient_type",
+                        label: "Type",
+                        options: ["To", "CC"],
+                        in_list_view: 1,
+                        reqd: 1
+                    },
+                    {
+                        fieldtype: "Link",
+                        fieldname: "user",
+                        label: "User",
+                        options: "User",
+                        in_list_view: 1,
+                        reqd: 1,
+                        get_query: () => {
+                            return {
+                                query: "frappe.core.doctype.user.user.user_query"
+                            };
+                        }
+                    }
+                ]
+            }
+        ],
+
+        primary_action_label: "Send Letter",
+        primary_action(values) {
+
+            let to_users = [];
+            let cc_users = [];
+
+            // Applicant email always goes in TO list
+            if (frm.doc.applicant_email) {
+                to_users.push(frm.doc.applicant_email);
+            }
+
+            // Separate TO and CC users
+            values.recipient_table.forEach(row => {
+                if (row.recipient_type === "To") {
+                    to_users.push(row.user);
+                } else {
+                    cc_users.push(row.user);
+                }
+            });
+
+            // Call function       
+            release_offer_letter(frm, already_sent, to_users, cc_users);
+        }
+    });
+
+    d.show();
+}
+
+
+function show_LOI_dialog(frm) {
+    const applicant_email = frm.doc.applicant_email;
+
+    const dlg = new frappe.ui.Dialog({
+        title: "Release LOI Letter",
+        fields: [
+            {
+                fieldname: 'send_email',
+                fieldtype: 'Check',
+                label: __('Send to Applicant Email (' + applicant_email + ')'),
+                default: 1
+            }
+        ],
+        primary_action_label: __('Send'),
+        primary_action(values) {
+
+            if (!values.send_email) {
+                frappe.throw(__('Please check the option to send the offer letter.'));
+                return;
+            }
+
+            frappe.dom.freeze(__('Sending Offer Letter...'));
+
+            // Fetch Employee using doc.owner → user_id
+            frappe.db.get_value(
+                "Employee",
+                {"user_id": frappe.session.user},
+                ["name", "employee_name"]
+            ).then(emp => {
+
+                const released_by =
+                    emp && emp.message
+                        ? `${emp.message.name} - ${emp.message.employee_name}`
+                        : frappe.session.user;
+
+                frappe.call({
+                    method: "prompt_hr.py.job_offer.create_LOI_employee_letter_approval",
+                    args: {
+                        employee_id: emp?.message?.name || null,
+                        letter: "LOI",
+                        job_applicant_name: frm.doc.job_applicant, 
+                        released_on_job_applicant_email: frm.doc.applicant_email,
+                        send_personal_email: 1,
+                        record: frm.doc.doctype,
+                        record_link: frm.doc.name,
+                        released_by_emp_code_and_name: released_by,
+                        
+                    },
+                    callback: function (r) {
+                        frappe.dom.unfreeze();
+
+                        if (r.message && r.message.status === "success") {
+                            frappe.msgprint({
+                                message: r.message.message,
+                                indicator: 'green'
+                            });
+                            dlg.hide();
+                            frm.reload_doc();
+                        } else {
+                            frappe.msgprint({
+                                message: r.message?.message || __('Failed to send offer letter.'),
+                                indicator: 'red'
+                            });
+                        }
+                    },
+                    error: function (err) {
+                        frappe.dom.unfreeze();
+                        frappe.msgprint({
+                            message: __('Something went wrong.'),
+                            indicator: 'red'
+                        });
+                        console.error(err);
+                    }
+                });
+            });
+        }
+    });
+
+    dlg.show();
+}
+
+
+function show_LOI_to_cc_dialog(frm) {
+    let d = new frappe.ui.Dialog({
+        title: "Release LOI Letter",
+        fields: [
+            {
+                fieldname: "recipient_table",
+                label: "Recipients",
+                fieldtype: "Table",
+                cannot_add_rows: false,
+                in_place_edit: true,
+                fields: [
+                    {
+                        fieldtype: "Select",
+                        fieldname: "recipient_type",
+                        label: "Type",
+                        options: ["To", "CC"],
+                        in_list_view: 1,
+                        reqd: 1
+                    },
+                    {
+                        fieldtype: "Link",
+                        fieldname: "user",
+                        label: "User",
+                        options: "User",
+                        in_list_view: 1,
+                        reqd: 1,
+                        get_query: () => {
+                            return {
+                                query: "frappe.core.doctype.user.user.user_query"
+                            };
+                        }
+                    }
+                ]
+            }
+        ],
+
+        primary_action_label: "Send Letter",
+        primary_action(values) {
+
+            let to_users = [];
+            let cc_users = [];
+
+            // Applicant email always goes in TO list
+            if (frm.doc.applicant_email) {
+                to_users.push(frm.doc.applicant_email);
+            }
+
+            // Separate TO and CC users
+            values.recipient_table.forEach(row => {
+                if (row.recipient_type === "To") {
+                    to_users.push(row.user);
+                } else {
+                    cc_users.push(row.user);
+                }
+            });
+
+            // Call function 
+            frappe.call({
+                method: "prompt_hr.py.job_offer.send_LOI_letter",
+                args: {
+                    name: frm.doc.name,
+                    to_users: to_users,
+                    cc_users: cc_users
+                },
+                callback(r) {
+                    frappe.msgprint(r.message || "Confirmation Letter Sent");
+                    d.hide();
+                }
+            });
+
+            d.hide();
+        }
+    });
+
+    d.show();
+}
+
 
 function viewCandidatePortalButton(frm) {
     frm.add_custom_button('View Candidate Portal', function() {
@@ -183,22 +611,72 @@ function acceptChangesButton(frm) {
 }
 
 // ? FUNCTION TO RELEASE OR RESEND OFFER LETTER TO CANDIDATE
-function release_offer_letter(frm, is_resend = false) {
+// function release_offer_letter(frm, is_resend = false) {
 
-    // ? CHOOSE NOTIFICATION TEMPLATE BASED ON ACTION
+//     // ? CHOOSE NOTIFICATION TEMPLATE BASED ON ACTION
+//     const notification_name = is_resend ? "Resend Job Offer" : "Job Application";
+
+//     // ? MAKE BACKEND CALL TO RELEASE OFFER
+//     frappe.call({
+//         method: "prompt_hr.py.job_offer.release_offer_letter",
+//         args: {
+//             doctype: frm.doctype,
+//             docname: frm.doc.name,
+//             is_resend,
+//             notification_name
+//         },
+//         callback: function (r) {
+//             console.log(r)
+//             if (r.exc || r.message?.status === "error") {
+//                 frappe.msgprint({
+//                     title: "Error",
+//                     message: r.message?.message || "⚠️ Something went wrong while processing the offer.",
+//                     indicator: "red"
+//                 });
+//                 return;
+//             }
+
+            
+
+//             // ? MARK AS SENT ONLY IF IT’S A FIRST-TIME RELEASE
+//             if (!is_resend) {
+//                 frm.set_value("custom_offer_letter_sent", 1).then(() => {
+//                     frm.save_or_update();
+//                 });
+//             }
+
+//             frappe.show_alert({
+//             message: 'Offer Letter sent successfully!',
+//             indicator: 'green'
+//             }, 5);
+            
+//         },
+//         error: function (err) {
+//             frappe.msgprint({
+//                 title: "Server Error",
+//                 message: "Could not complete the request. Please try again.",
+//                 indicator: "red"
+//             });
+//             console.error("Error releasing/resending offer letter:", err);
+//         }
+//     });
+// }
+
+function release_offer_letter(frm, is_resend = false, to_users = [], cc_users = []) {
+
     const notification_name = is_resend ? "Resend Job Offer" : "Job Application";
 
-    // ? MAKE BACKEND CALL TO RELEASE OFFER
     frappe.call({
         method: "prompt_hr.py.job_offer.release_offer_letter",
         args: {
             doctype: frm.doctype,
             docname: frm.doc.name,
             is_resend,
-            notification_name
+            notification_name,
+            to_users,
+            cc_users
         },
         callback: function (r) {
-            console.log(r)
             if (r.exc || r.message?.status === "error") {
                 frappe.msgprint({
                     title: "Error",
@@ -208,9 +686,6 @@ function release_offer_letter(frm, is_resend = false) {
                 return;
             }
 
-            
-
-            // ? MARK AS SENT ONLY IF IT’S A FIRST-TIME RELEASE
             if (!is_resend) {
                 frm.set_value("custom_offer_letter_sent", 1).then(() => {
                     frm.save_or_update();
@@ -218,21 +693,13 @@ function release_offer_letter(frm, is_resend = false) {
             }
 
             frappe.show_alert({
-            message: 'Offer Letter sent successfully!',
-            indicator: 'green'
+                message: 'Offer Letter sent successfully!',
+                indicator: 'green'
             }, 5);
-            
-        },
-        error: function (err) {
-            frappe.msgprint({
-                title: "Server Error",
-                message: "Could not complete the request. Please try again.",
-                indicator: "red"
-            });
-            console.error("Error releasing/resending offer letter:", err);
         }
     });
 }
+
 
 
 // ? CREATE INVITE FOR DOCUMENT COLLECTION BUTTON

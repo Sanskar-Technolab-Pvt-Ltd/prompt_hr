@@ -1,0 +1,27 @@
+{
+ "attach_files": "",
+ "attach_print": 0,
+ "channel": "Email",
+ "creation": "2025-12-04 16:48:46.841461",
+ "days_in_advance": 0,
+ "docstatus": 0,
+ "doctype": "Notification",
+ "document_type": "Employee Letter Approval",
+ "enabled": 1,
+ "event": "Custom",
+ "idx": 0,
+ "is_standard": 1,
+ "message": "<p>Dear Team,</p>\n\n<p>\n    This is to inform you that <b>{{ doc.record }}</b> has been issued.  \n    The record link ID is <b>{{ doc.record_link }}</b>.\n</p>\n\n<p><b>Key Details:</b></p>\n\n<ul>\n    <li>Employee Name / Applicant Name: <b>{{ doc.employee_name or doc.job_applicant_name }}</b></li>\n    <li>Current Applicant Status: <b>{{ doc.workflow_state }}</b></li>\n</ul>\n\n<p>\n    Kindly take the necessary follow-up actions as per the process.\n</p>\n",
+ "message_type": "Markdown",
+ "modified": "2025-12-04 16:48:46.841461",
+ "modified_by": "Administrator",
+ "module": "Prompt HR",
+ "name": "Employee Letter Approval",
+ "owner": "Administrator",
+ "recipients": [
+  {}
+ ],
+ "send_system_notification": 1,
+ "send_to_all_assignees": 0,
+ "subject": "Employee Letter Approval {{doc.name}}"
+}

@@ -1,36 +1,90 @@
 import frappe
 from prompt_hr.py.utils import get_applicable_print_format,send_notification_email, get_prompt_company_name
 # testing comment
+# @frappe.whitelist()
+# def trigger_appointment_notification(name):
+#     doc = frappe.get_doc("Appointment Letter", name)
+#     employee = frappe.get_doc("Employee", doc.custom_employee)
+
+#     # Determine preferred email
+#     preferred = employee.prefered_contact_email
+#     email = (
+#         employee.company_email if preferred == "Company Email"
+#         else employee.personal_email if preferred == "Personal Email"
+#         else employee.prefered_email if preferred == "User ID"
+#         else employee.personal_email 
+#     )
+#     print("email:\n\n",email)
+#     is_prompt = False
+#     if doc.company == get_prompt_company_name():
+#         is_prompt = True
+
+#     print_format = get_applicable_print_format(is_prompt=is_prompt, doctype=doc.doctype).get("print_format")
+#     send_notification_email(
+#         recipients=[email],
+#         doctype=doc.doctype,
+#         docname=doc.name,
+#         notification_name="Send Appointment Letter",
+#         send_attach=True,
+#         print_format=print_format
+#     )
+#     notify_signatory_on_email(doc.company, doc.name, f"Appointment Letter - Prompt")
+
+#     return "Appointment Letter Successfully"
+
+
 @frappe.whitelist()
-def trigger_appointment_notification(name):
+def trigger_appointment_notification(name, to=None, cc=None):
+    """Send appointment letter email with TO & CC support"""
+
+    to = frappe.parse_json(to) if to else []
+    cc = frappe.parse_json(cc) if cc else []
+
     doc = frappe.get_doc("Appointment Letter", name)
     employee = frappe.get_doc("Employee", doc.custom_employee)
 
-    # Determine preferred email
+    #  Determine Preferred Email
     preferred = employee.prefered_contact_email
     email = (
         employee.company_email if preferred == "Company Email"
         else employee.personal_email if preferred == "Personal Email"
         else employee.prefered_email if preferred == "User ID"
-        else employee.personal_email 
+        else employee.personal_email
     )
-    print("email:\n\n",email)
-    is_prompt = False
-    if doc.company == get_prompt_company_name():
-        is_prompt = True
 
-    print_format = get_applicable_print_format(is_prompt=is_prompt, doctype=doc.doctype).get("print_format")
+    # Ensure applicant email is always in TO
+    if email not in to:
+        to.append(email)
+
+    #  Check Letter Print Format
+    is_prompt = doc.company == get_prompt_company_name()
+
+    print_format = get_applicable_print_format(
+        is_prompt=is_prompt, 
+        doctype=doc.doctype
+    ).get("print_format")
+
+    #  Send Email
     send_notification_email(
-        recipients=[email],
+        recipients=to,
+        cc=cc,
         doctype=doc.doctype,
         docname=doc.name,
         notification_name="Send Appointment Letter",
         send_attach=True,
         print_format=print_format
     )
-    notify_signatory_on_email(doc.company, doc.name, f"Appointment Letter - Prompt")
 
-    return "Appointment Letter Successfully"
+    #  Notify Signatory
+    notify_signatory_on_email(
+        doc.company,
+        doc.name,
+        f"Appointment Letter - Prompt"
+    )
+
+    return "Appointment Letter Sent Successfully"
+
+
 
 @frappe.whitelist()
 def notify_signatory_on_email(company,name,letter,email=None):
