@@ -22,6 +22,22 @@ def teams_calender_book(docname, rendered_html):
         start_time = date_time.get('start_time')
         end_time = date_time.get('end_time')
         token = generate_teams_token()
+        
+        doc = frappe.get_doc("Teams Settings","Teams Settings")
+        
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {token}',
+        }
+        
+        event_list = frappe.db.get_value("Teams Api Post Log", {"source_doctype":"Interview","source_docname":docname,"endpoint_type":"events","status":"Success"}, "name")
+        if event_list:
+            event_doc = frappe.get_doc("Teams Api Post Log", event_list)
+            event_json = json.loads(event_doc.response)
+            event_id = event_json.get("id")
+            delete_url = f"{doc.graph_url}/v1.0/users/{doc.object_id}/events/{event_id}"
+            delete_response = requests.delete(delete_url, headers=headers)
+            
         # template_content = unescape(interview_doc.custom_template_preview)
         # template_content = frappe.db.get_value("Interview", docname, "custom_template_preview")
         rendered_html = rendered_html   
@@ -35,16 +51,7 @@ def teams_calender_book(docname, rendered_html):
             
             if not join_url:
                 frappe.throw(("Error: While Post Teams onlineMeetings API"))
-
-        
-        doc = frappe.get_doc("Teams Settings","Teams Settings")
-            
         url = f"{doc.graph_url}/v1.0/users/{doc.object_id}/events"
-        
-        headers = {
-            'Content-Type': 'application/json',
-            'Authorization': f'Bearer {token}',
-        }
         
         formatted_date = datetime.strptime(str(interview_doc.scheduled_on), "%Y-%m-%d").strftime("%d %b %Y")
 
